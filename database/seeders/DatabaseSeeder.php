@@ -16,10 +16,12 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            UserSeeder::class,
-            CategorySeeder::class,
-            ProductSeeder::class,
-            PlantingBatchSeeder::class,
+            UserSeeder::class,                     // 1. Dữ liệu User
+            SystemContentSeeder::class,            // 2. Cấu hình & Banner
+            CatalogCertificationSeeder::class,    // 3. Danh mục & Sản phẩm
+            FarmBlockchainSeeder::class,          // 4. Lô nông trại & FEFO Kho
+            OrderComplaintReviewSeeder::class,    // 5. TẠO ĐƠN HÀNG TRƯỚC (Để có id trong bảng orders)
+            CustomerSubscriptionSeeder::class,    // 6. TẠO GÓI VIP & LỊCH GIAO (Mới tham chiếu order_id an toàn)
         ]);
     }
 }
