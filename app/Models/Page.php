@@ -11,10 +11,4 @@ class Page extends Model
 
     protected $fillable = ['slug', 'title', 'content'];
 
-    protected function casts(): array
-    {
-        return [
-            'is_active' => 'boolean',
-        ];
-    }
 }

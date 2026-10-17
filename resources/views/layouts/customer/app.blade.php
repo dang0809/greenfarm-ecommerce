@@ -45,6 +45,7 @@
 
     @stack('styles')
 </head>
+<livewire:customer.auth.auth-modal />
 <body class="font-sans text-gray-800 bg-white antialiased selection:bg-brand-200 selection:text-brand-900 min-h-screen flex flex-col justify-between">
 
     <!-- 1. LIVEWIRE HEADER -->

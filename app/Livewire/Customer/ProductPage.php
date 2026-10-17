@@ -16,7 +16,6 @@ class ProductPage extends Component
 {
     use WithPagination;
 
-    // Khởi tạo bằng chuỗi rỗng '' thay vì null
     #[Url(as: 'category')]
     public $selectedCategory = '';
 
@@ -34,7 +33,6 @@ class ProductPage extends Component
     public function updatedSortBy() { $this->resetPage(); }
     public function updatedSearch() { $this->resetPage(); }
 
-    // Reset chuẩn xác các thuộc tính về trạng thái ban đầu
     public function resetFilters()
     {
         $this->selectedCategory = '';
@@ -57,9 +55,15 @@ class ProductPage extends Component
             'productImages' => function ($q) {
                 $q->where('is_primary', true);
             }
-        ])->where('status', 'active');
+        ])
+        // Tính tổng tồn kho thực tế từ các lô còn hạn (FEFO)
+        ->withSum(['batches as total_stock' => function ($q) {
+            $q->where('product_batches.status', 'active')
+            ->where('product_batches.current_quantity', '>', 0)
+            ->whereDate('product_batches.expiry_date', '>=', now());
+        }], 'current_quantity')
+        ->where('status', 'active');
 
-        // Lọc danh mục khi không rỗng
         if (!empty($this->selectedCategory)) {
             $query->where('category_id', $this->selectedCategory);
         }

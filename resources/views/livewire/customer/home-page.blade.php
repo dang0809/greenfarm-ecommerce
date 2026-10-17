@@ -1,19 +1,36 @@
 <div>
+    <!-- Thông báo Alert Flash Message -->
+    @if (session()->has('success'))
+        <div class="fixed top-24 right-5 z-50 p-4 bg-green-50 border border-green-200 text-green-800 rounded-2xl text-xs sm:text-sm font-bold shadow-lg flex items-center justify-between gap-3">
+            <span><i class="fa-solid fa-circle-check text-green-600 mr-1"></i> {{ session('success') }}</span>
+            <button type="button" class="text-green-600" onclick="this.parentElement.remove()">✕</button>
+        </div>
+    @endif
+
+    @if (session()->has('error'))
+        <div class="fixed top-24 right-5 z-50 p-4 bg-red-50 border border-red-200 text-red-800 rounded-2xl text-xs sm:text-sm font-bold shadow-lg flex items-center justify-between gap-3">
+            <span><i class="fa-solid fa-circle-exclamation text-red-600 mr-1"></i> {{ session('error') }}</span>
+            <button type="button" class="text-red-600" onclick="this.parentElement.remove()">✕</button>
+        </div>
+    @endif
+
     <!-- 1. BANNER SLIDER -->
     <section class="pt-24 pb-8 lg:pt-32 lg:pb-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="relative w-full h-[360px] sm:h-[440px] md:h-[500px] rounded-3xl overflow-hidden shadow-sm group bg-gray-900" id="hero-slider">
             @if(count($banners) > 0)
-                <!-- Danh sách Slide từ Database -->
                 @foreach($banners as $index => $banner)
+                    @php
+                        $bannerImg = str_starts_with($banner->image, 'http') ? $banner->image : asset('storage/' . $banner->image);
+                    @endphp
                     <div class="absolute inset-0 slide {{ $index === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0' }} transition-opacity duration-700" data-index="{{ $index }}">
-                        <img src="{{ $banner->image }}" alt="{{ $banner->title }}" class="w-full h-full object-cover">
+                        <img src="{{ $bannerImg }}" alt="{{ $banner->title }}" class="w-full h-full object-cover">
                         <div class="absolute inset-0 bg-black/45"></div>
                         <div class="absolute inset-0 flex flex-col items-center justify-center text-center px-6 sm:px-12 z-10">
                             <div class="max-w-3xl text-white flex flex-col items-center">
                                 <h1 class="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight drop-shadow-md leading-tight mb-3">{{ $banner->title }}</h1>
                                 <p class="text-xs sm:text-base md:text-lg text-white/90 drop-shadow font-medium max-w-2xl mb-6 line-clamp-2 sm:line-clamp-none">{{ $banner->description }}</p>
-                                <a href="{{ $banner->link }}" class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white text-xs sm:text-sm md:text-base font-bold px-7 sm:px-8 py-3 rounded-2xl shadow-lg transition-all hover:scale-105">
-                                    <span>{{ $banner->button_text }}</span>
+                                <a href="{{ $banner->link ?? route('products.index') }}" class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white text-xs sm:text-sm md:text-base font-bold px-7 sm:px-8 py-3 rounded-2xl shadow-lg transition-all hover:scale-105">
+                                    <span>{{ $banner->button_text ?? 'Khám phá ngay' }}</span>
                                     <i class="fa-solid fa-arrow-right text-xs"></i>
                                 </a>
                             </div>
@@ -21,7 +38,7 @@
                     </div>
                 @endforeach
             @else
-                <!-- Fallback khi CSDL chưa có Banner (2 Slide Mẫu) -->
+                <!-- Fallback khi CSDL chưa có Banner -->
                 <div class="absolute inset-0 slide opacity-100 z-10 transition-opacity duration-700" data-index="0">
                     <img src="https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?auto=format&fit=crop&q=80&w=1600" alt="Banner Nông Sản 1" class="w-full h-full object-cover">
                     <div class="absolute inset-0 bg-black/45"></div>
@@ -29,7 +46,7 @@
                         <div class="max-w-3xl text-white flex flex-col items-center">
                             <h1 class="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight drop-shadow-md leading-tight mb-3">Nông Sản Sạch Tươi Ngon Thu Hoạch Mỗi Sớm</h1>
                             <p class="text-xs sm:text-base md:text-lg text-white/90 drop-shadow font-medium max-w-2xl mb-6">Xem chi tiết nhật ký gieo trồng, kiểm định chất lượng và thời gian thu hoạch thực tế qua mã QR.</p>
-                            <a href="#" class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white text-xs sm:text-sm md:text-base font-bold px-7 sm:px-8 py-3 rounded-2xl shadow-lg transition-all hover:scale-105">
+                            <a href="{{ route('products.index') }}" class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white text-xs sm:text-sm md:text-base font-bold px-7 sm:px-8 py-3 rounded-2xl shadow-lg transition-all hover:scale-105">
                                 <span>Khám phá ngay</span>
                                 <i class="fa-solid fa-arrow-right text-xs"></i>
                             </a>
@@ -44,7 +61,7 @@
                         <div class="max-w-3xl text-white flex flex-col items-center">
                             <h1 class="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight drop-shadow-md leading-tight mb-3">Minh Bạch Nguồn Gốc - Giao Nhanh Tận Bếp</h1>
                             <p class="text-xs sm:text-base md:text-lg text-white/90 drop-shadow font-medium max-w-2xl mb-6">Nông sản xuất kho theo nguyên tắc FEFO, giữ trọn hàm lượng vitamin và độ tươi giòn tự nhiên.</p>
-                            <a href="#" class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white text-xs sm:text-sm md:text-base font-bold px-7 sm:px-8 py-3 rounded-2xl shadow-lg transition-all hover:scale-105">
+                            <a href="{{ route('products.index') }}" class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white text-xs sm:text-sm md:text-base font-bold px-7 sm:px-8 py-3 rounded-2xl shadow-lg transition-all hover:scale-105">
                                 <span>Xem thực đơn hôm nay</span>
                                 <i class="fa-solid fa-arrow-right text-xs"></i>
                             </a>
@@ -57,7 +74,7 @@
             <button id="prev-slide" class="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 bg-white/20 hover:bg-white/40 backdrop-blur-md rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all z-20"><i class="fa-solid fa-chevron-left text-sm"></i></button>
             <button id="next-slide" class="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 bg-white/20 hover:bg-white/40 backdrop-blur-md rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all z-20"><i class="fa-solid fa-chevron-right text-sm"></i></button>
 
-            <!-- CHẤM TRÒN BANNER CHUYỂN DỰA THEO SỐ SLIDE THỰC TẾ -->
+            <!-- Dots Slider -->
             <div class="absolute bottom-5 left-1/2 -translate-x-1/2 flex space-x-2 z-20" id="slider-dots">
                 @if(count($banners) > 0)
                     @foreach($banners as $index => $banner)
@@ -87,14 +104,19 @@
             
             <div id="category-scroll-container" class="flex gap-4 md:gap-6 overflow-x-auto no-scrollbar scroll-smooth py-2">
                 @forelse($categories as $category)
-                    <a href="#" class="group flex flex-col items-center text-center shrink-0 w-[44%] sm:w-[30%] lg:w-[calc((100%-4*1.5rem)/5)]">
+                    @php
+                        $catImage = $category->image 
+                            ? (str_starts_with($category->image, 'http') ? $category->image : asset('storage/' . $category->image))
+                            : 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?w=300';
+                    @endphp
+                    <a href="{{ route('products.index', ['category' => $category->id]) }}" class="group flex flex-col items-center text-center shrink-0 w-[44%] sm:w-[30%] lg:w-[calc((100%-4*1.5rem)/5)]">
                         <div class="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-full overflow-hidden mb-3 shadow-sm border border-gray-100 group-hover:border-brand-300 transition-all duration-300">
-                            <img src="{{ $category->image }}" alt="{{ $category->name }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                            <img src="{{ $catImage }}" alt="{{ $category->name }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
                         </div>
                         <h3 class="text-sm md:text-base font-bold text-gray-800 group-hover:text-brand-600 transition-colors">{{ $category->name }}</h3>
                     </a>
                 @empty
-                    <a href="#" class="group flex flex-col items-center text-center shrink-0 w-[44%] sm:w-[30%] lg:w-[calc((100%-4*1.5rem)/5)]">
+                    <a href="{{ route('products.index') }}" class="group flex flex-col items-center text-center shrink-0 w-[44%] sm:w-[30%] lg:w-[calc((100%-4*1.5rem)/5)]">
                         <div class="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-full overflow-hidden mb-3 shadow-sm border border-gray-100 group-hover:border-brand-300 transition-all duration-300">
                             <img src="https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?w=300" alt="Rau lá xanh" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
                         </div>
@@ -125,11 +147,36 @@
                         $primaryImage = $rawImage 
                             ? (str_starts_with($rawImage, 'http') ? $rawImage : asset('storage/' . $rawImage))
                             : 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?w=600';
+
+                        // Tính tồn kho thực tế
+                        $stock = $product->total_stock !== null ? (int)$product->total_stock : 0;
+                        $isOutOfStock = $stock <= 0;
                     @endphp
 
                     <div class="bg-white rounded-3xl border border-gray-100 hover:border-brand-200 hover:shadow-lg transition-all duration-300 group flex flex-col relative overflow-hidden">
-                        <a href="#" class="relative aspect-square overflow-hidden block bg-gray-50">
-                            <img src="{{ $primaryImage }}" alt="{{ $product->name }}"  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                        
+                        <!-- Nhãn Tạm Hết Hàng hoặc Flash Sale -->
+                        @if($isOutOfStock)
+                            <span class="absolute top-3 left-3 z-20 bg-gray-900/80 backdrop-blur-xs text-white text-[10px] sm:text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-sm">
+                                Tạm Hết Hàng
+                            </span>
+                        @elseif($product->sale_price && $product->sale_price < $product->price)
+                            <span class="absolute top-3 left-3 z-10 bg-red-500 text-white text-[10px] sm:text-[11px] font-bold px-2 sm:px-2.5 py-1 rounded-lg shadow-sm">
+                                -{{ round((($product->price - $product->sale_price) / $product->price) * 100) }}% Flash Sale
+                            </span>
+                        @endif
+
+                        <!-- Ảnh sản phẩm: Vẫn cho click vào xem chi tiết -->
+                        <a href="{{ route('customer.product.detail', ['slug' => $product->slug]) }}" class="relative aspect-square overflow-hidden block bg-gray-50">
+                            <img src="{{ $primaryImage }}" alt="{{ $product->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 {{ $isOutOfStock ? 'grayscale opacity-75' : '' }}">
+                            
+                            @if($isOutOfStock)
+                                <div class="absolute inset-0 bg-gray-900/10 flex items-center justify-center">
+                                    <span class="bg-white/90 backdrop-blur-xs text-gray-800 text-xs font-extrabold px-3 py-1.5 rounded-xl shadow-xs border border-gray-200">
+                                        Hết hàng
+                                    </span>
+                                </div>
+                            @endif
                         </a>
                         
                         <div class="p-4 md:p-5 flex flex-col flex-grow">
@@ -138,7 +185,7 @@
                             </span>
 
                             <h3 class="text-base md:text-lg font-bold text-gray-800 mb-1 line-clamp-2 group-hover:text-brand-600 transition">
-                                <a href="#">{{ $product->name }}</a>
+                                <a href="{{ route('customer.product.detail', ['slug' => $product->slug]) }}">{{ $product->name }}</a>
                             </h3>
 
                             <div class="flex items-center gap-1 text-amber-400 text-xs mb-3">
@@ -150,48 +197,38 @@
                             
                             <div class="mt-auto pt-3 border-t border-gray-50 flex items-end justify-between">
                                 <div>
-                                    <span class="text-lg md:text-xl font-extrabold text-brand-700 leading-none block">
-                                        {{ number_format($product->price, 0, ',', '.') }}đ
-                                    </span>
+                                    @if($product->sale_price)
+                                        <span class="text-gray-400 text-xs line-through block mb-0.5">{{ number_format($product->price, 0, ',', '.') }}đ</span>
+                                        <span class="text-lg md:text-xl font-extrabold text-brand-700 leading-none">{{ number_format($product->sale_price, 0, ',', '.') }}đ</span>
+                                    @else
+                                        <span class="text-lg md:text-xl font-extrabold text-brand-700 leading-none block">{{ number_format($product->price, 0, ',', '.') }}đ</span>
+                                    @endif
                                     <span class="text-xs text-gray-500 font-medium">/{{ $product->unit }}</span>
                                 </div>
 
-                                @auth
-                                    <!-- CHỈ HIỂN THỊ NÚT THÊM VÀO GIỎ HÀNG KHI ĐÃ ĐĂNG NHẬP -->
-                                    <button class="bg-gray-900 hover:bg-brand-600 text-white w-9 h-9 rounded-xl flex items-center justify-center transition-colors shadow-md" title="Thêm vào giỏ">
-                                        <i class="fa-solid fa-plus"></i>
+                                <!-- NÚT THÊM VÀO GIỎ HÀNG -->
+                                @if($isOutOfStock)
+                                    <button type="button" 
+                                            disabled 
+                                            class="bg-gray-200 text-gray-400 w-9 h-9 rounded-xl flex items-center justify-center cursor-not-allowed" 
+                                            title="Sản phẩm tạm hết hàng">
+                                        <i class="fa-solid fa-ban text-xs sm:text-sm"></i>
                                     </button>
-                                @endauth
+                                @else
+                                    <button type="button" 
+                                            wire:click="addToCart({{ $product->id }}, 1)" 
+                                            class="bg-gray-900 hover:bg-brand-600 text-white w-9 h-9 rounded-xl flex items-center justify-center transition-colors shadow-md active:scale-95" 
+                                            title="Thêm vào giỏ">
+                                        <i class="fa-solid fa-plus text-xs sm:text-sm"></i>
+                                    </button>
+                                @endif
                             </div>
                         </div>
                     </div>
                 @empty
-                    <!-- Card Mẫu khi chưa có sản phẩm -->
-                    <div class="bg-white rounded-3xl border border-gray-100 hover:border-brand-200 hover:shadow-lg transition-all duration-300 group flex flex-col relative overflow-hidden">
-                        <span class="absolute top-3 left-3 z-20 bg-red-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-sm">-15% Flash Sale</span>
-                        <a href="#" class="relative aspect-square overflow-hidden block bg-gray-50">
-                            <img src="https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?w=600" alt="Cải bó xôi" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                        </a>
-                        <div class="p-4 md:p-5 flex flex-col flex-grow">
-                            <span class="text-[11px] font-semibold text-brand-600 uppercase tracking-wide">Rau Ăn Lá</span>
-                            <h3 class="text-base md:text-lg font-bold text-gray-800 mb-1 line-clamp-2 group-hover:text-brand-600">Cải Bó Xôi Hữu Cơ (Spinach)</h3>
-                            <div class="flex items-center gap-1 text-amber-400 text-xs mb-3">
-                                <i class="fa-solid fa-star"></i>
-                                <span class="text-gray-500 font-medium ml-1">4.9 | Đã bán 230</span>
-                            </div>
-                            <div class="mt-auto pt-3 border-t border-gray-50 flex items-end justify-between">
-                                <div>
-                                    <span class="text-gray-400 text-xs line-through block mb-0.5">55.000đ</span>
-                                    <span class="text-lg md:text-xl font-extrabold text-brand-700 leading-none">45.000đ</span>
-                                    <span class="text-xs text-gray-500 font-medium">/kg</span>
-                                </div>
-                                @auth
-                                    <button class="bg-gray-900 hover:bg-brand-600 text-white w-9 h-9 rounded-xl flex items-center justify-center transition-colors shadow-md">
-                                        <i class="fa-solid fa-plus"></i>
-                                    </button>
-                                @endauth
-                            </div>
-                        </div>
+                    <div class="col-span-2 md:col-span-4 py-12 text-center bg-white rounded-3xl border border-dashed border-gray-200">
+                        <i class="fa-solid fa-basket-shopping text-4xl text-gray-300 mb-3 block"></i>
+                        <p class="text-gray-600 font-bold">Chưa có sản phẩm nổi bật nào.</p>
                     </div>
                 @endforelse
             </div>
@@ -207,10 +244,10 @@
                 </div>
                 <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4 tracking-tight">Tra Cứu Nhật Ký Canh Tác Trực Tuyến</h2>
                 <p class="text-base text-gray-600 leading-relaxed mb-10 max-w-2xl mx-auto">
-                    Mỗi bao bì sản phẩm của Đất Lành đều gắn liền với một mã lô duy nhất. Nhập mã hoặc quét QR để xem thời gian gieo trồng, bón phân và thu hoạch thực tế[cite: 3].
+                    Mỗi bao bì sản phẩm của Đất Lành đều gắn liền với một mã lô duy nhất. Nhập mã hoặc quét QR để xem thời gian gieo trồng, bón phân và thu hoạch thực tế.
                 </p>
 
-                <form action="#" method="GET" id="batch-search-form" class="max-w-2xl mx-auto flex flex-col sm:flex-row items-center gap-3">
+                <form action="" method="GET" id="batch-search-form" class="max-w-2xl mx-auto flex flex-col sm:flex-row items-center gap-3">
                     <div class="flex-1 w-full bg-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl shadow-sm border border-gray-200 flex items-center focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100 transition-all">
                         <i class="fa-solid fa-barcode text-gray-400 text-lg mr-3 shrink-0"></i>
                         <input type="text" id="batch-code-input" name="batch" placeholder="Nhập mã lô (Ví dụ: DL-20261015-K1)" class="w-full outline-none text-gray-800 font-mono text-sm uppercase" required>
@@ -291,7 +328,7 @@
         </div>
     </section>
 
-    <!-- SCRIPT ĐIỀU KHIỂN SLIDER DÙNG BỘ DOTS ĐỘNG & QUÉT QR -->
+    <!-- SCRIPT SLIDER & QUÉT QR CODE -->
     <script>
         const slides = document.querySelectorAll('.slide');
         const dots = document.querySelectorAll('.dot');
@@ -306,18 +343,17 @@
             currentSlide = index;
         }
 
-        // Bắt sự kiện click nút Next / Prev
         document.getElementById('next-slide')?.addEventListener('click', () => { 
             showSlide((currentSlide + 1) % slides.length); 
             resetInterval(); 
         });
 
+        // FIX LỖI CÚ PHÁP SCRIPT Ở NÚT PREV SLIDE
         document.getElementById('prev-slide')?.addEventListener('click', () => { 
             showSlide((currentSlide - 1 + slides.length) % slides.length); 
             resetInterval(); 
         });
 
-        // Bắt sự kiện click vào từng chấm (Dot)
         dots.forEach((dot, index) => {
             dot.addEventListener('click', () => {
                 showSlide(index);
