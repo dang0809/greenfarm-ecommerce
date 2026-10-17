@@ -9,7 +9,7 @@
                 <span class="font-extrabold text-2xl text-brand-800 tracking-tight">Đất Lành</span>
             </a>
 
-            <!-- Desktop Navigation Menu (Đã bỏ Truy xuất nguồn gốc) -->
+            <!-- Desktop Navigation Menu -->
             <nav class="hidden lg:flex space-x-10">
                 <a href="{{ route('home') }}" 
                    class="{{ request()->routeIs('home') ? 'text-brand-700 font-bold' : 'text-gray-600 hover:text-brand-600 font-medium' }} transition-colors">
@@ -21,10 +21,14 @@
                     Sản phẩm
                 </a>
                 
-                <a href="#" class="text-gray-600 hover:text-brand-600 font-medium transition-colors">Về Nông trại</a>
+                <!-- ĐÃ THÊM: Active trạng thái cho Về nông trại (Desktop) -->
+                <a href="{{ route('about') }}" 
+                   class="{{ request()->routeIs('about') ? 'text-brand-700 font-bold' : 'text-gray-600 hover:text-brand-600 font-medium' }} transition-colors">
+                    Về Nông trại
+                </a>
             </nav>
 
-            <!-- Desktop Action Icons (Đã bỏ Tìm kiếm & Giỏ hàng) -->
+            <!-- Desktop Action Icons -->
             <div class="hidden lg:flex items-center space-x-6">
                 @auth
                     <!-- Thông báo -->
@@ -74,9 +78,17 @@
                     </div>
                 @else
                     <div class="flex items-center gap-3">
-                        <a href="{{ route('login') }}" class="text-sm font-bold text-gray-700 hover:text-brand-600 px-3 py-2 transition-colors">Đăng nhập</a>
-                        <a href="#" class="bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-sm">Đăng ký</a>
-                    </div>
+                        <button type="button" 
+                                wire:click="$dispatchTo('customer.auth.auth-modal', 'open-auth-modal', { tab: 'login' })" 
+                                class="text-sm font-bold text-gray-700 hover:text-brand-600 px-3 py-2 transition-colors">
+                            Đăng nhập
+                        </button>
+                        <button type="button" 
+                                wire:click="$dispatchTo('customer.auth.auth-modal', 'open-auth-modal', { tab: 'register' })" 
+                                class="bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-sm">
+                            Đăng ký
+                        </button>
+                    </div>          
                 @endauth
             </div>
 
@@ -89,7 +101,7 @@
         </div>
     </div>
 
-    <!-- Mobile Menu Drawer (Xử lý bật/tắt bằng Alpine.js) -->
+    <!-- Mobile Menu Drawer -->
     <div x-show="mobileMenuOpen" 
          x-transition
          style="display: none;"
@@ -108,8 +120,16 @@
                 </div>
             @else
                 <div class="grid grid-cols-2 gap-2 pt-1 pb-2">
-                    <a href="{{ route('login') }}" class="text-center py-2.5 border border-gray-200 text-gray-800 font-bold text-sm rounded-xl hover:bg-gray-50">Đăng nhập</a>
-                    <a href="#" class="text-center py-2.5 bg-brand-600 text-white font-bold text-sm rounded-xl hover:bg-brand-700">Đăng ký ngay</a>
+                    <button type="button" 
+                            wire:click="$dispatchTo('customer.auth.auth-modal', 'open-auth-modal', { tab: 'login' })" 
+                            class="text-center py-2.5 border border-gray-200 text-gray-800 font-bold text-sm rounded-xl hover:bg-gray-50">
+                        Đăng nhập
+                    </button>
+                    <button type="button" 
+                            wire:click="$dispatchTo('customer.auth.auth-modal', 'open-auth-modal', { tab: 'register' })" 
+                            class="text-center py-2.5 bg-brand-600 text-white font-bold text-sm rounded-xl hover:bg-brand-700">
+                        Đăng ký ngay
+                    </button>
                 </div>
             @endauth
 
@@ -124,7 +144,11 @@
                     Sản phẩm
                 </a>
 
-                <a href="#" class="block px-3 py-2.5 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-xl">Về Nông trại</a>
+                <!-- ĐÃ THÊM: Route & Active trạng thái cho Về nông trại (Mobile) -->
+                <a href="{{ route('about') }}" 
+                   class="block px-3 py-2.5 text-base {{ request()->routeIs('about') ? 'font-semibold text-brand-700 bg-brand-50' : 'font-medium text-gray-700 hover:bg-gray-50' }} rounded-xl">
+                    Về Nông trại
+                </a>
             </div>
 
             @auth
