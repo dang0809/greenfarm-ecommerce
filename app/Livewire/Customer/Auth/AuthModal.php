@@ -50,6 +50,14 @@ class AuthModal extends Component
         $this->isOpen = true;
     }
 
+    public function mount()
+    {
+        // 🟢 Nếu có cờ Session từ Middleware, tự động bật Modal ngay khi trang vừa tải
+        if (session()->has('open_auth_modal')) {
+            $this->isOpen = true; // Đổi biến hiển thị Modal thành true
+            $this->tab = 'login';
+        }
+    }
     public function closeModal(): void
     {
         $this->isOpen = false;

@@ -4,16 +4,20 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+
+// Import đầy đủ các Livewire Components
 use App\Livewire\Customer\HomePage;
 use App\Livewire\Customer\ProductPage;
 use App\Livewire\Customer\AboutPage;
 use App\Livewire\Customer\ProductDetail;
-
+use App\Livewire\Customer\VipCheckout;
+use App\Livewire\Customer\SubscriptionSetup;
+/*
+|--------------------------------------------------------------------------
+| 1. PUBLIC ROUTES (Ai cũng xem được - Không cần đăng nhập)
+|--------------------------------------------------------------------------
+*/
 Route::get('/', HomePage::class)->name('home');
-Route::get('/login', function () {
-    return 'Trang Đăng Nhập (Đang xây dựng)';
-})->name('login');
-
 Route::get('/san-pham', ProductPage::class)->name('products.index');
 Route::get('/ve-nong-trai', AboutPage::class)->name('about');
 Route::get('/san-pham/{slug}', ProductDetail::class)->name('customer.product.detail');
@@ -22,7 +26,12 @@ Route::get('/truy-xuat/{batch}', function ($batch) {
     return "Trang chi tiết truy xuất lô: " . $batch;
 })->name('customer.traceability.detail');
 
-// Route xử lý Link Xác Thực Email
+// Route dự phòng: Nếu hệ thống hoặc thư viện cố tình gọi route('login'), tự động đẩy về Trang chủ & mở Popup
+Route::get('/login', function () {
+    return redirect()->route('home')->with('open_auth_modal', true);
+})->name('login');
+
+// Route xử lý Link Xác Thực Email từ Mail gửi về
 Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) {
     $user = User::findOrFail($id);
 
@@ -41,7 +50,7 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
     // 3. Kích hoạt tài khoản: đổi status thành 'active'
     if (! $user->hasVerifiedEmail()) {
         $user->markEmailAsVerified();
-        $user->update(['status' => 'active']); // Hoặc 1 nếu DB lưu dạng integer
+        $user->update(['status' => 'active']);
     }
 
     // 4. Đăng nhập và đưa về trang chủ
@@ -50,3 +59,19 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
 
     return redirect()->route('home');
 })->name('verification.verify');
+
+
+/*
+|--------------------------------------------------------------------------
+| 2. CUSTOMER PROTECTED ROUTES (Bắt buộc Đăng nhập & Đúng vai trò Customer)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['role:customer'])->group(function () {
+    
+    // Trang Thanh toán gói VIP
+    Route::get('/goi-vip/thanh-toan', VipCheckout::class)->name('customer.vip.checkout');
+    Route::get('/goi-vip/thiet-lap-lich', SubscriptionSetup::class)->name('customer.vip.setup');
+    // Sau này các trang riêng tư của khách bổ sung ở đây:
+    // Route::get('/gio-hang', CartPage::class)->name('customer.cart');
+    // Route::get('/don-hang-cua-toi', OrderHistory::class)->name('customer.orders');
+});
