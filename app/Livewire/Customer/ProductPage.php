@@ -9,13 +9,13 @@ use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
-
+use App\Livewire\Traits\HandlesCart;
 #[Layout('layouts.customer.app')]
 #[Title('Cửa Hàng Nông Sản Sạch | Nông Trại Đất Lành')]
 class ProductPage extends Component
 {
     use WithPagination;
-
+    use HandlesCart;
     #[Url(as: 'category')]
     public $selectedCategory = '';
 
