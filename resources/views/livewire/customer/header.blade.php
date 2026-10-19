@@ -29,7 +29,7 @@
             </nav>
 
             <!-- Desktop Action Icons -->
-            <div class="hidden lg:flex items-center space-x-6">
+           <div class="hidden lg:flex items-center space-x-6">
                 @auth
                     <!-- Thông báo -->
                     <a href="#" class="text-gray-500 hover:text-brand-600 transition relative" title="Thông báo">
@@ -42,21 +42,21 @@
                         <button @click="userMenuOpen = !userMenuOpen" 
                                 @click.outside="userMenuOpen = false"
                                 class="flex items-center gap-2.5 p-1 rounded-full hover:bg-gray-50 transition-colors focus:outline-none">
-                            <img src="{{ $user->avatar ?? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150' }}" alt="Avatar" class="w-9 h-9 rounded-full object-cover border border-brand-200">
+                            <img src="{{ Auth::user()->avatar ?? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150' }}" alt="Avatar" class="w-9 h-9 rounded-full object-cover border border-brand-200">
                             <div class="text-left hidden xl:block">
-                                <span class="block text-xs font-bold text-gray-800 leading-tight">{{ $user->name }}</span>
-                                <span class="block text-[11px] font-semibold text-brand-600">✨ {{ $user->reward_points ?? 0 }} điểm</span>
+                                <span class="block text-xs font-bold text-gray-800 leading-tight">{{ Auth::user()->name }}</span>
+                                <span class="block text-[11px] font-semibold text-brand-600">✨ {{ Auth::user()->reward_points ?? 0 }} điểm</span>
                             </div>
                             <i class="fa-solid fa-chevron-down text-[10px] text-gray-400 ml-0.5"></i>
                         </button>
 
                         <div x-show="userMenuOpen" 
-                             x-transition
-                             style="display: none;"
-                             class="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
+                            x-transition
+                            style="display: none;"
+                            class="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
                             <div class="px-4 py-2.5 border-b border-gray-100">
                                 <p class="text-xs text-gray-400">Tài khoản thành viên</p>
-                                <p class="text-sm font-bold text-gray-800 truncate">{{ $user->email }}</p>
+                                <p class="text-sm font-bold text-gray-800 truncate">{{ Auth::user()->email }}</p>
                             </div>
                             <div class="py-1">
                                 <a href="#" class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-700">
@@ -67,12 +67,15 @@
                                 </a>
                             </div>
                             <div class="border-t border-gray-100 pt-1">
-                                <form action="#" method="POST">
-                                    @csrf
-                                    <button type="submit" class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-600 hover:bg-red-50 text-left font-medium">
-                                        <i class="fa-solid fa-arrow-right-from-bracket w-4"></i> Đăng xuất
-                                    </button>
-                                </form>
+                                <!-- NÚT ĐĂNG XUẤT LIVEWIRE -->
+                                <button type="button" 
+                                        wire:click="logout" 
+                                        wire:loading.attr="disabled"
+                                        class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-600 hover:bg-red-50 text-left font-medium disabled:opacity-50 transition">
+                                    <i wire:loading.remove wire:target="logout" class="fa-solid fa-arrow-right-from-bracket w-4"></i>
+                                    <i wire:loading wire:target="logout" class="fa-solid fa-spinner fa-spin w-4"></i>
+                                    <span>Đăng xuất</span>
+                                </button>
                             </div>
                         </div>
                     </div>
