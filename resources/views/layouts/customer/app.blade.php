@@ -57,32 +57,32 @@
     
 
     @stack('scripts')
-    <!-- TOAST THÔNG BÁO TỰ ẨN SAU 4 GIÂY -->
-@if (session()->has('success') || session()->has('error'))
-    <div x-data="{ show: true }"
-         x-init="setTimeout(() => show = false, 4000)"
-         x-show="show"
-         x-transition:enter="transition ease-out duration-300"
-         x-transition:enter-start="opacity-0 translate-y-2"
-         x-transition:enter-end="opacity-100 translate-y-0"
-         x-transition:leave="transition ease-in duration-200"
-         x-transition:leave-start="opacity-100 translate-y-0"
-         x-transition:leave-end="opacity-0 translate-y-2"
-         class="fixed top-24 right-5 z-[110] max-w-sm w-full bg-white border rounded-2xl shadow-xl p-4 flex items-center justify-between gap-3 {{ session()->has('success') ? 'border-emerald-200 bg-emerald-50' : 'border-red-200 bg-red-50' }}">
-        
-        <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 {{ session()->has('success') ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white' }}">
-                <i class="fa-solid {{ session()->has('success') ? 'fa-check' : 'fa-triangle-exclamation' }} text-sm"></i>
+        <!-- TOAST THÔNG BÁO TỰ ẨN SAU 4 GIÂY -->
+    @if (session()->has('success') || session()->has('error'))
+        <div x-data="{ show: true }"
+            x-init="setTimeout(() => show = false, 4000)"
+            x-show="show"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-y-2"
+            x-transition:enter-end="opacity-100 translate-y-0"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 translate-y-0"
+            x-transition:leave-end="opacity-0 translate-y-2"
+            class="fixed top-24 right-5 z-[110] max-w-sm w-full bg-white border rounded-2xl shadow-xl p-4 flex items-center justify-between gap-3 {{ session()->has('success') ? 'border-emerald-200 bg-emerald-50' : 'border-red-200 bg-red-50' }}">
+            
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 {{ session()->has('success') ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white' }}">
+                    <i class="fa-solid {{ session()->has('success') ? 'fa-check' : 'fa-triangle-exclamation' }} text-sm"></i>
+                </div>
+                <p class="text-xs font-bold {{ session()->has('success') ? 'text-emerald-900' : 'text-red-900' }}">
+                    {{ session('success') ?? session('error') }}
+                </p>
             </div>
-            <p class="text-xs font-bold {{ session()->has('success') ? 'text-emerald-900' : 'text-red-900' }}">
-                {{ session('success') ?? session('error') }}
-            </p>
-        </div>
 
-        <button type="button" @click="show = false" class="text-gray-400 hover:text-gray-600 p-1">
-            <i class="fa-solid fa-xmark text-sm"></i>
-        </button>
-    </div>
-@endif
+            <button type="button" @click="show = false" class="text-gray-400 hover:text-gray-600 p-1">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+    @endif
 </body>
 </html>
