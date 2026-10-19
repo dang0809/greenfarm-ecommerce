@@ -12,6 +12,7 @@ use App\Livewire\Customer\AboutPage;
 use App\Livewire\Customer\ProductDetail;
 use App\Livewire\Customer\VipCheckout;
 use App\Livewire\Customer\SubscriptionSetup;
+use App\Livewire\Customer\CartPage;
 /*
 |--------------------------------------------------------------------------
 | 1. PUBLIC ROUTES (Ai cũng xem được - Không cần đăng nhập)
@@ -71,6 +72,7 @@ Route::middleware(['role:customer'])->group(function () {
     // Trang Thanh toán gói VIP
     Route::get('/goi-vip/thanh-toan', VipCheckout::class)->name('customer.vip.checkout');
     Route::get('/goi-vip/thiet-lap-lich', SubscriptionSetup::class)->name('customer.vip.setup');
+    Route::get('/gio-hang', CartPage::class)->name('customer.cart');
     // Sau này các trang riêng tư của khách bổ sung ở đây:
     // Route::get('/gio-hang', CartPage::class)->name('customer.cart');
     // Route::get('/don-hang-cua-toi', OrderHistory::class)->name('customer.orders');

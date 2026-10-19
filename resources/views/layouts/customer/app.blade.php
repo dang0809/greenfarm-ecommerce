@@ -27,7 +27,6 @@
 
     @stack('styles')
 </head>
-
 <body class="font-sans text-gray-800 bg-white antialiased selection:bg-brand-200 selection:text-brand-900 min-h-screen flex flex-col justify-between">
     <livewire:customer.auth.auth-modal />
     <!-- 1. LIVEWIRE HEADER -->
@@ -58,31 +57,112 @@
 
     @stack('scripts')
         <!-- TOAST THÔNG BÁO TỰ ẨN SAU 4 GIÂY -->
-    @if (session()->has('success') || session()->has('error'))
-        <div x-data="{ show: true }"
-            x-init="setTimeout(() => show = false, 4000)"
-            x-show="show"
+    
+<!-- Toast thông báo Livewire + Alpine -->
+
+
+<div
+    x-data="{
+        toasts: [],
+        nextId: 1,
+
+        init() {
+            const success = @js(session('success'));
+            const error = @js(session('error'));
+
+            if (success) {
+                this.addToast('success', success);
+            }
+
+            if (error) {
+                this.addToast('error', error);
+            }
+        },
+
+        notify(event) {
+            const detail = event.detail ?? {};
+
+            this.addToast(
+                detail.type ?? 'success',
+                detail.message ?? ''
+            );
+        },
+
+        addToast(type, message) {
+            if (!message) return;
+
+            const id = this.nextId++;
+
+            this.toasts.push({
+                id,
+                type,
+                message
+            });
+
+            setTimeout(() => {
+                this.removeToast(id);
+            }, 4000);
+        },
+
+        removeToast(id) {
+            this.toasts = this.toasts.filter(
+                toast => toast.id !== id
+            );
+        }
+    }"
+    x-on:show-toast.window="notify($event)"
+    class="fixed top-24 right-5 z-[110] w-[calc(100%-2.5rem)] max-w-sm flex flex-col gap-3"
+    aria-live="polite"
+>
+    <template x-for="toast in toasts" :key="toast.id">
+        <div
+            x-show="true"
             x-transition:enter="transition ease-out duration-300"
-            x-transition:enter-start="opacity-0 translate-y-2"
-            x-transition:enter-end="opacity-100 translate-y-0"
+            x-transition:enter-start="opacity-0 translate-x-5"
+            x-transition:enter-end="opacity-100 translate-x-0"
             x-transition:leave="transition ease-in duration-200"
-            x-transition:leave-start="opacity-100 translate-y-0"
-            x-transition:leave-end="opacity-0 translate-y-2"
-            class="fixed top-24 right-5 z-[110] max-w-sm w-full bg-white border rounded-2xl shadow-xl p-4 flex items-center justify-between gap-3 {{ session()->has('success') ? 'border-emerald-200 bg-emerald-50' : 'border-red-200 bg-red-50' }}">
-            
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 {{ session()->has('success') ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white' }}">
-                    <i class="fa-solid {{ session()->has('success') ? 'fa-check' : 'fa-triangle-exclamation' }} text-sm"></i>
+            x-transition:leave-start="opacity-100 translate-x-0"
+            x-transition:leave-end="opacity-0 translate-x-5"
+            class="w-full rounded-2xl shadow-xl p-4 flex items-center justify-between gap-3 border"
+            :class="toast.type === 'success'
+                ? 'border-emerald-200 bg-emerald-50'
+                : 'border-red-200 bg-red-50'"
+        >
+            <div class="flex items-center gap-3 min-w-0">
+                <div
+                    class="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                    :class="toast.type === 'success'
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-red-500 text-white'"
+                >
+                    <i
+                        class="fa-solid text-sm"
+                        :class="toast.type === 'success'
+                            ? 'fa-check'
+                            : 'fa-triangle-exclamation'"
+                    ></i>
                 </div>
-                <p class="text-xs font-bold {{ session()->has('success') ? 'text-emerald-900' : 'text-red-900' }}">
-                    {{ session('success') ?? session('error') }}
-                </p>
+
+                <p
+                    class="text-xs font-bold break-words flex-1"
+                    :class="toast.type === 'success'
+                        ? 'text-emerald-900'
+                        : 'text-red-900'"
+                    x-text="toast.message"
+                ></p>
             </div>
 
-            <button type="button" @click="show = false" class="text-gray-400 hover:text-gray-600 p-1">
+            <button
+                type="button"
+                @click="removeToast(toast.id)"
+                class="text-gray-400 hover:text-gray-600 p-1 shrink-0"
+                aria-label="Đóng thông báo"
+            >
                 <i class="fa-solid fa-xmark text-sm"></i>
             </button>
         </div>
-    @endif
+    </template>
+</div>
+
 </body>
 </html>

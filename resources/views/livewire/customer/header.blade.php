@@ -1,6 +1,6 @@
 <header class="fixed w-full top-0 z-50 glass-header border-b border-gray-100 transition-all duration-300" 
         id="header"
-        x-data="{ mobileMenuOpen: false, userMenuOpen: false }">
+        x-data="{ mobileMenuOpen: false, userMenuOpen: false, notifMenuOpen: false }">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div class="flex items-center justify-between h-20">
             <!-- Logo -->
@@ -21,7 +21,6 @@
                     Sản phẩm
                 </a>
                 
-                <!-- ĐÃ THÊM: Active trạng thái cho Về nông trại (Desktop) -->
                 <a href="{{ route('about') }}" 
                    class="{{ request()->routeIs('about') ? 'text-brand-700 font-bold' : 'text-gray-600 hover:text-brand-600 font-medium' }} transition-colors">
                     Về Nông trại
@@ -29,17 +28,85 @@
             </nav>
 
             <!-- Desktop Action Icons -->
-           <div class="hidden lg:flex items-center space-x-6">
-                @auth
-                    <!-- Thông báo -->
-                    <a href="#" class="text-gray-500 hover:text-brand-600 transition relative" title="Thông báo">
-                        <i class="fa-regular fa-bell text-xl"></i>
-                        <span class="absolute -top-1 -right-1 bg-brand-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center border-2 border-white">2</span>
-                    </a>
+            <div class="hidden lg:flex items-center space-x-5">
+                <!-- 1. NÚT GIỎ HÀNG (DESKTOP) -->
+                <a href="{{ Auth::check() ? route('customer.cart') : '#' }}"
+                   @guest wire:click="$dispatchTo('customer.auth.auth-modal', 'open-auth-modal', { tab: 'login' })" @endguest
+                   class="text-gray-500 hover:text-brand-600 transition relative p-2" title="Giỏ hàng của bạn">
+                    <i class="fa-solid fa-cart-shopping text-xl"></i>
+                    @if($cartCount > 0)
+                        <span class="absolute top-0 right-0 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center border-2 border-white">
+                            {{ $cartCount > 99 ? '99+' : $cartCount }}
+                        </span>
+                    @endif
+                </a>
 
-                    <!-- User Dropdown Desktop -->
+                @auth
+                    <!-- 2. DROPDOWN THÔNG BÁO (DESKTOP) -->
                     <div class="relative">
-                        <button @click="userMenuOpen = !userMenuOpen" 
+                        <button @click="notifMenuOpen = !notifMenuOpen; userMenuOpen = false" 
+                                @click.outside="notifMenuOpen = false"
+                                class="text-gray-500 hover:text-brand-600 transition relative p-2 focus:outline-none flex items-center justify-center" 
+                                title="Thông báo">
+                            <i class="fa-regular fa-bell text-xl"></i>
+                            @if($unreadNotifCount > 0)
+                                <span class="absolute top-0 right-0 bg-brand-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center border-2 border-white">
+                                    {{ $unreadNotifCount > 9 ? '9+' : $unreadNotifCount }}
+                                </span>
+                            @endif
+                        </button>
+
+                        <!-- Sổ danh sách Thông báo -->
+                        <div x-show="notifMenuOpen" 
+                             x-transition
+                             style="display: none;"
+                             class="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-gray-100 py-3 z-50">
+                            <div class="px-4 pb-2.5 border-b border-gray-100 flex items-center justify-between">
+                                <h4 class="text-xs font-extrabold text-gray-900 uppercase tracking-wider">Thông Báo Mới</h4>
+                                @if($unreadNotifCount > 0)
+                                    <button type="button" wire:click="markAsRead" class="text-[11px] font-semibold text-brand-600 hover:underline">
+                                        Đánh dấu đã đọc tất cả
+                                    </button>
+                                @endif
+                            </div>
+
+                            <div class="max-h-80 overflow-y-auto divide-y divide-gray-50">
+                                @forelse($notifications as $notif)
+                                    <div wire:click="markAsRead({{ $notif->id }})" 
+                                        class="p-3.5 hover:bg-brand-50/50 transition-colors cursor-pointer flex items-start gap-3 {{ is_null($notif->read_at) ? 'bg-brand-50/30' : '' }}">
+                                        <div class="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center shrink-0 mt-0.5">
+                                            <i class="fa-solid fa-bell text-xs"></i>
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <p class="text-xs font-bold text-gray-800 line-clamp-1">{{ $notif->title }}</p>
+                                            <p class="text-[11px] text-gray-500 line-clamp-2 mt-0.5 leading-snug">{{ $notif->message }}</p>
+                                            <span class="text-[10px] text-gray-400 font-mono mt-1 block">
+                                                {{ \Carbon\Carbon::parse($notif->created_at)->diffForHumans() }}
+                                            </span>
+                                        </div>
+                                       @if(is_null($notif->read_at))
+                                            <span class="w-2 h-2 rounded-full bg-brand-500 shrink-0 mt-2"></span>
+                                        @endif
+                                    </div>
+                                @empty
+                                    <div class="py-8 text-center text-gray-400 text-xs">
+                                        <i class="fa-regular fa-bell-slash text-2xl mb-2 block text-gray-300"></i>
+                                        Chưa có thông báo nào
+                                    </div>
+                                @endforelse
+                            </div>
+
+                            <div class="pt-2 border-t border-gray-100 text-center px-4">
+                                <a href="#" class="text-xs font-bold text-brand-700 hover:text-brand-800 transition block py-1">
+                                    Xem tất cả thông báo
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. DROPDOWN TÀI KHOẢN THÀNH VIÊN (DESKTOP) -->
+                    <div class="relative">
+                        <button @click="userMenuOpen = !userMenuOpen; notifMenuOpen = false" 
                                 @click.outside="userMenuOpen = false"
                                 class="flex items-center gap-2.5 p-1 rounded-full hover:bg-gray-50 transition-colors focus:outline-none">
                             <img src="{{ Auth::user()->avatar ?? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150' }}" alt="Avatar" class="w-9 h-9 rounded-full object-cover border border-brand-200">
@@ -51,9 +118,9 @@
                         </button>
 
                         <div x-show="userMenuOpen" 
-                            x-transition
-                            style="display: none;"
-                            class="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
+                             x-transition
+                             style="display: none;"
+                             class="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
                             <div class="px-4 py-2.5 border-b border-gray-100">
                                 <p class="text-xs text-gray-400">Tài khoản thành viên</p>
                                 <p class="text-sm font-bold text-gray-800 truncate">{{ Auth::user()->email }}</p>
@@ -67,7 +134,6 @@
                                 </a>
                             </div>
                             <div class="border-t border-gray-100 pt-1">
-                                <!-- NÚT ĐĂNG XUẤT LIVEWIRE -->
                                 <button type="button" 
                                         wire:click="logout" 
                                         wire:loading.attr="disabled"
@@ -95,8 +161,21 @@
                 @endauth
             </div>
 
-            <!-- Mobile Action Icons (Nút Toggle Menu) -->
-            <div class="lg:hidden flex items-center gap-4">
+            <!-- Mobile Action Icons -->
+            <div class="lg:hidden flex items-center gap-3">
+                <!-- Nút Giỏ Hàng Mobile -->
+                <a href="{{ Auth::check() ? route('customer.cart') : '#' }}"
+                   @guest wire:click="$dispatchTo('customer.auth.auth-modal', 'open-auth-modal', { tab: 'login' })" @endguest
+                   class="text-gray-600 hover:text-brand-600 p-2 relative">
+                    <i class="fa-solid fa-cart-shopping text-xl"></i>
+                    @if($cartCount > 0)
+                        <span class="absolute top-0 right-0 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center border-2 border-white">
+                            {{ $cartCount > 99 ? '99+' : $cartCount }}
+                        </span>
+                    @endif
+                </a>
+
+                <!-- Nút Toggle Menu Mobile -->
                 <button @click="mobileMenuOpen = !mobileMenuOpen" class="text-gray-600 hover:text-brand-600 focus:outline-none p-2">
                     <i class="fa-solid text-2xl" :class="mobileMenuOpen ? 'fa-xmark' : 'fa-bars'"></i>
                 </button>
@@ -147,7 +226,6 @@
                     Sản phẩm
                 </a>
 
-                <!-- ĐÃ THÊM: Route & Active trạng thái cho Về nông trại (Mobile) -->
                 <a href="{{ route('about') }}" 
                    class="block px-3 py-2.5 text-base {{ request()->routeIs('about') ? 'font-semibold text-brand-700 bg-brand-50' : 'font-medium text-gray-700 hover:bg-gray-50' }} rounded-xl">
                     Về Nông trại
@@ -165,12 +243,11 @@
                 </div>
 
                 <div class="pt-2 border-t border-gray-100">
-                    <form action="#" method="POST">
-                        @csrf
-                        <button type="submit" class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 transition-colors">
-                            <i class="fa-solid fa-arrow-right-from-bracket w-4"></i> Đăng xuất
-                        </button>
-                    </form>
+                    <button type="button" 
+                            wire:click="logout"
+                            class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 transition-colors">
+                        <i class="fa-solid fa-arrow-right-from-bracket w-4"></i> Đăng xuất
+                    </button>
                 </div>
             @endauth
         </div>
