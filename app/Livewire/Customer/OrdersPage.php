@@ -39,12 +39,12 @@ class OrdersPage extends Component
     // Mua lại đơn hàng
     public function reorder(int $orderId)
     {
-        $order = Order::with('orderItems')->where('user_id', Auth::id())->find($orderId);
+        $order = Order::with('items')->where('user_id', Auth::id())->find($orderId);
         if (!$order) return;
 
         $cart = Cart::firstOrCreate(['user_id' => Auth::id()]);
 
-        foreach ($order->orderItems as $item) {
+        foreach ($order->items as $item) {
             $cartItem = CartItem::where('cart_id', $cart->id)
                 ->where('product_id', $item->product_id)
                 ->first();
@@ -80,7 +80,7 @@ class OrdersPage extends Component
         ];
 
         // Lọc danh sách đơn hàng
-        $query = Order::with(['orderItems.product.productImages', 'orderItems.batch'])
+        $query = Order::with(['items.product.productImages', 'items.batch'])
             ->where('user_id', $user->id);
 
         if ($this->statusFilter === 'pending_payment') {
