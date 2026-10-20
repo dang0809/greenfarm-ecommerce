@@ -13,6 +13,7 @@ use App\Livewire\Customer\ProductDetail;
 use App\Livewire\Customer\VipCheckout;
 use App\Livewire\Customer\SubscriptionSetup;
 use App\Livewire\Customer\CartPage;
+use App\Livewire\Customer\CheckoutPage;
 /*
 |--------------------------------------------------------------------------
 | 1. PUBLIC ROUTES (Ai cũng xem được - Không cần đăng nhập)
@@ -60,6 +61,7 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
 
     return redirect()->route('home');
 })->name('verification.verify');
+    Route::get('/checkout', CheckoutPage::class)->name('customer.checkout');
 
 
 /*

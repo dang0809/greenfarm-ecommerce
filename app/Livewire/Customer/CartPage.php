@@ -163,6 +163,22 @@ class CartPage extends Component
         );
     }
 
+    public function proceedToCheckout()
+    {
+        if (empty($this->selectedItems)) {
+            $this->dispatch('show-toast', type: 'error', message: 'Vui lòng chọn ít nhất 1 sản phẩm để thanh toán!');
+            return;
+        }
+
+        // Lưu danh sách sản phẩm được chọn & cấu hình điểm vào Session
+        session([
+            'checkout_selected_items' => $this->selectedItems,
+            'checkout_use_points'     => $this->usePoints,
+        ]);
+
+        return redirect()->route('customer.checkout');
+    }
+
     public function render()
     {
         $cart = $this->getCart();

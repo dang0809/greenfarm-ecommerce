@@ -11,7 +11,8 @@ use Livewire\WithFileUploads;
 use Livewire\Attributes\Layout; 
 use Livewire\Attributes\Title;
 use App\Livewire\Traits\HandlesCart; // 🟢 1. Import Trait
-
+use App\Models\Cart;
+use App\Models\CartItem;
 #[Layout('layouts.customer.app')]
 #[Title('Chi tiết sản phẩm')]
 class ProductDetail extends Component
@@ -103,8 +104,51 @@ class ProductDetail extends Component
     // 🟢 HÀM MUA NGAY: Thêm vào giỏ xong chuyển thẳng tới trang Giỏ hàng
     public function buyNow()
     {
-        if ($this->addToCart($this->product->id, $this->quantity)) {
-            return redirect()->route('customer.cart');
+        // 1. Kiểm tra đăng nhập
+        if (!Auth::check()) {
+            session()->flash('error', 'Vui lòng đăng nhập để thực hiện mua hàng!');
+            return redirect()->route('login');
+        }
+
+        // 2. Kiểm tra tồn kho
+        if ($this->totalStock <= 0) {
+            $this->dispatch('show-toast', type: 'error', message: 'Sản phẩm hiện đã hết hàng!');
+            return;
+        }
+
+        try {
+            // 3. Lấy hoặc tạo giỏ hàng của User
+            $cart = Cart::firstOrCreate([
+                'user_id' => Auth::id(),
+            ]);
+
+            // 4. Thêm hoặc cập nhật sản phẩm vào giỏ với số lượng đang chọn ($this->quantity)
+            $cartItem = CartItem::where('cart_id', $cart->id)
+                ->where('product_id', $this->product->id)
+                ->first();
+
+            if ($cartItem) {
+                // Nếu đã có trong giỏ, gán lại số lượng mới khách chọn
+                $cartItem->update([
+                    'quantity' => $this->quantity
+                ]);
+            } else {
+                // Nếu chưa có, tạo mới mục trong giỏ
+                CartItem::create([
+                    'cart_id'    => $cart->id,
+                    'product_id' => $this->product->id,
+                    'quantity'   => $this->quantity,
+                ]);
+            }
+
+            // Bắn sự kiện cập nhật số lượng giỏ hàng trên Header
+            $this->dispatch('cart-updated');
+
+            // 5. Chuyển hướng thẳng sang trang Thanh toán
+            return redirect()->route('customer.checkout');
+
+        } catch (\Exception $e) {
+            $this->dispatch('show-toast', type: 'error', message: 'Có lỗi xảy ra: ' . $e->getMessage());
         }
     }
 
