@@ -77,7 +77,7 @@
 
                 <!-- Danh sách món hàng -->
                 <div class="space-y-3">
-                    @foreach ($order->orderItems as $item)
+                    @foreach ($order->items as $item)
                         @php
                             $product = $item->product;
                             $rawImage = $product?->productImages?->firstWhere('is_primary', true)?->image 

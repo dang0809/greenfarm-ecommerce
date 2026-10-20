@@ -171,30 +171,41 @@
 
                                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                     <div>
-                                        <select id="province-select" x-model="selectedProvince" x-on:change="onProvinceChange()" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-brand-500">
+                                        <select id="province-select" 
+                                                x-model="selectedProvince" 
+                                                x-on:change="onProvinceChange()" 
+                                                class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-brand-500">
                                             <option value="">-- Chọn Tỉnh / Thành * --</option>
-                                            <template x-for="p in provinces" :key="p.code">
-                                                <option :value="p.name" :data-code="p.code" x-text="p.name"></option>
+                                            <template x-for="p in provinces" :key="p.ProvinceID">
+                                                <option :value="p.ProvinceName" :data-id="p.ProvinceID" x-text="p.ProvinceName"></option>
                                             </template>
                                         </select>
                                         @error('province') <span class="text-[10px] text-red-500 block mt-0.5">{{ $message }}</span> @enderror
                                     </div>
 
                                     <div>
-                                        <select id="district-select" x-model="selectedDistrict" x-on:change="onDistrictChange()" :disabled="!districts.length" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-brand-500 disabled:bg-gray-100">
+                                        <select id="district-select" 
+                                                x-model="selectedDistrict" 
+                                                x-on:change="onDistrictChange()" 
+                                                :disabled="!districts.length" 
+                                                class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-brand-500 disabled:bg-gray-100">
                                             <option value="">-- Chọn Quận / Huyện * --</option>
-                                            <template x-for="d in districts" :key="d.code">
-                                                <option :value="d.name" :data-code="d.code" x-text="d.name"></option>
+                                            <template x-for="d in districts" :key="d.DistrictID">
+                                                <option :value="d.DistrictName" :data-id="d.DistrictID" x-text="d.DistrictName"></option>
                                             </template>
                                         </select>
                                         @error('district') <span class="text-[10px] text-red-500 block mt-0.5">{{ $message }}</span> @enderror
                                     </div>
 
                                     <div>
-                                        <select id="ward-select" x-model="selectedWard" x-on:change="onWardChange()" :disabled="!wards.length" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-brand-500 disabled:bg-gray-100">
+                                        <select id="ward-select" 
+                                                x-model="selectedWard" 
+                                                x-on:change="onWardChange()" 
+                                                :disabled="!wards.length" 
+                                                class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-brand-500 disabled:bg-gray-100">
                                             <option value="">-- Chọn Phường / Xã * --</option>
-                                            <template x-for="w in wards" :key="w.code">
-                                                <option :value="w.name" x-text="w.name"></option>
+                                            <template x-for="w in wards" :key="w.WardCode">
+                                                <option :value="w.WardName" :data-id="w.WardCode" x-text="w.WardName"></option>
                                             </template>
                                         </select>
                                         @error('ward') <span class="text-[10px] text-red-500 block mt-0.5">{{ $message }}</span> @enderror
@@ -356,79 +367,128 @@
 </div>
 
 <script>
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('vnAddressPicker', () => ({
-            provinces: [],
-            districts: [],
-            wards: [],
-            selectedProvince: @entangle('province'),
-            selectedDistrict: @entangle('district'),
-            selectedWard: @entangle('ward'),
+document.addEventListener('alpine:init', () => {
+    Alpine.data('vnAddressPicker', () => ({
+        ghnToken: 'a2a04c91-cc63-11f1-b944-42faa0331861', 
+        baseUrl: 'https://dev-online-gateway.ghn.vn/shiip/public-api/master-data',
 
-            async init() {
-                try {
-                    const res = await fetch('https://provinces.open-api.vn/api/p/');
-                    this.provinces = await res.json();
-                    
-                    if (this.selectedProvince) {
-                        this.syncInitialData();
+        provinces: [],
+        districts: [],
+        wards: [],
+        selectedProvince: @entangle('province'),
+        selectedDistrict: @entangle('district'),
+        selectedWard: @entangle('ward'),
+
+        async init() {
+            try {
+                // 1. Lấy danh sách Tỉnh/Thành (Chỉ cần Token, KHÔNG gửi ShopId)
+                const res = await fetch(`${this.baseUrl}/province`, {
+                    method: 'GET',
+                    headers: { 
+                        'Token': this.ghnToken,
+                        'Content-Type': 'application/json'
                     }
-                } catch (e) {
-                    console.error('Không thể tải API Tỉnh/Thành', e);
-                }
-
-                Livewire.on('load-address-dropdowns', async (data) => {
-                    const info = data[0];
-                    this.selectedProvince = info.province;
-                    await this.syncInitialData();
-                    this.selectedDistrict = info.district;
-                    await this.onDistrictChange();
-                    this.selectedWard = info.ward;
                 });
-            },
-
-            async syncInitialData() {
-                const prov = this.provinces.find(p => p.name === this.selectedProvince);
-                if (prov) {
-                    const res = await fetch(`https://provinces.open-api.vn/api/p/${prov.code}?depth=2`);
-                    const data = await res.json();
-                    this.districts = data.districts || [];
+                const result = await res.json();
+                this.provinces = result.data || [];
+                
+                if (this.selectedProvince) {
+                    await this.syncInitialData();
                 }
-            },
+            } catch (e) {
+                console.error('Không thể tải Tỉnh/Thành từ GHN', e);
+            }
 
-            async onProvinceChange() {
-                this.districts = [];
-                this.wards = [];
-                this.selectedDistrict = '';
-                this.selectedWard = '';
+            Livewire.on('load-address-dropdowns', async (data) => {
+                const info = data[0];
+                this.selectedProvince = info.province;
+                await this.syncInitialData();
+                this.selectedDistrict = info.district;
+                await this.syncDistrictWards();
+                this.selectedWard = info.ward;
+            });
+        },
 
-                const provSelect = document.getElementById('province-select');
-                const selectedOpt = provSelect.options[provSelect.selectedIndex];
-                const code = selectedOpt?.getAttribute('data-code');
-
-                if (code) {
-                    const res = await fetch(`https://provinces.open-api.vn/api/p/${code}?depth=2`);
-                    const data = await res.json();
-                    this.districts = data.districts || [];
+        async syncInitialData() {
+            const prov = this.provinces.find(p => p.ProvinceName === this.selectedProvince);
+            if (prov) {
+                await this.fetchDistricts(prov.ProvinceID);
+                if (this.selectedDistrict) {
+                    await this.syncDistrictWards();
                 }
-            },
+            }
+        },
 
-            async onDistrictChange() {
-                this.wards = [];
-                this.selectedWard = '';
+        async syncDistrictWards() {
+            const dist = this.districts.find(d => d.DistrictName === this.selectedDistrict);
+            if (dist) {
+                await this.fetchWards(dist.DistrictID);
+            }
+        },
 
-                const distSelect = document.getElementById('district-select');
-                const selectedOpt = distSelect.options[distSelect.selectedIndex];
-                const code = selectedOpt?.getAttribute('data-code');
+        async onProvinceChange() {
+            this.districts = [];
+            this.wards = [];
+            this.selectedDistrict = '';
+            this.selectedWard = '';
 
-                if (code) {
-                    const res = await fetch(`https://provinces.open-api.vn/api/d/${code}?depth=2`);
-                    const data = await res.json();
-                    this.wards = data.wards || [];
-                }
-            },
+            const provSelect = document.getElementById('province-select');
+            const selectedOpt = provSelect?.options[provSelect.selectedIndex];
+            const provinceId = selectedOpt?.getAttribute('data-id');
 
-            onWardChange() {}
-        }));
-    });
+            if (provinceId) {
+                await this.fetchDistricts(provinceId);
+            }
+        },
+
+        async onDistrictChange() {
+            this.wards = [];
+            this.selectedWard = '';
+
+            const distSelect = document.getElementById('district-select');
+            const selectedOpt = distSelect?.options[distSelect.selectedIndex];
+            const districtId = selectedOpt?.getAttribute('data-id');
+
+            if (districtId) {
+                await this.fetchWards(districtId);
+            }
+        },
+
+        // 2. Lấy Quận/Huyện qua GET query param
+        async fetchDistricts(provinceId) {
+            try {
+                const res = await fetch(`${this.baseUrl}/district?province_id=${provinceId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Token': this.ghnToken,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const result = await res.json();
+                this.districts = result.data || [];
+            } catch (e) {
+                console.error('Lỗi tải Quận/Huyện từ GHN', e);
+            }
+        },
+
+        // 3. Lấy Phường/Xã qua GET query param
+        async fetchWards(districtId) {
+            try {
+                const res = await fetch(`${this.baseUrl}/ward?district_id=${districtId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Token': this.ghnToken,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const result = await res.json();
+                this.wards = result.data || [];
+            } catch (e) {
+                console.error('Lỗi tải Phường/Xã từ GHN', e);
+            }
+        },
+
+        onWardChange() {}
+    }));
+});
 </script>
