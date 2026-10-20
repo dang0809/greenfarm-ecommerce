@@ -126,12 +126,10 @@
                                 <p class="text-sm font-bold text-gray-800 truncate">{{ Auth::user()->email }}</p>
                             </div>
                             <div class="py-1">
-                                <a href="#" class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-700">
+                                <a href="{{ route('customer.profile') }}" class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-700">
                                     <i class="fa-regular fa-user text-gray-400 w-4"></i> Thông tin cá nhân
                                 </a>
-                                <a href="#" class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-700">
-                                    <i class="fa-solid fa-box-archive text-gray-400 w-4"></i> Lịch sử đơn hàng
-                                </a>
+                               
                             </div>
                             <div class="border-t border-gray-100 pt-1">
                                 <button type="button" 

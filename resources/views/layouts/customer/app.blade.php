@@ -38,7 +38,7 @@
     </main>
         @auth
     <!-- 3. NÚT NỔI ĐĂNG KÝ GÓI RAU (FLOATING CTA) -->
-    <a href="#" class="fixed bottom-6 right-4 sm:right-6 z-40 bg-gradient-to-r from-emerald-700 to-brand-600 hover:from-emerald-800 hover:to-brand-700 text-white px-4 py-3 rounded-full shadow-2xl flex items-center gap-3 transition-all hover:scale-105 active:scale-95 border-2 border-white/70 group">
+    <a href="{{ route('customer.vip.checkout') }}" class="fixed bottom-6 right-4 sm:right-6 z-40 bg-gradient-to-r from-emerald-700 to-brand-600 hover:from-emerald-800 hover:to-brand-700 text-white px-4 py-3 rounded-full shadow-2xl flex items-center gap-3 transition-all hover:scale-105 active:scale-95 border-2 border-white/70 group">
         <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-amber-300 text-base shadow-inner">
             <i class="fa-solid fa-box-open group-hover:rotate-12 transition-transform"></i>
         </div>
