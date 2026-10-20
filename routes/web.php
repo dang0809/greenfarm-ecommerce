@@ -14,6 +14,8 @@ use App\Livewire\Customer\VipCheckout;
 use App\Livewire\Customer\SubscriptionSetup;
 use App\Livewire\Customer\CartPage;
 use App\Livewire\Customer\CheckoutPage;
+use App\Livewire\Customer\ProfilePage;
+use App\Livewire\Customer\OrdersPage;
 /*
 |--------------------------------------------------------------------------
 | 1. PUBLIC ROUTES (Ai cũng xem được - Không cần đăng nhập)
@@ -61,7 +63,7 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
 
     return redirect()->route('home');
 })->name('verification.verify');
-    Route::get('/checkout', CheckoutPage::class)->name('customer.checkout');
+
 
 
 /*
@@ -75,6 +77,8 @@ Route::middleware(['role:customer'])->group(function () {
     Route::get('/goi-vip/thanh-toan', VipCheckout::class)->name('customer.vip.checkout');
     Route::get('/goi-vip/thiet-lap-lich', SubscriptionSetup::class)->name('customer.vip.setup');
     Route::get('/gio-hang', CartPage::class)->name('customer.cart');
+    Route::get('/ho-so', ProfilePage::class)->name('customer.profile');
+    Route::get('/thanh-toan', CheckoutPage::class)->name('customer.checkout');
     // Sau này các trang riêng tư của khách bổ sung ở đây:
     // Route::get('/gio-hang', CartPage::class)->name('customer.cart');
     // Route::get('/don-hang-cua-toi', OrderHistory::class)->name('customer.orders');

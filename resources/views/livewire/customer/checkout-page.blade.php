@@ -2,17 +2,6 @@
     <!-- MAIN CONTENT -->
     <main class="pt-8 pb-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        <!-- Breadcrumbs -->
-        <nav class="flex text-xs sm:text-sm text-gray-500 mb-6" aria-label="Breadcrumb">
-            <ol class="inline-flex items-center space-x-2">
-                <li><a href="{{ route('home') }}" class="hover:text-brand-600">Trang chủ</a></li>
-                <li><i class="fa-solid fa-chevron-right text-[10px] text-gray-400"></i></li>
-                <li><a href="{{ route('customer.cart') }}" class="hover:text-brand-600">Giỏ hàng</a></li>
-                <li><i class="fa-solid fa-chevron-right text-[10px] text-gray-400"></i></li>
-                <li class="text-gray-900 font-semibold">Thanh toán</li>
-            </ol>
-        </nav>
-
         <div class="pb-6 border-b border-gray-200/80 mb-8">
             <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Thanh Toán Đơn Hàng</h1>
             <p class="text-gray-500 text-xs sm:text-sm mt-1">Xác nhận thông tin giao nhận nông sản tươi từ Nông trại Đất Lành</p>
