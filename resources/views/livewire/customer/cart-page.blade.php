@@ -206,10 +206,12 @@
 
                         <!-- Nút Tiến Hành Đặt Hàng -->
                         @if($selectedCount > 0)
-                            <a href="#" class="w-full bg-brand-600 hover:bg-brand-700 text-white py-3.5 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-98">
+                            <button type="button" 
+                                    wire:click="proceedToCheckout"
+                                    class="w-full bg-brand-600 hover:bg-brand-700 text-white py-3.5 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-98 cursor-pointer">
                                 <span>Tiến hành đặt hàng</span>
                                 <i class="fa-solid fa-arrow-right text-xs"></i>
-                            </a>
+                            </button>
                         @else
                             <button type="button" disabled class="w-full bg-gray-200 text-gray-400 py-3.5 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 cursor-not-allowed">
                                 <span>Vui lòng chọn sản phẩm</span>
