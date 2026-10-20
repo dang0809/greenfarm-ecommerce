@@ -16,6 +16,7 @@ use App\Livewire\Customer\CartPage;
 use App\Livewire\Customer\CheckoutPage;
 use App\Livewire\Customer\ProfilePage;
 use App\Livewire\Customer\OrdersPage;
+use App\Livewire\Customer\TraceabilityDetail;
 /*
 |--------------------------------------------------------------------------
 | 1. PUBLIC ROUTES (Ai cũng xem được - Không cần đăng nhập)
@@ -26,9 +27,7 @@ Route::get('/san-pham', ProductPage::class)->name('products.index');
 Route::get('/ve-nong-trai', AboutPage::class)->name('about');
 Route::get('/san-pham/{slug}', ProductDetail::class)->name('customer.product.detail');
 
-Route::get('/truy-xuat/{batch}', function ($batch) {
-    return "Trang chi tiết truy xuất lô: " . $batch;
-})->name('customer.traceability.detail');
+Route::get('/truy-xuat/{batch}', TraceabilityDetail::class)->name('customer.traceability.detail');
 
 // Route dự phòng: Nếu hệ thống hoặc thư viện cố tình gọi route('login'), tự động đẩy về Trang chủ & mở Popup
 Route::get('/login', function () {
