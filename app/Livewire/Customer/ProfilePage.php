@@ -6,10 +6,14 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
+use Livewire\Attributes\On;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\Address;
-
+use App\Models\SystemSetting;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
+use Livewire\Attributes\Computed;
 #[Title('Tài Khoản Của Tôi | Nông Trại Đất Lành')]
 class ProfilePage extends Component
 {
@@ -22,7 +26,7 @@ class ProfilePage extends Component
     public string $name = '';
     public string $phone = '';
     public string $email = '';
-    public $newAvatar = null; // Biến bón file avatar
+    public $newAvatar = null;
 
     // 2. Sổ địa chỉ
     public bool $showAddressForm = false;
@@ -33,6 +37,8 @@ class ProfilePage extends Component
     public string $province = '';
     public string $district = '';
     public string $ward = '';
+    public $latitude = null;
+    public $longitude = null;
     public bool $is_default = false;
 
     // 3. Đổi mật khẩu
@@ -40,6 +46,9 @@ class ProfilePage extends Component
     public string $new_password = '';
     public string $new_password_confirmation = '';
 
+    public string $bank_name = '';
+    public string $bank_account_number = '';
+    public string $bank_account_name = '';
     public function mount()
     {
         $user = Auth::user();
@@ -50,6 +59,9 @@ class ProfilePage extends Component
         $this->name = $user->name ?? '';
         $this->phone = $user->phone ?? '';
         $this->email = $user->email ?? '';
+        $this->bank_name           = $user->default_bank_name ?? '';
+        $this->bank_account_number = $user->default_bank_account_number ?? '';
+        $this->bank_account_name   = $user->default_bank_account_name ?? '';
     }
 
     public function switchTab(string $tab)
@@ -61,15 +73,13 @@ class ProfilePage extends Component
     public function updatedNewAvatar()
     {
         $this->validate([
-            'newAvatar' => ['required', 'image', 'max:2048'], // Tối đa 2MB
+            'newAvatar' => ['required', 'image', 'max:2048'],
         ], [
             'newAvatar.image' => 'Tệp tải lên phải là hình ảnh (jpg, png, jpeg...).',
             'newAvatar.max'   => 'Dung lượng ảnh không được vượt quá 2MB.',
         ]);
 
         $user = Auth::user();
-
-        // Lưu vào thư mục storage/app/public/avatars
         $avatarPath = $this->newAvatar->store('avatars', 'public');
         
         $user->update([
@@ -78,7 +88,6 @@ class ProfilePage extends Component
 
         $this->reset('newAvatar');
 
-        // Bắn sự kiện làm mới Header & Thông báo
         $this->dispatch('profile-updated');
         $this->dispatch('show-toast', type: 'success', message: 'Đã đổi ảnh đại diện thành công!');
     }
@@ -87,19 +96,32 @@ class ProfilePage extends Component
     public function updateProfile()
     {
         $this->validate([
-            'name'  => ['required', 'string', 'max:255'],
-            'phone' => ['required', 'string', 'regex:/^(0[35789])[0-9]{8}$/'],
-        ], [
-            'name.required'  => 'Vui lòng nhập họ và tên.',
-            'name.max'       => 'Họ và tên không được vượt quá 255 ký tự.',
-            'phone.required' => 'Vui lòng nhập số điện thoại.',
-            'phone.regex'    => 'Số điện thoại không đúng định dạng (VD: 0912345678).',
-        ]);
+        'name'                  => ['required', 'string', 'max:255'],
+        'phone'                 => ['required', 'string', 'regex:/^(0[35789])[0-9]{8}$/'],
+        'bank_name'             => ['nullable', 'string'],
+        'bank_account_number'   => ['nullable', 'string', 'max:30'],
+        'bank_account_name'     => ['nullable', 'string', 'max:100'],
+    ], [
+        'name.required' => 'Vui lòng nhập họ và tên.',
+        'name.string'   => 'Họ và tên không hợp lệ.',
+        'name.max'      => 'Họ và tên không được vượt quá 255 ký tự.',
+        'phone.required' => 'Vui lòng nhập số điện thoại.',
+        'phone.string'   => 'Số điện thoại không hợp lệ.',
+        'phone.regex'    => 'Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 03, 05, 07, 08 hoặc 09.',
+        'bank_name.string' => 'Tên ngân hàng không hợp lệ.',
+        'bank_account_number.string' => 'Số tài khoản phải là chuỗi ký tự.',
+        'bank_account_number.max'    => 'Số tài khoản không được vượt quá 30 ký tự.',
+        'bank_account_name.string' => 'Tên chủ tài khoản không hợp lệ.',
+        'bank_account_name.max'    => 'Tên chủ tài khoản không được vượt quá 100 ký tự.',
+    ]);
 
         $user = Auth::user();
         $user->update([
             'name'  => $this->name,
             'phone' => $this->phone,
+            'default_bank_name'           => $this->bank_name,
+            'default_bank_account_number' => $this->bank_account_number,
+            'default_bank_account_name'   => mb_strtoupper($this->bank_account_name),
         ]);
 
         $this->dispatch('profile-updated');
@@ -166,6 +188,8 @@ class ProfilePage extends Component
         $this->district        = $address->district;
         $this->ward            = $address->ward;
         $this->address_detail  = $address->address_detail;
+        $this->latitude        = $address->latitude;
+        $this->longitude       = $address->longitude;
         $this->is_default      = (bool) $address->is_default;
 
         $this->showAddressForm = true;
@@ -177,25 +201,54 @@ class ProfilePage extends Component
         ]);
     }
 
-    // Lưu địa chỉ
+    // Lắng nghe sự kiện băm tọa độ từ Alpine.js
+    #[On('address-coordinates-updated')]
+    public function updateCoordinates($data)
+    {
+        $this->latitude = $data['lat'] ?? null;
+        $this->longitude = $data['lng'] ?? null;
+    }
+
+    // Lưu địa chỉ vào CSDL
     public function saveAddress()
     {
         $this->validate([
-            'recipient_name'  => 'required|string|max:255',
-            'recipient_phone' => ['required', 'string', 'regex:/^(0[35789])[0-9]{8}$/'],
-            'address_detail'  => 'required|string|max:255',
-            'province'        => 'required|string|max:100',
-            'district'        => 'required|string|max:100',
-            'ward'            => 'required|string|max:100',
-        ], [
-            'recipient_name.required'  => 'Vui lòng nhập tên người nhận.',
-            'recipient_phone.required' => 'Vui lòng nhập số điện thoại.',
-            'recipient_phone.regex'    => 'Số điện thoại không hợp lệ.',
-            'address_detail.required'  => 'Vui lòng nhập địa chỉ chi tiết.',
-            'province.required'        => 'Vui lòng chọn Tỉnh/Thành.',
-            'district.required'        => 'Vui lòng chọn Quận/Huyện.',
-            'ward.required'            => 'Vui lòng chọn Phường/Xã.',
-        ]);
+        'recipient_name'  => 'required|string|max:255',
+        'recipient_phone' => [
+            'required',
+            'string',
+            'regex:/^(0[35789])[0-9]{8}$/',
+        ],
+        'address_detail'  => 'required|string|max:255',
+        'province'        => 'required|string|max:100',
+        'district'        => 'required|string|max:100',
+        'ward'            => 'required|string|max:100',
+        'latitude'        => 'nullable|numeric',
+        'longitude'       => 'nullable|numeric',
+    ], [
+        'recipient_name.required' => 'Vui lòng nhập tên người nhận.',
+        'recipient_name.string'   => 'Tên người nhận phải là chuỗi ký tự.',
+        'recipient_name.max'      => 'Tên người nhận không được vượt quá 255 ký tự.',
+        'recipient_phone.required' => 'Vui lòng nhập số điện thoại người nhận.',
+        'recipient_phone.string'   => 'Số điện thoại không hợp lệ.',
+        'recipient_phone.regex'    => 'Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 03, 05, 07, 08 hoặc 09.',
+        'address_detail.required' => 'Vui lòng nhập địa chỉ chi tiết.',
+        'address_detail.string'   => 'Địa chỉ chi tiết không hợp lệ.',
+        'address_detail.max'      => 'Địa chỉ chi tiết không được vượt quá 255 ký tự.',
+        'province.required' => 'Vui lòng chọn Tỉnh/Thành phố.',
+        'province.string'   => 'Tỉnh/Thành phố không hợp lệ.',
+        'province.max'      => 'Tên Tỉnh/Thành phố không được vượt quá 100 ký tự.',
+        'district.required' => 'Vui lòng chọn Quận/Huyện.',
+        'district.string'   => 'Quận/Huyện không hợp lệ.',
+        'district.max'      => 'Tên Quận/Huyện không được vượt quá 100 ký tự.',
+        'ward.required' => 'Vui lòng chọn Phường/Xã.',
+        'ward.string'   => 'Phường/Xã không hợp lệ.',
+        'ward.max'      => 'Tên Phường/Xã không được vượt quá 100 ký tự.',
+
+        // Tọa độ
+        'latitude.numeric'  => 'Vĩ độ phải là một giá trị số.',
+        'longitude.numeric' => 'Kinh độ phải là một giá trị số.',
+    ]);
 
         $user = Auth::user();
 
@@ -213,6 +266,8 @@ class ProfilePage extends Component
                     'province'        => $this->province,
                     'district'        => $this->district,
                     'ward'            => $this->ward,
+                    'latitude'        => $this->latitude,
+                    'longitude'       => $this->longitude,
                     'is_default'      => $this->is_default,
                 ]);
                 $this->dispatch('show-toast', type: 'success', message: 'Đã cập nhật địa chỉ thành công!');
@@ -226,6 +281,8 @@ class ProfilePage extends Component
                 'province'        => $this->province,
                 'district'        => $this->district,
                 'ward'            => $this->ward,
+                'latitude'        => $this->latitude,
+                'longitude'       => $this->longitude,
                 'is_default'      => $this->is_default || Address::where('user_id', $user->id)->count() === 0,
             ]);
             $this->dispatch('show-toast', type: 'success', message: 'Đã thêm địa chỉ giao hàng mới!');
@@ -236,7 +293,18 @@ class ProfilePage extends Component
 
     public function resetAddressForm()
     {
-        $this->reset(['recipient_name', 'recipient_phone', 'address_detail', 'province', 'district', 'ward', 'is_default', 'editingAddressId']);
+        $this->reset([
+            'recipient_name', 
+            'recipient_phone', 
+            'address_detail', 
+            'province', 
+            'district', 
+            'ward', 
+            'latitude', 
+            'longitude', 
+            'is_default', 
+            'editingAddressId'
+        ]);
         $this->showAddressForm = false;
     }
 
@@ -257,15 +325,36 @@ class ProfilePage extends Component
             $this->dispatch('show-toast', type: 'success', message: 'Đã xóa địa chỉ thành công.');
         }
     }
+#[Computed]
+    public function banks()
+    {
+    return Cache::remember('vietnam_banks_list', 86400, function () {
+        try {
+            $response = Http::timeout(3)->get('https://api.vietqr.io/v2/banks');
+            if ($response->successful()) {
+                return $response->json()['data'] ?? [];
+            }
+        } catch (\Exception $e) {
+            \Log::warning('Không thể lấy danh sách ngân hàng VietQR: ' . $e->getMessage());
+        }
 
+        return [];
+    });
+    }
     public function render()
     {
         $user = Auth::user();
         $addresses = Address::where('user_id', $user->id)->orderByDesc('is_default')->get();
 
+        // 👈 Lấy toàn bộ cấu hình thuộc nhóm 'loyalty' từ bảng settings
+        $loyaltySettings = SystemSetting::where('group', 'loyalty')
+            ->pluck('value', 'key')
+            ->toArray();
+
         return view('livewire.customer.profile-page', [
-            'user'      => $user,
-            'addresses' => $addresses,
+            'user'            => $user,
+            'addresses'       => $addresses,
+            'loyaltySettings' => $loyaltySettings, // 👈 Truyền sang Blade
         ])->layout('layouts.customer.app');
     }
 }

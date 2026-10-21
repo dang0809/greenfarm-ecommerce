@@ -92,40 +92,103 @@
             <!-- CỘT PHẢI (8 CỘT): NỘI DUNG TỪNG TAB -->
             <div class="lg:col-span-8">
                 
-                <!-- TAB 1: THÔNG TIN CÁ NHÂN -->
+                <!-- TAB 1: THÔNG TIN CÁ NHÂN & NGÂN HÀNG HOÀN TIỀN -->
                 @if ($activeTab === 'info')
                     <div class="bg-white rounded-3xl border border-gray-100 p-6 sm:p-8 shadow-sm space-y-6">
                         <div class="pb-4 border-b border-gray-100">
                             <h2 class="text-lg sm:text-xl font-extrabold text-gray-900 tracking-tight">Hồ Sơ Của Tôi</h2>
-                            <p class="text-xs text-gray-400 mt-0.5">Cập nhật thông tin cá nhân của bạn</p>
+                            <p class="text-xs text-gray-400 mt-0.5">Cập nhật thông tin cá nhân và tài khoản nhận hoàn tiền</p>
                         </div>
 
-                        <form wire:submit.prevent="updateProfile" class="space-y-4">
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-700 mb-1.5">Họ và tên</label>
-                                    <input type="text" wire:model="name" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:bg-white focus:border-brand-500 transition-all">
-                                    @error('name') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
+                        <form wire:submit.prevent="updateProfile" class="space-y-6">
+                            
+                            <!-- 1. THÔNG TIN CÁ NHÂN CƠ BẢN -->
+                            <div class="space-y-4">
+                                <h3 class="text-xs font-bold text-gray-800 uppercase tracking-wide flex items-center gap-1.5">
+                                    <i class="fa-regular fa-id-card text-brand-600"></i>
+                                    <span>Thông tin định danh</span>
+                                </h3>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-700 mb-1.5">Họ và tên</label>
+                                        <input type="text" wire:model="name" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:bg-white focus:border-brand-500 transition-all">
+                                        @error('name') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-700 mb-1.5">Số điện thoại</label>
+                                        <input type="tel" wire:model="phone" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:bg-white focus:border-brand-500 transition-all">
+                                        @error('phone') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
+                                    </div>
                                 </div>
+
                                 <div>
-                                    <label class="block text-xs font-bold text-gray-700 mb-1.5">Số điện thoại</label>
-                                    <input type="tel" wire:model="phone" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:bg-white focus:border-brand-500 transition-all">
-                                    @error('phone') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
+                                    <label class="block text-xs font-bold text-gray-700 mb-1.5">Địa chỉ Email</label>
+                                    <input type="email" wire:model="email" class="w-full bg-gray-100 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm font-medium text-gray-500 outline-none cursor-not-allowed" readonly title="Email định danh không thể thay đổi">
                                 </div>
                             </div>
 
-                            <div>
-                                <label class="block text-xs font-bold text-gray-700 mb-1.5">Địa chỉ Email</label>
-                                <input type="email" wire:model="email" class="w-full bg-gray-100 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm font-medium text-gray-500 outline-none cursor-not-allowed" readonly title="Email định danh không thể thay đổi">
+                            <!-- 2. BỔ SUNG: THÔNG TIN TÀI KHOẢN NGÂN HÀNG HOÀN TIỀN MẶC ĐỊNH -->
+                            <div class="pt-5 border-t border-gray-100 space-y-4">
+                                <div>
+                                    <h3 class="text-xs font-bold text-gray-800 uppercase tracking-wide flex items-center gap-1.5">
+                                        <i class="fa-solid fa-building-columns text-brand-600"></i>
+                                        <span>Tài khoản ngân hàng nhận lại tiền (Mặc định)</span>
+                                    </h3>
+                                    <p class="text-[11px] text-gray-400 mt-0.5">Nông Trại Đất Lành dùng tài khoản này để hoàn tiền tự động khi bạn hủy đơn online đã thanh toán.</p>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <!-- Chọn Ngân hàng -->
+                                   <div>
+                                        <label class="block text-xs font-bold text-gray-700 mb-1.5">Ngân hàng / Ví điện tử</label>
+                                        <select wire:model="bank_name" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:bg-white focus:border-brand-500 transition-all">
+                                            <option value="">-- Chọn ngân hàng --</option>
+                                            
+                                            @forelse ($this->banks as $bank)
+                                                {{-- CHỈ HIỂN THỊ TÊN VIẾT TẮT + MÃ NGÂN HÀNG (Ví dụ: VietinBank (ICB), Vietcombank (VCB)) --}}
+                                                <option value="{{ $bank['shortName'] }}">
+                                                    {{ $bank['shortName'] }} ({{ $bank['code'] }})
+                                                </option>
+                                            @empty
+                                                <option value="MBBank">MBBank (MB)</option>
+                                                <option value="Vietcombank">Vietcombank (VCB)</option>
+                                                <option value="Techcombank">Techcombank (TCB)</option>
+                                                <option value="ACB">ACB</option>
+                                                <option value="VPBank">VPBank (VPB)</option>
+                                                <option value="VietinBank">VietinBank (CTG)</option>
+                                                <option value="BIDV">BIDV</option>
+                                                <option value="MoMo">Ví MoMo</option>
+                                            @endforelse
+                                        </select>
+                                        @error('bank_name') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
+                                    </div>
+
+                                    <!-- Số tài khoản -->
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-700 mb-1.5">Số tài khoản / SĐT MoMo</label>
+                                        <input type="text" wire:model="bank_account_number" placeholder="VD: 0391000123456" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:bg-white focus:border-brand-500 transition-all">
+                                        @error('bank_account_number') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
+                                    </div>
+                                </div>
+
+                                <!-- Tên chủ tài khoản -->
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-700 mb-1.5">Tên chủ tài khoản (Viết hoa không dấu)</label>
+                                    <input type="text" wire:model="bank_account_name" placeholder="VD: NGUYEN VAN A" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm font-medium uppercase outline-none focus:bg-white focus:border-brand-500 transition-all">
+                                    @error('bank_account_name') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
+                                </div>
                             </div>
 
                             @error('newAvatar') 
                                 <span class="text-xs text-red-500 block">{{ $message }}</span> 
                             @enderror
 
+                            <!-- Nút Lưu -->
                             <div class="pt-4 border-t border-gray-100 flex justify-end">
-                                <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm shadow-sm transition-all active:scale-95 cursor-pointer">
-                                    Lưu thay đổi
+                                <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm shadow-sm transition-all active:scale-95 cursor-pointer flex items-center gap-2">
+                                    <i class="fa-solid fa-floppy-disk text-xs"></i>
+                                    <span>Lưu thay đổi</span>
                                 </button>
                             </div>
                         </form>
@@ -176,8 +239,8 @@
                                                 x-on:change="onProvinceChange()" 
                                                 class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-brand-500">
                                             <option value="">-- Chọn Tỉnh / Thành * --</option>
-                                            <template x-for="p in provinces" :key="p.ProvinceID">
-                                                <option :value="p.ProvinceName" :data-id="p.ProvinceID" x-text="p.ProvinceName"></option>
+                                            <template x-for="p in provinces" :key="p.code">
+                                                <option :value="p.name" :data-id="p.code" x-text="p.name"></option>
                                             </template>
                                         </select>
                                         @error('province') <span class="text-[10px] text-red-500 block mt-0.5">{{ $message }}</span> @enderror
@@ -190,8 +253,8 @@
                                                 :disabled="!districts.length" 
                                                 class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-brand-500 disabled:bg-gray-100">
                                             <option value="">-- Chọn Quận / Huyện * --</option>
-                                            <template x-for="d in districts" :key="d.DistrictID">
-                                                <option :value="d.DistrictName" :data-id="d.DistrictID" x-text="d.DistrictName"></option>
+                                            <template x-for="d in districts" :key="d.code">
+                                                <option :value="d.name" :data-id="d.code" x-text="d.name"></option>
                                             </template>
                                         </select>
                                         @error('district') <span class="text-[10px] text-red-500 block mt-0.5">{{ $message }}</span> @enderror
@@ -204,8 +267,8 @@
                                                 :disabled="!wards.length" 
                                                 class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-brand-500 disabled:bg-gray-100">
                                             <option value="">-- Chọn Phường / Xã * --</option>
-                                            <template x-for="w in wards" :key="w.WardCode">
-                                                <option :value="w.WardName" :data-id="w.WardCode" x-text="w.WardName"></option>
+                                            <template x-for="w in wards" :key="w.code">
+                                                <option :value="w.name" :data-id="w.code" x-text="w.name"></option>
                                             </template>
                                         </select>
                                         @error('ward') <span class="text-[10px] text-red-500 block mt-0.5">{{ $message }}</span> @enderror
@@ -279,13 +342,30 @@
                                     {{ number_format($user->reward_points ?? 0) }} <span class="text-sm font-semibold text-brand-200">điểm</span>
                                 </div>
                                 <p class="text-xs text-brand-100 mt-2">
-                                    Tương đương <b>{{ number_format($user->reward_points ?? 0) }}đ</b> trừ trực tiếp khi thanh toán đơn hàng.
+                                    Tương đương <b>{{ number_format(($user->reward_points ?? 0) * (int)($loyaltySettings['value_per_point'] ?? 1)) }}đ</b> trừ trực tiếp khi thanh toán đơn hàng.
                                 </p>
                             </div>
-                            <div class="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl text-xs space-y-1 shrink-0">
-                                <span class="font-bold text-white block">Quy chế đổi điểm:</span>
-                                <p class="text-brand-100">• Mua 100.000đ = nhận 1.000 điểm</p>
-                                <p class="text-brand-100">• 1.000 điểm = 1.000đ giảm giá</p>
+                            
+                            <!-- Quy chế điểm thưởng lấy động từ CSDL -->
+                            <div class="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl text-xs space-y-1.5 shrink-0">
+                                <span class="font-bold text-white block mb-1">Quy chế điểm thưởng:</span>
+                                
+                                <p class="text-brand-100 flex items-center gap-1.5">
+                                    <span>•</span>
+                                    <span>Tích điểm: <b>{{ number_format($loyaltySettings['spending_per_point'] ?? 10000) }}đ</b> chi tiêu = <b>1 điểm</b></span>
+                                </p>
+                                
+                                <p class="text-brand-100 flex items-center gap-1.5">
+                                    <span>•</span>
+                                    <span>Đổi điểm: <b>1 điểm</b> = <b>{{ number_format($loyaltySettings['value_per_point'] ?? 1) }}đ</b> giảm giá</span>
+                                </p>
+
+                                @if(!empty($loyaltySettings['max_point_discount_percent']))
+                                    <p class="text-brand-100 flex items-center gap-1.5">
+                                        <span>•</span>
+                                        <span>Trừ tối đa: <b>{{ $loyaltySettings['max_point_discount_percent'] }}%</b> giá trị đơn</span>
+                                    </p>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -299,65 +379,64 @@
                             <p class="text-xs text-gray-400 mt-0.5">Để bảo mật, vui lòng không chia sẻ mật khẩu cho người khác</p>
                         </div>
 
-                       <form wire:submit.prevent="updatePassword" class="space-y-4 max-w-md">
-    
-                        <!-- 1. Mật khẩu hiện tại -->
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 mb-1.5">Mật khẩu hiện tại</label>
-                            <div x-data="{ show: false }" class="relative">
-                                <input :type="show ? 'text' : 'password'" 
-                                    wire:model="current_password" 
-                                    placeholder="••••••••" 
-                                    class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-3.5 pr-10 py-2.5 text-sm outline-none focus:border-brand-500">
-                                <button type="button" 
-                                        @click="show = !show" 
-                                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1">
-                                    <i class="fa-solid" :class="show ? 'fa-eye-slash' : 'fa-eye'"></i>
+                        <form wire:submit.prevent="updatePassword" class="space-y-4 max-w-md">
+                            <!-- 1. Mật khẩu hiện tại -->
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1.5">Mật khẩu hiện tại</label>
+                                <div x-data="{ show: false }" class="relative">
+                                    <input :type="show ? 'text' : 'password'" 
+                                        wire:model="current_password" 
+                                        placeholder="••••••••" 
+                                        class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-3.5 pr-10 py-2.5 text-sm outline-none focus:border-brand-500">
+                                    <button type="button" 
+                                            @click="show = !show" 
+                                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1">
+                                        <i class="fa-solid" :class="show ? 'fa-eye-slash' : 'fa-eye'"></i>
+                                    </button>
+                                </div>
+                                @error('current_password') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
+                            </div>
+
+                            <!-- 2. Mật khẩu mới -->
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1.5">Mật khẩu mới</label>
+                                <div x-data="{ show: false }" class="relative">
+                                    <input :type="show ? 'text' : 'password'" 
+                                        wire:model="new_password" 
+                                        placeholder="Tối thiểu 8 ký tự" 
+                                        class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-3.5 pr-10 py-2.5 text-sm outline-none focus:border-brand-500">
+                                    <button type="button" 
+                                            @click="show = !show" 
+                                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1">
+                                        <i class="fa-solid" :class="show ? 'fa-eye-slash' : 'fa-eye'"></i>
+                                    </button>
+                                </div>
+                                @error('new_password') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
+                            </div>
+
+                            <!-- 3. Xác nhận mật khẩu mới -->
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1.5">Xác nhận mật khẩu mới</label>
+                                <div x-data="{ show: false }" class="relative">
+                                    <input :type="show ? 'text' : 'password'" 
+                                        wire:model="new_password_confirmation" 
+                                        placeholder="Nhập lại mật khẩu mới" 
+                                        class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-3.5 pr-10 py-2.5 text-sm outline-none focus:border-brand-500">
+                                    <button type="button" 
+                                            @click="show = !show" 
+                                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1">
+                                        <i class="fa-solid" :class="show ? 'fa-eye-slash' : 'fa-eye'"></i>
+                                    </button>
+                                </div>
+                                @error('new_password_confirmation') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
+                            </div>
+
+                            <div class="pt-2">
+                                <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm shadow-sm transition-all active:scale-95 cursor-pointer">
+                                    Cập nhật mật khẩu
                                 </button>
                             </div>
-                            @error('current_password') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
-                        </div>
-
-                        <!-- 2. Mật khẩu mới -->
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 mb-1.5">Mật khẩu mới</label>
-                            <div x-data="{ show: false }" class="relative">
-                                <input :type="show ? 'text' : 'password'" 
-                                    wire:model="new_password" 
-                                    placeholder="Tối thiểu 8 ký tự" 
-                                    class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-3.5 pr-10 py-2.5 text-sm outline-none focus:border-brand-500">
-                                <button type="button" 
-                                        @click="show = !show" 
-                                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1">
-                                    <i class="fa-solid" :class="show ? 'fa-eye-slash' : 'fa-eye'"></i>
-                                </button>
-                            </div>
-                            @error('new_password') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
-                        </div>
-
-                        <!-- 3. Xác nhận mật khẩu mới -->
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 mb-1.5">Xác nhận mật khẩu mới</label>
-                            <div x-data="{ show: false }" class="relative">
-                                <input :type="show ? 'text' : 'password'" 
-                                    wire:model="new_password_confirmation" 
-                                    placeholder="Nhập lại mật khẩu mới" 
-                                    class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-3.5 pr-10 py-2.5 text-sm outline-none focus:border-brand-500">
-                                <button type="button" 
-                                        @click="show = !show" 
-                                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1">
-                                    <i class="fa-solid" :class="show ? 'fa-eye-slash' : 'fa-eye'"></i>
-                                </button>
-                            </div>
-                            @error('new_password_confirmation') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
-                        </div>
-
-                        <div class="pt-2">
-                            <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm shadow-sm transition-all active:scale-95 cursor-pointer">
-                                Cập nhật mật khẩu
-                            </button>
-                        </div>
-                    </form>
+                        </form>
                     </div>
                 @endif
 
@@ -369,8 +448,8 @@
 <script>
 document.addEventListener('alpine:init', () => {
     Alpine.data('vnAddressPicker', () => ({
-        ghnToken: 'a2a04c91-cc63-11f1-b944-42faa0331861', 
-        baseUrl: 'https://dev-online-gateway.ghn.vn/shiip/public-api/master-data',
+        baseUrl: 'https://provinces.open-api.vn/api',
+        goongApiKey: 'YOUR_GOONG_API_KEY', // Thay API Key Goong.io để băm tọa độ Ahamove
 
         provinces: [],
         districts: [],
@@ -378,25 +457,22 @@ document.addEventListener('alpine:init', () => {
         selectedProvince: @entangle('province'),
         selectedDistrict: @entangle('district'),
         selectedWard: @entangle('ward'),
+        
+        detailAddress: @entangle('address_detail'),
+        latitude: @entangle('latitude'),
+        longitude: @entangle('longitude'),
 
         async init() {
             try {
-                // 1. Lấy danh sách Tỉnh/Thành (Chỉ cần Token, KHÔNG gửi ShopId)
-                const res = await fetch(`${this.baseUrl}/province`, {
-                    method: 'GET',
-                    headers: { 
-                        'Token': this.ghnToken,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                const result = await res.json();
-                this.provinces = result.data || [];
+                // 1. Lấy danh sách Tỉnh/Thành từ Open API (Không cần Token)
+                const res = await fetch(`${this.baseUrl}/p/`);
+                this.provinces = await res.json();
                 
                 if (this.selectedProvince) {
                     await this.syncInitialData();
                 }
             } catch (e) {
-                console.error('Không thể tải Tỉnh/Thành từ GHN', e);
+                console.error('Không thể tải Tỉnh/Thành từ Open API', e);
             }
 
             Livewire.on('load-address-dropdowns', async (data) => {
@@ -406,13 +482,15 @@ document.addEventListener('alpine:init', () => {
                 this.selectedDistrict = info.district;
                 await this.syncDistrictWards();
                 this.selectedWard = info.ward;
+                
+                await this.geocodeAddress();
             });
         },
 
         async syncInitialData() {
-            const prov = this.provinces.find(p => p.ProvinceName === this.selectedProvince);
+            const prov = this.provinces.find(p => p.name === this.selectedProvince);
             if (prov) {
-                await this.fetchDistricts(prov.ProvinceID);
+                await this.fetchDistricts(prov.code);
                 if (this.selectedDistrict) {
                     await this.syncDistrictWards();
                 }
@@ -420,9 +498,9 @@ document.addEventListener('alpine:init', () => {
         },
 
         async syncDistrictWards() {
-            const dist = this.districts.find(d => d.DistrictName === this.selectedDistrict);
+            const dist = this.districts.find(d => d.name === this.selectedDistrict);
             if (dist) {
-                await this.fetchWards(dist.DistrictID);
+                await this.fetchWards(dist.code);
             }
         },
 
@@ -431,64 +509,90 @@ document.addEventListener('alpine:init', () => {
             this.wards = [];
             this.selectedDistrict = '';
             this.selectedWard = '';
+            this.latitude = null;
+            this.longitude = null;
 
             const provSelect = document.getElementById('province-select');
             const selectedOpt = provSelect?.options[provSelect.selectedIndex];
-            const provinceId = selectedOpt?.getAttribute('data-id');
+            const provinceCode = selectedOpt?.getAttribute('data-id');
 
-            if (provinceId) {
-                await this.fetchDistricts(provinceId);
+            if (provinceCode) {
+                await this.fetchDistricts(provinceCode);
             }
         },
 
         async onDistrictChange() {
             this.wards = [];
             this.selectedWard = '';
+            this.latitude = null;
+            this.longitude = null;
 
             const distSelect = document.getElementById('district-select');
             const selectedOpt = distSelect?.options[distSelect.selectedIndex];
-            const districtId = selectedOpt?.getAttribute('data-id');
+            const districtCode = selectedOpt?.getAttribute('data-id');
 
-            if (districtId) {
-                await this.fetchWards(districtId);
+            if (districtCode) {
+                await this.fetchWards(districtCode);
             }
         },
 
-        // 2. Lấy Quận/Huyện qua GET query param
-        async fetchDistricts(provinceId) {
+        // 2. Lấy Quận/Huyện theo mã Tỉnh
+        async fetchDistricts(provinceCode) {
             try {
-                const res = await fetch(`${this.baseUrl}/district?province_id=${provinceId}`, {
-                    method: 'GET',
-                    headers: {
-                        'Token': this.ghnToken,
-                        'Content-Type': 'application/json'
-                    }
-                });
+                const res = await fetch(`${this.baseUrl}/p/${provinceCode}?depth=2`);
                 const result = await res.json();
-                this.districts = result.data || [];
+                this.districts = result.districts || [];
             } catch (e) {
-                console.error('Lỗi tải Quận/Huyện từ GHN', e);
+                console.error('Lỗi tải Quận/Huyện từ Open API', e);
             }
         },
 
-        // 3. Lấy Phường/Xã qua GET query param
-        async fetchWards(districtId) {
+        // 3. Lấy Phường/Xã theo mã Huyện
+        async fetchWards(districtCode) {
             try {
-                const res = await fetch(`${this.baseUrl}/ward?district_id=${districtId}`, {
-                    method: 'GET',
-                    headers: {
-                        'Token': this.ghnToken,
-                        'Content-Type': 'application/json'
-                    }
-                });
+                const res = await fetch(`${this.baseUrl}/d/${districtCode}?depth=2`);
                 const result = await res.json();
-                this.wards = result.data || [];
+                this.wards = result.wards || [];
             } catch (e) {
-                console.error('Lỗi tải Phường/Xã từ GHN', e);
+                console.error('Lỗi tải Phường/Xã từ Open API', e);
             }
         },
 
-        onWardChange() {}
+        async onWardChange() {
+            await this.geocodeAddress();
+        },
+
+        // 4. Băm địa chỉ sang Tọa độ cho Ahamove
+        async geocodeAddress() {
+            if (!this.selectedProvince || !this.selectedDistrict || !this.selectedWard) return;
+
+            const fullAddress = `${this.detailAddress || ''}, ${this.selectedWard}, ${this.selectedDistrict}, ${this.selectedProvince}`;
+
+            try {
+                let res = await fetch(`https://rsapi.goong.io/Geocode?api_key=${this.goongApiKey}&address=${encodeURIComponent(fullAddress)}`);
+                let data = await res.json();
+
+                // Dự phòng: Băm 3 cấp hành chính nếu địa chỉ chi tiết không tìm thấy
+                if (!data.results || data.results.length === 0) {
+                    const fallbackAddress = `${this.selectedWard}, ${this.selectedDistrict}, ${this.selectedProvince}`;
+                    res = await fetch(`https://rsapi.goong.io/Geocode?api_key=${this.goongApiKey}&address=${encodeURIComponent(fallbackAddress)}`);
+                    data = await res.json();
+                }
+
+                if (data.results && data.results.length > 0) {
+                    const location = data.results[0].geometry.location;
+                    this.latitude = location.lat;
+                    this.longitude = location.lng;
+
+                    Livewire.dispatch('address-coordinates-updated', {
+                        lat: this.latitude,
+                        lng: this.longitude
+                    });
+                }
+            } catch (e) {
+                console.error('Lỗi quy đổi địa chỉ sang tọa độ:', e);
+            }
+        }
     }));
 });
 </script>

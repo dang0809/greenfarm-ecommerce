@@ -11,7 +11,6 @@ return new class extends Migration
      */
     public function up(): void
     {
-           
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name', 255);
@@ -22,15 +21,23 @@ return new class extends Migration
             $table->string('role', 50)->default('customer')->index();
             $table->string('status', 50)->default('active')->index();
             $table->integer('reward_points')->default(0);
+
+            // 3 trường Ngân hàng mặc định phục vụ Hủy đơn & Hoàn tiền
+            $table->string('default_bank_name', 100)->nullable();
+            $table->string('default_bank_account_number', 50)->nullable();
+            $table->string('default_bank_account_name', 100)->nullable();
+
             $table->timestamp('email_verified_at')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
+
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email', 255)->primary();
             $table->string('token', 255);
             $table->timestamp('created_at')->nullable();
         });
+
         Schema::create('sessions', function (Blueprint $table) {
             $table->string('id', 255)->primary();
             $table->foreignId('user_id')->nullable()->index();
