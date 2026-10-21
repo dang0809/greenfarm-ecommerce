@@ -149,7 +149,7 @@ class CheckoutPage extends Component
 
             $this->dispatch('cart-updated');
 
-            return redirect()->route('customer.payment.payos', ['order_id' => $order->id]);
+            return redirect()->route('', ['order_id' => $order->id]);
 
         } catch (\Exception $e) {
             DB::rollBack();

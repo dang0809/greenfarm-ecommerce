@@ -14,9 +14,7 @@ class Complaint extends Model
     protected $fillable = [
         'user_id',
         'order_id',
-        'type',
         'refund_amount',
-        'replacement_order_id',
         'reason',
         'status',
         'resolved_by',
@@ -38,11 +36,6 @@ class Complaint extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
-    }
-
-    public function replacementOrder(): BelongsTo
-    {
-        return $this->belongsTo(Order::class, 'replacement_order_id');
     }
 
     public function resolver(): BelongsTo

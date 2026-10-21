@@ -12,7 +12,7 @@ class Address extends Model
 
     protected $fillable = [
         'user_id', 'recipient_name', 'recipient_phone',
-        'province', 'district', 'ward', 'address_detail', 'is_default',
+        'province', 'district', 'ward', 'address_detail' , 'is_default', 'latitude', 'longitude',
     ];
 
     protected function casts(): array

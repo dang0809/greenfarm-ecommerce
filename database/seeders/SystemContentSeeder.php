@@ -12,12 +12,20 @@ class SystemContentSeeder extends Seeder
     {
         // 2.1. System Settings
         $settings = [
+            // 1. Nhóm Liên hệ & Địa chỉ Kho/Nông trại
             ['key' => 'hotline', 'value' => '0987.654.321', 'group' => 'contact'],
             ['key' => 'email', 'value' => 'lienhe@datlanhfarm.vn', 'group' => 'contact'],
             ['key' => 'farm_address', 'value' => 'Thôn 3, Xã Đạ Ròn, Huyện Đơn Dương, Lâm Đồng', 'group' => 'contact'],
-            ['key' => 'free_ship_threshold', 'value' => '300000', 'group' => 'shipping'],
-            ['key' => 'base_shipping_fee_per_km', 'value' => '5000', 'group' => 'shipping'],
+            ['key' => 'farm_latitude', 'value' => '11.8321542', 'group' => 'contact'],   // Vĩ độ kho/nông trại
+            ['key' => 'farm_longitude', 'value' => '108.4328190', 'group' => 'contact'], // Kinh độ kho/nông trại
+
+            // 3. Nhóm Gói thành viên / Đăng ký
             ['key' => 'vip_monthly_subscription_price', 'value' => '1200000', 'group' => 'subscription'],
+
+            // 4. Nhóm Tích điểm & Đổi thưởng (Loyalty)
+            ['key' => 'spending_per_point', 'value' => '10000', 'group' => 'loyalty'],        // Mức chi tiêu tích 1 điểm (Ví dụ: 10.000đ = 1 điểm)
+            ['key' => 'value_per_point', 'value' => '100', 'group' => 'loyalty'],            // Giá trị quy đổi khi trừ tiền (Ví dụ: 1 điểm = 100đ)
+            ['key' => 'max_point_discount_percent', 'value' => '10', 'group' => 'loyalty'],   // Giới hạn trừ điểm tối đa theo % đơn (Ví dụ: tối đa 10% giá trị đơn)
         ];
         foreach ($settings as $setting) {
             DB::table('system_settings')->updateOrInsert(['key' => $setting['key']], $setting);

@@ -13,21 +13,46 @@ class Order extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id', 'order_code', 'order_type', 'subtotal', 'shipping_distance_km',
-        'shipping_fee', 'points_used', 'points_earned', 'total', 'payment_method',
-        'payment_status', 'shipping_provider', 'tracking_code', 'recipient_name',
-        'recipient_phone', 'recipient_address', 'status', 'note',
+        'user_id', 
+        'order_code', 
+        'order_type', 
+        'subtotal', 
+        'shipping_distance_km',
+        'shipping_fee', 
+        'points_used', 
+        'points_earned', 
+        'total', 
+        'payment_method',
+        'payment_status', 
+        'shipping_provider', 
+        'tracking_code', 
+        'recipient_name',
+        'recipient_phone', 
+        'recipient_address', 
+        'status', 
+        'note',
+        // Các trường phục vụ tính năng Hủy đơn & Hoàn tiền
+        'cancel_reason',
+        'cancelled_at',
+        'cancelled_by',
+        'bank_name',
+        'bank_account_number',
+        'bank_account_name',
+        'refund_status',
+        'refunded_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'subtotal' => 'decimal:2',
+            'subtotal'             => 'decimal:2',
             'shipping_distance_km' => 'decimal:2',
-            'shipping_fee' => 'decimal:2',
-            'total' => 'decimal:2',
-            'points_used' => 'integer',
-            'points_earned' => 'integer',
+            'shipping_fee'         => 'decimal:2',
+            'total'                => 'decimal:2',
+            'points_used'          => 'integer',
+            'points_earned'        => 'integer',
+            'cancelled_at'         => 'datetime',
+            'refunded_at'          => 'datetime',
         ];
     }
 
