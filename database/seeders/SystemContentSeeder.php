@@ -15,10 +15,11 @@ class SystemContentSeeder extends Seeder
             // 1. Nhóm Liên hệ & Địa chỉ Kho/Nông trại
             ['key' => 'hotline', 'value' => '0987.654.321', 'group' => 'contact'],
             ['key' => 'email', 'value' => 'lienhe@datlanhfarm.vn', 'group' => 'contact'],
-            ['key' => 'farm_address', 'value' => 'Thôn 3, Xã Đạ Ròn, Huyện Đơn Dương, Lâm Đồng', 'group' => 'contact'],
-            ['key' => 'farm_latitude', 'value' => '11.8321542', 'group' => 'contact'],   // Vĩ độ kho/nông trại
-            ['key' => 'farm_longitude', 'value' => '108.4328190', 'group' => 'contact'], // Kinh độ kho/nông trại
-
+            ['key' => 'farm_address', 'value' => 'Số 86 đường Lê Thánh Tôn, Phường Sài Gòn, Quận 1, Thành phố Hồ Chí Minh', 'group' => 'contact'],
+            ['key' => 'farm_latitude', 'value' => '10.7769', 'group' => 'contact'],   // Vĩ độ kho/nông trại
+            ['key' => 'farm_longitude', 'value' => '106.7009', 'group' => 'contact'], // Kinh độ kho/nông trại
+            
+            ['key' => 'max_shipping_distance_km', 'value' => '25', 'group' => 'shipping'],
             // 3. Nhóm Gói thành viên / Đăng ký
             ['key' => 'vip_monthly_subscription_price', 'value' => '1200000', 'group' => 'subscription'],
 

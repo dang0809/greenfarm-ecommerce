@@ -10,11 +10,11 @@
                 <div class="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm">
                     <div class="flex items-center gap-4">
                         <div class="relative">
-                            <!-- Hiển thị Avatar -->
+                            <!-- Hiển thị Avatar chuẩn xác -->
                             @if ($newAvatar)
                                 <img src="{{ $newAvatar->temporaryUrl() }}" alt="Avatar Preview" class="w-16 h-16 rounded-full object-cover border-2 border-brand-200">
                             @else
-                                <img src="{{ $user->avatar ? asset('storage/' . $user->avatar) : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200' }}" 
+                                <img src="{{ $user->avatar ? (str_starts_with($user->avatar, 'http') ? $user->avatar : asset('storage/' .$user->avatar)) : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200' }}" 
                                     alt="Avatar" class="w-16 h-16 rounded-full object-cover border-2 border-brand-200">
                             @endif
 
@@ -128,7 +128,7 @@
                                 </div>
                             </div>
 
-                            <!-- 2. BỔ SUNG: THÔNG TIN TÀI KHOẢN NGÂN HÀNG HOÀN TIỀN MẶC ĐỊNH -->
+                            <!-- 2. THÔNG TIN TÀI KHOẢN NGÂN HÀNG HOÀN TIỀN MẶC ĐỊNH -->
                             <div class="pt-5 border-t border-gray-100 space-y-4">
                                 <div>
                                     <h3 class="text-xs font-bold text-gray-800 uppercase tracking-wide flex items-center gap-1.5">
@@ -146,9 +146,8 @@
                                             <option value="">-- Chọn ngân hàng --</option>
                                             
                                             @forelse ($this->banks as $bank)
-                                                {{-- CHỈ HIỂN THỊ TÊN VIẾT TẮT + MÃ NGÂN HÀNG (Ví dụ: VietinBank (ICB), Vietcombank (VCB)) --}}
                                                 <option value="{{ $bank['shortName'] }}">
-                                                    {{ $bank['shortName'] }} ({{ $bank['code'] }})
+                                                    {{ $bank['shortName'] }} ({{$bank['code'] }})
                                                 </option>
                                             @empty
                                                 <option value="MBBank">MBBank (MB)</option>
@@ -179,10 +178,6 @@
                                     @error('bank_account_name') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
                                 </div>
                             </div>
-
-                            @error('newAvatar') 
-                                <span class="text-xs text-red-500 block">{{ $message }}</span> 
-                            @enderror
 
                             <!-- Nút Lưu -->
                             <div class="pt-4 border-t border-gray-100 flex justify-end">
@@ -276,7 +271,12 @@
                                 </div>
 
                                 <div>
-                                    <input type="text" wire:model="address_detail" placeholder="Địa chỉ chi tiết (Số nhà, tên đường...) *" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-brand-500">
+                                    <!-- Sửa input dùng x-model chuẩn Alpine đồng bộ với geocodeAddress -->
+                                    <input type="text" 
+                                           x-model="detailAddress" 
+                                           x-on:blur="geocodeAddress()" 
+                                           placeholder="Địa chỉ chi tiết (Số nhà, tên đường...) *" 
+                                           class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-brand-500">
                                     @error('address_detail') <span class="text-[10px] text-red-500 block mt-0.5">{{ $message }}</span> @enderror
                                 </div>
 
@@ -449,150 +449,199 @@
 document.addEventListener('alpine:init', () => {
     Alpine.data('vnAddressPicker', () => ({
         baseUrl: 'https://provinces.open-api.vn/api',
-        goongApiKey: 'YOUR_GOONG_API_KEY', // Thay API Key Goong.io để băm tọa độ Ahamove
 
         provinces: [],
         districts: [],
         wards: [],
-        selectedProvince: @entangle('province'),
-        selectedDistrict: @entangle('district'),
-        selectedWard: @entangle('ward'),
-        
-        detailAddress: @entangle('address_detail'),
-        latitude: @entangle('latitude'),
-        longitude: @entangle('longitude'),
 
-        async init() {
+        selectedProvince: @entangle('province').live,
+        selectedDistrict: @entangle('district').live,
+        selectedWard: @entangle('ward').live,
+        detailAddress: @entangle('address_detail').live,
+        latitude: @entangle('latitude').live,
+        longitude: @entangle('longitude').live,
+
+        init() {
+            Livewire.on('load-address-dropdowns', async (event) => {
+                const info = Array.isArray(event) ? event[0] : event;
+                if (!info) return;
+
+                try {
+                    if (!this.provinces.length) {
+                        await this.loadProvinces();
+                    }
+
+                    this.selectedProvince = info.province ?? '';
+                    await this.loadDistrictsForSelectedProvince();
+
+                    this.selectedDistrict = info.district ?? '';
+                    await this.loadWardsForSelectedDistrict();
+
+                    this.selectedWard = info.ward ?? '';
+                    await this.$nextTick();
+
+                    await this.geocodeAddress();
+                } catch (error) {
+                    console.error('Lỗi nạp địa chỉ:', error);
+                }
+            });
+
+            this.loadProvinces();
+        },
+
+        async loadProvinces() {
             try {
-                // 1. Lấy danh sách Tỉnh/Thành từ Open API (Không cần Token)
-                const res = await fetch(`${this.baseUrl}/p/`);
-                this.provinces = await res.json();
-                
+                const response = await fetch(`${this.baseUrl}/p/`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                this.provinces = await response.json();
+
                 if (this.selectedProvince) {
                     await this.syncInitialData();
                 }
-            } catch (e) {
-                console.error('Không thể tải Tỉnh/Thành từ Open API', e);
+            } catch (error) {
+                console.error('Không thể tải danh sách tỉnh/thành:', error);
             }
-
-            Livewire.on('load-address-dropdowns', async (data) => {
-                const info = data[0];
-                this.selectedProvince = info.province;
-                await this.syncInitialData();
-                this.selectedDistrict = info.district;
-                await this.syncDistrictWards();
-                this.selectedWard = info.ward;
-                
-                await this.geocodeAddress();
-            });
         },
 
         async syncInitialData() {
-            const prov = this.provinces.find(p => p.name === this.selectedProvince);
-            if (prov) {
-                await this.fetchDistricts(prov.code);
-                if (this.selectedDistrict) {
-                    await this.syncDistrictWards();
-                }
+            const savedDistrict = this.selectedDistrict;
+            const savedWard = this.selectedWard;
+
+            await this.loadDistrictsForSelectedProvince();
+            this.selectedDistrict = savedDistrict ?? '';
+
+            await this.loadWardsForSelectedDistrict();
+            this.selectedWard = savedWard ?? '';
+        },
+
+        async loadDistrictsForSelectedProvince() {
+            this.districts = [];
+            this.wards = [];
+
+            const province = this.provinces.find(item => item.name === this.selectedProvince);
+            if (!province) return;
+
+            try {
+                const response = await fetch(`${this.baseUrl}/p/${province.code}?depth=2`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const result = await response.json();
+                this.districts = result.districts ?? [];
+            } catch (error) {
+                console.error('Lỗi tải danh sách huyện:', error);
             }
         },
 
-        async syncDistrictWards() {
-            const dist = this.districts.find(d => d.name === this.selectedDistrict);
-            if (dist) {
-                await this.fetchWards(dist.code);
+        async loadWardsForSelectedDistrict() {
+            this.wards = [];
+
+            const district = this.districts.find(item => item.name === this.selectedDistrict);
+            if (!district) return;
+
+            try {
+                const response = await fetch(`${this.baseUrl}/d/${district.code}?depth=2`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const result = await response.json();
+                this.wards = result.wards ?? [];
+            } catch (error) {
+                console.error('Lỗi tải danh sách xã/phường:', error);
             }
         },
 
         async onProvinceChange() {
-            this.districts = [];
-            this.wards = [];
             this.selectedDistrict = '';
             this.selectedWard = '';
-            this.latitude = null;
-            this.longitude = null;
-
-            const provSelect = document.getElementById('province-select');
-            const selectedOpt = provSelect?.options[provSelect.selectedIndex];
-            const provinceCode = selectedOpt?.getAttribute('data-id');
-
-            if (provinceCode) {
-                await this.fetchDistricts(provinceCode);
-            }
+            this.districts = [];
+            this.wards = [];
+            this.clearCoordinates();
+            await this.loadDistrictsForSelectedProvince();
         },
 
         async onDistrictChange() {
-            this.wards = [];
             this.selectedWard = '';
-            this.latitude = null;
-            this.longitude = null;
-
-            const distSelect = document.getElementById('district-select');
-            const selectedOpt = distSelect?.options[distSelect.selectedIndex];
-            const districtCode = selectedOpt?.getAttribute('data-id');
-
-            if (districtCode) {
-                await this.fetchWards(districtCode);
-            }
-        },
-
-        // 2. Lấy Quận/Huyện theo mã Tỉnh
-        async fetchDistricts(provinceCode) {
-            try {
-                const res = await fetch(`${this.baseUrl}/p/${provinceCode}?depth=2`);
-                const result = await res.json();
-                this.districts = result.districts || [];
-            } catch (e) {
-                console.error('Lỗi tải Quận/Huyện từ Open API', e);
-            }
-        },
-
-        // 3. Lấy Phường/Xã theo mã Huyện
-        async fetchWards(districtCode) {
-            try {
-                const res = await fetch(`${this.baseUrl}/d/${districtCode}?depth=2`);
-                const result = await res.json();
-                this.wards = result.wards || [];
-            } catch (e) {
-                console.error('Lỗi tải Phường/Xã từ Open API', e);
-            }
+            this.wards = [];
+            this.clearCoordinates();
+            await this.loadWardsForSelectedDistrict();
         },
 
         async onWardChange() {
             await this.geocodeAddress();
         },
 
-        // 4. Băm địa chỉ sang Tọa độ cho Ahamove
+        clearCoordinates() {
+            this.latitude = null;
+            this.longitude = null;
+        },
+
+        cleanPart(str) {
+            if (!str) return '';
+            return str
+                .replace(/^(Tỉnh|Thành phố|TP\.|Huyện|Quận|Thị xã|Xã|Phường|Thị trấn|Thôn|Ấp)\s+/gi, '')
+                .trim();
+        },
+
         async geocodeAddress() {
             if (!this.selectedProvince || !this.selectedDistrict || !this.selectedWard) return;
 
-            const fullAddress = `${this.detailAddress || ''}, ${this.selectedWard}, ${this.selectedDistrict}, ${this.selectedProvince}`;
+            const cWard = this.cleanPart(this.selectedWard);
+            const cDistrict = this.cleanPart(this.selectedDistrict);
+            const cProvince = this.cleanPart(this.selectedProvince);
+            const detail = (this.detailAddress ?? '').trim();
+
+            const queryFull = [detail, cWard, cDistrict, cProvince, 'Việt Nam'].filter(Boolean).join(', ');
+            const queryWard = [cWard, cDistrict, cProvince, 'Việt Nam'].filter(Boolean).join(', ');
+            const queryDistrict = [cDistrict, cProvince, 'Việt Nam'].filter(Boolean).join(', ');
 
             try {
-                let res = await fetch(`https://rsapi.goong.io/Geocode?api_key=${this.goongApiKey}&address=${encodeURIComponent(fullAddress)}`);
-                let data = await res.json();
+                let data = await this.searchCoordinates(queryFull);
 
-                // Dự phòng: Băm 3 cấp hành chính nếu địa chỉ chi tiết không tìm thấy
-                if (!data.results || data.results.length === 0) {
-                    const fallbackAddress = `${this.selectedWard}, ${this.selectedDistrict}, ${this.selectedProvince}`;
-                    res = await fetch(`https://rsapi.goong.io/Geocode?api_key=${this.goongApiKey}&address=${encodeURIComponent(fallbackAddress)}`);
-                    data = await res.json();
+                if (!data.length) {
+                    data = await this.searchCoordinates(queryWard);
                 }
 
-                if (data.results && data.results.length > 0) {
-                    const location = data.results[0].geometry.location;
-                    this.latitude = location.lat;
-                    this.longitude = location.lng;
-
-                    Livewire.dispatch('address-coordinates-updated', {
-                        lat: this.latitude,
-                        lng: this.longitude
-                    });
+                if (!data.length) {
+                    data = await this.searchCoordinates(queryDistrict);
                 }
-            } catch (e) {
-                console.error('Lỗi quy đổi địa chỉ sang tọa độ:', e);
+
+                if (!data.length) {
+                    this.clearCoordinates();
+                    return;
+                }
+
+                const lat = Number.parseFloat(data[0].lat);
+                const lng = Number.parseFloat(data[0].lon);
+
+                if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+                    this.clearCoordinates();
+                    return;
+                }
+
+                this.latitude = lat;
+                this.longitude = lng;
+
+                Livewire.dispatch('address-coordinates-updated', {
+                    lat: lat,
+                    lng: lng,
+                });
+            } catch (error) {
+                console.error('Lỗi chuyển địa chỉ thành tọa độ:', error);
             }
-        }
+        },
+
+        async searchCoordinates(address) {
+            const url = new URL('https://nominatim.openstreetmap.org/search');
+            url.searchParams.set('format', 'jsonv2');
+            url.searchParams.set('q', address);
+            url.searchParams.set('countrycodes', 'vn');
+            url.searchParams.set('limit', '1');
+
+            const response = await fetch(url.toString(), {
+                headers: { Accept: 'application/json' },
+            });
+
+            if (!response.ok) throw new Error(`Nominatim HTTP ${response.status}`);
+            const data = await response.json();
+            return Array.isArray(data) ? data : [];
+        },
     }));
 });
 </script>

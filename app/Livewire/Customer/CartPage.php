@@ -8,14 +8,12 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
+
 #[Title('Giỏ Hàng Của Bạn | Nông Trại Đất Lành')]
 class CartPage extends Component
 {
     public array $selectedItems = []; // Danh sách cart_item_id được tick chọn
     public bool $selectAll = true;
-    public bool $usePoints = false;
-    public int $pointsDiscount = 10000; // Số tiền giảm khi đổi điểm
-    public int $pointsRequired = 100;   // Mức điểm tối thiểu để đổi
 
     private function getAvailableStock(int $productId): int
     {
@@ -27,6 +25,7 @@ class CartPage extends Component
 
         return (int) ($product?->total_stock ?? 0);
     }
+
     public function mount()
     {
         $this->loadSelectedItems();
@@ -81,7 +80,6 @@ class CartPage extends Component
 
         $availableStock = $this->getAvailableStock($cartItem->product_id);
 
-        // CHẶN: Nếu số lượng mới vượt quá kho
         if ($cartItem->quantity + 1 > $availableStock) {
             $this->dispatch(
                 'show-toast',
@@ -112,9 +110,7 @@ class CartPage extends Component
         $availableStock = $this->getAvailableStock($cartItem->product_id);
         $requestedQty = (int) $qty;
         
-        // CHẶN: Nếu nhập số lượng vượt quá tồn kho
         if ($requestedQty > $availableStock) {
-            // Tự động đưa số lượng về mức tối đa kho đang có
             $cartItem->update(['quantity' => max(1, $availableStock)]);
 
             $this->dispatch(
@@ -125,7 +121,6 @@ class CartPage extends Component
             return;
         }
 
-        // Đảm bảo tối thiểu là 1
         $finalQty = max(1, $requestedQty);
         $cartItem->update(['quantity' => $finalQty]);
     }
@@ -156,7 +151,7 @@ class CartPage extends Component
         $this->selectedItems = [];
         $this->selectAll = false;
         $this->dispatch('cart-updated');
-         $this->dispatch(
+        $this->dispatch(
             'show-toast',
             type: 'success',
             message: 'Đã xóa các sản phẩm được chọn khỏi giỏ hàng.'
@@ -170,10 +165,9 @@ class CartPage extends Component
             return;
         }
 
-        // Lưu danh sách sản phẩm được chọn & cấu hình điểm vào Session
+        // Chỉ lưu danh sách ID sản phẩm chọn mua sang Session
         session([
-            'checkout_selected_items' => $this->selectedItems,
-            'checkout_use_points'     => $this->usePoints,
+            'checkout_selected_items' => array_map('intval', $this->selectedItems),
         ]);
 
         return redirect()->route('customer.checkout');
@@ -196,22 +190,11 @@ class CartPage extends Component
             }
         }
 
-        // Lấy điểm thưởng của User
-        $user = Auth::user();
-        $userPoints = $user->reward_points ?? 0;
-        $canUsePoints = $userPoints >= $this->pointsRequired;
-
-        $discount = ($this->usePoints && $canUsePoints) ? $this->pointsDiscount : 0;
-        $total = max(0, $subtotal - $discount);
-
         return view('livewire.customer.cart-page', [
-            'items' => $items,
-            'subtotal' => $subtotal,
-            'discount' => $discount,
-            'total' => $total,
+            'items'         => $items,
+            'subtotal'      => $subtotal,
+            'total'         => $subtotal, // Tổng tiền giỏ hàng đúng bằng tạm tính
             'selectedCount' => $selectedCount,
-            'userPoints' => $userPoints,
-            'canUsePoints' => $canUsePoints,
         ])->layout('layouts.customer.app');
     }
 }
