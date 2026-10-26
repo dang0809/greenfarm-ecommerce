@@ -31,20 +31,36 @@ class Header extends Component
         }
     }
 
-    // Đánh dấu tất cả hoặc 1 thông báo là đã đọc
-    public function markAsRead(?int $notificationId = null): void
+    // Đánh dấu tất cả hoặc 1 thông báo là đã đọc (và chuyển hướng nếu có url)
+    public function markAsRead(?int $notificationId = null)
     {
         if (!Auth::check()) return;
 
         if ($notificationId) {
-            Notification::where('user_id', Auth::id())
+            $notif = Notification::where('user_id', Auth::id())
                 ->where('id', $notificationId)
-                ->update(['read_at' => now()]);
-            } else {
-                Notification::where('user_id', Auth::id())
-                    ->whereNull('read_at')
-                    ->update(['read_at' => now()]);
+                ->first();
+
+            if ($notif) {
+                if (is_null($notif->read_at)) {
+                    $notif->update(['read_at' => now()]);
+                }
+                if (!empty($notif->data['url'])) {
+                    return $this->redirect($notif->data['url']);
+                }
             }
+        } else {
+            Notification::where('user_id', Auth::id())
+                ->whereNull('read_at')
+                ->update(['read_at' => now()]);
+        }
+    }
+
+    public bool $showAllNotifs = false;
+
+    public function toggleShowAllNotifs(): void
+    {
+        $this->showAllNotifs = !$this->showAllNotifs;
     }
 
     public function logout(): void
@@ -60,27 +76,34 @@ class Header extends Component
     }
 
     public function render()
-{
-    $user = Auth::user();
-    $notifications = collect();
-    $unreadNotifCount = 0;
+    {
+        $user = Auth::user();
+        $notifications = collect();
+        $unreadNotifCount = 0;
+        $totalNotifsCount = 0;
 
-    if ($user) {
-        $notifications = Notification::where('user_id', $user->id)
-            ->latest()
-            ->take(5)
-            ->get();
+        if ($user) {
+            $totalNotifsCount = Notification::where('user_id', $user->id)->count();
 
-        // 🟢 Đếm các thông báo có read_at IS NULL
-        $unreadNotifCount = Notification::where('user_id', $user->id)
-            ->whereNull('read_at')
-            ->count();
-    }
+            $query = Notification::where('user_id', $user->id)->latest();
+            if (!$this->showAllNotifs) {
+                $query->take(5);
+            } else {
+                $query->take(30);
+            }
+            $notifications = $query->get();
+
+            // 🟢 Đếm các thông báo có read_at IS NULL
+            $unreadNotifCount = Notification::where('user_id', $user->id)
+                ->whereNull('read_at')
+                ->count();
+        }
 
         return view('livewire.customer.header', [
             'user' => $user,
             'notifications' => $notifications,
             'unreadNotifCount' => $unreadNotifCount,
+            'totalNotifsCount' => $totalNotifsCount,
         ]);
     }
 }
