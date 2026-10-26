@@ -10,7 +10,7 @@ use PayOS\PayOS;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
-
+use App\Models\Payment;
 class PayOSWebhookController extends Controller
 {
     public function handleWebhook(Request $request)
@@ -61,7 +61,7 @@ class PayOSWebhookController extends Controller
                     // 2. Chặn race condition: Nếu đơn đã bị hủy (khách hủy hoặc cron tự động hủy)
                     if ($order->status === 'cancelled') {
                         // Cập nhật bản ghi thanh toán vào bảng payments
-                        \App\Models\Payment::updateOrCreate(
+                        Payment::updateOrCreate(
                             ['order_id' => $order->id],
                             [
                                 'payment_code'     => 'PAY-' . $order->order_code,
@@ -88,7 +88,7 @@ class PayOSWebhookController extends Controller
                     }
 
                     // Cập nhật biên lai thanh toán vào bảng payments
-                    \App\Models\Payment::updateOrCreate(
+                    Payment::updateOrCreate(
                         ['order_id' => $order->id],
                         [
                             'payment_code'     => 'PAY-' . $order->order_code,

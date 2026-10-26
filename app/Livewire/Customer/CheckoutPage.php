@@ -17,7 +17,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\SystemSetting;
 use App\Models\Product;
-
+use App\Models\Payment;
 #[Title('Thanh Toán Đơn Hàng | Nông Trại Đất Lành')]
 class CheckoutPage extends Component
 {
@@ -282,7 +282,7 @@ class CheckoutPage extends Component
             }
 
             // Tạo bản ghi thanh toán ban đầu trong bảng payments
-            \App\Models\Payment::create([
+            Payment::create([
                 'order_id'         => $order->id,
                 'payment_code'     => 'PAY-' . $order->order_code,
                 'method'           => 'payos',

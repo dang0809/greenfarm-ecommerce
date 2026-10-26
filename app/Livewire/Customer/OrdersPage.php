@@ -15,6 +15,7 @@ use App\Models\ProductBatch;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Complaint;
+use App\Models\Payment;
 
 class OrdersPage extends Component
 {
@@ -197,6 +198,13 @@ class OrdersPage extends Component
                 'cancelled_at'  => now(),
                 'cancelled_by'  => 'customer',
             ], $extraData));
+
+            // Đồng bộ trạng thái giao dịch sang failed trong bảng payments nếu đơn chưa thanh toán
+            if ($lockedOrder->payment_status !== 'paid') {
+                Payment::where('order_id', $lockedOrder->id)
+                    ->where('status', 'pending')
+                    ->update(['status' => 'failed']);
+            }
 
             if (method_exists($lockedOrder, 'statusHistories')) {
                 $lockedOrder->statusHistories()->create([

@@ -4,6 +4,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductBatch;
 use App\Models\User;
+use App\Models\Payment;
 use Illuminate\Support\Facades\DB;
 
 Schedule::call(function () {
@@ -30,6 +31,11 @@ Schedule::call(function () {
                 'cancelled_at'  => now(),
                 'cancelled_by'  => 'system',
             ]);
+
+            // Đồng bộ trạng thái giao dịch sang failed trong bảng payments
+            Payment::where('order_id', $order->id)
+                ->where('status', 'pending')
+                ->update(['status' => 'failed']);
 
             if (method_exists($order, 'statusHistories')) {
                 $order->statusHistories()->create([
