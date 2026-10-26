@@ -74,8 +74,18 @@
                                         <i class="fa-solid fa-credit-card text-[9px]"></i> ĐƠN MUA GÓI VIP
                                     </span>
                                 @elseif ($isVipDelivery)
+                                    @php
+                                        $sched = $order->deliverySchedule;
+                                        if ($sched) {
+                                            $total = $sched->subscription?->total_deliveries ?? 4;
+                                            $batchInfo = " (Đợt {$sched->delivery_order}/{$total})";
+                                        } else {
+                                            preg_match('/Đợt\s+\d+\/\d+/ui', $order->note ?? '', $batchMatches);
+                                            $batchInfo = !empty($batchMatches[0]) ? ' (' . $batchMatches[0] . ')' : '';
+                                        }
+                                    @endphp
                                     <span class="inline-flex items-center gap-1 text-[10px] font-black text-purple-700 bg-purple-100 border border-purple-300 px-2 py-0.5 rounded-md">
-                                        <i class="fa-solid fa-truck-ramp-box text-[9px]"></i> GIAO RAU VIP ({{ $order->note ?? 'Đợt định kỳ' }})
+                                        <i class="fa-solid fa-truck-ramp-box text-[9px]"></i> GIAO RAU VIP{{ $batchInfo }}
                                     </span>
                                 @endif
                             </div>
@@ -102,9 +112,26 @@
                             @endif
                         </div>
                     @elseif ($order->status === 'delivered')
-                        <span class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-                            <i class="fa-solid fa-check text-[10px]"></i> {{ $isVipPayment ? 'Thanh toán & Kích hoạt thành công' : 'Đã giao thành công' }}
-                        </span>
+                        <div class="flex items-center gap-1.5 flex-wrap justify-end">
+                            <span class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+                                <i class="fa-solid fa-check text-[10px]"></i> {{ $isVipPayment ? 'Thanh toán & Kích hoạt thành công' : 'Đã giao thành công' }}
+                            </span>
+                            @if ($order->complaint)
+                                @if ($order->complaint->status === 'resolved' || $order->refund_status === 'refunded')
+                                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+                                        <i class="fa-solid fa-circle-check text-[9px]"></i> Đã hoàn tiền
+                                    </span>
+                                @elseif ($order->complaint->status === 'rejected')
+                                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-red-800 bg-red-50 border border-red-200 px-2.5 py-0.5 rounded-full">
+                                        <i class="fa-solid fa-circle-xmark text-[9px]"></i> Khiếu nại bị từ chối
+                                    </span>
+                                @elseif ($order->complaint->status === 'pending')
+                                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
+                                        <i class="fa-solid fa-clock text-[9px] animate-pulse"></i> Chờ duyệt khiếu nại
+                                    </span>
+                                @endif
+                            @endif
+                        </div>
                     @elseif ($order->status === 'shipped')
                         <span class="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
                             <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Đang giao
@@ -178,6 +205,90 @@
                     </div>
                 @endif
 
+                @if ($order->complaint)
+                    <div class="rounded-xl p-3 text-xs {{ $order->complaint->status === 'rejected' ? 'bg-red-50/80 border border-red-200 text-red-900' : ($order->complaint->status === 'resolved' || $order->refund_status === 'refunded' ? 'bg-emerald-50/80 border border-emerald-200 text-emerald-900' : 'bg-amber-50/80 border border-amber-200 text-amber-900') }}">
+                        <div class="flex items-start gap-2.5">
+                            @if ($order->complaint->status === 'rejected')
+                                <i class="fa-solid fa-circle-xmark text-red-600 text-sm mt-0.5 shrink-0"></i>
+                                <div class="space-y-1 flex-1">
+                                    <div class="font-bold text-red-800 flex items-center justify-between">
+                                        <span>Khiếu nại bị từ chối</span>
+                                        @if ($order->complaint->updated_at)
+                                            <span class="text-[11px] font-normal text-red-600">{{ $order->complaint->updated_at->format('H:i • d/m/Y') }}</span>
+                                        @endif
+                                    </div>
+                                    <p class="text-gray-700 leading-relaxed">
+                                        <span class="font-bold text-red-700">Lý do từ chối:</span> 
+                                        {{ $order->complaint->resolution_note ?: 'Yêu cầu không đáp ứng chính sách bảo hành / đổi trả nông sản của GreenFarm.' }}
+                                    </p>
+                                    @if ($order->complaint->reason)
+                                        <p class="text-gray-500 text-[11px] pt-1 border-t border-red-100/80">
+                                            <span class="font-medium text-gray-600">Nội dung khiếu nại của bạn:</span> {{ $order->complaint->reason }}
+                                        </p>
+                                    @endif
+                                </div>
+                            @elseif ($order->complaint->status === 'resolved' || $order->refund_status === 'refunded')
+                                <i class="fa-solid fa-circle-check text-emerald-600 text-sm mt-0.5 shrink-0"></i>
+                                <div class="space-y-1 flex-1">
+                                    <div class="font-bold text-emerald-800 flex items-center justify-between">
+                                        <span>Khiếu nại thành công • Đã hoàn tiền</span>
+                                        @if ($order->refunded_at || $order->complaint->updated_at)
+                                            <span class="text-[11px] font-normal text-emerald-600">{{ \Carbon\Carbon::parse($order->refunded_at ?? $order->complaint->updated_at)->format('H:i • d/m/Y') }}</span>
+                                        @endif
+                                    </div>
+                                    <p class="text-gray-700 leading-relaxed">
+                                        Số tiền hoàn: <b class="text-emerald-700 font-extrabold">{{ number_format($order->complaint->refund_amount ?? $order->total) }}đ</b>
+                                        @if ($order->bank_name && $order->bank_account_number)
+                                            về STK <span class="font-bold text-gray-800">{{ $order->bank_name }} - {{ $order->bank_account_number }}</span> ({{ $order->bank_account_name }})
+                                        @endif
+                                    </p>
+                                    @if (!empty($order->complaint->resolution_note))
+                                        <p class="text-gray-600 text-[11px] pt-1 border-t border-emerald-100/80">
+                                            <span class="font-semibold text-emerald-700">Ghi chú từ Nông trại:</span> {{ $order->complaint->resolution_note }}
+                                        </p>
+                                    @endif
+                                </div>
+                            @else
+                                <i class="fa-solid fa-clock-rotate-left text-amber-600 text-sm mt-0.5 shrink-0"></i>
+                                <div class="space-y-1 flex-1">
+                                    <div class="font-bold text-amber-800 flex items-center justify-between">
+                                        <span>Đang xử lý yêu cầu khiếu nại</span>
+                                        <span class="text-[11px] font-normal text-amber-700">Chờ duyệt trong 24h</span>
+                                    </div>
+                                    <p class="text-gray-700 leading-relaxed">
+                                        Yêu cầu hoàn tiền: <b class="text-amber-800 font-bold">{{ number_format($order->complaint->refund_amount ?? $order->total) }}đ</b>. Nông trại đang đối soát đơn hàng và sẽ phản hồi sớm nhất.
+                                    </p>
+                                    @if ($order->complaint->reason)
+                                        <p class="text-gray-500 text-[11px] pt-1 border-t border-amber-100/80">
+                                            <span class="font-medium text-gray-600">Lý do khiếu nại:</span> {{ $order->complaint->reason }}
+                                        </p>
+                                    @endif
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                @elseif ($order->status === 'cancelled' && $order->refund_status === 'refunded')
+                    <div class="rounded-xl p-3 text-xs bg-emerald-50/80 border border-emerald-200 text-emerald-900">
+                        <div class="flex items-start gap-2.5">
+                            <i class="fa-solid fa-circle-check text-emerald-600 text-sm mt-0.5 shrink-0"></i>
+                            <div class="space-y-1 flex-1">
+                                <div class="font-bold text-emerald-800 flex items-center justify-between">
+                                    <span>Đã hoàn tiền thành công</span>
+                                    @if ($order->refunded_at)
+                                        <span class="text-[11px] font-normal text-emerald-600">{{ \Carbon\Carbon::parse($order->refunded_at)->format('H:i • d/m/Y') }}</span>
+                                    @endif
+                                </div>
+                                <p class="text-gray-700 leading-relaxed">
+                                    Đã chuyển khoản hoàn <b class="text-emerald-700 font-extrabold">{{ number_format($order->total) }}đ</b>
+                                    @if ($order->bank_name && $order->bank_account_number)
+                                        về tài khoản <span class="font-bold text-gray-800">{{ $order->bank_name }} - {{ $order->bank_account_number }}</span> ({{ $order->bank_account_name }})
+                                    @endif
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
                 <!-- Footer Đơn Hàng & Thao tác -->
                 <div class="pt-3 border-t {{ ($isVipPayment || $isVipDelivery) ? 'border-purple-100' : 'border-gray-200/80' }} flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div class="text-xs text-gray-500">
@@ -188,6 +299,12 @@
                                 {{ $isVipDelivery ? '0đ (Đã thanh toán qua Gói VIP)' : number_format($order->total) . 'đ' }}
                             </span>
                         </div>
+                        @if (!empty($order->note))
+                            <div class="mt-2 text-[11px] text-gray-500 flex items-center gap-1.5 bg-gray-50/80 rounded-lg px-2.5 py-1 border border-gray-100 w-fit">
+                                <i class="fa-regular fa-comment-dots text-gray-400"></i>
+                                <span>Ghi chú của bạn: <span class="text-gray-700 font-medium italic">{{ $order->note }}</span></span>
+                            </div>
+                        @endif
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2">
@@ -203,11 +320,14 @@
 
                         <!-- Nút Thanh toán ngay: Dành cho đơn pending chưa trả tiền -->
                         @if ($order->status === 'pending' && $order->payment_status === 'pending')
-                            <a href="" 
-                               class="bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-xs transition-all flex items-center gap-1.5 active:scale-95">
-                                <i class="fa-solid fa-qrcode text-xs"></i>
+                            <button type="button" 
+                                    wire:click="payNow({{ $order->id }})" 
+                                    wire:loading.attr="disabled"
+                                    class="bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-xs transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer">
+                                <i class="fa-solid fa-qrcode text-xs" wire:loading.remove></i>
+                                <i class="fa-solid fa-spinner fa-spin text-xs" wire:loading></i>
                                 <span>Thanh toán ngay</span>
-                            </a>
+                            </button>
                         @endif
 
                         <!-- Khiếu nại hoàn tiền (Kiểm tra mốc 24h từ order_status_histories) -->
@@ -215,27 +335,33 @@
                             @php
                                 $deliveredHistory = $order->statusHistories?->firstWhere('new_status', 'delivered');
                                 $deliveredAt = $deliveredHistory ? $deliveredHistory->created_at : $order->updated_at;
-                                $hoursSinceDelivered = $deliveredAt ? $deliveredAt->diffInHours(now()) : 999;
-                                $canRefund = $hoursSinceDelivered <= 24;
+                                $canRefund = $deliveredAt ? ($deliveredAt->diffInHours(now()) < 24) : false;
                             @endphp
 
                             @if ($order->complaint)
-                                <span class="inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-2 rounded-xl">
-                                    <i class="fa-solid fa-clock-rotate-left text-amber-600"></i>
-                                    @if ($order->complaint->status === 'resolved')
-                                        Đã duyệt hoàn tiền ({{ number_format($order->complaint->refund_amount) }}đ)
-                                    @elseif ($order->complaint->status === 'rejected')
-                                        Khiếu nại bị từ chối
-                                    @else
-                                        Đang chờ duyệt hoàn tiền
-                                    @endif
-                                </span>
+                                @if ($order->complaint->status === 'resolved' || $order->refund_status === 'refunded')
+                                    <span class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-xl">
+                                        <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                                        <span>Đã hoàn tiền ({{ number_format($order->complaint->refund_amount ?? $order->total) }}đ)</span>
+                                    </span>
+                                @elseif ($order->complaint->status === 'rejected')
+                                    <span class="inline-flex items-center gap-1.5 text-xs font-bold text-red-800 bg-red-50 border border-red-200 px-3 py-2 rounded-xl">
+                                        <i class="fa-solid fa-circle-xmark text-red-600"></i>
+                                        <span>Khiếu nại bị từ chối</span>
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-2 rounded-xl">
+                                        <i class="fa-solid fa-clock-rotate-left text-amber-600"></i>
+                                        <span>Đang chờ duyệt hoàn tiền</span>
+                                    </span>
+                                @endif
                             @elseif ($canRefund)
-                                <a href="" 
-                                   class="bg-white hover:bg-amber-50 text-amber-700 hover:text-amber-800 border border-amber-200 font-bold text-xs px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs">
+                                <button type="button" 
+                                        wire:click="openComplaintModal({{ $order->id }})"
+                                        class="bg-white hover:bg-amber-50 text-amber-700 hover:text-amber-800 border border-amber-200 font-bold text-xs px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer">
                                     <i class="fa-solid fa-rotate-left text-xs"></i>
                                     <span>Khiếu nại hoàn tiền</span>
-                                </a>
+                                </button>
                             @endif
                         @endif
 
@@ -332,3 +458,81 @@
     @endif
 
 </div>
+    <!-- MODAL KHIẾU NẠI HOÀN TIỀN DẬP NÁT (24H) -->
+    @if ($showComplaintModal)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+            <div class="bg-white rounded-3xl p-6 max-w-lg w-full space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center pb-2 border-b border-gray-100">
+                    <h3 class="text-base font-bold text-gray-900">Khiếu Nại Hoàn Tiền Nông Sản (24H)</h3>
+                    <button type="button" wire:click="resetComplaintModal" class="text-gray-400 hover:text-gray-600">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+
+                <p class="text-xs text-amber-800 bg-amber-50 p-3 rounded-xl border border-amber-200 leading-relaxed">
+                    <i class="fa-solid fa-shield-halved text-amber-600 mr-1"></i>
+                    Chính sách cam kết tươi giòn: Nông trại hỗ trợ hoàn tiền trực tiếp vào tài khoản ngân hàng nếu rau củ bị dập nát, héo úa hoặc hư hại do vận chuyển.
+                </p>
+
+                <form wire:submit.prevent="submitComplaint" class="space-y-3.5 text-xs">
+                    <div>
+                        <label class="font-bold text-gray-700 block mb-1">Lý do khiếu nại</label>
+                        <textarea wire:model="complaint_reason" rows="2" class="w-full rounded-xl border-gray-200 text-xs focus:ring-brand-500" placeholder="Mô tả tình trạng nông sản..."></textarea>
+                        @error('complaint_reason') <span class="text-red-500 text-[11px]">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div>
+                        <label class="font-bold text-gray-700 block mb-1">Số tiền đề xuất hoàn lại (VNĐ)</label>
+                        <input type="number" wire:model="complaint_refund_amount" class="w-full rounded-xl border-gray-200 text-xs font-mono font-bold focus:ring-brand-500">
+                        @error('complaint_refund_amount') <span class="text-red-500 text-[11px]">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="font-bold text-gray-700 block mb-1">Ngân hàng nhận lại tiền</label>
+                            <select wire:model="bank_name" class="w-full rounded-xl border-gray-200 text-xs focus:ring-brand-500">
+                                <option value="">-- Chọn ngân hàng --</option>
+                                <option value="MBBank">MB Bank</option>
+                                <option value="Vietcombank">Vietcombank</option>
+                                <option value="Techcombank">Techcombank</option>
+                                <option value="ACB">ACB</option>
+                                <option value="VPBank">VPBank</option>
+                                <option value="VietinBank">VietinBank</option>
+                                <option value="BIDV">BIDV</option>
+                                <option value="MoMo">Ví MoMo</option>
+                            </select>
+                            @error('bank_name') <span class="text-red-500 text-[11px]">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div>
+                            <label class="font-bold text-gray-700 block mb-1">Số tài khoản / SĐT MoMo</label>
+                            <input type="text" wire:model="bank_account_number" class="w-full rounded-xl border-gray-200 text-xs focus:ring-brand-500" placeholder="VD: 0391000123456">
+                            @error('bank_account_number') <span class="text-red-500 text-[11px]">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="font-bold text-gray-700 block mb-1">Tên chủ tài khoản (In hoa không dấu)</label>
+                        <input type="text" wire:model="bank_account_name" class="w-full rounded-xl border-gray-200 text-xs uppercase focus:ring-brand-500" placeholder="VD: NGUYEN VAN A">
+                        @error('bank_account_name') <span class="text-red-500 text-[11px]">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div>
+                        <label class="font-bold text-gray-700 block mb-1">Ảnh chụp nông sản bị dập / hư hỏng</label>
+                        <input type="file" wire:model="complaint_images" multiple accept="image/*" class="w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100">
+                        @error('complaint_images.*') <span class="text-red-500 text-[11px]">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div class="flex justify-end gap-2 pt-3 border-t border-gray-100">
+                        <button type="button" wire:click="resetComplaintModal" class="px-4 py-2 rounded-xl text-xs font-bold bg-gray-100 text-gray-600 hover:bg-gray-200">
+                            Hủy bỏ
+                        </button>
+                        <button type="submit" wire:loading.attr="disabled" class="px-4 py-2 rounded-xl text-xs font-bold bg-amber-600 text-white hover:bg-amber-700 shadow-xs flex items-center gap-1.5">
+                            <span wire:loading.remove>Gửi yêu cầu hoàn tiền</span>
+                            <span wire:loading>Đang gửi...</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif

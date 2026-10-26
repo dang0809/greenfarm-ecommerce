@@ -140,31 +140,10 @@
 
                 <!-- CỘT PHẢI (4 CỘT): TÓM TẮT ĐƠN HÀNG -->
                 <div class="lg:col-span-4 space-y-6 lg:sticky lg:top-28">
-                    
                     <div class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-4">
                         <h3 class="font-bold text-gray-900 text-base pb-3 border-b border-gray-100">
                             Tóm Tắt Đơn Hàng
                         </h3>
-
-                        <!-- Tính năng Dùng điểm thưởng -->
-                        <div class="pb-3 border-b border-gray-100">
-                            <label class="flex items-start justify-between gap-3 cursor-pointer">
-                                <div class="flex items-center gap-2">
-                                    <input type="checkbox" 
-                                           wire:model.live="usePoints" 
-                                           @disabled(!$canUsePoints) 
-                                           class="w-4 h-4 text-brand-600 rounded border-gray-300 focus:ring-brand-500 cursor-pointer disabled:opacity-50">
-                                    <div>
-                                        <span class="block text-xs font-bold text-gray-800">Dùng {{ $pointsRequired }} điểm thưởng</span>
-                                        <span class="block text-[11px] text-gray-400">Bạn có {{ $userPoints }} điểm tích lũy</span>
-                                    </div>
-                                </div>
-                                <span class="text-xs font-bold text-brand-700">-{{ number_format($pointsDiscount, 0, ',', '.') }}đ</span>
-                            </label>
-                            @if(!$canUsePoints)
-                                <p class="text-[10px] text-amber-600 mt-1 italic">Cần tối thiểu {{ $pointsRequired }} điểm để sử dụng.</p>
-                            @endif
-                        </div>
 
                         <div class="space-y-3 text-xs sm:text-sm text-gray-600">
                             <div class="flex justify-between">
@@ -172,23 +151,16 @@
                                 <span class="font-bold text-gray-900">{{ number_format($subtotal, 0, ',', '.') }}đ</span>
                             </div>
                             
-                            @if($discount > 0)
-                                <div class="flex justify-between text-brand-700">
-                                    <span>Điểm thưởng thành viên:</span>
-                                    <span class="font-bold">-{{ number_format($discount, 0, ',', '.') }}đ</span>
-                                </div>
-                            @endif
-
                             <div class="flex justify-between text-gray-500">
-                                <span>Phí vận chuyển:</span>
+                                <span>Phí vận chuyển & Điểm thưởng:</span>
                                 <span class="text-xs italic">Tính ở bước thanh toán</span>
                             </div>
                         </div>
 
                         <div class="pt-4 border-t border-gray-100 flex items-baseline justify-between">
                             <div>
-                                <span class="block text-xs text-gray-400">Tổng thanh toán:</span>
-                                <span class="text-[11px] text-gray-400">(Chưa tính phí ship)</span>
+                                <span class="block text-xs text-gray-400">Tổng tạm tính:</span>
+                                <span class="text-[11px] text-gray-400">(Chưa tính phí ship & điểm thưởng)</span>
                             </div>
                             <span class="text-2xl font-black text-brand-700">
                                 {{ number_format($total, 0, ',', '.') }}đ
@@ -209,7 +181,6 @@
                             </button>
                         @endif
                     </div>
-
                 </div>
             </div>
         @else
@@ -243,10 +214,12 @@
                 </div>
                 
                 @if($selectedCount > 0)
-                    <a href="#" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-3 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shadow-md">
+                    <button type="button" 
+                            wire:click="proceedToCheckout" 
+                            class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-3 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shadow-md cursor-pointer">
                         <span>Đặt hàng</span>
                         <i class="fa-solid fa-arrow-right text-[10px]"></i>
-                    </a>
+                    </button>
                 @else
                     <button type="button" disabled class="bg-gray-200 text-gray-400 px-6 py-3 rounded-xl font-bold text-xs cursor-not-allowed">
                         <span>Chưa chọn món</span>

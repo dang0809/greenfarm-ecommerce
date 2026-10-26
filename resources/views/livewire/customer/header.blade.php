@@ -29,19 +29,18 @@
 
             <!-- Desktop Action Icons -->
             <div class="hidden lg:flex items-center space-x-5">
-                <!-- 1. NÚT GIỎ HÀNG (DESKTOP) -->
-                <a href="{{ Auth::check() ? route('customer.cart') : '#' }}"
-                   @guest wire:click="$dispatchTo('customer.auth.auth-modal', 'open-auth-modal', { tab: 'login' })" @endguest
-                   class="text-gray-500 hover:text-brand-600 transition relative p-2" title="Giỏ hàng của bạn">
-                    <i class="fa-solid fa-cart-shopping text-xl"></i>
-                    @if($cartCount > 0)
-                        <span class="absolute top-0 right-0 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center border-2 border-white">
-                            {{ $cartCount > 99 ? '99+' : $cartCount }}
-                        </span>
-                    @endif
-                </a>
-
                 @auth
+                    <!-- 1. NÚT GIỎ HÀNG (DESKTOP - CHỈ HIỆN KHI ĐĂNG NHẬP) -->
+                    <a href="{{ route('customer.cart') }}"
+                       class="text-gray-500 hover:text-brand-600 transition relative p-2" title="Giỏ hàng của bạn">
+                        <i class="fa-solid fa-cart-shopping text-xl"></i>
+                        @if($cartCount > 0)
+                            <span class="absolute top-0 right-0 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center border-2 border-white">
+                                {{ $cartCount > 99 ? '99+' : $cartCount }}
+                            </span>
+                        @endif
+                    </a>
+
                     <!-- 2. DROPDOWN THÔNG BÁO (DESKTOP) -->
                     <div class="relative">
                         <button @click="notifMenuOpen = !notifMenuOpen; userMenuOpen = false" 
@@ -161,17 +160,18 @@
 
             <!-- Mobile Action Icons -->
             <div class="lg:hidden flex items-center gap-3">
-                <!-- Nút Giỏ Hàng Mobile -->
-                <a href="{{ Auth::check() ? route('customer.cart') : '#' }}"
-                   @guest wire:click="$dispatchTo('customer.auth.auth-modal', 'open-auth-modal', { tab: 'login' })" @endguest
-                   class="text-gray-600 hover:text-brand-600 p-2 relative">
-                    <i class="fa-solid fa-cart-shopping text-xl"></i>
-                    @if($cartCount > 0)
-                        <span class="absolute top-0 right-0 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center border-2 border-white">
-                            {{ $cartCount > 99 ? '99+' : $cartCount }}
-                        </span>
-                    @endif
-                </a>
+                @auth
+                    <!-- Nút Giỏ Hàng Mobile (Chỉ hiện khi đăng nhập) -->
+                    <a href="{{ route('customer.cart') }}"
+                       class="text-gray-600 hover:text-brand-600 p-2 relative" title="Giỏ hàng của bạn">
+                        <i class="fa-solid fa-cart-shopping text-xl"></i>
+                        @if($cartCount > 0)
+                            <span class="absolute top-0 right-0 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center border-2 border-white">
+                                {{ $cartCount > 99 ? '99+' : $cartCount }}
+                            </span>
+                        @endif
+                    </a>
+                @endauth
 
                 <!-- Nút Toggle Menu Mobile -->
                 <button @click="mobileMenuOpen = !mobileMenuOpen" class="text-gray-600 hover:text-brand-600 focus:outline-none p-2">
@@ -232,10 +232,10 @@
 
             @auth
                 <div class="pt-2 border-t border-gray-100 space-y-1">
-                    <a href="#" class="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-xl">
+                    <a href="{{ route('customer.profile') }}" class="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-xl">
                         <i class="fa-regular fa-user text-gray-400 w-4"></i> Thông tin cá nhân
                     </a>
-                    <a href="#" class="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-xl">
+                    <a href="{{ route('customer.profile', ['tab' => 'orders']) }}" class="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-xl">
                         <i class="fa-solid fa-box-archive text-gray-400 w-4"></i> Đơn hàng của tôi
                     </a>
                 </div>

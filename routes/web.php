@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
-
+use App\Http\Controllers\Customer\PaymentController;
 // Import đầy đủ các Livewire Components
 use App\Livewire\Customer\HomePage;
 use App\Livewire\Customer\ProductPage;
@@ -17,6 +17,7 @@ use App\Livewire\Customer\CheckoutPage;
 use App\Livewire\Customer\ProfilePage;
 use App\Livewire\Customer\OrdersPage;
 use App\Livewire\Customer\TraceabilityDetail;
+use App\Http\Controllers\Api\PayOSWebhookController;
 /*
 |--------------------------------------------------------------------------
 | 1. PUBLIC ROUTES (Ai cũng xem được - Không cần đăng nhập)
@@ -29,10 +30,6 @@ Route::get('/san-pham/{slug}', ProductDetail::class)->name('customer.product.det
 
 Route::get('/truy-xuat/{batch}', TraceabilityDetail::class)->name('customer.traceability.detail');
 
-// Route dự phòng: Nếu hệ thống hoặc thư viện cố tình gọi route('login'), tự động đẩy về Trang chủ & mở Popup
-Route::get('/login', function () {
-    return redirect()->route('home')->with('open_auth_modal', true);
-})->name('login');
 
 // Route xử lý Link Xác Thực Email từ Mail gửi về
 Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) {
@@ -78,6 +75,10 @@ Route::middleware(['role:customer'])->group(function () {
     Route::get('/gio-hang', CartPage::class)->name('customer.cart');
     Route::get('/ho-so', ProfilePage::class)->name('customer.profile');
     Route::get('/thanh-toan', CheckoutPage::class)->name('customer.checkout');
+
+    // 🟢 ROUTES XỬ LÝ KẾT QUẢ THANH TOÁN PAYOS
+    Route::get('/thanh-toan/thanh-cong/{order_id}', [PaymentController::class, 'success'])->name('customer.checkout.success');
+    Route::get('/thanh-toan/huy/{order_id}', [PaymentController::class, 'cancel'])->name('customer.checkout.cancel');
     // Sau này các trang riêng tư của khách bổ sung ở đây:
     // Route::get('/gio-hang', CartPage::class)->name('customer.cart');
     // Route::get('/don-hang-cua-toi', OrderHistory::class)->name('customer.orders');

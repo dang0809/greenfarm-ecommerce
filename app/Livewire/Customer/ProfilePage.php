@@ -53,9 +53,9 @@ class ProfilePage extends Component
     {
         $user = Auth::user();
         if (!$user) {
-            return redirect()->route('login');
+            $this->dispatch('open-auth-modal', 'login');
+            return ;
         }
-
         $this->name = $user->name ?? '';
         $this->phone = $user->phone ?? '';
         $this->email = $user->email ?? '';
@@ -203,10 +203,10 @@ class ProfilePage extends Component
 
     // Lắng nghe sự kiện băm tọa độ từ Alpine.js
     #[On('address-coordinates-updated')]
-    public function updateCoordinates($data)
+    public function updateCoordinates($lat = null, $lng = null)
     {
-        $this->latitude = $data['lat'] ?? null;
-        $this->longitude = $data['lng'] ?? null;
+        $this->latitude = $lat;
+        $this->longitude = $lng;
     }
 
     // Lưu địa chỉ vào CSDL
@@ -259,6 +259,7 @@ class ProfilePage extends Component
         if ($this->editingAddressId) {
             $address = Address::where('user_id', $user->id)->find($this->editingAddressId);
             if ($address) {
+                
                 $address->update([
                     'recipient_name'  => $this->recipient_name,
                     'recipient_phone' => $this->recipient_phone,

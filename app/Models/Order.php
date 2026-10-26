@@ -60,6 +60,8 @@ class Order extends Model
     public function items(): HasMany { return $this->hasMany(OrderItem::class); }
     public function statusHistories(): HasMany { return $this->hasMany(OrderStatusHistory::class); }
     public function payments(): HasMany { return $this->hasMany(Payment::class); }
+    public function payment(): HasOne { return $this->hasOne(Payment::class); }
     public function complaint(): HasOne { return $this->hasOne(Complaint::class); }
     public function shippingAddress(): BelongsTo { return $this->belongsTo(Address::class, 'shipping_address_id'); }
+    public function deliverySchedule(): HasOne { return $this->hasOne(DeliverySchedule::class, 'order_id'); }
 }
