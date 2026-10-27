@@ -37,17 +37,45 @@
         {{ $slot }}
     </main>
         @auth
-    <!-- 3. NÚT NỔI ĐĂNG KÝ GÓI RAU (FLOATING CTA) -->
-    <a href="{{ route('customer.vip.checkout') }}" class="fixed bottom-6 right-4 sm:right-6 z-40 bg-gradient-to-r from-emerald-700 to-brand-600 hover:from-emerald-800 hover:to-brand-700 text-white px-4 py-3 rounded-full shadow-2xl flex items-center gap-3 transition-all hover:scale-105 active:scale-95 border-2 border-white/70 group">
-        <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-amber-300 text-base shadow-inner">
-            <i class="fa-solid fa-box-open group-hover:rotate-12 transition-transform"></i>
-        </div>
-        <div class="text-left pr-1">
-            <span class="block text-[10px] text-brand-100 uppercase font-extrabold tracking-wider leading-tight">Combo tươi mỗi tuần</span>
-            <span class="block text-xs sm:text-sm font-black leading-tight">Đăng Ký Gói Rau Tuần</span>
-        </div>
-        <span class="bg-amber-400 text-gray-900 text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs">-10%</span>
-    </a>
+    @php
+        $activeVipSub = \App\Models\Subscription::where('user_id', Auth::id())
+            ->where('status', 'active')
+            ->latest()
+            ->first();
+    @endphp
+
+    @if ($activeVipSub)
+        <!-- 3. NÚT NỔI DÀNH RIÊNG CHO THÀNH VIÊN VIP (ĐÃ MUA GÓI) -->
+        <a href="{{ route('customer.vip.setup') }}" wire:navigate 
+           class="fixed bottom-6 right-4 sm:right-6 z-40 bg-gradient-to-r from-emerald-800 via-brand-700 to-amber-700 hover:from-emerald-900 hover:to-amber-800 text-white px-4 py-3 rounded-full shadow-2xl flex items-center gap-3 transition-all hover:scale-105 active:scale-95 border-2 border-amber-300/80 group ring-4 ring-amber-400/20">
+            <div class="w-9 h-9 rounded-full bg-amber-400/30 border border-amber-200/50 flex items-center justify-center text-amber-300 text-base shadow-inner">
+                <i class="fa-solid fa-crown group-hover:rotate-12 transition-transform text-amber-300"></i>
+            </div>
+            <div class="text-left pr-1">
+                <span class="block text-[10px] text-amber-200 uppercase font-black tracking-wider leading-tight flex items-center gap-1.5">
+                    <span>Thành Viên VIP</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                </span>
+                <span class="block text-xs sm:text-sm font-black leading-tight text-white">Lịch Giao Rau VIP</span>
+            </div>
+            <span class="bg-amber-400 text-gray-900 text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs">
+                {{ $activeVipSub->delivered_count }}/{{ $activeVipSub->total_deliveries }} Đợt
+            </span>
+        </a>
+    @elseif(filter_var(\App\Models\SystemSetting::where('group', 'subscription')->where('key', 'vip_subscription_enabled')->value('value') ?? 'true', FILTER_VALIDATE_BOOLEAN))
+        <!-- 3. NÚT NỔI ĐĂNG KÝ GÓI RAU (KHI CHƯA MUA GÓI & ĐANG MỞ BÁN) -->
+        <a href="{{ route('customer.vip.checkout') }}" wire:navigate 
+           class="fixed bottom-6 right-4 sm:right-6 z-40 bg-gradient-to-r from-emerald-700 to-brand-600 hover:from-emerald-800 hover:to-brand-700 text-white px-4 py-3 rounded-full shadow-2xl flex items-center gap-3 transition-all hover:scale-105 active:scale-95 border-2 border-white/70 group">
+            <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-amber-300 text-base shadow-inner">
+                <i class="fa-solid fa-box-open group-hover:rotate-12 transition-transform"></i>
+            </div>
+            <div class="text-left pr-1">
+                <span class="block text-[10px] text-brand-100 uppercase font-extrabold tracking-wider leading-tight">Combo tươi mỗi tuần</span>
+                <span class="block text-xs sm:text-sm font-black leading-tight">Đăng Ký Gói Rau Tuần</span>
+            </div>
+            <span class="bg-amber-400 text-gray-900 text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs">-10%</span>
+        </a>
+    @endif
         @endauth
     <!-- 4. FOOTER BLADE COMPONENT -->
     <x-customer.footer />
@@ -69,22 +97,22 @@
         init() {
             const success = @js(session('success'));
             const error = @js(session('error'));
+            const warning = @js(session('warning'));
+            const info = @js(session('info'));
 
-            if (success) {
-                this.addToast('success', success);
-            }
-
-            if (error) {
-                this.addToast('error', error);
-            }
+            if (success) this.addToast('success', success);
+            if (error) this.addToast('error', error);
+            if (warning) this.addToast('warning', warning);
+            if (info) this.addToast('info', info);
         },
 
         notify(event) {
-            const detail = event.detail ?? {};
+            const raw = event.detail ?? {};
+            const detail = Array.isArray(raw) ? (raw[0] ?? {}) : raw;
 
             this.addToast(
                 detail.type ?? 'success',
-                detail.message ?? ''
+                detail.message ?? (typeof detail === 'string' ? detail : '')
             );
         },
 
@@ -95,7 +123,7 @@
 
             this.toasts.push({
                 id,
-                type,
+                type: type || 'success',
                 message
             });
 
@@ -105,9 +133,37 @@
         },
 
         removeToast(id) {
-            this.toasts = this.toasts.filter(
-                toast => toast.id !== id
-            );
+            this.toasts = this.toasts.filter(toast => toast.id !== id);
+        },
+
+        getConfig(type) {
+            switch (type) {
+                case 'success':
+                    return {
+                        box: 'border-emerald-200 bg-emerald-50 text-emerald-900',
+                        iconBg: 'bg-emerald-500 text-white',
+                        icon: 'fa-check'
+                    };
+                case 'warning':
+                    return {
+                        box: 'border-amber-200 bg-amber-50 text-amber-900',
+                        iconBg: 'bg-amber-500 text-white',
+                        icon: 'fa-triangle-exclamation'
+                    };
+                case 'info':
+                    return {
+                        box: 'border-sky-200 bg-sky-50 text-sky-900',
+                        iconBg: 'bg-sky-500 text-white',
+                        icon: 'fa-circle-info'
+                    };
+                case 'error':
+                default:
+                    return {
+                        box: 'border-rose-200 bg-rose-50 text-rose-900',
+                        iconBg: 'bg-rose-500 text-white',
+                        icon: 'fa-circle-xmark'
+                    };
+            }
         }
     }"
     x-on:show-toast.window="notify($event)"
@@ -123,39 +179,24 @@
             x-transition:leave="transition ease-in duration-200"
             x-transition:leave-start="opacity-100 translate-x-0"
             x-transition:leave-end="opacity-0 translate-x-5"
-            class="w-full rounded-2xl shadow-xl p-4 flex items-center justify-between gap-3 border"
-            :class="toast.type === 'success'
-                ? 'border-emerald-200 bg-emerald-50'
-                : 'border-red-200 bg-red-50'"
+            class="w-full rounded-2xl shadow-xl p-4 flex items-center justify-between gap-3 border backdrop-blur-xs"
+            :class="getConfig(toast.type).box"
         >
             <div class="flex items-center gap-3 min-w-0">
                 <div
-                    class="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                    :class="toast.type === 'success'
-                        ? 'bg-emerald-500 text-white'
-                        : 'bg-red-500 text-white'"
+                    class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-xs"
+                    :class="getConfig(toast.type).iconBg"
                 >
-                    <i
-                        class="fa-solid text-sm"
-                        :class="toast.type === 'success'
-                            ? 'fa-check'
-                            : 'fa-triangle-exclamation'"
-                    ></i>
+                    <i class="fa-solid text-sm" :class="getConfig(toast.type).icon"></i>
                 </div>
 
-                <p
-                    class="text-xs font-bold break-words flex-1"
-                    :class="toast.type === 'success'
-                        ? 'text-emerald-900'
-                        : 'text-red-900'"
-                    x-text="toast.message"
-                ></p>
+                <p class="text-xs font-bold break-words flex-1 leading-snug" x-text="toast.message"></p>
             </div>
 
             <button
                 type="button"
                 @click="removeToast(toast.id)"
-                class="text-gray-400 hover:text-gray-600 p-1 shrink-0"
+                class="text-gray-400 hover:text-gray-600 p-1 shrink-0 transition-colors"
                 aria-label="Đóng thông báo"
             >
                 <i class="fa-solid fa-xmark text-sm"></i>

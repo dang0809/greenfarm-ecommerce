@@ -21,7 +21,11 @@ class SystemContentSeeder extends Seeder
             
             ['key' => 'max_shipping_distance_km', 'value' => '25', 'group' => 'shipping'],
             // 3. Nhóm Gói thành viên / Đăng ký
-            ['key' => 'vip_monthly_subscription_price', 'value' => '1200000', 'group' => 'subscription'],
+            // 3. Nhóm Gói thành viên / Đăng ký VIP
+            ['key' => 'vip_package_name', 'value' => 'Gói Bếp Xanh VIP Gia Đình (1 Tháng)', 'group' => 'subscription'],
+            ['key' => 'vip_package_price', 'value' => '1200000', 'group' => 'subscription'],
+            ['key' => 'vip_delivery_max_weight', 'value' => '3.5', 'group' => 'subscription'],
+            ['key' => 'vip_subscription_enabled', 'value' => 'true', 'group' => 'subscription'],
 
             // 4. Nhóm Tích điểm & Đổi thưởng (Loyalty)
             ['key' => 'spending_per_point', 'value' => '10000', 'group' => 'loyalty'],        // Mức chi tiêu tích 1 điểm (Ví dụ: 10.000đ = 1 điểm)

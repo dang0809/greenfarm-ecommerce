@@ -142,6 +142,7 @@ class ProductDetail extends Component
 
         if (!$this->hasPurchased) {
             session()->flash('error', 'Bạn cần mua sản phẩm này để có thể gửi đánh giá!');
+            $this->dispatch('show-toast', type: 'error', message: 'Bạn cần mua sản phẩm này để có thể gửi đánh giá!');
             return;
         }
 
@@ -175,6 +176,7 @@ class ProductDetail extends Component
         $this->product->load('reviews.user');
 
         session()->flash('success', 'Cảm ơn bạn đã gửi đánh giá cho sản phẩm!');
+        $this->dispatch('show-toast', type: 'success', message: 'Cảm ơn bạn đã gửi đánh giá cho sản phẩm!');
     }
 
     public function render()

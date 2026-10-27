@@ -118,7 +118,14 @@
                                 class="flex items-center gap-2.5 p-1 rounded-full hover:bg-gray-50 transition-colors focus:outline-none">
                             <img src="{{ Auth::user()->avatar ?? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150' }}" alt="Avatar" class="w-9 h-9 rounded-full object-cover border border-brand-200">
                             <div class="text-left hidden xl:block">
-                                <span class="block text-xs font-bold text-gray-800 leading-tight">{{ Auth::user()->name }}</span>
+                                <div class="flex items-center gap-1.5 leading-tight">
+                                    <span class="text-xs font-bold text-gray-800">{{ Auth::user()->name }}</span>
+                                    @if (\App\Models\Subscription::where('user_id', Auth::id())->where('status', 'active')->exists())
+                                        <span class="inline-flex items-center gap-0.5 bg-amber-100 text-amber-800 text-[10px] font-black px-1.5 py-0.5 rounded-md border border-amber-300">
+                                            <i class="fa-solid fa-crown text-[9px] text-amber-600"></i> VIP
+                                        </span>
+                                    @endif
+                                </div>
                                 <span class="block text-[11px] font-semibold text-brand-600">✨ {{ Auth::user()->reward_points ?? 0 }} điểm</span>
                             </div>
                             <i class="fa-solid fa-chevron-down text-[10px] text-gray-400 ml-0.5"></i>
@@ -136,6 +143,11 @@
                                 <a href="{{ route('customer.profile') }}" class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-700">
                                     <i class="fa-regular fa-user text-gray-400 w-4"></i> Thông tin cá nhân
                                 </a>
+                                @if (\App\Models\Subscription::where('user_id', Auth::id())->where('status', 'active')->exists())
+                                <a href="{{ route('customer.vip.setup') }}" wire:navigate class="flex items-center gap-2.5 px-4 py-2 text-sm text-amber-900 bg-amber-50 hover:bg-amber-100/80 font-bold transition">
+                                    <i class="fa-solid fa-crown text-amber-600 w-4"></i> Lịch Giao Rau VIP
+                                </a>
+                                @endif
                                
                             </div>
                             <div class="border-t border-gray-100 pt-1">
