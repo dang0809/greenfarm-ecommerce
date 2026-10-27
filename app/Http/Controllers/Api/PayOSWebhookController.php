@@ -101,10 +101,37 @@ class PayOSWebhookController extends Controller
 
                     // Lấy danh sách sản phẩm trong đơn hàng
                     $order->load('items');
-                    $order->update([
-                        'payment_status' => 'paid',
-                        'status'         => 'pending',
-                    ]);
+                    if ($order->order_type === 'subscription') {
+                        $order->update([
+                            'payment_status' => 'paid',
+                            'status'         => 'delivered',
+                        ]);
+
+                        $existingSub = \App\Models\Subscription::where('user_id', $order->user_id)
+                            ->where('status', 'active')
+                            ->whereNull('delivery_days')
+                            ->latest()
+                            ->first();
+
+                        if (!$existingSub) {
+                            \App\Models\Subscription::create([
+                                'user_id'           => $order->user_id,
+                                'recipient_name'    => $order->recipient_name,
+                                'recipient_phone'   => $order->recipient_phone,
+                                'recipient_address' => $order->recipient_address,
+                                'delivery_days'     => null,
+                                'total_price'       => $order->total,
+                                'total_deliveries'  => 8,
+                                'delivered_count'   => 0,
+                                'status'            => 'active',
+                            ]);
+                        }
+                    } else {
+                        $order->update([
+                            'payment_status' => 'paid',
+                            'status'         => 'pending',
+                        ]);
+                    }
 
                     $order->statusHistories()->create([
                         'old_status' => 'pending',
@@ -117,20 +144,7 @@ class PayOSWebhookController extends Controller
                         Product::where('id', $item->product_id)->increment('sold_count', $item->quantity);
                     }
 
-                    // =========================================================================
-                    // NOTE: BỎ CỘNG ĐIỂM KHI THANH TOÁN
-                    // Điểm thưởng (points_earned) sẽ chỉ được cộng khi đơn hàng HOÀN THÀNH (giao thành công)
-                    // qua OrderNotificationService::notifyOrderDelivered() để tránh gian lận điểm khi hủy đơn.
-                    // =========================================================================
-                    /*
-                    $user = User::find($order->user_id);
-                    if ($user) {
-                        if ($order->points_earned > 0) {
-                            $user->increment('reward_points', $order->points_earned);
-                        }
-                    }
-                    */
-
+                   
                     DB::commit();
 
                     // Gửi thông báo thanh toán thành công (Web & Email)
