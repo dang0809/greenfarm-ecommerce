@@ -31,15 +31,10 @@ class Order extends Model
         'recipient_address', 
         'status', 
         'note',
-        // Các trường phục vụ tính năng Hủy đơn & Hoàn tiền
+        // Quản lý Hủy đơn
         'cancel_reason',
         'cancelled_at',
         'cancelled_by',
-        'bank_name',
-        'bank_account_number',
-        'bank_account_name',
-        'refund_status',
-        'refunded_at',
     ];
 
     protected function casts(): array
@@ -52,7 +47,6 @@ class Order extends Model
             'points_used'          => 'integer',
             'points_earned'        => 'integer',
             'cancelled_at'         => 'datetime',
-            'refunded_at'          => 'datetime',
         ];
     }
 

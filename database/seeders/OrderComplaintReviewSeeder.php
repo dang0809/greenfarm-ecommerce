@@ -829,9 +829,46 @@ class OrderComplaintReviewSeeder extends Seeder
                 'updated_at'   => $t6_time3,
             ]);
 
+            // 6.4 Đơn thường bán lẻ thứ 3: NHÂN VIÊN NÔNG TRẠI CHỦ ĐỘNG HỦY (do luống rau không đạt chuẩn thu hoạch)
+            $t6_time4 = now()->subDays(1);
+            $t6_sub4 = $priceBoxoi * 2;
+            $o6_retail_4 = DB::table('orders')->insertGetId([
+                'user_id'              => $user->id,
+                'order_code'           => 'ORD-' . $prefix . '-CANCEL-04',
+                'order_type'           => 'retail',
+                'subtotal'             => $t6_sub4,
+                'shipping_distance_km' => 2.0,
+                'shipping_fee'         => 15000,
+                'total'                => $t6_sub4 + 15000,
+                'payment_method'       => 'cod',
+                'payment_status'       => 'pending',
+                'recipient_name'       => $user->name,
+                'recipient_phone'      => $phone,
+                'recipient_address'    => $address,
+                'status'               => 'cancelled',
+                'cancelled_by'         => 'sales',
+                'cancel_reason'        => 'Nông sản tại luống không đạt chuẩn VietGAP, nhân viên nông trại chủ động hủy đơn',
+                'cancelled_at'         => $t6_time4,
+                'created_at'           => $t6_time4->copy()->subHours(2),
+                'updated_at'           => $t6_time4,
+            ]);
+            $addHistory($o6_retail_4, 'pending', null, 'Khách hàng tạo đơn hàng COD.', $t6_time4->copy()->subHours(2), $user->id);
+            $addHistory($o6_retail_4, 'cancelled', 'pending', 'Nhân viên Nông trại Đất Lành liên hệ thông báo hủy đơn do luống rau không đạt tiêu chuẩn thu hoạch.', $t6_time4, $sales?->id ?? 1);
+
+            DB::table('order_items')->insert([
+                'order_id'     => $o6_retail_4,
+                'product_id'   => $pBoxoi?->id ?? 1,
+                'batch_id'     => $batch?->id ?? 1,
+                'product_name' => $pBoxoi?->name ?? 'Cải Bó Xôi Hữu Cơ',
+                'price'        => $priceBoxoi,
+                'quantity'     => 2,
+                'subtotal'     => $t6_sub4,
+                'created_at'   => $t6_time4->copy()->subHours(2),
+                'updated_at'   => $t6_time4->copy()->subHours(2),
+            ]);
 
             // =================================================================
-            // TAB 7: TRẢ HÀNG / HOÀN TIỀN (refund: refund_status in pending/refunded hoặc có complaint)
+            // TAB 7: TRẢ HÀNG / HOÀN TIỀN (refund: đơn delivered có complaint)
             // =================================================================
             // 7.1 Đơn thường bán lẻ - Đã giao thành công + Có KHIẾU NẠI DẬP NÁT ĐANG CHỜ DUYỆT
             $t7_time1 = now()->subDays(1);
@@ -852,10 +889,6 @@ class OrderComplaintReviewSeeder extends Seeder
                 'recipient_phone'      => $phone,
                 'recipient_address'    => $address,
                 'status'               => 'delivered',
-                'refund_status'        => 'pending',
-                'bank_name'            => 'MBBank',
-                'bank_account_number'  => $phone,
-                'bank_account_name'    => mb_strtoupper($user->name),
                 'note'                 => 'Hộp cà chua bị móp, khách đã gửi khiếu nại',
                 'created_at'           => $t7_time1,
                 'updated_at'           => $t7_time1->copy()->addHours(3),
@@ -880,13 +913,16 @@ class OrderComplaintReviewSeeder extends Seeder
 
             // Bản ghi khiếu nại đang chờ duyệt
             $compId1 = DB::table('complaints')->insertGetId([
-                'user_id'         => $user->id,
-                'order_id'        => $o7_complaint_pending,
-                'refund_amount'   => $priceCachua,
-                'reason'          => 'Hộp cà chua cherry bị móp đáy khi giao, có 4 quả bị dập nát chảy nước.',
-                'status'          => 'pending',
-                'created_at'      => $t7_time1->copy()->addHours(3),
-                'updated_at'      => $t7_time1->copy()->addHours(3),
+                'user_id'             => $user->id,
+                'order_id'            => $o7_complaint_pending,
+                'refund_amount'       => $priceCachua,
+                'reason'              => 'Hộp cà chua cherry bị móp đáy khi giao, có 4 quả bị dập nát chảy nước.',
+                'status'              => 'pending',
+                'bank_name'           => 'MBBank',
+                'bank_account_number' => $phone,
+                'bank_account_name'   => mb_strtoupper($user->name),
+                'created_at'          => $t7_time1->copy()->addHours(3),
+                'updated_at'          => $t7_time1->copy()->addHours(3),
             ]);
 
             DB::table('complaint_images')->insert([
@@ -915,11 +951,6 @@ class OrderComplaintReviewSeeder extends Seeder
                 'recipient_phone'      => $phone,
                 'recipient_address'    => $address,
                 'status'               => 'delivered',
-                'refund_status'        => 'refunded',
-                'refunded_at'          => $t7_res_time->copy()->addHours(6),
-                'bank_name'            => 'MBBank',
-                'bank_account_number'  => $phone,
-                'bank_account_name'    => mb_strtoupper($user->name),
                 'note'                 => 'Nông trại đã duyệt khiếu nại và hoàn tiền về MBBank',
                 'created_at'           => $t7_res_time,
                 'updated_at'           => $t7_res_time->copy()->addHours(6),
@@ -928,7 +959,6 @@ class OrderComplaintReviewSeeder extends Seeder
             $addHistory($o7_complaint_resolved, 'processing', 'pending', 'Nông trại hái rau sạch và đóng thùng.', $t7_res_time->copy()->addHours(1), $sales?->id ?? 1);
             $addHistory($o7_complaint_resolved, 'shipped', 'processing', 'Shipper AhaMove giao hàng hỏa tốc.', $t7_res_time->copy()->addHours(2), $sales?->id ?? 1);
             $addHistory($o7_complaint_resolved, 'delivered', 'shipped', 'Khách hàng nhận hàng, phát hiện rau bị dập và gửi khiếu nại hoàn tiền.', $t7_res_time->copy()->addHours(3), $user->id);
-            $addHistory($o7_complaint_resolved, 'delivered', 'delivered', 'CSKH xác nhận dập nát, kế toán đã chuyển khoản hoàn tiền ' . number_format($t7_sub_res) . 'đ về MBBank.', $t7_res_time->copy()->addHours(6), $sales?->id ?? 1);
 
             DB::table('order_items')->insert([
                 'order_id'     => $o7_complaint_resolved,
@@ -943,15 +973,18 @@ class OrderComplaintReviewSeeder extends Seeder
             ]);
 
             $compId2 = DB::table('complaints')->insertGetId([
-                'user_id'         => $user->id,
-                'order_id'        => $o7_complaint_resolved,
-                'refund_amount'   => $t7_sub_res,
-                'reason'          => 'Túi rau cải bó xôi bị cấn đè trong thùng xốp, dập úng cuống lá không sử dụng được.',
-                'status'          => 'resolved',
-                'resolved_by'     => $sales?->id ?? 1,
-                'resolution_note' => 'GreenFarm chân thành xin lỗi quý khách vì sự cố vận chuyển. Bộ phận kế toán đã chuyển khoản bồi hoàn 100% tiền rau về tài khoản MBBank của bạn.',
-                'created_at'      => $t7_res_time->copy()->addHours(3),
-                'updated_at'      => $t7_res_time->copy()->addHours(6),
+                'user_id'             => $user->id,
+                'order_id'            => $o7_complaint_resolved,
+                'refund_amount'       => $t7_sub_res,
+                'reason'              => 'Túi rau cải bó xôi bị cấn đè trong thùng xốp, dập úng cuống lá không sử dụng được.',
+                'status'              => 'resolved',
+                'bank_name'           => 'MBBank',
+                'bank_account_number' => $phone,
+                'bank_account_name'   => mb_strtoupper($user->name),
+                'resolved_by'         => $sales?->id ?? 1,
+                'resolution_note'     => 'GreenFarm chân thành xin lỗi quý khách vì sự cố vận chuyển. Bộ phận kế toán đã chuyển khoản bồi hoàn 100% tiền rau về tài khoản MBBank của bạn.',
+                'created_at'          => $t7_res_time->copy()->addHours(3),
+                'updated_at'          => $t7_res_time->copy()->addHours(6),
             ]);
 
             DB::table('complaint_images')->insert([
@@ -980,7 +1013,6 @@ class OrderComplaintReviewSeeder extends Seeder
                 'recipient_phone'      => $phone,
                 'recipient_address'    => $address,
                 'status'               => 'delivered',
-                'refund_status'        => 'none',
                 'note'                 => 'Khiếu nại không hợp lệ, nông trại từ chối',
                 'created_at'           => $t7_rej_time,
                 'updated_at'           => $t7_rej_time->copy()->addHours(5),
@@ -989,7 +1021,6 @@ class OrderComplaintReviewSeeder extends Seeder
             $addHistory($o7_complaint_rejected, 'processing', 'pending', 'Nông trại chuẩn bị đơn hàng.', $t7_rej_time->copy()->addHours(1), $sales?->id ?? 1);
             $addHistory($o7_complaint_rejected, 'shipped', 'processing', 'Đang giao hàng đến khách.', $t7_rej_time->copy()->addHours(2), $sales?->id ?? 1);
             $addHistory($o7_complaint_rejected, 'delivered', 'shipped', 'Giao hàng thành công. Khách gửi khiếu nại hoàn tiền.', $t7_rej_time->copy()->addHours(3), $user->id);
-            $addHistory($o7_complaint_rejected, 'delivered', 'delivered', 'Nông trại từ chối khiếu nại: Sản phẩm không có dấu hiệu hư hỏng theo quy chuẩn bảo hành.', $t7_rej_time->copy()->addHours(5), $sales?->id ?? 1);
 
             DB::table('order_items')->insert([
                 'order_id'     => $o7_complaint_rejected,
@@ -1004,15 +1035,18 @@ class OrderComplaintReviewSeeder extends Seeder
             ]);
 
             $compId3 = DB::table('complaints')->insertGetId([
-                'user_id'         => $user->id,
-                'order_id'        => $o7_complaint_rejected,
-                'refund_amount'   => $t7_sub_rej,
-                'reason'          => 'Cà chua vị chua hơn đợt trước mua, yêu cầu trả hàng hoàn tiền.',
-                'status'          => 'rejected',
-                'resolved_by'     => $sales?->id ?? 1,
-                'resolution_note' => 'Chính sách bảo hành nông sản chỉ áp dụng khi sản phẩm dập nát, úng hỏng vật lý hoặc giao sai quy cách trong vòng 24 giờ. Nông trại rất tiếc không thể hỗ trợ hoàn tiền đối với khẩu vị cá nhân. Cảm ơn quý khách đã đóng góp ý kiến!',
-                'created_at'      => $t7_rej_time->copy()->addHours(3),
-                'updated_at'      => $t7_rej_time->copy()->addHours(5),
+                'user_id'             => $user->id,
+                'order_id'            => $o7_complaint_rejected,
+                'refund_amount'       => $t7_sub_rej,
+                'reason'              => 'Cà chua vị chua hơn đợt trước mua, yêu cầu trả hàng hoàn tiền.',
+                'status'              => 'rejected',
+                'bank_name'           => 'MBBank',
+                'bank_account_number' => $phone,
+                'bank_account_name'   => mb_strtoupper($user->name),
+                'resolved_by'         => $sales?->id ?? 1,
+                'resolution_note'     => 'Chính sách bảo hành nông sản chỉ áp dụng khi sản phẩm dập nát, úng hỏng vật lý hoặc giao sai quy cách trong vòng 24 giờ. Nông trại rất tiếc không thể hỗ trợ hoàn tiền đối với khẩu vị cá nhân. Cảm ơn quý khách đã đóng góp ý kiến!',
+                'created_at'          => $t7_rej_time->copy()->addHours(3),
+                'updated_at'          => $t7_rej_time->copy()->addHours(5),
             ]);
 
             DB::table('complaint_images')->insert([
@@ -1022,49 +1056,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'updated_at'   => $t7_rej_time->copy()->addHours(3),
             ]);
 
-            // 7.3 Đơn hủy đã thanh toán VÀ ĐÃ ĐƯỢC NÔNG TRẠI HOÀN TIỀN XONG (refund_status = refunded)
-            $t7_time2 = now()->subDays(5);
-            $t7_sub2 = $priceBoxoi * 4;
-            $o7_refund_done = DB::table('orders')->insertGetId([
-                'user_id'              => $user->id,
-                'order_code'           => 'ORD-' . $prefix . '-REFUND-RESOLVED',
-                'order_type'           => 'retail',
-                'subtotal'             => $t7_sub2,
-                'shipping_fee'         => 15000,
-                'total'                => $t7_sub2 + 15000,
-                'payment_method'       => 'payos',
-                'payment_status'       => 'paid',
-                'recipient_name'       => $user->name,
-                'recipient_phone'      => $phone,
-                'recipient_address'    => $address,
-                'status'               => 'cancelled',
-                'cancelled_by'         => 'customer',
-                'cancel_reason'        => 'Khách bận việc gia đình đột xuất tự hủy đơn, yêu cầu hoàn tiền về MBBank',
-                'cancelled_at'         => $t7_time2->copy()->addHours(1),
-                'bank_name'            => 'MBBank',
-                'bank_account_number'  => $phone,
-                'bank_account_name'    => mb_strtoupper($user->name),
-                'refund_status'        => 'refunded',
-                'refunded_at'          => $t7_time2->copy()->addDays(1),
-                'note'                 => 'Nông trại đã hoàn tiền thành công qua ngân hàng',
-                'created_at'           => $t7_time2,
-                'updated_at'           => $t7_time2->copy()->addDays(1),
-            ]);
-            $addHistory($o7_refund_done, 'pending', null, 'Khách hàng đặt đơn và thanh toán PayOS.', $t7_time2, $user->id);
-            $addHistory($o7_refund_done, 'cancelled', 'pending', 'Khách hàng tự hủy đơn - Yêu cầu hoàn tiền về MBBank.', $t7_time2->copy()->addHours(1), $user->id);
-            $addHistory($o7_refund_done, 'cancelled', 'cancelled', 'Kế toán nông trại GreenFarm đã chuyển khoản hoàn tiền ' . number_format($t7_sub2 + 15000) . 'đ thành công.', $t7_time2->copy()->addDays(1), $sales?->id ?? 1);
 
-            DB::table('order_items')->insert([
-                'order_id'     => $o7_refund_done,
-                'product_id'   => $pBoxoi?->id ?? 1,
-                'batch_id'     => $batch?->id ?? 1,
-                'product_name' => $pBoxoi?->name ?? 'Cải Bó Xôi Hữu Cơ',
-                'price'        => $priceBoxoi,
-                'quantity'     => 4,
-                'subtotal'     => $t7_sub2,
-                'created_at'   => $t7_time2,
-                'updated_at'   => $t7_time2,
-            ]);
 
             // =================================================================
             // ĐỒNG BỘ BIÊN LAI THANH TOÁN CHO BẢNG payments (CHUẨN 1 - 1)

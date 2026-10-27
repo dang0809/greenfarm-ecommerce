@@ -67,7 +67,10 @@
                         </div>
                         <div>
                             <div class="flex items-center gap-2">
-                                <span class="font-mono font-extrabold text-gray-900 text-sm">#{{ $order->order_code }}</span>
+                                <a href="{{ route('customer.order.detail', $order->order_code) }}" class="font-mono font-extrabold text-gray-900 text-sm hover:text-brand-600 transition flex items-center gap-1 group" title="Xem chi tiết đơn hàng">
+                                    <span>#{{ $order->order_code }}</span>
+                                    <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-gray-400 group-hover:text-brand-600 transition"></i>
+                                </a>
                                 
                                 @if ($isVipPayment)
                                     <span class="inline-flex items-center gap-1 text-[10px] font-black text-purple-700 bg-purple-100 border border-purple-300 px-2 py-0.5 rounded-md">
@@ -93,51 +96,42 @@
                         </div>
                     </div>
 
-                    <!-- Badge Trạng thái -->
-                    @if ($order->status === 'cancelled')
-                        <div class="flex items-center gap-1.5 flex-wrap justify-end">
-                            <span class="inline-flex items-center gap-1.5 text-xs font-bold text-red-700 bg-red-50 border border-red-200 px-2.5 py-0.5 rounded-full">
-                                Đã hủy {{ $order->cancelled_by === 'customer' ? '(Bởi bạn)' : '(Bởi Nông trại)' }}
-                            </span>
-                            @if ($order->payment_status === 'paid' || $order->refund_status !== 'none')
-                                @if ($order->refund_status === 'pending')
-                                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
-                                        <i class="fa-solid fa-clock text-[9px] animate-pulse"></i> Chờ hoàn tiền
-                                    </span>
-                                @elseif ($order->refund_status === 'refunded')
-                                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-                                        <i class="fa-solid fa-circle-check text-[9px]"></i> Đã hoàn tiền
-                                    </span>
-                                @endif
-                            @endif
-                        </div>
-                    @elseif ($order->status === 'delivered')
+                    <!-- Badge Trạng thái: Đồng bộ chính xác theo từng tab & khiếu nại, không ngoặc đơn -->
+                    @if ($order->status === 'delivered')
                         <div class="flex items-center gap-1.5 flex-wrap justify-end">
                             <span class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-                                <i class="fa-solid fa-check text-[10px]"></i> {{ $isVipPayment ? 'Thanh toán & Kích hoạt thành công' : 'Đã giao thành công' }}
+                                <i class="fa-solid fa-check text-[10px]"></i> Đã giao
                             </span>
-                            @if ($order->complaint)
-                                @if ($order->complaint->status === 'resolved' || $order->refund_status === 'refunded')
-                                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-                                        <i class="fa-solid fa-circle-check text-[9px]"></i> Đã hoàn tiền
-                                    </span>
-                                @elseif ($order->complaint->status === 'rejected')
-                                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-red-800 bg-red-50 border border-red-200 px-2.5 py-0.5 rounded-full">
-                                        <i class="fa-solid fa-circle-xmark text-[9px]"></i> Khiếu nại bị từ chối
-                                    </span>
-                                @elseif ($order->complaint->status === 'pending')
-                                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
-                                        <i class="fa-solid fa-clock text-[9px] animate-pulse"></i> Chờ duyệt khiếu nại
-                                    </span>
-                                @endif
+                            @if ($order->complaint && $order->complaint->status === 'resolved')
+                                <span class="inline-flex items-center gap-1 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+                                    <i class="fa-solid fa-circle-check text-[10px] text-emerald-600"></i> Đã hoàn tiền
+                                </span>
+                            @elseif ($order->complaint && $order->complaint->status === 'pending')
+                                <span class="inline-flex items-center gap-1 text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
+                                    <i class="fa-solid fa-clock text-[10px] text-amber-600 animate-pulse"></i> Đang yêu cầu hoàn tiền
+                                </span>
+                            @elseif ($order->complaint && $order->complaint->status === 'rejected')
+                                <span class="inline-flex items-center gap-1 text-xs font-bold text-red-800 bg-red-50 border border-red-200 px-2.5 py-0.5 rounded-full">
+                                    <i class="fa-solid fa-circle-xmark text-[10px] text-red-600"></i> Khiếu nại bị từ chối
+                                </span>
                             @endif
                         </div>
+                    @elseif ($order->status === 'cancelled')
+                        @if ($order->cancelled_by === 'customer')
+                            <span class="inline-flex items-center gap-1.5 text-xs font-bold text-red-700 bg-red-50 border border-red-200 px-2.5 py-0.5 rounded-full">
+                                <i class="fa-solid fa-circle-xmark text-[10px]"></i> Người dùng hủy
+                            </span>
+                        @else
+                            <span class="inline-flex items-center gap-1.5 text-xs font-bold text-red-700 bg-red-50 border border-red-200 px-2.5 py-0.5 rounded-full">
+                                <i class="fa-solid fa-circle-xmark text-[10px]"></i> Nhân viên hủy
+                            </span>
+                        @endif
                     @elseif ($order->status === 'shipped')
-                        <span class="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
-                            <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Đang giao
+                        <span class="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full">
+                            <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span> Đang giao
                         </span>
                     @elseif ($order->status === 'processing')
-                        <span class="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full">
+                        <span class="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
                             <i class="fa-solid fa-boxes-packing text-[10px]"></i> Chờ lấy hàng
                         </span>
                     @elseif ($order->status === 'pending' && $order->payment_status === 'pending')
@@ -145,11 +139,32 @@
                             <i class="fa-solid fa-hourglass-half text-[10px]"></i> Chờ thanh toán
                         </span>
                     @elseif ($order->status === 'pending' && $order->payment_status === 'paid')
-                        <span class="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-full">
+                        <span class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
                             <i class="fa-solid fa-circle-notch text-[10px] animate-spin"></i> Chờ xác nhận
                         </span>
                     @endif
                 </div>
+
+                <!-- THÔNG BÁO TÓM TẮT TRẠNG THÁI -->
+                @php
+                    $orderStatusMsg = match(true) {
+                        $order->status === 'pending' && $order->payment_status === 'pending' => 'Đơn hàng của bạn đã được hệ thống ghi nhận. Vui lòng hoàn tất thanh toán để nông trại bắt đầu chuẩn bị hàng nhé!',
+                        $order->status === 'pending' && $order->payment_status === 'paid' && $isVipDelivery => "Đợt giao rau định kỳ{$batchInfo} đã được khởi tạo. Hệ thống đang chờ nhân viên Nông trại Đất Lành kiểm tra và xác nhận đơn hàng.",
+                        $order->status === 'pending' && $order->payment_status === 'paid' => 'Bạn đã thanh toán thành công. Hệ thống đang chờ nhân viên Nông trại Đất Lành kiểm tra và xác nhận đơn hàng.',
+                        $order->status === 'processing' && $isVipDelivery => "Nông trại đang thu hoạch & đóng gói thùng rau VIP{$batchInfo} theo chuẩn VietGAP, chờ shipper đến lấy hàng.",
+                        $order->status === 'processing' => 'Đơn hàng đã được xác nhận & đang đóng gói, chờ shipper đến lấy hàng.',
+                        $order->status === 'shipped' => 'Shipper đã lấy hàng thành công và đang trên đường giao đơn hàng này tới bạn. Vui lòng chú ý điện thoại nhé!',
+                        $order->status === 'delivered' && $isVipDelivery => "Đã giao thành công đợt rau VIP{$batchInfo} đến bạn!",
+                        $order->status === 'delivered' => 'Đơn hàng đã được giao thành công đến bạn! Cảm ơn bạn đã tin chọn nông sản sạch GreenFarm.',
+                        default => null
+                    };
+                @endphp
+                @if ($orderStatusMsg)
+                    <div class="px-3.5 py-2 rounded-xl {{ $isVipDelivery ? 'bg-purple-100/60 text-purple-900 border border-purple-200' : 'bg-gray-100/80 text-gray-700 border border-gray-200/60' }} text-xs flex items-center gap-2">
+                        <i class="fa-solid fa-circle-info {{ $isVipDelivery ? 'text-purple-600' : 'text-brand-600' }} text-xs shrink-0"></i>
+                        <span class="leading-relaxed">{{ $orderStatusMsg }}</span>
+                    </div>
+                @endif
 
                 <!-- HIỂN THỊ NỘI DUNG SẢN PHẨM -->
                 @if ($isVipPayment)
@@ -177,9 +192,15 @@
 
                             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 last:border-0 last:pb-0">
                                 <div class="flex items-start gap-3">
-                                    <img src="{{ $primaryImage }}" alt="{{ $item->product_name }}" class="w-14 h-14 rounded-xl object-cover border border-gray-200 shrink-0">
+                                    <a href="{{ route('customer.order.detail', $order->order_code) }}" class="shrink-0">
+                                        <img src="{{ $primaryImage }}" alt="{{ $item->product_name }}" class="w-14 h-14 rounded-xl object-cover border border-gray-200 shrink-0 hover:opacity-90 transition">
+                                    </a>
                                     <div>
-                                        <h3 class="text-xs sm:text-sm font-bold text-gray-900">{{ $item->product_name }}</h3>
+                                        <h3 class="text-xs sm:text-sm font-bold text-gray-900">
+                                            <a href="{{ route('customer.order.detail', $order->order_code) }}" class="hover:text-brand-600 transition">
+                                                {{ $item->product_name }}
+                                            </a>
+                                        </h3>
                                         <p class="text-[11px] text-gray-500 mt-0.5">
                                             @if ($isVipDelivery)
                                                 Số lượng: {{ $item->quantity }} (Đã gồm trong Gói VIP)
@@ -205,90 +226,6 @@
                     </div>
                 @endif
 
-                @if ($order->complaint)
-                    <div class="rounded-xl p-3 text-xs {{ $order->complaint->status === 'rejected' ? 'bg-red-50/80 border border-red-200 text-red-900' : ($order->complaint->status === 'resolved' || $order->refund_status === 'refunded' ? 'bg-emerald-50/80 border border-emerald-200 text-emerald-900' : 'bg-amber-50/80 border border-amber-200 text-amber-900') }}">
-                        <div class="flex items-start gap-2.5">
-                            @if ($order->complaint->status === 'rejected')
-                                <i class="fa-solid fa-circle-xmark text-red-600 text-sm mt-0.5 shrink-0"></i>
-                                <div class="space-y-1 flex-1">
-                                    <div class="font-bold text-red-800 flex items-center justify-between">
-                                        <span>Khiếu nại bị từ chối</span>
-                                        @if ($order->complaint->updated_at)
-                                            <span class="text-[11px] font-normal text-red-600">{{ $order->complaint->updated_at->format('H:i • d/m/Y') }}</span>
-                                        @endif
-                                    </div>
-                                    <p class="text-gray-700 leading-relaxed">
-                                        <span class="font-bold text-red-700">Lý do từ chối:</span> 
-                                        {{ $order->complaint->resolution_note ?: 'Yêu cầu không đáp ứng chính sách bảo hành / đổi trả nông sản của GreenFarm.' }}
-                                    </p>
-                                    @if ($order->complaint->reason)
-                                        <p class="text-gray-500 text-[11px] pt-1 border-t border-red-100/80">
-                                            <span class="font-medium text-gray-600">Nội dung khiếu nại của bạn:</span> {{ $order->complaint->reason }}
-                                        </p>
-                                    @endif
-                                </div>
-                            @elseif ($order->complaint->status === 'resolved' || $order->refund_status === 'refunded')
-                                <i class="fa-solid fa-circle-check text-emerald-600 text-sm mt-0.5 shrink-0"></i>
-                                <div class="space-y-1 flex-1">
-                                    <div class="font-bold text-emerald-800 flex items-center justify-between">
-                                        <span>Khiếu nại thành công • Đã hoàn tiền</span>
-                                        @if ($order->refunded_at || $order->complaint->updated_at)
-                                            <span class="text-[11px] font-normal text-emerald-600">{{ \Carbon\Carbon::parse($order->refunded_at ?? $order->complaint->updated_at)->format('H:i • d/m/Y') }}</span>
-                                        @endif
-                                    </div>
-                                    <p class="text-gray-700 leading-relaxed">
-                                        Số tiền hoàn: <b class="text-emerald-700 font-extrabold">{{ number_format($order->complaint->refund_amount ?? $order->total) }}đ</b>
-                                        @if ($order->bank_name && $order->bank_account_number)
-                                            về STK <span class="font-bold text-gray-800">{{ $order->bank_name }} - {{ $order->bank_account_number }}</span> ({{ $order->bank_account_name }})
-                                        @endif
-                                    </p>
-                                    @if (!empty($order->complaint->resolution_note))
-                                        <p class="text-gray-600 text-[11px] pt-1 border-t border-emerald-100/80">
-                                            <span class="font-semibold text-emerald-700">Ghi chú từ Nông trại:</span> {{ $order->complaint->resolution_note }}
-                                        </p>
-                                    @endif
-                                </div>
-                            @else
-                                <i class="fa-solid fa-clock-rotate-left text-amber-600 text-sm mt-0.5 shrink-0"></i>
-                                <div class="space-y-1 flex-1">
-                                    <div class="font-bold text-amber-800 flex items-center justify-between">
-                                        <span>Đang xử lý yêu cầu khiếu nại</span>
-                                        <span class="text-[11px] font-normal text-amber-700">Chờ duyệt trong 24h</span>
-                                    </div>
-                                    <p class="text-gray-700 leading-relaxed">
-                                        Yêu cầu hoàn tiền: <b class="text-amber-800 font-bold">{{ number_format($order->complaint->refund_amount ?? $order->total) }}đ</b>. Nông trại đang đối soát đơn hàng và sẽ phản hồi sớm nhất.
-                                    </p>
-                                    @if ($order->complaint->reason)
-                                        <p class="text-gray-500 text-[11px] pt-1 border-t border-amber-100/80">
-                                            <span class="font-medium text-gray-600">Lý do khiếu nại:</span> {{ $order->complaint->reason }}
-                                        </p>
-                                    @endif
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-                @elseif ($order->status === 'cancelled' && $order->refund_status === 'refunded')
-                    <div class="rounded-xl p-3 text-xs bg-emerald-50/80 border border-emerald-200 text-emerald-900">
-                        <div class="flex items-start gap-2.5">
-                            <i class="fa-solid fa-circle-check text-emerald-600 text-sm mt-0.5 shrink-0"></i>
-                            <div class="space-y-1 flex-1">
-                                <div class="font-bold text-emerald-800 flex items-center justify-between">
-                                    <span>Đã hoàn tiền thành công</span>
-                                    @if ($order->refunded_at)
-                                        <span class="text-[11px] font-normal text-emerald-600">{{ \Carbon\Carbon::parse($order->refunded_at)->format('H:i • d/m/Y') }}</span>
-                                    @endif
-                                </div>
-                                <p class="text-gray-700 leading-relaxed">
-                                    Đã chuyển khoản hoàn <b class="text-emerald-700 font-extrabold">{{ number_format($order->total) }}đ</b>
-                                    @if ($order->bank_name && $order->bank_account_number)
-                                        về tài khoản <span class="font-bold text-gray-800">{{ $order->bank_name }} - {{ $order->bank_account_number }}</span> ({{ $order->bank_account_name }})
-                                    @endif
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                @endif
-
                 <!-- Footer Đơn Hàng & Thao tác -->
                 <div class="pt-3 border-t {{ ($isVipPayment || $isVipDelivery) ? 'border-purple-100' : 'border-gray-200/80' }} flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div class="text-xs text-gray-500">
@@ -299,27 +236,10 @@
                                 {{ $isVipDelivery ? '0đ (Đã thanh toán qua Gói VIP)' : number_format($order->total) . 'đ' }}
                             </span>
                         </div>
-                        @if (!empty($order->note))
-                            <div class="mt-2 text-[11px] text-gray-500 flex items-center gap-1.5 bg-gray-50/80 rounded-lg px-2.5 py-1 border border-gray-100 w-fit">
-                                <i class="fa-regular fa-comment-dots text-gray-400"></i>
-                                <span>Ghi chú của bạn: <span class="text-gray-700 font-medium italic">{{ $order->note }}</span></span>
-                            </div>
-                        @endif
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2">
-                        {{-- ========================================================================= --}}
-                        {{-- NOTE: Tạm ẩn code cũ cho phép hủy cả đơn đã thanh toán:
-                        @if ($order->status === 'pending' && $order->order_type === 'retail')
-                            <button type="button" 
-                                    wire:click="confirmCancel({{ $order->id }})" 
-                                    wire:confirm="Bạn có chắc chắn muốn hủy đơn hàng #{{ $order->order_code }} không?"
-                                    class="bg-white hover:bg-red-50 text-gray-600 hover:text-red-600 border border-gray-200 font-bold text-xs px-3.5 py-2 rounded-xl transition-all cursor-pointer">
-                                Hủy đơn
-                            </button>
-                        @endif
-                        --}}
-                        <!-- Code hiện tại: Chỉ hiển thị nút Hủy cho đơn CHƯA thanh toán (pending) -->
+                        <!-- Nút Hủy cho đơn CHƯA thanh toán (pending) -->
                         @if ($order->status === 'pending' && $order->payment_status === 'pending' && $order->order_type === 'retail')
                             <button type="button" 
                                     wire:click="confirmCancel({{ $order->id }})" 
@@ -341,39 +261,14 @@
                             </button>
                         @endif
 
-                        <!-- Khiếu nại hoàn tiền (Kiểm tra mốc 24h từ order_status_histories) -->
-                        @if ($order->status === 'delivered' && $order->order_type === 'retail')
-                            @php
-                                $deliveredHistory = $order->statusHistories?->firstWhere('new_status', 'delivered');
-                                $deliveredAt = $deliveredHistory ? $deliveredHistory->created_at : $order->updated_at;
-                                $canRefund = $deliveredAt ? ($deliveredAt->diffInHours(now()) < 24) : false;
-                            @endphp
-
-                            @if ($order->complaint)
-                                @if ($order->complaint->status === 'resolved' || $order->refund_status === 'refunded')
-                                    <span class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-xl">
-                                        <i class="fa-solid fa-circle-check text-emerald-600"></i>
-                                        <span>Đã hoàn tiền ({{ number_format($order->complaint->refund_amount ?? $order->total) }}đ)</span>
-                                    </span>
-                                @elseif ($order->complaint->status === 'rejected')
-                                    <span class="inline-flex items-center gap-1.5 text-xs font-bold text-red-800 bg-red-50 border border-red-200 px-3 py-2 rounded-xl">
-                                        <i class="fa-solid fa-circle-xmark text-red-600"></i>
-                                        <span>Khiếu nại bị từ chối</span>
-                                    </span>
-                                @else
-                                    <span class="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-2 rounded-xl">
-                                        <i class="fa-solid fa-clock-rotate-left text-amber-600"></i>
-                                        <span>Đang chờ duyệt hoàn tiền</span>
-                                    </span>
-                                @endif
-                            @elseif ($canRefund)
-                                <button type="button" 
-                                        wire:click="openComplaintModal({{ $order->id }})"
-                                        class="bg-white hover:bg-amber-50 text-amber-700 hover:text-amber-800 border border-amber-200 font-bold text-xs px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer">
-                                    <i class="fa-solid fa-rotate-left text-xs"></i>
-                                    <span>Khiếu nại hoàn tiền</span>
-                                </button>
-                            @endif
+                        <!-- Nút Khiếu nại: Chỉ hiển thị cho đơn lẻ đã giao, chưa gửi khiếu nại -->
+                        @if ($order->status === 'delivered' && $order->order_type === 'retail' && !$order->complaint)
+                            <button type="button" 
+                                    wire:click="openComplaintModal({{ $order->id }})"
+                                    class="bg-white hover:bg-amber-50 text-amber-700 hover:text-amber-800 border border-amber-200 font-bold text-xs px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer">
+                                <i class="fa-solid fa-rotate-left text-xs"></i>
+                                <span>Khiếu nại</span>
+                            </button>
                         @endif
 
                         <!-- Nút Mua lại: Chỉ hiển thị với đơn lẻ đã giao hoặc đã hủy -->
@@ -385,6 +280,13 @@
                                 <span>Mua lại</span>
                             </button>
                         @endif
+
+                        <!-- Nút Xem chi tiết -->
+                        <a href="{{ route('customer.order.detail', $order->order_code) }}" 
+                           class="bg-white hover:bg-gray-100 text-gray-700 hover:text-brand-700 border border-gray-200 font-bold text-xs px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs">
+                            <i class="fa-solid fa-eye text-xs text-gray-400"></i>
+                            <span>Xem chi tiết</span>
+                        </a>
                     </div>
                 </div>
 
@@ -404,76 +306,8 @@
         </div>
     </div>
 
-    {{-- =========================================================================
-         NOTE: TẠM ẨN MODAL HOÀN TIỀN HỦY ĐƠN ĐÃ THANH TOÁN
-         Lý do: Không cho phép khách hàng tự hủy đơn sau khi đã thanh toán PayOS
-         để bảo vệ nguồn nông sản tươi và tránh gian lận điểm thưởng.
-    =========================================================================
-    @if ($showCancelModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-            <div class="bg-white rounded-3xl p-6 max-w-md w-full space-y-4 shadow-xl">
-                <div class="flex justify-between items-center pb-2 border-b border-gray-100">
-                    <h3 class="text-base font-bold text-gray-900">Yêu Cầu Hoàn Tiền Hủy Đơn</h3>
-                    <button type="button" wire:click="resetCancelModal" class="text-gray-400 hover:text-gray-600">
-                        <i class="fa-solid fa-xmark text-lg"></i>
-                    </button>
-                </div>
 
-                <p class="text-xs text-amber-700 bg-amber-50 p-3 rounded-xl border border-amber-200">
-                    <i class="fa-solid fa-circle-info mr-1"></i>
-                    Đơn hàng này đã thanh toán. Vui lòng cung cấp STK ngân hàng để Nông Trại Đất Lành hoàn tiền lại cho bạn trong vòng 24h.
-                </p>
 
-                <div class="space-y-3 text-xs">
-                    <div>
-                        <label class="font-bold text-gray-700 block mb-1">Lý do hủy đơn</label>
-                        <input type="text" wire:model="cancel_reason" class="w-full rounded-xl border-gray-200 text-xs focus:ring-brand-500" placeholder="Nhập lý do hủy...">
-                        @error('cancel_reason') <span class="text-red-500 text-[11px]">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div>
-                        <label class="font-bold text-gray-700 block mb-1">Tên ngân hàng</label>
-                        <select wire:model="bank_name" class="w-full rounded-xl border-gray-200 text-xs focus:ring-brand-500">
-                            <option value="">-- Chọn ngân hàng --</option>
-                            <option value="MBBank">MB Bank (Ngân hàng Quân Đội)</option>
-                            <option value="Vietcombank">Vietcombank</option>
-                            <option value="Techcombank">Techcombank</option>
-                            <option value="ACB">ACB</option>
-                            <option value="VPBank">VPBank</option>
-                            <option value="VietinBank">VietinBank</option>
-                            <option value="BIDV">BIDV</option>
-                            <option value="MoMo">Ví MoMo</option>
-                        </select>
-                        @error('bank_name') <span class="text-red-500 text-[11px]">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div>
-                        <label class="font-bold text-gray-700 block mb-1">Số tài khoản / Số điện thoại MoMo</label>
-                        <input type="text" wire:model="bank_account_number" class="w-full rounded-xl border-gray-200 text-xs focus:ring-brand-500" placeholder="VD: 0391000123456">
-                        @error('bank_account_number') <span class="text-red-500 text-[11px]">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div>
-                        <label class="font-bold text-gray-700 block mb-1">Tên chủ tài khoản (Viết hoa không dấu)</label>
-                        <input type="text" wire:model="bank_account_name" class="w-full rounded-xl border-gray-200 text-xs uppercase focus:ring-brand-500" placeholder="VD: NGUYEN VAN A">
-                        @error('bank_account_name') <span class="text-red-500 text-[11px]">{{ $message }}</span> @enderror
-                    </div>
-                </div>
-
-                <div class="flex justify-end gap-2 pt-2 border-t border-gray-100">
-                    <button type="button" wire:click="resetCancelModal" class="px-4 py-2 rounded-xl text-xs font-bold bg-gray-100 text-gray-600 hover:bg-gray-200">
-                        Bỏ qua
-                    </button>
-                    <button type="button" wire:click="processPaidCancel" class="px-4 py-2 rounded-xl text-xs font-bold bg-red-600 text-white hover:bg-red-700 shadow-xs">
-                        Xác nhận hủy & Hoàn tiền
-                    </button>
-                </div>
-            </div>
-        </div>
-    @endif
-    ========================================================================= --}}
-
-</div>
     <!-- MODAL KHIẾU NẠI HOÀN TIỀN DẬP NÁT (24H) -->
     @if ($showComplaintModal)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
@@ -552,3 +386,5 @@
             </div>
         </div>
     @endif
+
+</div>

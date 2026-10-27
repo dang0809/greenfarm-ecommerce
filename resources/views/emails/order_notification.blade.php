@@ -110,16 +110,16 @@
                                     @forelse ($order->items as $item)
                                         <tr style="border-bottom: 1px solid #f3f4f6;">
                                             <td style="padding: 10px 8px; font-weight: 600; color: #1f2937;">
-                                                {{ $item->product_name ?? $item->product?->name ?? 'Nông sản hữu cơ' }}
+                                                {{ $item->product_name }}
                                             </td>
                                             <td align="center" style="padding: 10px 8px; color: #4b5563;">
                                                 {{ $item->quantity }}
                                             </td>
                                             <td align="right" style="padding: 10px 8px; color: #4b5563;">
-                                                {{ number_format($item->unit_price, 0, ',', '.') }}đ
+                                                {{ number_format($item->price, 0, ',', '.') }}đ
                                             </td>
                                             <td align="right" style="padding: 10px 8px; font-weight: 700; color: #111827;">
-                                                {{ number_format($item->total_price, 0, ',', '.') }}đ
+                                                {{ number_format($item->subtotal, 0, ',', '.') }}đ
                                             </td>
                                         </tr>
                                     @empty
