@@ -19,6 +19,9 @@ class Complaint extends Model
         'status',
         'resolved_by',
         'resolution_note',
+        'bank_name',
+        'bank_account_number',
+        'bank_account_name',
     ];
 
     protected function casts(): array

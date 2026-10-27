@@ -15,6 +15,7 @@ use App\Models\ProductBatch;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Complaint;
+use App\Models\ComplaintImage;
 use App\Models\Payment;
 
 class OrdersPage extends Component
@@ -23,10 +24,7 @@ class OrdersPage extends Component
 
     public string $statusFilter = 'all';
 
-    // State cho Modal Hủy đơn đã thanh toán
-    public bool $showCancelModal = false;
-    public ?int $cancellingOrderId = null;
-    public string $cancel_reason = 'Khách đổi ý không muốn mua nữa';
+    // State cho Modal Khiếu nại hoàn tiền nông sản dập nát (24H)
     public string $bank_name = '';
     public string $bank_account_number = '';
     public string $bank_account_name = '';
@@ -78,18 +76,18 @@ class OrdersPage extends Component
                 // PayOS trả về 'id', đường link thanh toán web là https://pay.payos.vn/web/{id}
                 $checkoutUrl = $paymentInfo['checkoutUrl'] ?? (!empty($paymentInfo['id']) ? "https://pay.payos.vn/web/" . $paymentInfo['id'] : null);
 
-                if (($paymentInfo['status'] ?? '') === 'PAID') {
+                if (($paymentInfo['status'] ) === 'PAID') {
                     $order->update(['payment_status' => 'paid']);
                     $this->dispatch('show-toast', type: 'success', message: 'Đơn hàng này đã được thanh toán thành công!');
                     return;
                 }
 
-                if ($checkoutUrl && ($paymentInfo['status'] ?? '') === 'PENDING') {
-                    $this->redirect($checkoutUrl, navigate: false);
+                if ($checkoutUrl && ($paymentInfo['status']) === 'PENDING') {
+                    $this->redirect($checkoutUrl);
                     return;
                 }
 
-                if (($paymentInfo['status'] ?? '') === 'CANCELLED') {
+                if (($paymentInfo['status']) === 'CANCELLED') {
                     $this->dispatch('show-toast', type: 'error', message: 'Mã QR thanh toán đã hết hiệu lực. Không thể tiếp tục thanh toán.');
                     return;
                 }
@@ -102,7 +100,7 @@ class OrdersPage extends Component
         }
     }
 
-    //Xác nhận hủy đơn hàng 
+    // Xác nhận hủy đơn hàng (Chỉ cho phép đơn pending chưa thanh toán)
     public function confirmCancel(int $orderId)
     {
         $order = Order::where('user_id', Auth::id())
@@ -119,115 +117,48 @@ class OrdersPage extends Component
             return;
         }
 
-        // ĐƠN CHƯA THANH TOÁN: Cho phép tự hủy bình thường
-        if ($order->payment_status !== 'paid') {
-            $this->executeCancelOrder($order);
+        // Đơn đã thanh toán: Chặn hủy trực tuyến
+        if ($order->payment_status === 'paid') {
+            $this->dispatch('show-toast', type: 'error', message: 'Đơn hàng đã thanh toán không thể tự hủy trực tuyến. Vui lòng liên hệ Hotline Nông trại!');
             return;
         }
 
-        /*
-        // =========================================================================
-        // NOTE: TẠM ĐÓNG TÍNH NĂNG TỰ HỦY ĐƠN HÀNG ĐÃ THANH TOÁN
-        // Lý do: Nông sản đã thanh toán sẽ được thu hoạch ngay tại vườn.
-        // Không cho phép khách hàng tự hủy online để bảo vệ nông sản và chống gian lận điểm thưởng.
-        // Khách có nhu cầu hủy cần liên hệ trực tiếp Hotline Nông trại.
-        // =========================================================================
-        $user = Auth::user();
-        $this->bank_name           = $user->default_bank_name ?? '';
-        $this->bank_account_number = $user->default_bank_account_number ?? '';
-        $this->bank_account_name   = $user->default_bank_account_name ?? mb_strtoupper($user->name);
-
-        $this->cancellingOrderId = $order->id;
-        $this->showCancelModal   = true;
-        */
-
-        $this->dispatch('show-toast', type: 'error', message: 'Đơn hàng đã thanh toán không thể tự hủy trực tuyến. Vui lòng liên hệ Hotline Nông trại!');
-        return;
+        $this->executeCancelOrder($order);
     }
 
-    /*
-    // =========================================================================
-    // NOTE: TẠM ĐÓNG HÀM XỬ LÝ HỦY ĐƠN ĐÃ THANH TOÁN (processPaidCancel)
-    // =========================================================================
-    public function processPaidCancel()
+    // Thực hiện hủy đơn hàng pending chưa thanh toán
+    private function executeCancelOrder(Order $order)
     {
-        $this->validate([
-            'cancel_reason'       => 'required|string|max:255',
-            'bank_name'           => 'required|string',
-            'bank_account_number' => 'required|string|max:30',
-            'bank_account_name'   => 'required|string|max:100',
-        ], [
-            'cancel_reason.required'       => 'Vui lòng chọn hoặc nhập lý do hủy.',
-            'bank_name.required'           => 'Vui lòng chọn ngân hàng nhận lại tiền.',
-            'bank_account_number.required' => 'Vui lòng nhập số tài khoản ngân hàng.',
-            'bank_account_name.required'   => 'Vui lòng nhập tên chủ tài khoản.',
-        ]);
-
-        $order = Order::with('items')->where('user_id', Auth::id())
-            ->where('status', 'pending')
-            ->find($this->cancellingOrderId);
-
-        if ($order && $order->order_type === 'retail') {
-            $bankAccName = mb_strtoupper($this->bank_account_name);
-
-            $this->executeCancelOrder($order, [
-                'bank_name'           => $this->bank_name,
-                'bank_account_number' => $this->bank_account_number,
-                'bank_account_name'   => $bankAccName,
-                'refund_status'       => 'pending',
-            ]);
-
-            Auth::user()->update([
-                'default_bank_name'           => $this->bank_name,
-                'default_bank_account_number' => $this->bank_account_number,
-                'default_bank_account_name'   => $bankAccName,
-            ]);
-        }
-
-        $this->resetCancelModal();
-    }
-    */
-
-    //thực hiện hủy đơn hàng
-    private function executeCancelOrder(Order $order, array $extraData = [])
-    {
-        $cancelledSuccessfully = DB::transaction(function () use ($order, $extraData) {
+        $cancelledSuccessfully = DB::transaction(function () use ($order) {
             // 1. Khóa cứng bản ghi đơn hàng
             $lockedOrder = Order::with('items')->whereKey($order->id)->lockForUpdate()->first();
 
             // 2. Kiểm tra lại trạng thái sau khi lấy khóa
-            if (!$lockedOrder || $lockedOrder->status !== 'pending') {
-                return false;
-            }
-
-            // Nếu đơn đã thanh toán thì không cho phép hủy
-            if ($lockedOrder->payment_status === 'paid' && empty($extraData['refund_status'])) {
+            if (!$lockedOrder || $lockedOrder->status !== 'pending' || $lockedOrder->payment_status === 'paid') {
                 return false;
             }
 
             $oldStatus = $lockedOrder->status;
 
             // 3. Cập nhật trạng thái hủy
-            $lockedOrder->update(array_merge([
+            $lockedOrder->update([
                 'status'        => 'cancelled',
-                'cancel_reason' => $this->cancel_reason,
+                'cancel_reason' => 'Khách hàng tự hủy đơn',
                 'cancelled_at'  => now(),
                 'cancelled_by'  => 'customer',
-            ], $extraData));
+            ]);
 
-            // Đồng bộ trạng thái giao dịch sang failed trong bảng payments nếu đơn chưa thanh toán
-            if ($lockedOrder->payment_status !== 'paid') {
-                Payment::where('order_id', $lockedOrder->id)
-                    ->where('status', 'pending')
-                    ->update(['status' => 'failed']);
-            }
+            // Đồng bộ trạng thái giao dịch sang failed trong bảng payments
+            Payment::where('order_id', $lockedOrder->id)
+                ->where('status', 'pending')
+                ->update(['status' => 'failed']);
 
             if (method_exists($lockedOrder, 'statusHistories')) {
                 $lockedOrder->statusHistories()->create([
                     'old_status' => $oldStatus,
                     'new_status' => 'cancelled',
                     'changed_by' => Auth::id(),
-                    'note'       => 'Khách hàng tự hủy đơn. Lý do: ' . $this->cancel_reason,
+                    'note'       => 'Khách hàng tự hủy đơn hàng trực tuyến.',
                 ]);
             }
 
@@ -254,12 +185,6 @@ class OrdersPage extends Component
         } else {
             $this->dispatch('show-toast', type: 'info', message: 'Đơn hàng #' . $order->order_code . ' đã được xử lý hủy trước đó.');
         }
-    }
-
-    // Reset modal hủy đơn hàng
-    public function resetCancelModal()
-    {
-        $this->reset(['showCancelModal', 'cancellingOrderId', 'cancel_reason', 'bank_name', 'bank_account_number', 'bank_account_name']);
     }
 
     // Mở modal Khiếu nại hoàn tiền
@@ -347,14 +272,7 @@ class OrdersPage extends Component
         DB::transaction(function () use ($order) {
             $bankAccName = mb_strtoupper($this->bank_account_name);
 
-            $imagePaths = [];
-            if (!empty($this->complaint_images)) {
-                foreach ($this->complaint_images as $img) {
-                    $imagePaths[] = $img->store('complaints', 'public');
-                }
-            }
-
-            Complaint::create([
+            $complaint = Complaint::create([
                 'order_id'            => $order->id,
                 'user_id'             => Auth::id(),
                 'reason'              => $this->complaint_reason,
@@ -363,15 +281,16 @@ class OrdersPage extends Component
                 'bank_name'           => $this->bank_name,
                 'bank_account_number' => $this->bank_account_number,
                 'bank_account_name'   => $bankAccName,
-                'images'              => $imagePaths,
             ]);
 
-            $order->update([
-                'refund_status'       => 'pending',
-                'bank_name'           => $this->bank_name,
-                'bank_account_number' => $this->bank_account_number,
-                'bank_account_name'   => $bankAccName,
-            ]);
+            if (!empty($this->complaint_images)) {
+                foreach ($this->complaint_images as $img) {
+                    ComplaintImage::create([
+                        'complaint_id' => $complaint->id,
+                        'image'        => $img->store('complaints', 'public'),
+                    ]);
+                }
+            }
 
             Auth::user()->update([
                 'default_bank_name'           => $this->bank_name,
@@ -434,25 +353,44 @@ class OrdersPage extends Component
         $processingQuery          = fn($q) => $q->where('status', 'processing');
         $shippedQuery             = fn($q) => $q->where('status', 'shipped');
         $deliveredQuery           = fn($q) => $q->where('status', 'delivered');
-        $cancelledQuery           = fn($q) => $q->where('status', 'cancelled')->where('cancelled_by', 'customer');
-        $refundQuery              = fn($q) => $q->where(fn($sub) => $sub->whereIn('refund_status', ['pending', 'refunded'])->orWhereHas('complaint'));
+        $cancelledQuery           = fn($q) => $q->where('status', 'cancelled')->where(function($sub) {
+            $sub->where('cancelled_by', '!=', 'system')->orWhereNull('cancelled_by');
+        });
+        $refundQuery              = fn($q) => $q->where('status', 'delivered')->whereHas('complaint');
+
+        // Đơn mua gói VIP (subscription) và đơn do hệ thống tự động hủy không hiển thị trong danh sách đơn hàng
+        $baseQuery = fn() => Order::where('user_id', $userId)
+            ->where('order_type', '!=', 'subscription')
+            ->where(function($q) {
+                $q->where('status', '!=', 'cancelled')
+                  ->orWhere(function($sub) {
+                      $sub->where('cancelled_by', '!=', 'system')->orWhereNull('cancelled_by');
+                  });
+            });
 
         $counts = [
-            'all'                  => Order::where('user_id', $userId)->where(fn($q) => $q->where('status', '!=', 'cancelled')->orWhere('cancelled_by', 'customer'))->count(),
-            'pending_payment'      => $pendingPaymentQuery(Order::where('user_id', $userId))->count(),
-            'pending_confirmation' => $pendingConfirmationQuery(Order::where('user_id', $userId))->count(),
-            'processing'           => $processingQuery(Order::where('user_id', $userId))->count(),
-            'shipped'              => $shippedQuery(Order::where('user_id', $userId))->count(),
-            'delivered'            => $deliveredQuery(Order::where('user_id', $userId))->count(),
-            'cancelled'            => $cancelledQuery(Order::where('user_id', $userId))->count(),
-            'refund'               => $refundQuery(Order::where('user_id', $userId))->count(),
+            'all'                  => $baseQuery()->count(),
+            'pending_payment'      => $pendingPaymentQuery($baseQuery())->count(),
+            'pending_confirmation' => $pendingConfirmationQuery($baseQuery())->count(),
+            'processing'           => $processingQuery($baseQuery())->count(),
+            'shipped'              => $shippedQuery($baseQuery())->count(),
+            'delivered'            => $deliveredQuery($baseQuery())->count(),
+            'cancelled'            => $cancelledQuery($baseQuery())->count(),
+            'refund'               => $refundQuery($baseQuery())->count(),
         ];
 
         $query = Order::with(['items.product.productImages', 'items.batch', 'complaint', 'statusHistories', 'deliverySchedule.subscription', 'payment'])
-            ->where('user_id', $userId);
+            ->where('user_id', $userId)
+            ->where('order_type', '!=', 'subscription')
+            ->where(function($q) {
+                $q->where('status', '!=', 'cancelled')
+                  ->orWhere(function($sub) {
+                      $sub->where('cancelled_by', '!=', 'system')->orWhereNull('cancelled_by');
+                  });
+            });
 
         if ($this->statusFilter === 'all') {
-            $query->where(fn($q) => $q->where('status', '!=', 'cancelled')->orWhere('cancelled_by', 'customer'));
+            // Không áp dụng thêm bộ lọc, lấy toàn bộ đơn hàng của khách
         } elseif ($this->statusFilter === 'pending_payment') {
             $pendingPaymentQuery($query);
         } elseif ($this->statusFilter === 'pending_confirmation') {
@@ -470,8 +408,10 @@ class OrdersPage extends Component
         }
 
         return view('livewire.customer.orders-page', [
-            'orders' => $query->latest()->paginate(10),
-            'counts' => $counts,
+            'orders'             => $query->latest()->paginate(10),
+            'counts'             => $counts,
+            'statusFilter'       => $this->statusFilter,
+            'showComplaintModal' => $this->showComplaintModal,
         ]);
     }
 }

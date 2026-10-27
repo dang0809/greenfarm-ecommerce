@@ -76,8 +76,6 @@ class PayOSWebhookController extends Controller
 
                         $order->update([
                             'payment_status' => 'paid',
-                            'refund_status'  => 'pending',
-                            'cancel_reason'  => ($order->cancel_reason ? $order->cancel_reason . ' | ' : '') . 'Khách thanh toán sau khi đơn đã bị hủy, cần đối soát hoàn tiền.',
                         ]);
 
                         DB::commit();

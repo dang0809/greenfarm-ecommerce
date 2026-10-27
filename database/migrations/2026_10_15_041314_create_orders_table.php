@@ -33,15 +33,10 @@ return new class extends Migration
             $table->string('recipient_address', 255);
             $table->string('status', 50)->default('pending')->index();              // pending|processing|shipped|delivered|cancelled
 
-            // 8 trường Hủy đơn & Hoàn tiền Ngân hàng
+            // Quản lý Hủy đơn
             $table->string('cancel_reason', 255)->nullable();                       // Lý do hủy
             $table->timestamp('cancelled_at')->nullable();                          // Thời điểm hủy
-            $table->string('cancelled_by', 50)->nullable();                         // customer|admin|system
-            $table->string('bank_name', 100)->nullable();                           // Tên ngân hàng nhận refund
-            $table->string('bank_account_number', 50)->nullable();                  // Số tài khoản
-            $table->string('bank_account_name', 100)->nullable();                   // Tên chủ tài khoản (viết hoa không dấu)
-            $table->string('refund_status', 50)->default('none')->index();          // none|pending|refunded
-            $table->timestamp('refunded_at')->nullable();                           // Thời điểm hoàn tiền
+            $table->string('cancelled_by', 50)->nullable();                         // customer|sales|system
 
             $table->text('note')->nullable();
             $table->timestamps();

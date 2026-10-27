@@ -23,6 +23,9 @@ return new class extends Migration
             $table->decimal('refund_amount', 12, 2)->nullable();                     // Số tiền duyệt hoàn
             $table->text('reason');                                                 // Lý do khiếu nại
             $table->string('status', 50)->default('pending')->index();              // pending|resolved|rejected
+            $table->string('bank_name', 100)->nullable();                           // Tên ngân hàng nhận bồi hoàn
+            $table->string('bank_account_number', 50)->nullable();                  // Số tài khoản
+            $table->string('bank_account_name', 100)->nullable();                   // Tên chủ tài khoản (viết hoa không dấu)
             $table->foreignId('resolved_by')
                   ->nullable()
                   ->constrained('users')
