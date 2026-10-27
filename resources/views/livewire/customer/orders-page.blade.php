@@ -308,8 +308,19 @@
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2">
-                        <!-- Nút Hủy đơn: Chỉ dành cho đơn lẻ retail đang pending -->
+                        {{-- ========================================================================= --}}
+                        {{-- NOTE: Tạm ẩn code cũ cho phép hủy cả đơn đã thanh toán:
                         @if ($order->status === 'pending' && $order->order_type === 'retail')
+                            <button type="button" 
+                                    wire:click="confirmCancel({{ $order->id }})" 
+                                    wire:confirm="Bạn có chắc chắn muốn hủy đơn hàng #{{ $order->order_code }} không?"
+                                    class="bg-white hover:bg-red-50 text-gray-600 hover:text-red-600 border border-gray-200 font-bold text-xs px-3.5 py-2 rounded-xl transition-all cursor-pointer">
+                                Hủy đơn
+                            </button>
+                        @endif
+                        --}}
+                        <!-- Code hiện tại: Chỉ hiển thị nút Hủy cho đơn CHƯA thanh toán (pending) -->
+                        @if ($order->status === 'pending' && $order->payment_status === 'pending' && $order->order_type === 'retail')
                             <button type="button" 
                                     wire:click="confirmCancel({{ $order->id }})" 
                                     wire:confirm="Bạn có chắc chắn muốn hủy đơn hàng #{{ $order->order_code }} không?"
@@ -393,7 +404,11 @@
         </div>
     </div>
 
-    <!-- MODAL BẮT NHẬP STK HOÀN TIỀN KHI HỦY ĐƠN ĐÃ THANH TOÁN -->
+    {{-- =========================================================================
+         NOTE: TẠM ẨN MODAL HOÀN TIỀN HỦY ĐƠN ĐÃ THANH TOÁN
+         Lý do: Không cho phép khách hàng tự hủy đơn sau khi đã thanh toán PayOS
+         để bảo vệ nguồn nông sản tươi và tránh gian lận điểm thưởng.
+    =========================================================================
     @if ($showCancelModal)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
             <div class="bg-white rounded-3xl p-6 max-w-md w-full space-y-4 shadow-xl">
@@ -456,6 +471,7 @@
             </div>
         </div>
     @endif
+    ========================================================================= --}}
 
 </div>
     <!-- MODAL KHIẾU NẠI HOÀN TIỀN DẬP NÁT (24H) -->

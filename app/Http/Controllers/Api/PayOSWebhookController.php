@@ -11,6 +11,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use App\Models\Payment;
+use App\Services\OrderNotificationService;
 class PayOSWebhookController extends Controller
 {
     public function handleWebhook(Request $request)
@@ -118,14 +119,25 @@ class PayOSWebhookController extends Controller
                         Product::where('id', $item->product_id)->increment('sold_count', $item->quantity);
                     }
 
+                    // =========================================================================
+                    // NOTE: BỎ CỘNG ĐIỂM KHI THANH TOÁN
+                    // Điểm thưởng (points_earned) sẽ chỉ được cộng khi đơn hàng HOÀN THÀNH (giao thành công)
+                    // qua OrderNotificationService::notifyOrderDelivered() để tránh gian lận điểm khi hủy đơn.
+                    // =========================================================================
+                    /*
                     $user = User::find($order->user_id);
                     if ($user) {
                         if ($order->points_earned > 0) {
                             $user->increment('reward_points', $order->points_earned);
                         }
                     }
+                    */
 
                     DB::commit();
+
+                    // Gửi thông báo thanh toán thành công (Web & Email)
+                    OrderNotificationService::notifyOrderPaid($order);
+
                     return response()->json([
                         'error' => 0,
                         'message' => 'Ok',

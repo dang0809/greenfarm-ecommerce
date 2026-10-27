@@ -71,14 +71,18 @@
 
                             <div class="max-h-80 overflow-y-auto divide-y divide-gray-50">
                                 @forelse($notifications as $notif)
+                                    @php
+                                        $icon = $notif->data['icon'] ?? ($notif->type === 'order_delivered' ? 'fa-circle-check' : ($notif->type === 'order_paid' ? 'fa-receipt' : 'fa-bell'));
+                                        $iconColor = $notif->type === 'order_delivered' ? 'text-emerald-700 bg-emerald-100' : ($notif->type === 'order_paid' ? 'text-brand-700 bg-brand-100' : 'text-amber-600 bg-amber-100');
+                                    @endphp
                                     <div wire:click="markAsRead({{ $notif->id }})" 
                                         class="p-3.5 hover:bg-brand-50/50 transition-colors cursor-pointer flex items-start gap-3 {{ is_null($notif->read_at) ? 'bg-brand-50/30' : '' }}">
-                                        <div class="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center shrink-0 mt-0.5">
-                                            <i class="fa-solid fa-bell text-xs"></i>
+                                        <div class="w-8 h-8 rounded-full {{ $iconColor }} flex items-center justify-center shrink-0 mt-0.5">
+                                            <i class="fa-solid {{ $icon }} text-xs"></i>
                                         </div>
                                         <div class="min-w-0 flex-1">
                                             <p class="text-xs font-bold text-gray-800 line-clamp-1">{{ $notif->title }}</p>
-                                            <p class="text-[11px] text-gray-500 line-clamp-2 mt-0.5 leading-snug">{{ $notif->message }}</p>
+                                            <p class="text-[11px] text-gray-500 line-clamp-2 mt-0.5 leading-snug">{{ $notif->content ?? $notif->message }}</p>
                                             <span class="text-[10px] text-gray-400 font-mono mt-1 block">
                                                 {{ \Carbon\Carbon::parse($notif->created_at)->diffForHumans() }}
                                             </span>
@@ -95,11 +99,15 @@
                                 @endforelse
                             </div>
 
-                            <div class="pt-2 border-t border-gray-100 text-center px-4">
-                                <a href="#" class="text-xs font-bold text-brand-700 hover:text-brand-800 transition block py-1">
-                                    Xem tất cả thông báo
-                                </a>
-                            </div>
+                            @if($totalNotifsCount > 5)
+                                <div class="pt-2 border-t border-gray-100 text-center px-4">
+                                    <button type="button" 
+                                            wire:click="toggleShowAllNotifs" 
+                                            class="text-xs font-bold text-brand-700 hover:text-brand-800 transition py-1 cursor-pointer">
+                                        {{ $showAllNotifs ? 'Thu gọn thông báo' : 'Hiển thị tất cả thông báo (' . $totalNotifsCount . ')' }}
+                                    </button>
+                                </div>
+                            @endif
                         </div>
                     </div>
 

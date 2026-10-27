@@ -119,11 +119,19 @@ class OrdersPage extends Component
             return;
         }
 
+        // ĐƠN CHƯA THANH TOÁN: Cho phép tự hủy bình thường
         if ($order->payment_status !== 'paid') {
             $this->executeCancelOrder($order);
             return;
         }
 
+        /*
+        // =========================================================================
+        // NOTE: TẠM ĐÓNG TÍNH NĂNG TỰ HỦY ĐƠN HÀNG ĐÃ THANH TOÁN
+        // Lý do: Nông sản đã thanh toán sẽ được thu hoạch ngay tại vườn.
+        // Không cho phép khách hàng tự hủy online để bảo vệ nông sản và chống gian lận điểm thưởng.
+        // Khách có nhu cầu hủy cần liên hệ trực tiếp Hotline Nông trại.
+        // =========================================================================
         $user = Auth::user();
         $this->bank_name           = $user->default_bank_name ?? '';
         $this->bank_account_number = $user->default_bank_account_number ?? '';
@@ -131,9 +139,16 @@ class OrdersPage extends Component
 
         $this->cancellingOrderId = $order->id;
         $this->showCancelModal   = true;
+        */
+
+        $this->dispatch('show-toast', type: 'error', message: 'Đơn hàng đã thanh toán không thể tự hủy trực tuyến. Vui lòng liên hệ Hotline Nông trại!');
+        return;
     }
 
-    //Xử lý hủy đơn hàng (đã thanh toán)
+    /*
+    // =========================================================================
+    // NOTE: TẠM ĐÓNG HÀM XỬ LÝ HỦY ĐƠN ĐÃ THANH TOÁN (processPaidCancel)
+    // =========================================================================
     public function processPaidCancel()
     {
         $this->validate([
@@ -171,6 +186,7 @@ class OrdersPage extends Component
 
         $this->resetCancelModal();
     }
+    */
 
     //thực hiện hủy đơn hàng
     private function executeCancelOrder(Order $order, array $extraData = [])
