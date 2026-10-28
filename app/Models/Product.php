@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+
 class Product extends Model
 {
     use HasFactory;
@@ -20,7 +21,6 @@ class Product extends Model
         'price',
         'sale_price',
         'unit',
-        'stock',
         'sold_count',
         'avg_rating',
         'status',
@@ -31,11 +31,12 @@ class Product extends Model
         return [
             'price' => 'decimal:2',
             'sale_price' => 'decimal:2',
-            'stock' => 'integer',
             'sold_count' => 'integer',
             'avg_rating' => 'decimal:2',
         ];
     }
+
+    
 
     public function category(): BelongsTo
     {
@@ -50,14 +51,15 @@ class Product extends Model
     public function batches(): HasManyThrough
     {
         return $this->hasManyThrough(
-            ProductBatch::class,    // Model đích (product_batches)
-            PlantingBatch::class,   // Model trung gian (planting_batches)
-            'product_id',           // Khóa ngoại trên bảng planting_batches
-            'planting_batch_id',    // Khóa ngoại trên bảng product_batches
-            'id',                   // Khóa chính trên bảng products
-            'id'                    // Khóa chính trên bảng planting_batches
+            ProductBatch::class,
+            PlantingBatch::class,
+            'product_id',
+            'planting_batch_id',
+            'id',
+            'id'
         );
     }
+
     public function cartItems(): HasMany
     {
         return $this->hasMany(CartItem::class);
@@ -72,6 +74,7 @@ class Product extends Model
     {
         return $this->hasMany(Review::class);
     }
+
     public function productImages(): HasMany
     {
         return $this->hasMany(ProductImage::class);

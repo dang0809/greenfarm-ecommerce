@@ -22,8 +22,6 @@ class Order extends Model
         'points_used', 
         'points_earned', 
         'total', 
-        'payment_method',
-        'payment_status', 
         'shipping_provider', 
         'tracking_code', 
         'recipient_name',
@@ -49,6 +47,10 @@ class Order extends Model
             'cancelled_at'         => 'datetime',
         ];
     }
+
+    
+
+    
 
     public function user(): BelongsTo { return $this->belongsTo(User::class); }
     public function items(): HasMany { return $this->hasMany(OrderItem::class); }

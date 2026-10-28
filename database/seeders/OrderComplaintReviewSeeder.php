@@ -40,6 +40,26 @@ class OrderComplaintReviewSeeder extends Seeder
             ]);
         };
 
+        // Helper chèn Bản ghi thanh toán (Payment)
+        $addPayment = function (int $orderId, string $orderCode, float $amount, string $method = 'payos', string $status = 'pending', $createdAt = null, string $prefix = 'TT') {
+            $isPaid = in_array($status, ['paid', 'success']);
+            $paymentStatus = $isPaid ? 'success' : ($status === 'failed' ? 'failed' : 'pending');
+            $paidAt = $isPaid ? ($createdAt ?? now()) : null;
+            $transCode = $isPaid ? ('POS-REF-' . $prefix . '-' . substr(md5($orderCode), 0, 8)) : null;
+
+            DB::table('payments')->insert([
+                'order_id'         => $orderId,
+                'payment_code'     => 'PAY-' . $orderCode,
+                'method'           => $method,
+                'amount'           => $amount,
+                'status'           => $paymentStatus,
+                'transaction_code' => $transCode,
+                'paid_at'          => $paidAt,
+                'created_at'       => $createdAt ?? now(),
+                'updated_at'       => $paidAt ?? $createdAt ?? now(),
+            ]);
+        };
+
         // ---------------------------------------------------------------------
         // DỌN DẸP DỮ LIỆU CŨ TỪ SEEDER ĐỂ TRÁNH LỖI UNIQUE CONSTRAINT VÀ TRÙNG LẶP
         // ---------------------------------------------------------------------
@@ -61,6 +81,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'ORD-' . $prefix . '-CANCEL-01',
                 'VIP-' . $prefix . '-CANCEL-02',
                 'ORD-' . $prefix . '-CANCEL-03',
+                'ORD-' . $prefix . '-CANCEL-04',
                 'ORD-' . $prefix . '-REFUND-PENDING',
                 'ORD-' . $prefix . '-REFUND-APPROVED',
                 'ORD-' . $prefix . '-REFUND-REJECTED',
@@ -119,8 +140,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'recipient_address' => $address,
                 'delivery_days'     => 'T3, T6',
                 'total_price'       => 1200000,
-                'total_deliveries'  => 4,
-                'delivered_count'   => 1,
+
                 'status'            => 'active',
                 'created_at'        => now()->subDays(15),
                 'updated_at'        => now()->subDays(1),
@@ -142,8 +162,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'points_used'          => 0,
                 'points_earned'        => 9,
                 'total'                => $t1_sub + 18000,
-                'payment_method'       => 'payos',
-                'payment_status'       => 'pending',
+
                 'recipient_name'       => $user->name,
                 'recipient_phone'      => $phone,
                 'recipient_address'    => $address,
@@ -152,6 +171,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'created_at'           => $t1_time,
                 'updated_at'           => $t1_time,
             ]);
+            $addPayment($o1_retail, 'ORD-' . $prefix . '-WAITPAY-01', $t1_sub + 18000, 'payos', 'pending', $t1_time, $prefix);
             $addHistory($o1_retail, 'pending', null, 'Khách hàng tạo đơn hàng qua cổng PayOS, đang chờ thanh toán.', $t1_time, $user->id);
 
             DB::table('order_items')->insert([
@@ -175,8 +195,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'subtotal'             => 1200000,
                 'shipping_fee'         => 0,
                 'total'                => 1200000,
-                'payment_method'       => 'payos',
-                'payment_status'       => 'pending',
+
                 'recipient_name'       => $user->name,
                 'recipient_phone'      => $phone,
                 'recipient_address'    => $address,
@@ -185,6 +204,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'created_at'           => $t1_vip_time,
                 'updated_at'           => $t1_vip_time,
             ]);
+            $addPayment($o1_vip, 'VIP-' . $prefix . '-WAITPAY-02', 1200000, 'payos', 'pending', $t1_vip_time, $prefix);
             $addHistory($o1_vip, 'pending', null, 'Khách hàng đăng ký Gói VIP, đang chờ thanh toán qua cổng PayOS.', $t1_vip_time, $user->id);
 
             DB::table('order_items')->insert([
@@ -216,8 +236,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'points_used'          => 0,
                 'points_earned'        => 13,
                 'total'                => $t2_sub + 15000,
-                'payment_method'       => 'payos',
-                'payment_status'       => 'paid',
+
                 'recipient_name'       => $user->name,
                 'recipient_phone'      => $phone,
                 'recipient_address'    => $address,
@@ -226,6 +245,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'created_at'           => $t2_time,
                 'updated_at'           => $t2_time->copy()->addMinutes(2),
             ]);
+            $addPayment($o2_retail, 'ORD-' . $prefix . '-WAITCONF-01', $t2_sub + 15000, 'payos', 'paid', $t2_time, $prefix);
             $addHistory($o2_retail, 'pending', null, 'Khách hàng tạo đơn hàng bán lẻ.', $t2_time, $user->id);
             $addHistory($o2_retail, 'pending', 'pending', 'Xác nhận thanh toán tự động thành công qua PayOS (Mã GD: POS-CONF-01).', $t2_time->copy()->addMinutes(2), $user->id);
 
@@ -250,8 +270,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'subtotal'             => 0,
                 'shipping_fee'         => 0,
                 'total'                => 0,
-                'payment_method'       => 'payos',
-                'payment_status'       => 'paid',
+
                 'recipient_name'       => $user->name,
                 'recipient_phone'      => $phone,
                 'recipient_address'    => $address,
@@ -260,6 +279,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'created_at'           => $t2_vip_time,
                 'updated_at'           => $t2_vip_time,
             ]);
+            $addPayment($o2_vip, 'VIP-' . $prefix . '-DELIV-W1', 0, 'payos', 'paid', $t2_vip_time, $prefix);
             $addHistory($o2_vip, 'pending', null, 'Hệ thống tự động kích hoạt Đợt giao rau 1/4 từ Gói VIP.', $t2_vip_time, $user->id);
             $addHistory($o2_vip, 'pending', 'pending', 'Đã đối soát thanh toán hợp lệ từ Gói VIP, chờ nông trại xác nhận xuất kho.', $t2_vip_time->copy()->addMinutes(5), $sales?->id ?? 1);
 
@@ -319,8 +339,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'points_used'          => 0,
                 'points_earned'        => 20,
                 'total'                => $t3_sub + 20000,
-                'payment_method'       => 'payos',
-                'payment_status'       => 'paid',
+
                 'recipient_name'       => $user->name,
                 'recipient_phone'      => $phone,
                 'recipient_address'    => $address,
@@ -329,6 +348,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'created_at'           => $t3_time,
                 'updated_at'           => $t3_time->copy()->addMinutes(20),
             ]);
+            $addPayment($o3_retail, 'ORD-' . $prefix . '-PROCES-01', $t3_sub + 20000, 'payos', 'paid', $t3_time, $prefix);
             // Đầy đủ lịch sử: pending -> processing
             $addHistory($o3_retail, 'pending', null, 'Khách hàng đặt hàng trực tuyến.', $t3_time, $user->id);
             $addHistory($o3_retail, 'pending', 'pending', 'Thanh toán PayOS thành công.', $t3_time->copy()->addMinutes(3), $user->id);
@@ -368,8 +388,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'subtotal'             => 0,
                 'shipping_fee'         => 0,
                 'total'                => 0,
-                'payment_method'       => 'payos',
-                'payment_status'       => 'paid',
+
                 'recipient_name'       => $user->name,
                 'recipient_phone'      => $phone,
                 'recipient_address'    => $address,
@@ -378,6 +397,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'created_at'           => $t3_vip_time,
                 'updated_at'           => $t3_vip_time->copy()->addMinutes(30),
             ]);
+            $addPayment($o3_vip, 'VIP-' . $prefix . '-DELIV-W2', 0, 'payos', 'paid', $t3_vip_time, $prefix);
             // Đầy đủ lịch sử: pending -> processing
             $addHistory($o3_vip, 'pending', null, 'Hệ thống khởi tạo đợt giao 2/4 từ Gói VIP.', $t3_vip_time, $user->id);
             $addHistory($o3_vip, 'pending', 'pending', 'Xác nhận hợp lệ thanh toán Gói VIP.', $t3_vip_time, $sales?->id ?? 1);
@@ -425,8 +445,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'points_used'          => 0,
                 'points_earned'        => 13,
                 'total'                => $t4_sub + 25000,
-                'payment_method'       => 'payos',
-                'payment_status'       => 'paid',
+
                 'shipping_provider'    => 'Ahamove',
                 'tracking_code'        => 'AHA-' . $prefix . '-7788',
                 'recipient_name'       => $user->name,
@@ -437,6 +456,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'created_at'           => $t4_time,
                 'updated_at'           => $t4_time->copy()->addHours(2),
             ]);
+            $addPayment($o4_retail, 'ORD-' . $prefix . '-SHIP-01', $t4_sub + 25000, 'payos', 'paid', $t4_time, $prefix);
             // Đầy đủ lịch sử: pending -> processing -> shipped
             $addHistory($o4_retail, 'pending', null, 'Khách hàng đặt hàng trực tuyến.', $t4_time, $user->id);
             $addHistory($o4_retail, 'pending', 'pending', 'Thanh toán PayOS thành công.', $t4_time->copy()->addMinutes(2), $user->id);
@@ -464,8 +484,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'subtotal'             => 0,
                 'shipping_fee'         => 0,
                 'total'                => 0,
-                'payment_method'       => 'payos',
-                'payment_status'       => 'paid',
+
                 'shipping_provider'    => 'Ahamove',
                 'tracking_code'        => 'AHA-VIP-' . $prefix . '-9900',
                 'recipient_name'       => $user->name,
@@ -476,6 +495,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'created_at'           => $t4_vip_time,
                 'updated_at'           => $t4_vip_time->copy()->addHours(2),
             ]);
+            $addPayment($o4_vip, 'VIP-' . $prefix . '-DELIV-W3', 0, 'payos', 'paid', $t4_vip_time, $prefix);
             // Đầy đủ lịch sử: pending -> processing -> shipped
             $addHistory($o4_vip, 'pending', null, 'Khởi tạo đợt giao 3/4 từ Gói VIP.', $t4_vip_time, $user->id);
             $addHistory($o4_vip, 'pending', 'pending', 'Xác nhận hợp lệ gói VIP.', $t4_vip_time, $sales?->id ?? 1);
@@ -538,8 +558,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'points_used'          => 10,
                 'points_earned'        => 22,
                 'total'                => $t5_sub + 18000 - 10000,
-                'payment_method'       => 'payos',
-                'payment_status'       => 'paid',
+
                 'shipping_provider'    => 'Ahamove',
                 'tracking_code'        => 'AHA-' . $prefix . '-3344',
                 'recipient_name'       => $user->name,
@@ -550,6 +569,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'created_at'           => $t5_time,
                 'updated_at'           => $t5_time->copy()->addHours(5),
             ]);
+            $addPayment($o5_retail, 'ORD-' . $prefix . '-DELIV-01', $t5_sub + 18000 - 10000, 'payos', 'paid', $t5_time, $prefix);
             // ĐẦY ĐỦ LỊCH SỬ TUẦN TỰ: pending -> processing -> shipped -> delivered
             $addHistory($o5_retail, 'pending', null, 'Khách hàng đặt hàng trực tuyến.', $t5_time, $user->id);
             $addHistory($o5_retail, 'pending', 'pending', 'Thanh toán PayOS thành công.', $t5_time->copy()->addMinutes(2), $user->id);
@@ -610,8 +630,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'subtotal'             => 0,
                 'shipping_fee'         => 0,
                 'total'                => 0,
-                'payment_method'       => 'payos',
-                'payment_status'       => 'paid',
+
                 'shipping_provider'    => 'Ahamove',
                 'tracking_code'        => 'AHA-VIP-' . $prefix . '-5566',
                 'recipient_name'       => $user->name,
@@ -622,6 +641,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'created_at'           => $t5_vip_time,
                 'updated_at'           => $t5_vip_time->copy()->addHours(4),
             ]);
+            $addPayment($o5_vip_deliv, 'VIP-' . $prefix . '-DELIV-W4', 0, 'payos', 'paid', $t5_vip_time, $prefix);
             // ĐẦY ĐỦ LỊCH SỬ TUẦN TỰ: pending -> processing -> shipped -> delivered
             $addHistory($o5_vip_deliv, 'pending', null, 'Khởi tạo Đợt giao rau VIP 4/4 (Kỳ cuối gói tháng).', $t5_vip_time, $user->id);
             $addHistory($o5_vip_deliv, 'pending', 'pending', 'Xác nhận hợp lệ thanh toán Gói VIP.', $t5_vip_time, $sales?->id ?? 1);
@@ -677,8 +697,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'subtotal'             => 1200000,
                 'shipping_fee'         => 0,
                 'total'                => 1200000,
-                'payment_method'       => 'payos',
-                'payment_status'       => 'paid',
+
                 'recipient_name'       => $user->name,
                 'recipient_phone'      => $phone,
                 'recipient_address'    => $address,
@@ -687,6 +706,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'created_at'           => $t5_sub_time,
                 'updated_at'           => $t5_sub_time->copy()->addMinutes(15),
             ]);
+            $addPayment($o5_vip_sub, 'VIP-' . $prefix . '-SUB-ACTIVE', 1200000, 'payos', 'paid', $t5_sub_time, $prefix);
             // ĐẦY ĐỦ LỊCH SỬ: pending -> processing -> delivered
             $addHistory($o5_vip_sub, 'pending', null, 'Đăng ký Gói Hội Viên Rau VIP 1 Tháng.', $t5_sub_time, $user->id);
             $addHistory($o5_vip_sub, 'processing', 'pending', 'Bộ phận chăm sóc khách hàng VIP tiếp nhận hồ sơ đăng ký.', $t5_sub_time->copy()->addMinutes(10), $sales?->id ?? 1);
@@ -706,7 +726,7 @@ class OrderComplaintReviewSeeder extends Seeder
 
             // Cập nhật trạng thái hợp đồng Gói VIP
             DB::table('subscriptions')->where('id', $subId)->update([
-                'delivered_count' => 1,
+
                 'status'          => 'active',
                 'updated_at'      => $t5_sub_time,
             ]);
@@ -726,8 +746,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'shipping_distance_km' => 2.0,
                 'shipping_fee'         => 15000,
                 'total'                => $t6_sub + 15000,
-                'payment_method'       => 'payos',
-                'payment_status'       => 'pending',
+
                 'recipient_name'       => $user->name,
                 'recipient_phone'      => $phone,
                 'recipient_address'    => $address,
@@ -738,6 +757,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'created_at'           => $t6_time,
                 'updated_at'           => $t6_time->copy()->addMinutes(15),
             ]);
+            $addPayment($o6_retail, 'ORD-' . $prefix . '-CANCEL-01', $t6_sub + 15000, 'payos', 'pending', $t6_time, $prefix);
             $addHistory($o6_retail, 'pending', null, 'Khách hàng tạo đơn hàng.', $t6_time, $user->id);
             $addHistory($o6_retail, 'cancelled', 'pending', 'Khách hàng tự bấm hủy đơn. Lý do: Khách đổi ý muốn đặt lại loại rau củ khác.', $t6_time->copy()->addMinutes(15), $user->id);
 
@@ -762,8 +782,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'subtotal'             => 1200000,
                 'shipping_fee'         => 0,
                 'total'                => 1200000,
-                'payment_method'       => 'payos',
-                'payment_status'       => 'pending',
+
                 'recipient_name'       => $user->name,
                 'recipient_phone'      => $phone,
                 'recipient_address'    => $address,
@@ -774,6 +793,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'created_at'           => $t6_vip_time,
                 'updated_at'           => $t6_vip_time->copy()->addMinutes(20),
             ]);
+            $addPayment($o6_vip, 'VIP-' . $prefix . '-CANCEL-02', 1200000, 'payos', 'pending', $t6_vip_time, $prefix);
             $addHistory($o6_vip, 'pending', null, 'Khách hàng gửi yêu cầu đăng ký Gói VIP.', $t6_vip_time, $user->id);
             $addHistory($o6_vip, 'cancelled', 'pending', 'Khách hàng chủ động bấm hủy đơn đăng ký gói VIP.', $t6_vip_time->copy()->addMinutes(20), $user->id);
 
@@ -800,8 +820,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'shipping_distance_km' => 2.5,
                 'shipping_fee'         => 15000,
                 'total'                => $t6_sub3 + 15000,
-                'payment_method'       => 'cod',
-                'payment_status'       => 'pending',
+
                 'recipient_name'       => $user->name,
                 'recipient_phone'      => $phone,
                 'recipient_address'    => $address,
@@ -812,6 +831,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'created_at'           => $t6_time3,
                 'updated_at'           => $t6_time3->copy()->addMinutes(25),
             ]);
+            $addPayment($o6_retail_3, 'ORD-' . $prefix . '-CANCEL-03', $t6_sub3 + 15000, 'cod', 'pending', $t6_time3, $prefix);
             // Đầy đủ lịch sử: pending -> processing -> cancelled
             $addHistory($o6_retail_3, 'pending', null, 'Khách hàng tạo đơn hàng COD.', $t6_time3, $user->id);
             $addHistory($o6_retail_3, 'processing', 'pending', 'Nhà vườn xác nhận đơn hàng và chuẩn bị hái rau.', $t6_time3->copy()->addMinutes(10), $sales?->id ?? 1);
@@ -840,8 +860,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'shipping_distance_km' => 2.0,
                 'shipping_fee'         => 15000,
                 'total'                => $t6_sub4 + 15000,
-                'payment_method'       => 'cod',
-                'payment_status'       => 'pending',
+
                 'recipient_name'       => $user->name,
                 'recipient_phone'      => $phone,
                 'recipient_address'    => $address,
@@ -852,6 +871,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'created_at'           => $t6_time4->copy()->subHours(2),
                 'updated_at'           => $t6_time4,
             ]);
+            $addPayment($o6_retail_4, 'ORD-' . $prefix . '-CANCEL-04', $t6_sub4 + 15000, 'cod', 'pending', $t6_time4->copy()->subHours(2), $prefix);
             $addHistory($o6_retail_4, 'pending', null, 'Khách hàng tạo đơn hàng COD.', $t6_time4->copy()->subHours(2), $user->id);
             $addHistory($o6_retail_4, 'cancelled', 'pending', 'Nhân viên Nông trại Đất Lành liên hệ thông báo hủy đơn do luống rau không đạt tiêu chuẩn thu hoạch.', $t6_time4, $sales?->id ?? 1);
 
@@ -881,8 +901,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'shipping_distance_km' => 2.8,
                 'shipping_fee'         => 15000,
                 'total'                => $t7_sub1 + 15000,
-                'payment_method'       => 'payos',
-                'payment_status'       => 'paid',
+
                 'shipping_provider'    => 'Ahamove',
                 'tracking_code'        => 'AHA-' . $prefix . '-8811',
                 'recipient_name'       => $user->name,
@@ -893,6 +912,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'created_at'           => $t7_time1,
                 'updated_at'           => $t7_time1->copy()->addHours(3),
             ]);
+            $addPayment($o7_complaint_pending, 'ORD-' . $prefix . '-REFUND-PENDING', $t7_sub1 + 15000, 'payos', 'paid', $t7_time1, $prefix);
             // ĐẦY ĐỦ LỊCH SỬ TUẦN TỰ: pending -> processing -> shipped -> delivered
             $addHistory($o7_complaint_pending, 'pending', null, 'Khách đặt đơn và thanh toán PayOS.', $t7_time1, $user->id);
             $addHistory($o7_complaint_pending, 'processing', 'pending', 'Nông trại đóng gói đơn hàng.', $t7_time1->copy()->addHours(1), $sales?->id ?? 1);
@@ -943,8 +963,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'shipping_distance_km' => 3.2,
                 'shipping_fee'         => 15000,
                 'total'                => $t7_sub_res + 15000,
-                'payment_method'       => 'payos',
-                'payment_status'       => 'paid',
+
                 'shipping_provider'    => 'Ahamove',
                 'tracking_code'        => 'AHA-' . $prefix . '-8899',
                 'recipient_name'       => $user->name,
@@ -955,6 +974,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'created_at'           => $t7_res_time,
                 'updated_at'           => $t7_res_time->copy()->addHours(6),
             ]);
+            $addPayment($o7_complaint_resolved, 'ORD-' . $prefix . '-REFUND-APPROVED', $t7_sub_res + 15000, 'payos', 'paid', $t7_res_time, $prefix);
             $addHistory($o7_complaint_resolved, 'pending', null, 'Khách hàng đặt đơn rau tươi và thanh toán PayOS.', $t7_res_time, $user->id);
             $addHistory($o7_complaint_resolved, 'processing', 'pending', 'Nông trại hái rau sạch và đóng thùng.', $t7_res_time->copy()->addHours(1), $sales?->id ?? 1);
             $addHistory($o7_complaint_resolved, 'shipped', 'processing', 'Shipper AhaMove giao hàng hỏa tốc.', $t7_res_time->copy()->addHours(2), $sales?->id ?? 1);
@@ -1005,8 +1025,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'shipping_distance_km' => 2.0,
                 'shipping_fee'         => 15000,
                 'total'                => $t7_sub_rej + 15000,
-                'payment_method'       => 'payos',
-                'payment_status'       => 'paid',
+
                 'shipping_provider'    => 'Ahamove',
                 'tracking_code'        => 'AHA-' . $prefix . '-7722',
                 'recipient_name'       => $user->name,
@@ -1017,6 +1036,7 @@ class OrderComplaintReviewSeeder extends Seeder
                 'created_at'           => $t7_rej_time,
                 'updated_at'           => $t7_rej_time->copy()->addHours(5),
             ]);
+            $addPayment($o7_complaint_rejected, 'ORD-' . $prefix . '-REFUND-REJECTED', $t7_sub_rej + 15000, 'payos', 'paid', $t7_rej_time, $prefix);
             $addHistory($o7_complaint_rejected, 'pending', null, 'Khách hàng đặt đơn hàng.', $t7_rej_time, $user->id);
             $addHistory($o7_complaint_rejected, 'processing', 'pending', 'Nông trại chuẩn bị đơn hàng.', $t7_rej_time->copy()->addHours(1), $sales?->id ?? 1);
             $addHistory($o7_complaint_rejected, 'shipped', 'processing', 'Đang giao hàng đến khách.', $t7_rej_time->copy()->addHours(2), $sales?->id ?? 1);
@@ -1058,32 +1078,6 @@ class OrderComplaintReviewSeeder extends Seeder
 
 
 
-            // =================================================================
-            // ĐỒNG BỘ BIÊN LAI THANH TOÁN CHO BẢNG payments (CHUẨN 1 - 1)
-            // =================================================================
-            $customerOrders = DB::table('orders')->where('user_id', $user->id)->get();
-            foreach ($customerOrders as $cOrder) {
-                $isPaid = ($cOrder->payment_status === 'paid');
-                $isCancelled = ($cOrder->status === 'cancelled' && $cOrder->payment_status !== 'paid');
-
-                $paymentStatus = $isPaid ? 'success' : ($isCancelled ? 'failed' : 'pending');
-                $paidAt = $isPaid ? ($cOrder->updated_at ?? $cOrder->created_at) : null;
-                $transCode = $isPaid ? ('POS-REF-' . $prefix . '-' . substr(md5($cOrder->order_code), 0, 8)) : null;
-
-                DB::table('payments')->updateOrInsert(
-                    ['order_id' => $cOrder->id],
-                    [
-                        'payment_code'     => 'PAY-' . $cOrder->order_code,
-                        'method'           => $cOrder->payment_method ?? 'payos',
-                        'amount'           => $cOrder->total,
-                        'status'           => $paymentStatus,
-                        'transaction_code' => $transCode,
-                        'paid_at'          => $paidAt,
-                        'created_at'       => $cOrder->created_at,
-                        'updated_at'       => $paidAt ?? $cOrder->updated_at,
-                    ]
-                );
-            }
         }
     }
 }

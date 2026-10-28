@@ -208,7 +208,14 @@ class CheckoutPage extends Component
             $productIds = $items->pluck('product_id')->toArray();
         
             // Khóa các dòng sản phẩm này lại, không cho người khác mua cùng lúc
-            $productsInDB = Product::whereIn('id', $productIds)->lockForUpdate()->get();
+            $productsInDB = Product::whereIn('id', $productIds)
+                ->withSum(['batches as total_stock' => function ($q) {
+                    $q->where('product_batches.status', 'active')
+                      ->where('product_batches.current_quantity', '>', 0)
+                      ->whereDate('product_batches.expiry_date', '>=', now());
+                }], 'current_quantity')
+                ->lockForUpdate()
+                ->get();
 
             foreach ($items as $item) {
                 $product = $productsInDB->firstWhere('id', $item->product_id);
@@ -219,11 +226,11 @@ class CheckoutPage extends Component
                 }
 
                 // 2. Kiểm tra tồn kho có đủ không
-                if ($product->stock < $item->quantity) {
-                    throw new \Exception("Sản phẩm {$item->product->name} không đủ số lượng (Chỉ còn {$product->stock}).");
+                $availableStock = (int) ($product->total_stock ?? 0);
+                if ($availableStock < $item->quantity) {
+                    throw new \Exception("Sản phẩm {$item->product->name} không đủ số lượng (Chỉ còn {$availableStock}).");
                 }
 
-                $product->decrement('stock', $item->quantity);
             }
             $subtotal = 0;
             foreach ($items as $item) {
@@ -273,8 +280,7 @@ class CheckoutPage extends Component
                 'points_earned'        => $earnedPoints,
                 'total'                => $totalAmount,
                 'note'                 => $this->orderNote,
-                'payment_method'       => 'payos',
-                'payment_status'       => 'pending',
+
                 'status'               => 'pending',
             ]);
             if ($pointsUsed > 0) {

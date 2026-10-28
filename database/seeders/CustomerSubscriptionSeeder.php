@@ -31,6 +31,12 @@ class CustomerSubscriptionSeeder extends Seeder
         );
 
         // 2. Giỏ hàng & Sản phẩm trong giỏ
+        $oldCartIds = DB::table('carts')->where('user_id', $customer->id)->pluck('id');
+        if ($oldCartIds->isNotEmpty()) {
+            DB::table('cart_items')->whereIn('cart_id', $oldCartIds)->delete();
+            DB::table('carts')->whereIn('id', $oldCartIds)->delete();
+        }
+
         $cartId = DB::table('carts')->insertGetId([
             'user_id'    => $customer->id,
             'created_at' => now(),
@@ -50,6 +56,12 @@ class CustomerSubscriptionSeeder extends Seeder
         }
 
         // 3. Đăng ký Gói VIP (Subscriptions)
+        $oldSubIds = DB::table('subscriptions')->where('user_id', $customer->id)->pluck('id');
+        if ($oldSubIds->isNotEmpty()) {
+            DB::table('delivery_schedules')->whereIn('subscription_id', $oldSubIds)->delete();
+            DB::table('subscriptions')->whereIn('id', $oldSubIds)->delete();
+        }
+
         $subId = DB::table('subscriptions')->insertGetId([
             'user_id'           => $customer->id,
             'recipient_name'    => 'Lê Thanh Trúc',
@@ -57,8 +69,7 @@ class CustomerSubscriptionSeeder extends Seeder
             'recipient_address' => 'Số 123 Đường Nguyễn Huệ, P. Bến Nghé, Q.1, TP.HCM',
             'delivery_days'     => 'T3, T6',
             'total_price'       => 1200000,
-            'total_deliveries'  => 8,
-            'delivered_count'   => 2,
+
             'status'            => 'active',
             'created_at'        => now()->subDays(10),
             'updated_at'        => now()->subDays(10),
@@ -74,7 +85,7 @@ class CustomerSubscriptionSeeder extends Seeder
                     ['product_id' => 1, 'product_name' => 'Cải Bó Xôi Hữu Cơ', 'quantity' => 1],
                     ['product_id' => 2, 'product_name' => 'Cà Chua Cherry Đà Lạt', 'quantity' => 1],
                 ]),
-                'order_id'        => $i <= 2 ? $i : null, // Đã sinh đơn cho 2 đợt đầu
+                'order_id'        => null,
                 'status'          => $i <= 2 ? 'delivered' : 'pending',
                 'created_at'      => now(),
                 'updated_at'      => now(),

@@ -62,7 +62,7 @@ class PaymentController extends Controller
                 ->with('error', 'Không thể kiểm tra thanh toán lúc này. Vui lòng thử lại sau.');
         }
 
-        if (!$isPaid && $order->payment_status !== 'paid') {
+        if (!$isPaid && $order->payment?->status !== 'success') {
             return redirect()->route('customer.profile', ['tab' => 'orders'])
                 ->with('error', 'Đơn hàng chưa được thanh toán hoặc đang chờ xử lý.');
         }
@@ -82,15 +82,14 @@ class PaymentController extends Controller
                     'recipient_address' => $order->recipient_address,
                     'delivery_days'     => null,
                     'total_price'       => $order->total,
-                    'total_deliveries'  => 8,
-                    'delivered_count'   => 0,
+
                     'status'            => 'active',
                 ]);
             }
 
             $order->update([
                 'status'         => 'delivered',
-                'payment_status' => 'paid',
+
             ]);
 
             return redirect()->route('customer.vip.setup')
@@ -112,7 +111,7 @@ class PaymentController extends Controller
 
                 // 2. Kiểm tra lại trạng thái sau khi lấy khóa
                 // Nếu đơn không còn là pending (ví dụ cron 5 phút vừa hủy xong hoặc đã thanh toán) -> Bỏ qua
-                if (!$order || $order->status !== 'pending' || $order->payment_status === 'paid') {
+                if (!$order || $order->status !== 'pending' || $order->payment?->status === 'success') {
                     return;
                 }
 
@@ -140,7 +139,7 @@ class PaymentController extends Controller
 
                 // 4. Hoàn lại kho (kho tổng và từng lô)
                 foreach ($order->items as $item) {
-                    Product::where('id', $item->product_id)->increment('stock', $item->quantity);
+
                     if ($item->batch_id) {
                         \App\Models\ProductBatch::where('id', $item->batch_id)->increment('current_quantity', $item->quantity);
                     }

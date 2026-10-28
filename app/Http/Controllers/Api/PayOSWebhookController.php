@@ -50,7 +50,7 @@ class PayOSWebhookController extends Controller
                         ->firstOrFail();
 
                     // Nếu đã thanh toán thì không cộng điểm và sold_count lần nữa
-                    if ($order->payment_status === 'paid') {
+                    if ($order->payment?->status === 'success') {
                         DB::commit();
 
                         return response()->json([
@@ -74,9 +74,7 @@ class PayOSWebhookController extends Controller
                             ]
                         );
 
-                        $order->update([
-                            'payment_status' => 'paid',
-                        ]);
+
 
                         DB::commit();
 
@@ -102,10 +100,7 @@ class PayOSWebhookController extends Controller
                     // Lấy danh sách sản phẩm trong đơn hàng
                     $order->load('items');
                     if ($order->order_type === 'subscription') {
-                        $order->update([
-                            'payment_status' => 'paid',
-                            'status'         => 'delivered',
-                        ]);
+                        $order->update(['status' => 'delivered']);
 
                         $existingSub = \App\Models\Subscription::where('user_id', $order->user_id)
                             ->where('status', 'active')
@@ -121,16 +116,11 @@ class PayOSWebhookController extends Controller
                                 'recipient_address' => $order->recipient_address,
                                 'delivery_days'     => null,
                                 'total_price'       => $order->total,
-                                'total_deliveries'  => 8,
-                                'delivered_count'   => 0,
                                 'status'            => 'active',
                             ]);
                         }
                     } else {
-                        $order->update([
-                            'payment_status' => 'paid',
-                            'status'         => 'pending',
-                        ]);
+                        $order->update(['status' => 'pending']);
                     }
 
                     $order->statusHistories()->create([

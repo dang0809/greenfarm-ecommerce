@@ -48,7 +48,7 @@ class OrdersPage extends Component
     {
         $order = Order::with('items')->where('user_id', Auth::id())
             ->where('status', 'pending')
-            ->where('payment_status', 'pending')
+            ->whereHas('payment', fn($q) => $q->where('status', 'pending'))
             ->find($orderId);
 
         if (!$order) {
@@ -77,7 +77,7 @@ class OrdersPage extends Component
                 $checkoutUrl = $paymentInfo['checkoutUrl'] ?? (!empty($paymentInfo['id']) ? "https://pay.payos.vn/web/" . $paymentInfo['id'] : null);
 
                 if (($paymentInfo['status'] ) === 'PAID') {
-                    $order->update(['payment_status' => 'paid']);
+                    Payment::where('order_id', $order->id)->update(['status' => 'success', 'paid_at' => now()]);
                     $this->dispatch('show-toast', type: 'success', message: 'Đơn hàng này đã được thanh toán thành công!');
                     return;
                 }
@@ -118,7 +118,7 @@ class OrdersPage extends Component
         }
 
         // Đơn đã thanh toán: Chặn hủy trực tuyến
-        if ($order->payment_status === 'paid') {
+        if ($order->payment?->status === 'success') {
             $this->dispatch('show-toast', type: 'error', message: 'Đơn hàng đã thanh toán không thể tự hủy trực tuyến. Vui lòng liên hệ Hotline Nông trại!');
             return;
         }
@@ -134,7 +134,7 @@ class OrdersPage extends Component
             $lockedOrder = Order::with('items')->whereKey($order->id)->lockForUpdate()->first();
 
             // 2. Kiểm tra lại trạng thái sau khi lấy khóa
-            if (!$lockedOrder || $lockedOrder->status !== 'pending' || $lockedOrder->payment_status === 'paid') {
+            if (!$lockedOrder || $lockedOrder->status !== 'pending' || $lockedOrder->payment?->status === 'success') {
                 return false;
             }
 
@@ -168,8 +168,7 @@ class OrdersPage extends Component
                     ProductBatch::where('id', $item->batch_id)
                         ->increment('current_quantity', $item->quantity);
                 }
-                Product::where('id', $item->product_id)
-                    ->increment('stock', $item->quantity);
+
             }
 
             // 5. Hoàn lại điểm thưởng đã dùng
@@ -348,8 +347,8 @@ class OrdersPage extends Component
     {
         $userId = Auth::id();
 
-        $pendingPaymentQuery      = fn($q) => $q->where('status', 'pending')->where('payment_status', 'pending');
-        $pendingConfirmationQuery = fn($q) => $q->where('status', 'pending')->where('payment_status', 'paid');
+        $pendingPaymentQuery      = fn($q) => $q->where('status', 'pending')->whereHas('payment', fn($q) => $q->where('status', 'pending'));
+        $pendingConfirmationQuery = fn($q) => $q->where('status', 'pending')->whereHas('payment', fn($pq) => $pq->where('status', 'success'));
         $processingQuery          = fn($q) => $q->where('status', 'processing');
         $shippedQuery             = fn($q) => $q->where('status', 'shipped');
         $deliveredQuery           = fn($q) => $q->where('status', 'delivered');

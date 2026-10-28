@@ -24,8 +24,6 @@ return new class extends Migration
             $table->integer('points_used')->default(0);
             $table->integer('points_earned')->default(0);
             $table->decimal('total', 12, 2)->default(0)->index();
-            $table->string('payment_method', 50)->default('vnpay')->index();        // vnpay|payos|momo
-            $table->string('payment_status', 50)->default('pending')->index();      // pending|paid|failed
             $table->string('shipping_provider', 100)->nullable();
             $table->string('tracking_code', 100)->nullable()->index();
             $table->string('recipient_name', 255);

@@ -8,7 +8,7 @@
         if ($isVipDelivery) {
             $sched = $order->deliverySchedule;
             if ($sched) {
-                $total = $sched->subscription?->total_deliveries ?? 4;
+                $total = 8;
                 $batchInfo = " (Đợt {$sched->delivery_order}/{$total})";
             }
         }
@@ -103,7 +103,7 @@
                         Chờ lấy hàng
                     </span>
                 @elseif ($order->status === 'pending')
-                    @if ($order->payment_status === 'paid')
+                    @if ($order->payment?->status === 'success')
                         <span class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
                             <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
                             Chờ xác nhận
@@ -124,9 +124,9 @@
             <!-- Thông báo tóm tắt trạng thái hiện tại -->
             @php
                 $statusSummary = match(true) {
-                    $order->status === 'pending' && $order->payment_status === 'pending' => 'Đơn hàng của bạn đã được hệ thống ghi nhận. Vui lòng hoàn tất thanh toán để nông trại bắt đầu chuẩn bị hàng nhé!',
-                    $order->status === 'pending' && $order->payment_status === 'paid' && $isVipDelivery => "Đợt giao rau định kỳ{$batchInfo} đã được khởi tạo. Hệ thống đang chờ nhân viên Nông trại Đất Lành kiểm tra và xác nhận đơn hàng.",
-                    $order->status === 'pending' && $order->payment_status === 'paid' => 'Bạn đã thanh toán thành công. Hệ thống đang chờ nhân viên Nông trại Đất Lành kiểm tra và xác nhận đơn hàng.',
+                    $order->status === 'pending' && $order->payment?->status === 'pending' => 'Đơn hàng của bạn đã được hệ thống ghi nhận. Vui lòng hoàn tất thanh toán để nông trại bắt đầu chuẩn bị hàng nhé!',
+                    $order->status === 'pending' && $order->payment?->status === 'success' && $isVipDelivery => "Đợt giao rau định kỳ{$batchInfo} đã được khởi tạo. Hệ thống đang chờ nhân viên Nông trại Đất Lành kiểm tra và xác nhận đơn hàng.",
+                    $order->status === 'pending' && $order->payment?->status === 'success' => 'Bạn đã thanh toán thành công. Hệ thống đang chờ nhân viên Nông trại Đất Lành kiểm tra và xác nhận đơn hàng.',
                     $order->status === 'processing' && $isVipDelivery => "Nông trại đang thu hoạch & đóng gói thùng rau VIP{$batchInfo} theo chuẩn VietGAP, chờ shipper đến lấy hàng.",
                     $order->status === 'processing' => 'Đơn hàng đã được xác nhận & đang đóng gói, chờ shipper đến lấy hàng.',
                     $order->status === 'shipped' => 'Shipper đã lấy hàng thành công và đang trên đường giao đơn hàng này tới bạn. Vui lòng chú ý điện thoại nhé!',
@@ -406,8 +406,8 @@
                                 ];
                             } else {
                                 $timelineEvents[] = [
-                                    'title' => $order->payment_status === 'paid' ? 'Đơn hàng đã được đặt' : 'Chờ thanh toán',
-                                    'desc'  => $order->payment_status === 'paid' ? 'Đơn hàng của bạn đã được hệ thống ghi nhận.' : 'Đơn hàng của bạn đã được hệ thống ghi nhận. Vui lòng hoàn tất thanh toán để nông trại bắt đầu chuẩn bị hàng nhé!',
+                                    'title' => ($order->payment?->status === 'success') ? 'Đơn hàng đã được đặt' : 'Chờ thanh toán',
+                                    'desc'  => ($order->payment?->status === 'success') ? 'Đơn hàng của bạn đã được hệ thống ghi nhận.' : 'Đơn hàng của bạn đã được hệ thống ghi nhận. Vui lòng hoàn tất thanh toán để nông trại bắt đầu chuẩn bị hàng nhé!',
                                     'icon'  => 'fa-file-lines',
                                     'color' => 'gray',
                                     'time'  => $time,
@@ -639,22 +639,22 @@
                     <div class="flex items-center justify-between">
                         <span class="text-gray-500">Cổng thanh toán:</span>
                         <span class="font-bold text-gray-800 flex items-center gap-1.5 uppercase">
-                            <i class="fa-solid fa-qrcode text-brand-600"></i> {{ $order->payment_method ?? 'PAYOS' }} (Quét VietQR)
+                            <i class="fa-solid fa-qrcode text-brand-600"></i> {{ strtoupper($order->payment?->method ?? 'PAYOS') }} 
                         </span>
                     </div>
                     <div class="flex items-center justify-between">
                         <span class="text-gray-500">Trạng thái GD:</span>
-                        @if ($order->payment_status === 'paid')
+                        @if ($order->payment?->status === 'success')
                             <span class="font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
                                 <i class="fa-solid fa-circle-check text-[10px]"></i> Đã thanh toán (PAID)
                             </span>
-                        @elseif ($order->payment_status === 'refunded')
-                            <span class="font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
-                                <i class="fa-solid fa-circle-check text-[10px]"></i> Đã hoàn tiền (REFUNDED)
+                        @elseif ($order->payment?->status === 'failed')
+                            <span class="font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                                <i class="fa-solid fa-circle-xmark text-[10px]"></i> Thất bại / Đã hủy
                             </span>
                         @else
                             <span class="font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
-                                <i class="fa-solid fa-clock text-[10px]"></i> Chờ thanh toán
+                                <i class="fa-solid fa-clock text-[10px]"></i> Đang chờ quét mã
                             </span>
                         @endif
                     </div>
@@ -677,7 +677,7 @@
                     <div class="flex items-center justify-between text-[11px] text-gray-400 pt-1.5 border-t border-gray-200/60">
                         <span>Thời gian ghi nhận:</span>
                         <span class="font-mono">
-                            {{ $order->payment?->paid_at ? $order->payment->paid_at->format('H:i • d/m/Y') : '' }}
+                            {{ $order->payment?->paid_at ? $order->payment->paid_at->format('H:i • d/m/Y') : 'Chưa ghi nhận' }}
                         </span>
                     </div>
                 </div>
@@ -695,7 +695,7 @@
                     @endif
 
                     <!-- 2. Thanh toán ngay: Dành cho đơn pending chưa trả tiền -->
-                    @if ($order->status === 'pending' && $order->payment_status === 'pending')
+                    @if ($order->status === 'pending' && $order->payment?->status === 'pending')
                         <button type="button" 
                                 wire:click="payNow" 
                                 wire:loading.attr="disabled"

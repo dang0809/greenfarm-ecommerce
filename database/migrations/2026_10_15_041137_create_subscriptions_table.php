@@ -21,8 +21,7 @@ return new class extends Migration
     $table->string('recipient_address', 255);
     $table->string('delivery_days', 50)->nullable();                          // VD: "T3,T6"
     $table->decimal('total_price', 12, 2)->default(0);
-    $table->integer('total_deliveries')->default(8);
-    $table->integer('delivered_count')->default(0);
+
     $table->string('status', 50)->default('active')->index();                 // active|completed
     $table->timestamps();
 });

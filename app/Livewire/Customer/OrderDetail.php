@@ -48,7 +48,7 @@ class OrderDetail extends Component
     {
         $order = Order::with('items')->where('user_id', Auth::id())
             ->where('status', 'pending')
-            ->where('payment_status', 'pending')
+            ->whereHas('payment', fn($q) => $q->where('status', 'pending'))
             ->find($this->orderId);
 
         if (!$order) {
@@ -76,7 +76,7 @@ class OrderDetail extends Component
                 $checkoutUrl = $paymentInfo['checkoutUrl'] ?? (!empty($paymentInfo['id']) ? "https://pay.payos.vn/web/" . $paymentInfo['id'] : null);
 
                 if (($paymentInfo['status']) === 'PAID') {
-                    $order->update(['payment_status' => 'paid']);
+                    Payment::where('order_id', $order->id)->update(['status' => 'success', 'paid_at' => now()]);
                     $this->dispatch('show-toast', type: 'success', message: 'Đơn hàng này đã được thanh toán thành công!');
                     return;
                 }
@@ -112,7 +112,7 @@ class OrderDetail extends Component
         }
 
         // Đơn đã thanh toán: chặn hủy online
-        if ($order->payment_status === 'paid') {
+        if ($order->payment?->status === 'success') {
             $this->dispatch('show-toast', type: 'error', message: 'Đơn hàng đã thanh toán không thể tự hủy trực tuyến. Vui lòng liên hệ Hotline Nông trại!');
             return;
         }
@@ -120,7 +120,7 @@ class OrderDetail extends Component
         $cancelledSuccessfully = DB::transaction(function () use ($order) {
             $lockedOrder = Order::with('items')->whereKey($order->id)->lockForUpdate()->first();
 
-            if (!$lockedOrder || $lockedOrder->status !== 'pending' || $lockedOrder->payment_status === 'paid') {
+            if (!$lockedOrder || $lockedOrder->status !== 'pending' || $lockedOrder->payment?->status === 'success') {
                 return false;
             }
 
@@ -152,8 +152,7 @@ class OrderDetail extends Component
                     ProductBatch::where('id', $item->batch_id)
                         ->increment('current_quantity', $item->quantity);
                 }
-                Product::where('id', $item->product_id)
-                    ->increment('stock', $item->quantity);
+
             }
 
             // Hoàn lại điểm tích lũy đã dùng

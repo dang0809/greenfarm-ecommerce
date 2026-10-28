@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 Schedule::call(function () {
     $expiredOrderIds = Order::where('status', 'pending')
-        ->where('payment_status', 'pending')
+        ->whereHas('payment', fn($q) => $q->where('status', 'pending'))
         ->where('created_at', '<=', now()->subMinutes(5))
         ->pluck('id');
 
@@ -20,7 +20,7 @@ Schedule::call(function () {
 
             // 2. Kiểm tra lại trạng thái sau khi lấy khóa
             // Nếu đơn không còn là pending (khách vừa hủy hoặc vừa thanh toán thành công) -> Bỏ qua ngay
-            if (!$order || $order->status !== 'pending' || $order->payment_status === 'paid') {
+            if (!$order || $order->status !== 'pending' || $order->payment?->status === 'success') {
                 return;
             }
 
@@ -46,9 +46,8 @@ Schedule::call(function () {
                 ]);
             }
 
-            // 4. Hoàn lại kho (kho tổng và từng lô)
+            // 4. Hoàn lại kho (theo từng lô hàng)
             foreach ($order->items as $item) {
-                Product::where('id', $item->product_id)->increment('stock', $item->quantity);
                 if ($item->batch_id) {
                     ProductBatch::where('id', $item->batch_id)->increment('current_quantity', $item->quantity);
                 }

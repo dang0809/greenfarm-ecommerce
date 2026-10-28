@@ -80,7 +80,7 @@
                                     @php
                                         $sched = $order->deliverySchedule;
                                         if ($sched) {
-                                            $total = $sched->subscription?->total_deliveries ?? 4;
+                                            $total = 8;
                                             $batchInfo = " (Đợt {$sched->delivery_order}/{$total})";
                                         } else {
                                             preg_match('/Đợt\s+\d+\/\d+/ui', $order->note ?? '', $batchMatches);
@@ -134,11 +134,11 @@
                         <span class="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
                             <i class="fa-solid fa-boxes-packing text-[10px]"></i> Chờ lấy hàng
                         </span>
-                    @elseif ($order->status === 'pending' && $order->payment_status === 'pending')
+                    @elseif ($order->status === 'pending' && $order->payment?->status === 'pending')
                         <span class="inline-flex items-center gap-1.5 text-xs font-bold text-yellow-800 bg-yellow-50 border border-yellow-200 px-2.5 py-0.5 rounded-full">
                             <i class="fa-solid fa-hourglass-half text-[10px]"></i> Chờ thanh toán
                         </span>
-                    @elseif ($order->status === 'pending' && $order->payment_status === 'paid')
+                    @elseif ($order->status === 'pending' && $order->payment?->status === 'success')
                         <span class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
                             <i class="fa-solid fa-circle-notch text-[10px] animate-spin"></i> Chờ xác nhận
                         </span>
@@ -148,9 +148,9 @@
                 <!-- THÔNG BÁO TÓM TẮT TRẠNG THÁI -->
                 @php
                     $orderStatusMsg = match(true) {
-                        $order->status === 'pending' && $order->payment_status === 'pending' => 'Đơn hàng của bạn đã được hệ thống ghi nhận. Vui lòng hoàn tất thanh toán để nông trại bắt đầu chuẩn bị hàng nhé!',
-                        $order->status === 'pending' && $order->payment_status === 'paid' && $isVipDelivery => "Đợt giao rau định kỳ{$batchInfo} đã được khởi tạo. Hệ thống đang chờ nhân viên Nông trại Đất Lành kiểm tra và xác nhận đơn hàng.",
-                        $order->status === 'pending' && $order->payment_status === 'paid' => 'Bạn đã thanh toán thành công. Hệ thống đang chờ nhân viên Nông trại Đất Lành kiểm tra và xác nhận đơn hàng.',
+                        $order->status === 'pending' && $order->payment?->status === 'pending' => 'Đơn hàng của bạn đã được hệ thống ghi nhận. Vui lòng hoàn tất thanh toán để nông trại bắt đầu chuẩn bị hàng nhé!',
+                        $order->status === 'pending' && $order->payment?->status === 'success' && $isVipDelivery => "Đợt giao rau định kỳ{$batchInfo} đã được khởi tạo. Hệ thống đang chờ nhân viên Nông trại Đất Lành kiểm tra và xác nhận đơn hàng.",
+                        $order->status === 'pending' && $order->payment?->status === 'success' => 'Bạn đã thanh toán thành công. Hệ thống đang chờ nhân viên Nông trại Đất Lành kiểm tra và xác nhận đơn hàng.',
                         $order->status === 'processing' && $isVipDelivery => "Nông trại đang thu hoạch & đóng gói thùng rau VIP{$batchInfo} theo chuẩn VietGAP, chờ shipper đến lấy hàng.",
                         $order->status === 'processing' => 'Đơn hàng đã được xác nhận & đang đóng gói, chờ shipper đến lấy hàng.',
                         $order->status === 'shipped' => 'Shipper đã lấy hàng thành công và đang trên đường giao đơn hàng này tới bạn. Vui lòng chú ý điện thoại nhé!',
@@ -229,7 +229,7 @@
                 <!-- Footer Đơn Hàng & Thao tác -->
                 <div class="pt-3 border-t {{ ($isVipPayment || $isVipDelivery) ? 'border-purple-100' : 'border-gray-200/80' }} flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div class="text-xs text-gray-500">
-                        <span>Cổng thanh toán: <b class="uppercase text-brand-700 font-extrabold">{{ $order->payment_method }}</b></span>
+                        <span>Cổng thanh toán: <b class="uppercase text-brand-700 font-extrabold">{{ $order->payment?->method ?? 'PAYOS' }}</b></span>
                         <div class="flex items-baseline gap-1.5 mt-0.5">
                             <span class="text-gray-400">Tổng thanh toán:</span>
                             <span class="text-base font-black text-brand-700">
@@ -240,7 +240,7 @@
 
                     <div class="flex flex-wrap items-center gap-2">
                         <!-- Nút Hủy cho đơn CHƯA thanh toán (pending) -->
-                        @if ($order->status === 'pending' && $order->payment_status === 'pending' && $order->order_type === 'retail')
+                        @if ($order->status === 'pending' && $order->payment?->status === 'pending' && $order->order_type === 'retail')
                             <button type="button" 
                                     wire:click="confirmCancel({{ $order->id }})" 
                                     wire:confirm="Bạn có chắc chắn muốn hủy đơn hàng #{{ $order->order_code }} không?"
@@ -250,7 +250,7 @@
                         @endif
 
                         <!-- Nút Thanh toán ngay: Dành cho đơn pending chưa trả tiền -->
-                        @if ($order->status === 'pending' && $order->payment_status === 'pending')
+                        @if ($order->status === 'pending' && $order->payment?->status === 'pending')
                             <button type="button" 
                                     wire:click="payNow({{ $order->id }})" 
                                     wire:loading.attr="disabled"

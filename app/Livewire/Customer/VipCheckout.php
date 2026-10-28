@@ -68,7 +68,7 @@ class VipCheckout extends Component
         $existingOrder = Order::where('user_id', $user->id)
             ->where('order_type', 'subscription')
             ->where('status', 'pending')
-            ->where('payment_status', 'pending')
+            ->whereHas('payment', fn($q) => $q->where('status', 'pending'))
             ->latest()
             ->first();
 
@@ -99,7 +99,8 @@ class VipCheckout extends Component
 
                     // Nếu thực tế đã thanh toán xong từ trước
                     if ($payStatus === 'PAID') {
-                        $existingOrder->update(['payment_status' => 'paid', 'status' => 'delivered']);
+                        $existingOrder->update(['status' => 'delivered']);
+                        Payment::where('order_id', $existingOrder->id)->update(['status' => 'success', 'paid_at' => now()]);
                         return $this->redirect(route('customer.checkout.success', ['order_id' => $existingOrder->id]), navigate: false);
                     }
 
@@ -150,8 +151,7 @@ class VipCheckout extends Component
                 'subtotal'          => $this->price,
                 'shipping_fee'      => 0,
                 'total'             => $this->price,
-                'payment_method'    => 'payos',
-                'payment_status'    => 'pending',
+
                 'status'            => 'pending',
                 'note'              => 'Đăng ký ' . $this->packageName,
             ]);

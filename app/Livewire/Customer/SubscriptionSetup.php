@@ -579,7 +579,7 @@ class SubscriptionSetup extends Component
             'selectedCategory'   => $this->selectedCategory,
             'searchVeggie'       => $this->searchVeggie,
             'lockedSchedules'    => $lockedSchedules,
-            'deliveredCount'     => (int) ($this->subscription->delivered_count ?? 0),
+            'deliveredCount'     => (int) ($this->subscription->deliverySchedules()->where('status', 'delivered')->count()),
         ])->layout('layouts.customer.app');
     }
 }

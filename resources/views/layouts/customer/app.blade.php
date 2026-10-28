@@ -59,7 +59,7 @@
                 <span class="block text-xs sm:text-sm font-black leading-tight text-white">Lịch Giao Rau VIP</span>
             </div>
             <span class="bg-amber-400 text-gray-900 text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs">
-                {{ $activeVipSub->delivered_count }}/{{ $activeVipSub->total_deliveries }} Đợt
+                {{ $activeVipSub->deliverySchedules()->where('status', 'delivered')->count() }}/8 Đợt
             </span>
         </a>
     @elseif(filter_var(\App\Models\SystemSetting::where('group', 'subscription')->where('key', 'vip_subscription_enabled')->value('value') ?? 'true', FILTER_VALIDATE_BOOLEAN))
