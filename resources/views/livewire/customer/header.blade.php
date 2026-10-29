@@ -42,9 +42,8 @@
                     </a>
 
                     <!-- 2. DROPDOWN THÔNG BÁO (DESKTOP) -->
-                    <div class="relative">
+                    <div class="relative" @click.outside="notifMenuOpen = false">
                         <button @click="notifMenuOpen = !notifMenuOpen; userMenuOpen = false" 
-                                @click.outside="notifMenuOpen = false"
                                 class="text-gray-500 hover:text-brand-600 transition relative p-2 focus:outline-none flex items-center justify-center" 
                                 title="Thông báo">
                             <i class="fa-regular fa-bell text-xl"></i>
@@ -63,7 +62,7 @@
                             <div class="px-4 pb-2.5 border-b border-gray-100 flex items-center justify-between">
                                 <h4 class="text-xs font-extrabold text-gray-900 uppercase tracking-wider">Thông Báo Mới</h4>
                                 @if($unreadNotifCount > 0)
-                                    <button type="button" wire:click="markAsRead" class="text-[11px] font-semibold text-brand-600 hover:underline">
+                                    <button type="button" @click.stop wire:click="markAsRead" class="text-[11px] font-semibold text-brand-600 hover:underline">
                                         Đánh dấu đã đọc tất cả
                                     </button>
                                 @endif
@@ -102,6 +101,7 @@
                             @if($totalNotifsCount > 5)
                                 <div class="pt-2 border-t border-gray-100 text-center px-4">
                                     <button type="button" 
+                                            @click.stop
                                             wire:click="toggleShowAllNotifs" 
                                             class="text-xs font-bold text-brand-700 hover:text-brand-800 transition py-1 cursor-pointer">
                                         {{ $showAllNotifs ? 'Thu gọn thông báo' : 'Hiển thị tất cả thông báo (' . $totalNotifsCount . ')' }}
@@ -112,9 +112,8 @@
                     </div>
 
                     <!-- 3. DROPDOWN TÀI KHOẢN THÀNH VIÊN (DESKTOP) -->
-                    <div class="relative">
+                    <div class="relative" @click.outside="userMenuOpen = false">
                         <button @click="userMenuOpen = !userMenuOpen; notifMenuOpen = false" 
-                                @click.outside="userMenuOpen = false"
                                 class="flex items-center gap-2.5 p-1 rounded-full hover:bg-gray-50 transition-colors focus:outline-none">
                             <img src="{{ Auth::user()->avatar ?? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150' }}" alt="Avatar" class="w-9 h-9 rounded-full object-cover border border-brand-200">
                             <div class="text-left hidden xl:block">

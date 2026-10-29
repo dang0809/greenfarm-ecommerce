@@ -12,6 +12,7 @@ use App\Models\Product;
 use App\Models\User;
 use App\Models\Payment;
 use App\Services\OrderNotificationService;
+use App\Services\VipNotificationService;
 class PayOSWebhookController extends Controller
 {
     public function handleWebhook(Request $request)
@@ -74,8 +75,6 @@ class PayOSWebhookController extends Controller
                             ]
                         );
 
-
-
                         DB::commit();
 
                         return response()->json([
@@ -99,17 +98,18 @@ class PayOSWebhookController extends Controller
 
                     // Lấy danh sách sản phẩm trong đơn hàng
                     $order->load('items');
+                    $subscription = null;
                     if ($order->order_type === 'subscription') {
                         $order->update(['status' => 'delivered']);
 
-                        $existingSub = \App\Models\Subscription::where('user_id', $order->user_id)
+                        $subscription = \App\Models\Subscription::where('user_id', $order->user_id)
                             ->where('status', 'active')
                             ->whereNull('delivery_days')
                             ->latest()
                             ->first();
 
-                        if (!$existingSub) {
-                            \App\Models\Subscription::create([
+                        if (!$subscription) {
+                            $subscription = \App\Models\Subscription::create([
                                 'user_id'           => $order->user_id,
                                 'recipient_name'    => $order->recipient_name,
                                 'recipient_phone'   => $order->recipient_phone,
@@ -137,8 +137,13 @@ class PayOSWebhookController extends Controller
                    
                     DB::commit();
 
-                    // Gửi thông báo thanh toán thành công (Web & Email)
-                    OrderNotificationService::notifyOrderPaid($order);
+                    // Gửi thông báo sau khi commit thành công
+                    if ($order->order_type === 'subscription' && $subscription) {
+                        // Email + Notification chuẩn VIP (không dùng mail đơn hàng thường)
+                        VipNotificationService::notifyVipActivated($subscription, $order);
+                    } else {
+                        OrderNotificationService::notifyOrderPaid($order);
+                    }
 
                     return response()->json([
                         'error' => 0,
