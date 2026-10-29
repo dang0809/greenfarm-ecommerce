@@ -62,7 +62,7 @@
 
                         <!-- Ghi chú cho shipper -->
                         <div>
-                            <label class="block text-xs font-bold text-gray-700 mb-1.5">Ghi chú cho shipper (tùy chọn)</label>
+                            <label class="block text-xs font-bold text-gray-700 mb-1.5">Ghi chú cho nông trại (tùy chọn)</label>
                             <input type="text" 
                                    wire:model="orderNote" 
                                    placeholder="Ví dụ: Giao trước 11h trưa, gọi chuông cửa tầng 2..." 

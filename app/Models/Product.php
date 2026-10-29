@@ -97,4 +97,31 @@ class Product extends Model
         }
         return 0.5;
     }
+
+    /**
+     * Tổng số đơn vị thành phẩm bán lẻ (hộp/gói/trái/kg) sẵn có trong kho
+     * Quy đổi từ tổng số kg trong các lô còn hạn & còn hàng
+     */
+    public function getTotalStockUnitsAttribute(): float
+    {
+        $weightPerUnit = $this->weight_kg;
+        if ($weightPerUnit <= 0) {
+            $weightPerUnit = 1.0;
+        }
+
+        $totalKg = isset($this->attributes['total_stock']) 
+            ? (float) $this->attributes['total_stock']
+            : (float) $this->batches()
+                ->where('product_batches.status', 'active')
+                ->where('product_batches.current_quantity', '>', 0)
+                ->whereDate('product_batches.expiry_date', '>=', now())
+                ->sum('product_batches.current_quantity');
+
+        $u = mb_strtolower(trim($this->unit ?? ''));
+        if ($u === 'kg' || $u === 'ký') {
+            return round($totalKg, 2);
+        }
+
+        return (float) floor(round($totalKg / $weightPerUnit, 4));
+    }
 }

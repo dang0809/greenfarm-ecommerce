@@ -141,7 +141,7 @@
                             <i class="fa-solid fa-plus text-xs"></i>
                         </button>
                     </div>
-                    <span class="text-xs text-gray-400">Tối đa {{ $totalStock }} {{ $product->unit ?? 'kg' }}</span>
+                    <span class="text-xs text-gray-400">Tối đa {{ $totalStock + 0 }} {{ $product->unit ?? 'kg' }}</span>
                 </div>
 
                 <div class="flex flex-col sm:flex-row gap-3">

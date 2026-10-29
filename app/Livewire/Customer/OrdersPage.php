@@ -162,13 +162,14 @@ class OrdersPage extends Component
                 ]);
             }
 
-            // 4. Hoàn lại kho (từng lô và kho tổng)
+            // 4. Hoàn lại kho theo số kg thực tế (từng lô và kho tổng)
             foreach ($lockedOrder->items as $item) {
                 if ($item->batch_id) {
+                    $unitWeight = (float) ($item->product?->weight_kg > 0 ? $item->product->weight_kg : 1.0);
+                    $returnKg = round((float) $item->quantity * $unitWeight, 2);
                     ProductBatch::where('id', $item->batch_id)
-                        ->increment('current_quantity', $item->quantity);
+                        ->increment('current_quantity', $returnKg);
                 }
-
             }
 
             // 5. Hoàn lại điểm thưởng đã dùng

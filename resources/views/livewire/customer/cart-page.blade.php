@@ -47,7 +47,7 @@
 
                                 $unitPrice = $product->sale_price ?? $product->price;
                                 $itemSubtotal = $unitPrice * $item->quantity;
-                                $availableStock = (int) ($product->batches?->sum('current_quantity') ?? 0);
+                                $availableStock = (float) $product->total_stock_units;
                             @endphp
 
                             <div class="bg-white p-4 sm:p-5 rounded-3xl border border-gray-100 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

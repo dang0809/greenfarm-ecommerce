@@ -25,7 +25,7 @@ class OrderItem extends Model
     {
         return [
             'price' => 'decimal:2',
-            'quantity' => 'integer',
+            'quantity' => 'decimal:2',
             'subtotal' => 'decimal:2',
         ];
     }

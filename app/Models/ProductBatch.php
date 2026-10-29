@@ -28,11 +28,23 @@ class ProductBatch extends Model
         return [
             'manufactured_date' => 'date',
             'expiry_date' => 'date',
-            'initial_quantity' => 'integer',
-            'current_quantity' => 'integer',
-            'spoiled_quantity' => 'integer',
+            'initial_quantity' => 'decimal:2',
+            'current_quantity' => 'decimal:2',
+            'spoiled_quantity' => 'decimal:2',
             'discount_percent' => 'integer',
         ];
+    }
+
+    public function product()
+    {
+        return $this->hasOneThrough(
+            Product::class,
+            PlantingBatch::class,
+            'id',
+            'id',
+            'planting_batch_id',
+            'product_id'
+        );
     }
 
     public function plantingBatch(): BelongsTo
