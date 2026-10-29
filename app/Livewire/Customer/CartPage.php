@@ -34,9 +34,17 @@ class CartPage extends Component
     // Lấy giỏ hàng của User từ Database
     public function getCart()
     {
-        return Cart::with(['items.product.category', 'items.product.productImages'])
-            ->where('user_id', Auth::id())
-            ->first();
+        return Cart::with([
+            'items.product.category',
+            'items.product.productImages',
+            'items.product.batches' => function ($q) {
+                $q->where('product_batches.status', 'active')
+                  ->where('product_batches.current_quantity', '>', 0)
+                  ->whereDate('product_batches.expiry_date', '>=', now());
+            }
+        ])
+        ->where('user_id', Auth::id())
+        ->first();
     }
 
     // Mặc định chọn tất cả sản phẩm khi vừa mở trang
@@ -99,30 +107,6 @@ class CartPage extends Component
         if ($cartItem && $cartItem->quantity > 1) {
             $cartItem->decrement('quantity');
         }
-    }
-
-    // Thay đổi số lượng trực tiếp từ ô Input
-    public function updateQuantity(int $cartItemId, $qty)
-    {
-        $cartItem = CartItem::whereHas('cart', fn($q) => $q->where('user_id', Auth::id()))->find($cartItemId);
-        if (!$cartItem) return;
-
-        $availableStock = $this->getAvailableStock($cartItem->product_id);
-        $requestedQty = (int) $qty;
-        
-        if ($requestedQty > $availableStock) {
-            $cartItem->update(['quantity' => max(1, $availableStock)]);
-
-            $this->dispatch(
-                'show-toast',
-                type: 'error',
-                message: "Số lượng vượt quá tồn kho ($availableStock). Đã điều chỉnh về số lượng tối đa!"
-            );
-            return;
-        }
-
-        $finalQty = max(1, $requestedQty);
-        $cartItem->update(['quantity' => $finalQty]);
     }
 
     // Xóa 1 sản phẩm

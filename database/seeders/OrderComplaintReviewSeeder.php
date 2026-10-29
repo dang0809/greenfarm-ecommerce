@@ -292,7 +292,7 @@ class OrderComplaintReviewSeeder extends Seeder
                     ['product_id' => $pCachua?->id ?? 2, 'name' => 'Cà Chua Cherry Đà Lạt', 'quantity' => 1],
                 ]),
                 'order_id'        => $o2_vip,
-                'status'          => 'pending',
+                'status'          => 'processing',
                 'created_at'      => $t2_vip_time,
                 'updated_at'      => $t2_vip_time,
             ]);
@@ -511,7 +511,7 @@ class OrderComplaintReviewSeeder extends Seeder
                     ['product_id' => $pCachua?->id ?? 2, 'name' => 'Cà Chua Cherry Đà Lạt', 'quantity' => 2],
                 ]),
                 'order_id'        => $o4_vip,
-                'status'          => 'shipped',
+                'status'          => 'processing',
                 'created_at'      => $t4_vip_time,
                 'updated_at'      => $t4_vip_time,
             ]);
@@ -687,6 +687,23 @@ class OrderComplaintReviewSeeder extends Seeder
                     'updated_at'   => $t5_vip_time,
                 ]
             ]);
+
+            // 5.2b Các đợt giao 5, 6, 7, 8 chưa tới ngày hẹn: order_id = null, status = 'pending'
+            for ($k = 5; $k <= 8; $k++) {
+                DB::table('delivery_schedules')->insert([
+                    'subscription_id' => $subId,
+                    'delivery_order'  => $k,
+                    'delivery_date'   => now()->addDays(($k - 4) * 3)->toDateString(),
+                    'items'           => json_encode([
+                        ['product_id' => $pBoxoi?->id ?? 1, 'name' => 'Cải Bó Xôi Hữu Cơ', 'quantity' => 2],
+                        ['product_id' => $pCachua?->id ?? 2, 'name' => 'Cà Chua Cherry Đà Lạt', 'quantity' => 1],
+                    ]),
+                    'order_id'        => null,
+                    'status'          => 'pending',
+                    'created_at'      => $t5_vip_time,
+                    'updated_at'      => $t5_vip_time,
+                ]);
+            }
 
             // 5.3 Đơn Mua Gói VIP hoàn tất (order_type = subscription, status = delivered)
             $t5_sub_time = now()->subDays(10);

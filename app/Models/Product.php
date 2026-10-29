@@ -79,4 +79,22 @@ class Product extends Model
     {
         return $this->hasMany(ProductImage::class);
     }
+
+    /**
+     * Lấy số kg thực tế theo quy cách đóng gói (unit) của sản phẩm
+     */
+    public function getWeightKgAttribute(): float
+    {
+        $u = mb_strtolower(trim($this->unit ?? ''));
+        if (preg_match('/(\d+(?:\.\d+)?)\s*kg/ui', $u, $m)) {
+            return (float) $m[1];
+        }
+        if ($u === 'kg' || $u === 'ký') {
+            return 1.0;
+        }
+        if (preg_match('/(\d+(?:\.\d+)?)\s*g/ui', $u, $m)) {
+            return round(((float) $m[1]) / 1000, 2);
+        }
+        return 0.5;
+    }
 }

@@ -31,6 +31,31 @@
             </div>
         </div>
 
+        <!-- BANNER THÔNG BÁO HOÀN THÀNH 8 ĐỢT GIAO RAU VIP -->
+        @if($deliveredCount >= 8)
+            <div class="bg-gradient-to-r from-emerald-600 via-brand-700 to-emerald-800 text-white rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-2 border-emerald-400/40">
+                <div class="flex items-start gap-3.5">
+                    <div class="w-11 h-11 rounded-2xl bg-amber-400/30 border border-amber-300/40 flex items-center justify-center text-amber-300 text-xl shrink-0 shadow-inner">
+                        👑
+                    </div>
+                    <div>
+                        <h4 class="font-extrabold text-sm sm:text-base text-white flex items-center gap-2">
+                            <span>Chúc mừng! Bạn đã hoàn thành trọn vẹn 8 đợt giao rau VIP.</span>
+                            <span class="text-xs bg-amber-400 text-gray-900 font-black px-2 py-0.5 rounded-full">8/8 Đợt</span>
+                        </h4>
+                        <p class="text-xs text-brand-100/90 mt-1 leading-relaxed">
+                            Cảm ơn bạn đã đồng hành cùng Nông Trại Đất Lành. Hãy đăng ký gói mới cho tháng tiếp theo để tiếp tục nhận rau sạch hữu cơ tươi ngon định kỳ mỗi tuần!
+                        </p>
+                    </div>
+                </div>
+                <a href="{{ route('customer.vip.checkout') }}" wire:navigate
+                   class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-gray-900 text-xs sm:text-sm font-extrabold transition shadow-lg shrink-0 hover:scale-105 active:scale-95">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                    <span>Đăng Ký Gói Mới</span>
+                </a>
+            </div>
+        @endif
+
         @if(!$isLocked)
             <!-- ========================================== -->
             <!-- CHẾ ĐỘ 1: THIẾT LẬP LỊCH & CHỌN RAU 8 ĐỢT -->
@@ -52,21 +77,38 @@
                 </div>
 
                 @if($currentAddress)
-                    <div class="p-4 sm:p-5 rounded-2xl border border-gray-200 bg-gray-50/60">
-                        <div class="flex items-center gap-2.5 flex-wrap">
-                            <span class="text-sm sm:text-base font-bold text-gray-900">{{ $currentAddress['name'] }}</span>
-                            <span class="text-xs sm:text-sm text-gray-600 font-mono">{{ $currentAddress['phone'] }}</span>
-                            @if($currentAddress['is_default'])
-                                <span class="text-[10px] font-bold text-brand-700 bg-brand-100 px-2.5 py-0.5 rounded-full border border-brand-200">Mặc định</span>
-                            @endif
+                    <div class="p-4 sm:p-5 rounded-2xl border {{ $isCurrentAddressExceeded ? 'border-red-300 bg-red-50/50' : 'border-gray-200 bg-gray-50/60' }} space-y-2">
+                        <div class="flex items-center justify-between gap-2 flex-wrap">
+                            <div class="flex items-center gap-2.5 flex-wrap">
+                                <span class="text-sm sm:text-base font-bold text-gray-900">{{ $currentAddress['name'] }}</span>
+                                <span class="text-xs sm:text-sm text-gray-600 font-mono">{{ $currentAddress['phone'] }}</span>
+                                @if($currentAddress['is_default'])
+                                    <span class="text-[10px] font-bold text-brand-700 bg-brand-100 px-2.5 py-0.5 rounded-full border border-brand-200">Mặc định</span>
+                                @endif
+                            </div>
+                            <span class="text-[11px] font-bold {{ $isCurrentAddressExceeded ? 'text-red-700 bg-red-100 border-red-200' : 'text-brand-700 bg-brand-100 border-brand-200' }} px-2.5 py-0.5 rounded-full border">
+                                {{ $isCurrentAddressExceeded ? 'Vượt bán kính (' . ($currentAddress['distance'] ?? 0) . ' km)' : 'Trong bán kính (' . ($currentAddress['distance'] ?? 0) . ' km)' }}
+                            </span>
                         </div>
                         <p class="text-xs sm:text-sm text-gray-600 mt-2 leading-relaxed">
                             {{ $currentAddress['address'] }}
                         </p>
                         @if(($currentAddress['distance'] ?? 0) > 0)
-                            <div class="mt-3 flex items-center gap-2 text-xs text-gray-500">
-                                <i class="fa-solid fa-route text-brand-600"></i>
-                                <span>Khoảng cách vận chuyển thực tế: <b class="text-gray-800 font-mono">{{ $currentAddress['distance'] }} km</b> (Miễn phí ship VIP 8 đợt)</span>
+                            <div class="mt-2 flex items-center gap-2 text-xs {{ $isCurrentAddressExceeded ? 'text-red-600 font-bold' : 'text-gray-500' }}">
+                                <i class="fa-solid fa-route {{ $isCurrentAddressExceeded ? 'text-red-600' : 'text-brand-600' }}"></i>
+                                <span>Khoảng cách vận chuyển thực tế: <b class="font-mono">{{ $currentAddress['distance'] }} km</b> / tối đa {{ $maxDistance }} km @if(!$isCurrentAddressExceeded)(Miễn phí ship VIP 8 đợt)@endif</span>
+                            </div>
+                        @endif
+
+                        @if ($isCurrentAddressExceeded)
+                            <div class="mt-3 p-3 rounded-xl border border-red-200 bg-red-50 text-red-700 text-xs space-y-1">
+                                <p class="font-bold flex items-center gap-1.5 text-xs">
+                                    <i class="fa-solid fa-triangle-exclamation text-red-600"></i>
+                                    <span>Địa chỉ này vượt quá bán kính giao hàng tối đa ({{ $maxDistance }} km)!</span>
+                                </p>
+                                <p class="leading-relaxed">
+                                    Nông trại không thể giao 8 đợt rau định kỳ đến địa chỉ này do vượt quá bán kính phục vụ. Vui lòng bấm <b>"Thay đổi địa chỉ"</b> để chọn một địa chỉ trong bán kính {{ $maxDistance }} km trước khi chốt lịch.
+                                </p>
                             </div>
                         @endif
                     </div>
@@ -179,6 +221,7 @@
                                 @php
                                     $qty = $currentDelivery['items'][$v['id']] ?? 0;
                                     $isMaxStock = $qty >= $v['stock'];
+                                    $isOverWeight = ($currentWeight + $v['weight']) > ($maxWeightTarget + 0.001);
                                 @endphp
                                 <div class="bg-white rounded-2xl p-4 border transition-all hover:shadow-xs {{ $qty > 0 ? 'border-brand-500 bg-brand-50/15' : 'border-gray-200' }} flex items-center justify-between gap-3">
                                     <div class="flex items-center gap-3 min-w-0">
@@ -192,7 +235,7 @@
                                                 <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-gray-400 shrink-0"></i>
                                             </a>
                                             <div class="flex items-center gap-2 mt-1">
-                                                <span class="text-[10px] font-mono text-gray-400 block">{{ $v['unit_label'] }} (~{{ $v['weight'] }}kg)</span>
+                                                <span class="text-[10px] font-mono text-gray-500 block">{{ $v['unit_label'] }} ({{ $v['weight'] }}kg)</span>
                                                 <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
                                                     Còn {{ $v['stock'] }} {{ $v['unit'] }}
                                                 </span>
@@ -204,14 +247,16 @@
                                     <div class="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl shrink-0">
                                         <button type="button" 
                                                 wire:click="updateQty({{ $v['id'] }}, -1)" 
+                                                @disabled($qty <= 0)
                                                 class="w-7 h-7 rounded-lg bg-white text-gray-700 font-bold flex items-center justify-center text-xs shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">-</button>
                                         
                                         <span class="w-6 text-center font-mono font-bold text-xs text-gray-900">{{ $qty }}</span>
                                         
                                         <button type="button" 
                                                 wire:click="updateQty({{ $v['id'] }}, 1)" 
-                                                @disabled($isMaxStock)
-                                                class="w-7 h-7 rounded-lg bg-brand-600 text-white font-bold flex items-center justify-center text-xs shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">+</button>
+                                                @disabled($isMaxStock || $isOverWeight)
+                                                class="w-7 h-7 rounded-lg bg-brand-600 text-white font-bold flex items-center justify-center text-xs shadow-2xs disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                                                title="{{ $isOverWeight ? 'Đã đạt định mức tối đa ' . $maxWeightTarget . 'kg' : ($isMaxStock ? 'Đã hết hàng khả dụng' : 'Thêm món') }}">+</button>
                                     </div>
                                 </div>
                             @empty
@@ -261,7 +306,13 @@
                                                 <img src="{{ $item['image'] }}" class="w-7 h-7 rounded-lg object-cover shrink-0">
                                                 <span class="font-semibold text-gray-800 truncate">{{ $item['name'] }}</span>
                                             </div>
-                                            <span class="font-mono text-brand-700 font-bold shrink-0 ml-2">{{ $qty }} x {{ $item['unit_label'] }}</span>
+                                            <span class="font-mono text-brand-700 font-bold shrink-0 ml-2">
+                                                @if(strtolower(trim($item['unit_label'])) === 'kg')
+                                                    {{ $qty }} kg
+                                                @else
+                                                    {{ $qty }} x {{ $item['unit_label'] }} ({{ round($qty * ($item['weight'] ?? 0.5), 1) }}kg)
+                                                @endif
+                                            </span>
                                         </div>
                                     @endif
                                 @empty
@@ -277,13 +328,22 @@
                                     <span>Sao chép đợt này cho cả 8 đợt</span>
                                 </button>
 
-                                <button type="button" 
-                                        wire:confirm="Bạn có chắc chắn muốn xác nhận và khóa cố định lịch giao 8 đợt không? Lịch trình sẽ được lưu chính thức vào hệ thống."
-                                        wire:click="confirmAndLockSchedule" 
-                                        class="w-full bg-brand-600 hover:bg-brand-700 text-white font-extrabold py-3.5 rounded-2xl transition shadow-md flex items-center justify-center gap-2 text-xs sm:text-sm cursor-pointer">
-                                    <i class="fa-solid fa-lock"></i>
-                                    <span>Xác Nhận & Chốt Lịch Cố Định</span>
-                                </button>
+                                @if ($isCurrentAddressExceeded)
+                                    <button type="button" disabled
+                                            class="w-full bg-red-100 border-2 border-red-300 text-red-600 font-bold py-3.5 rounded-2xl transition flex items-center justify-center gap-2 text-xs sm:text-sm cursor-not-allowed shadow-xs"
+                                            title="Địa chỉ vượt quá bán kính giao hàng {{ $maxDistance }}km">
+                                        <i class="fa-solid fa-ban"></i>
+                                        <span>Địa Chỉ Vượt Bán Kính (Tối Đa {{ $maxDistance }}km)</span>
+                                    </button>
+                                @else
+                                    <button type="button" 
+                                            wire:confirm="Bạn có chắc chắn muốn xác nhận và khóa cố định lịch giao 8 đợt không? Lịch trình sẽ được lưu chính thức vào hệ thống."
+                                            wire:click="confirmAndLockSchedule" 
+                                            class="w-full bg-brand-600 hover:bg-brand-700 text-white font-extrabold py-3.5 rounded-2xl transition shadow-md flex items-center justify-center gap-2 text-xs sm:text-sm cursor-pointer">
+                                        <i class="fa-solid fa-lock"></i>
+                                        <span>Xác Nhận & Chốt Lịch Cố Định</span>
+                                    </button>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -318,8 +378,8 @@
                         <span class="text-brand-200 font-bold flex items-center gap-1.5">
                             <i class="fa-solid fa-location-dot text-amber-400"></i> Địa chỉ nhận hàng cố định:
                         </span>
-                        <p class="font-bold text-sm text-white">{{ $currentAddress['name'] ?? 'Khách VIP' }} • {{ $currentAddress['phone'] ?? '' }}</p>
-                        <p class="text-brand-100/90 leading-relaxed">{{ $currentAddress['address'] ?? '' }}</p>
+                        <p class="font-bold text-sm text-white">{{ $this->subscription?->recipient_name ?? $currentAddress['name'] ?? 'Khách VIP' }} • {{ $this->subscription?->recipient_phone ?? $currentAddress['phone'] ?? '' }}</p>
+                        <p class="text-brand-100/90 leading-relaxed">{{ $this->subscription?->recipient_address ?? $currentAddress['address'] ?? '' }}</p>
                     </div>
 
                     <div class="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-1.5">
@@ -347,25 +407,26 @@
                     @foreach($lockedSchedules as $sch)
                         @php
                             $status = $sch['status'];
-                            // Xác định màu sắc và badge
+                            // Xác định màu sắc và badge chuẩn 4 trạng thái
                             if ($status === 'delivered') {
                                 $badgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-200';
-                                $badgeText = '✓ Đã nhận hàng';
+                                $badgeText = '✓ Đã giao thành công';
                                 $badgeIcon = 'fa-circle-check';
                                 $cardBorder = 'border-emerald-300 bg-emerald-50/20';
-                            } elseif ($status === 'shipped' || $status === 'delivering') {
+                            } elseif ($status === 'shipped') {
                                 $badgeClass = 'bg-sky-100 text-sky-800 border-sky-200 animate-pulse';
                                 $badgeText = '🚚 Đang giao hàng';
                                 $badgeIcon = 'fa-truck-fast';
                                 $cardBorder = 'border-sky-300 bg-sky-50/20';
                             } elseif ($status === 'processing') {
-                                $badgeClass = 'bg-amber-100 text-amber-800 border-amber-200';
-                                $badgeText = '📦 Đang soạn rau';
-                                $badgeIcon = 'fa-box-open';
+                                $badgeClass = 'bg-amber-100 text-amber-800 border-amber-200 animate-pulse';
+                                $badgeText = '📦 Đang chuẩn bị';
+                                $badgeIcon = 'fa-boxes-packing';
                                 $cardBorder = 'border-amber-300 bg-amber-50/20';
                             } else {
+                                // pending: Chờ đến ngày giao
                                 $badgeClass = 'bg-gray-100 text-gray-700 border-gray-200';
-                                $badgeText = '⏳ Chờ giao';
+                                $badgeText = '⏳ Chờ đến ngày giao';
                                 $badgeIcon = 'fa-clock';
                                 $cardBorder = 'border-gray-200 bg-white';
                             }
@@ -400,7 +461,7 @@
                                                         {{ $item['name'] }}
                                                     </a>
                                                 </div>
-                                                <span class="font-mono font-bold text-brand-800 text-[11px] shrink-0 ml-1">{{ $item['quantity'] }}x</span>
+                                                <span class="font-mono font-bold text-brand-800 text-[11px] shrink-0 ml-1">{{ $item['quantity'] }}x @if(isset($item['weight']))({{ $item['weight'] }}kg)@endif</span>
                                             </div>
                                         @empty
                                             <span class="text-xs text-gray-400 italic">Rau hữu cơ tổng hợp theo mùa</span>
@@ -414,6 +475,8 @@
                                     <span class="text-emerald-700 font-bold">Giao thành công</span>
                                 @elseif($status === 'shipped')
                                     <span class="text-sky-700 font-bold">Shipper đang trên đường tới</span>
+                                @elseif($status === 'processing')
+                                    <span class="text-amber-700 font-bold">Đang đóng gói nông sản</span>
                                 @else
                                     <span>Nông trại thu hoạch & giao đúng hẹn</span>
                                 @endif
@@ -427,60 +490,64 @@
 
     </main>
 
-    <!-- MODAL QUẢN LÝ / CHỌN ĐỊA CHỈ NHẬN HÀNG -->
-    @if($showAddressModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-2xs" 
+    <!-- MODAL CHỌN ĐỊA CHỈ NHẬN HÀNG -->
+    @if ($showAddressModal)
+        <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 transition-opacity"
              wire:click.self="$set('showAddressModal', false)">
-            <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 space-y-4 shadow-2xl border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
+            <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-gray-100 space-y-5 max-h-[90vh] overflow-y-auto">
+                
                 <div class="flex items-center justify-between pb-3 border-b border-gray-100">
-                    <h3 class="text-base font-extrabold text-gray-900 flex items-center gap-2">
-                        <i class="fa-solid fa-map-location-dot text-brand-600"></i> Chọn Địa Chỉ Nhận Rau VIP
-                    </h3>
-                    <button type="button" 
-                            wire:click="$set('showAddressModal', false)" 
-                            class="text-gray-400 hover:text-gray-600 p-1">
-                        <i class="fa-solid fa-xmark text-lg"></i>
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-gray-900">Chọn Địa Chỉ Nhận Hàng</h3>
+                        <p class="text-xs text-gray-400 mt-0.5">Chọn một địa chỉ để giao nông sản hỏa tốc</p>
+                    </div>
+                    <button type="button" wire:click="$set('showAddressModal', false)" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center justify-center transition-colors">
+                        <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
 
-                <div class="space-y-2.5 max-h-72 overflow-y-auto pr-1">
-                    @forelse($addresses as $addr)
-                        @php
-                            $isChosen = $addr['id'] === $selectedAddressId;
-                        @endphp
-                        <div wire:click="selectAddress({{ $addr['id'] }})"
-                             class="p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-start justify-between gap-3 {{ $isChosen ? 'border-brand-600 bg-brand-50/40 shadow-xs' : 'border-gray-200 hover:border-gray-300 bg-white' }}">
-                            <div class="space-y-1 min-w-0">
-                                <div class="flex items-center gap-2 flex-wrap">
-                                    <span class="font-bold text-xs sm:text-sm text-gray-900">{{ $addr['name'] }}</span>
-                                    <span class="font-mono text-xs text-gray-500">{{ $addr['phone'] }}</span>
-                                    @if($addr['is_default'])
-                                        <span class="text-[9px] font-bold text-brand-700 bg-brand-100 px-2 py-0.5 rounded-full">Mặc định</span>
+                <!-- Danh sách địa chỉ -->
+                <div class="space-y-3">
+                    @forelse ($addresses as $addr)
+                        <div wire:click="selectAddress({{ $addr['id'] }})" 
+                             class="p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 {{ $selectedAddressId == $addr['id'] ? 'border-brand-500 bg-brand-50/20' : 'border-gray-200 bg-white hover:border-gray-300' }}">
+                            <input type="radio" name="modal_address_radio" {{ $selectedAddressId == $addr['id'] ? 'checked' : '' }} class="mt-1 text-brand-600 focus:ring-brand-500">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center justify-between gap-2 flex-wrap">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="text-sm font-bold text-gray-900">{{ $addr['name'] }}</span>
+                                        <span class="text-xs text-gray-500 font-mono">{{ $addr['phone'] }}</span>
+                                        @if ($addr['is_default'])
+                                            <span class="text-[10px] font-bold text-brand-700 bg-brand-100 px-2 py-0.5 rounded-full border border-brand-200">Mặc định</span>
+                                        @endif
+                                    </div>
+                                    @if(isset($addr['distance']) && $addr['distance'] > 0)
+                                        @if($addr['is_exceeded'] ?? false)
+                                            <span class="text-[10px] font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full border border-red-200">
+                                                {{ $addr['distance'] }} km (Vượt bán kính)
+                                            </span>
+                                        @else
+                                            <span class="text-[10px] font-mono font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full border border-gray-200">
+                                                {{ $addr['distance'] }} km
+                                            </span>
+                                        @endif
                                     @endif
                                 </div>
-                                <p class="text-xs text-gray-600 leading-relaxed">{{ $addr['address'] }}</p>
-                            </div>
-
-                            <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 {{ $isChosen ? 'border-brand-600 bg-brand-600 text-white' : 'border-gray-300' }}">
-                                @if($isChosen)
-                                    <i class="fa-solid fa-check text-[10px]"></i>
-                                @endif
+                                <p class="text-xs text-gray-600 mt-1 leading-relaxed">
+                                    {{ $addr['address'] }}
+                                </p>
                             </div>
                         </div>
                     @empty
-                        <p class="text-xs text-gray-400 text-center py-6">Chưa có địa chỉ nào được lưu.</p>
+                        <p class="text-xs text-gray-500 text-center py-4">Bạn chưa lưu địa chỉ nào trong sổ địa chỉ.</p>
                     @endforelse
                 </div>
 
+                <!-- Footer Modal -->
                 <div class="pt-3 border-t border-gray-100 flex items-center justify-between gap-3">
-                    <a href="{{ route('customer.profile') }}" target="_blank" class="text-xs font-semibold text-gray-500 hover:text-brand-600 flex items-center gap-1">
-                        <i class="fa-solid fa-pen-to-square"></i> Thêm địa chỉ mới trong hồ sơ
+                    <a href="{{ route('customer.profile', ['tab' => 'addresses']) }}" target="_blank" class="text-xs font-semibold text-gray-500 hover:text-brand-600 flex items-center gap-1">
+                        <i class="fa-solid fa-pen-to-square"></i> Quản lý trong hồ sơ
                     </a>
-                    <button type="button" 
-                            wire:click="$set('showAddressModal', false)" 
-                            class="bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-xs cursor-pointer">
-                        Đóng
-                    </button>
                 </div>
             </div>
         </div>

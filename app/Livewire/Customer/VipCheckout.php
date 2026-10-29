@@ -5,6 +5,8 @@ namespace App\Livewire\Customer;
 use Livewire\Component;
 use Livewire\Attributes\Title;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\SystemSetting;
@@ -24,15 +26,17 @@ class VipCheckout extends Component
     public int $totalDeliveries = 8;
     public float $totalWeightMonthly = 28.0;
     public bool $isEnabled = true;
-    public string $hotline = '0987.654.321';
     public ?int $pendingSubscriptionId = null;
+
+    public bool $showAddressModal = false;
+    public int $selectedAddressId = 0;
 
     public function mount()
     {
         // 1. Tải toàn bộ cấu hình Gói VIP từ Database
         $this->loadVipSettings();
 
-        // 2. Nếu khách đã thanh toán và có gói VIP active -> Tự động chuyển thẳng sang trang Thiết Lập Lịch
+        // 2. Nếu khách đã thanh toán và có gói VIP active -> Kiểm tra tiến độ đợt giao
         if (Auth::check()) {
             $activeSub = Subscription::where('user_id', Auth::id())
                 ->where('status', 'active')
@@ -40,7 +44,20 @@ class VipCheckout extends Component
                 ->first();
 
             if ($activeSub) {
-                return $this->redirect(route('customer.vip.setup'), navigate: true);
+                $deliveredCount = $activeSub->deliverySchedules()->where('status', 'delivered')->count();
+                if ($deliveredCount >= 8) {
+                    // Hợp đồng cũ đã hoàn thành đủ 8 đợt -> Tự động chuyển completed để khách mua gói mới cho tháng tiếp theo
+                    $activeSub->update(['status' => 'completed']);
+                } else {
+                    return $this->redirect(route('customer.vip.setup'), navigate: true);
+                }
+            }
+
+            // Chọn địa chỉ nhận hàng mặc định
+            $defaultAddr = Address::where('user_id', Auth::id())->where('is_default', true)->first()
+                ?? Address::where('user_id', Auth::id())->first();
+            if ($defaultAddr) {
+                $this->selectedAddressId = $defaultAddr->id;
             }
         }
     }
@@ -64,7 +81,32 @@ class VipCheckout extends Component
 
         $user = Auth::user();
 
-        // 3. KIỂM TRA ĐƠN HÀNG CŨ: NẾU CÒN HẠN THÌ DÙNG LẠI QR CŨ, HẾT HẠN THÌ TẠO MỚI
+        // 3. Lấy thông tin địa chỉ giao hàng & kiểm tra bán kính giao hàng TRƯỚC TIÊN
+        $address = null;
+        if ($this->selectedAddressId) {
+            $address = Address::where('user_id', $user->id)->find($this->selectedAddressId);
+        }
+        if (!$address) {
+            $address = Address::where('user_id', $user->id)->where('is_default', true)->first()
+                ?? Address::where('user_id', $user->id)->first();
+        }
+
+        $maxDistance = $this->getMaxShippingDistance();
+        if ($address) {
+            $distance = $this->getShippingDistance($address->latitude ?? null, $address->longitude ?? null);
+            if ($distance > $maxDistance) {
+                $this->dispatch('show-toast', type: 'error', message: "Địa chỉ nhận hàng ({$distance} km) vượt quá bán kính giao hàng tối đa ({$maxDistance} km) của nông trại! Vui lòng chọn địa chỉ gần hơn.");
+                return;
+            }
+        }
+
+        $recipientName = $address?->recipient_name ?? $user->name;
+        $recipientPhone = $address?->recipient_phone ?? ($user->phone ?? '0900000000');
+        $shippingAddress = $address 
+            ? $address->address_detail . ', ' . $address->ward . ', ' . $address->district . ', ' . $address->province
+            : 'Đất Lành Farm (Chờ khách cập nhật khi thiết lập lịch)';
+
+        // 4. KIỂM TRA ĐƠN HÀNG CŨ: NẾU CÒN HẠN THÌ DÙNG LẠI QR CŨ, HẾT HẠN THÌ TẠO MỚI
         $existingOrder = Order::where('user_id', $user->id)
             ->where('order_type', 'subscription')
             ->where('status', 'pending')
@@ -86,6 +128,9 @@ class VipCheckout extends Component
                     'cancelled_at'  => now(),
                     'cancelled_by'  => 'system',
                 ]);
+                Payment::where('order_id', $existingOrder->id)
+                    ->where('status', 'pending')
+                    ->update(['status' => 'failed']);
                 $existingOrder = null;
             }
         }
@@ -123,19 +168,12 @@ class VipCheckout extends Component
                 'cancelled_at'  => now(),
                 'cancelled_by'  => 'system',
             ]);
+            Payment::where('order_id', $existingOrder->id)
+                ->where('status', 'pending')
+                ->update(['status' => 'failed']);
         }
 
-        // 4. Lấy thông tin địa chỉ giao hàng
-        $address = Address::where('user_id', $user->id)->where('is_default', true)->first()
-            ?? Address::where('user_id', $user->id)->first();
-
-        $recipientName = $address->recipient_name;
-        $recipientPhone = $address->recipient_phone ;
-        $shippingAddress = $address 
-            ? $address->address_detail . ', ' . $address->ward . ', ' . $address->district . ', ' . $address->province
-            : 'Đất Lành Farm (Chờ khách cập nhật khi thiết lập lịch)';
-
-        // 5. Mã PayOS chuẩn (dưới 5 ký tự số nguyên)
+        // 5. Mã PayOS chuẩn (chuỗi số nguyên)
         $payosOrderCode = intval(time() . rand(100, 999));
 
         DB::beginTransaction();
@@ -151,7 +189,6 @@ class VipCheckout extends Component
                 'subtotal'          => $this->price,
                 'shipping_fee'      => 0,
                 'total'             => $this->price,
-
                 'status'            => 'pending',
                 'note'              => 'Đăng ký ' . $this->packageName,
             ]);
@@ -166,12 +203,6 @@ class VipCheckout extends Component
             ]);
 
             // 6. Kết nối PayOS tạo link thanh toán mới
-            $clientId = config('services.payos.client_id');
-            $apiKey = config('services.payos.api_key');
-            $checksumKey = config('services.payos.checksum_key');
-
-            $payOS = new PayOS($clientId, $apiKey, $checksumKey);
-
             $payosData = [
                 "orderCode"   => $payosOrderCode,
                 "amount"      => $this->price,
@@ -212,13 +243,107 @@ class VipCheckout extends Component
         $this->deliveryMaxWeight = (float) ($settings['vip_delivery_max_weight'] ?? 3.5);
         $this->totalDeliveries = 8; // Cố định luôn là 8 đợt, không lưu trong CSDL
         $this->isEnabled = filter_var($settings['vip_subscription_enabled'] ?? 'true', FILTER_VALIDATE_BOOLEAN);
-        $this->hotline = $settings['hotline'] ?? '0987.654.321';
         $this->totalWeightMonthly = round($this->deliveryMaxWeight * 8, 1);
+    }
+
+    private function getFarmCoordinates(): array
+    {
+        return Cache::remember('system_farm_coordinates', 86400, function () {
+            $settings = SystemSetting::whereIn('key', [
+                'farm_latitude', 'farm_longitude'
+            ])->pluck('value', 'key')->toArray();
+
+            return [
+                'lat' => (float) ($settings['farm_latitude'] ?? 10.7769),
+                'lng' => (float) ($settings['farm_longitude'] ?? 106.7009),
+            ];
+        });
+    }
+
+    private function getMaxShippingDistance(): float
+    {
+        return Cache::remember('system_max_shipping_distance', 86400, function () {
+            $val = SystemSetting::where('key', 'max_shipping_distance_km')->value('value');
+            return (float) ($val ?? 25.0);
+        });
+    }
+
+    private function getShippingDistance(?float $destLat, ?float $destLng): float
+    {
+        if (!$destLat || !$destLng) {
+            return 0.0;
+        }
+
+        $cacheKey = 'osrm_dist_' . md5("{$destLat}_{$destLng}");
+        return Cache::remember($cacheKey, 86400, function () use ($destLat, $destLng) {
+            $farm = $this->getFarmCoordinates();
+            try {
+                $coordinates = "{$farm['lng']},{$farm['lat']};{$destLng},{$destLat}";
+                $url = "https://router.project-osrm.org/route/v1/driving/{$coordinates}?overview=false";
+
+                $response = Http::timeout(1.5)->get($url);
+                if ($response->successful() && isset($response->json()['routes'][0]['distance'])) {
+                    return round($response->json()['routes'][0]['distance'] / 1000, 1);
+                }
+            } catch (\Exception $e) {
+                Log::warning('Lỗi kết nối OSRM API tính khoảng cách VIP Checkout: ' . $e->getMessage());
+            }
+
+            return 0.0;
+        });
+    }
+
+    public function selectAddress(int $addressId): void
+    {
+        $address = Address::where('user_id', Auth::id())->find($addressId);
+        if ($address) {
+            $this->selectedAddressId = $address->id;
+            $this->showAddressModal = false;
+            $this->dispatch('show-toast', type: 'success', message: 'Đã đổi địa chỉ nhận hàng dự kiến.');
+        }
     }
 
     public function render()
     {
         $this->loadVipSettings();
+
+        $user = Auth::user();
+        $address = null;
+        $distance = 0.0;
+        $isDistanceExceeded = false;
+        $maxDistance = $this->getMaxShippingDistance();
+        $addressesList = [];
+
+        if ($user) {
+            $rawAddresses = Address::where('user_id', $user->id)->get();
+            $addressesList = $rawAddresses->map(function ($addr) use ($maxDistance) {
+                $dist = $this->getShippingDistance($addr->latitude ?? null, $addr->longitude ?? null);
+                return [
+                    'id'          => $addr->id,
+                    'name'        => $addr->recipient_name,
+                    'phone'       => $addr->recipient_phone,
+                    'address'     => trim(($addr->address_detail ?? '') . ', ' . $addr->ward . ', ' . $addr->district . ', ' . $addr->province, ', '),
+                    'is_default'  => (bool) $addr->is_default,
+                    'distance'    => $dist,
+                    'is_exceeded' => $dist > $maxDistance,
+                ];
+            })->toArray();
+
+            if ($this->selectedAddressId) {
+                $address = $rawAddresses->firstWhere('id', $this->selectedAddressId);
+            }
+            if (!$address) {
+                $address = $rawAddresses->firstWhere('is_default', true) ?? $rawAddresses->first();
+                if ($address) {
+                    $this->selectedAddressId = $address->id;
+                }
+            }
+
+            if ($address) {
+                $distance = $this->getShippingDistance($address->latitude ?? null, $address->longitude ?? null);
+                $isDistanceExceeded = $distance > $maxDistance;
+            }
+        }
 
         return view('livewire.customer.vip-checkout', [
             'packageName'           => $this->packageName,
@@ -227,8 +352,14 @@ class VipCheckout extends Component
             'totalDeliveries'       => $this->totalDeliveries,
             'totalWeightMonthly'    => $this->totalWeightMonthly,
             'isEnabled'             => $this->isEnabled,
-            'hotline'               => $this->hotline,
             'pendingSubscriptionId' => $this->pendingSubscriptionId,
+            'address'               => $address,
+            'distance'              => $distance,
+            'maxDistance'           => $maxDistance,
+            'isDistanceExceeded'    => $isDistanceExceeded,
+            'addresses'             => $addressesList,
+            'showAddressModal'      => $this->showAddressModal,
+            'selectedAddressId'     => $this->selectedAddressId,
         ])->layout('layouts.customer.app');
     }
 }

@@ -83,12 +83,12 @@ class CheckoutPage extends Component
     {
         return Cache::remember('system_farm_coordinates', 86400, function () {
             $settings = SystemSetting::whereIn('key', [
-                'farm_latitude', 'farm_longtitude'
+                'farm_latitude', 'farm_longitude'
             ])->pluck('value', 'key')->toArray();
 
             return [
                 'lat' => (float) ($settings['farm_latitude'] ?? 10.7769),
-                'lng' => (float) ($settings['farm_longtitude'] ?? 106.7009),
+                'lng' => (float) ($settings['farm_longitude'] ?? 106.7009),
             ];
         });
     }
@@ -104,29 +104,32 @@ class CheckoutPage extends Component
         });
     }
 
-    // tính khoảng cách bằng OSRM API
+    // tính khoảng cách bằng OSRM API (được Cache 24h để không gây delay khi click)
     private function getShippingDistance(?float $destLat, ?float $destLng): float
     {
         if (!$destLat || !$destLng) {
-            return 0;
+            return 0.0;
         }
 
-        $farm = $this->getFarmCoordinates();
-        $farmLat = $farm['lat'];
-        $farmLng = $farm['lng'];
+        $cacheKey = 'osrm_dist_' . md5("{$destLat}_{$destLng}");
+        return Cache::remember($cacheKey, 86400, function () use ($destLat, $destLng) {
+            $farm = $this->getFarmCoordinates();
+            $farmLat = $farm['lat'];
+            $farmLng = $farm['lng'];
 
-        try {
-            $coordinates = "{$farmLng},{$farmLat};{$destLng},{$destLat}";
-            $url = "https://router.project-osrm.org/route/v1/driving/{$coordinates}?overview=false";
+            try {
+                $coordinates = "{$farmLng},{$farmLat};{$destLng},{$destLat}";
+                $url = "https://router.project-osrm.org/route/v1/driving/{$coordinates}?overview=false";
 
-            $response = Http::timeout(3)->get($url);
-            if ($response->successful() && isset($response->json()['routes'][0]['distance'])) {
-                return round($response->json()['routes'][0]['distance'] / 1000, 1);
+                $response = Http::timeout(1.5)->get($url);
+                if ($response->successful() && isset($response->json()['routes'][0]['distance'])) {
+                    return round($response->json()['routes'][0]['distance'] / 1000, 1);
+                }
+            } catch (\Exception $e) {
+                Log::warning('Lỗi kết nối OSRM API: ' . $e->getMessage());
             }
-        } catch (\Exception $e) {
-            Log::warning('Lỗi kết nối OSRM API: ' . $e->getMessage());
-        }
-        return (float) 2.0;
+            return (float) 2.0;
+        });
     }
 
     // lấy sản phẩm trong giỏ hàng
