@@ -228,10 +228,10 @@ class CheckoutPage extends Component
                     throw new \Exception("Sản phẩm {$item->product->name} hiện không khả dụng.");
                 }
 
-                // 2. Kiểm tra tồn kho có đủ không
-                $availableStock = (int) ($product->total_stock ?? 0);
-                if ($availableStock < $item->quantity) {
-                    throw new \Exception("Sản phẩm {$item->product->name} không đủ số lượng (Chỉ còn {$availableStock}).");
+                // 2. Kiểm tra tồn kho có đủ số đơn vị mua không
+                $availableUnits = (float) $product->total_stock_units;
+                if ($availableUnits < (float) $item->quantity) {
+                    throw new \Exception("Sản phẩm {$item->product->name} không đủ số lượng (Chỉ còn {$availableUnits} {$product->unit}).");
                 }
 
             }
@@ -312,7 +312,8 @@ class CheckoutPage extends Component
 
             foreach ($items as $item) {
                 $price = $item->product->sale_price ?? $item->product->price;
-                $remainingQtyNeeded = (int) $item->quantity;
+                $unitWeight = (float) ($item->product->weight_kg > 0 ? $item->product->weight_kg : 1.0);
+                $remainingKgNeeded = round((float) $item->quantity * $unitWeight, 2);
 
                 // Lấy các lô hàng còn hạn và còn hàng, sắp xếp hạn sử dụng gần nhất lên đầu (FEFO)
                 $availableBatches = $item->product->batches()
@@ -324,9 +325,10 @@ class CheckoutPage extends Component
                     ->get();
 
                 foreach ($availableBatches as $batch) {
-                    if ($remainingQtyNeeded <= 0) break;
+                    if ($remainingKgNeeded <= 0) break;
 
-                    $takeQty = min($batch->current_quantity, $remainingQtyNeeded);
+                    $takeKg = min((float) $batch->current_quantity, $remainingKgNeeded);
+                    $takeUnits = $unitWeight > 0 ? round($takeKg / $unitWeight, 2) : $takeKg;
 
                     OrderItem::create([
                         'order_id'     => $order->id,
@@ -334,18 +336,18 @@ class CheckoutPage extends Component
                         'batch_id'     => $batch->id,
                         'product_name' => $item->product->name,
                         'price'        => $price,
-                        'quantity'     => $takeQty,
-                        'subtotal'     => $price * $takeQty,
+                        'quantity'     => $takeUnits,
+                        'subtotal'     => $price * $takeUnits,
                     ]);
 
-                    // Trừ số lượng tồn kho của lô này ngay lập tức khi tạo đơn
-                    $batch->decrement('current_quantity', $takeQty);
+                    // Trừ số kg tồn kho của lô này ngay lập tức khi tạo đơn (VD: mua 3 hộp 500g -> trừ đúng 1.5kg)
+                    $batch->decrement('current_quantity', $takeKg);
 
-                    $remainingQtyNeeded -= $takeQty;
+                    $remainingKgNeeded = round($remainingKgNeeded - $takeKg, 2);
                 }
 
                 // Dự phòng nếu các lô không đủ số lượng mà vẫn còn thiếu
-                if ($remainingQtyNeeded > 0) {
+                if ($remainingKgNeeded > 0) {
                     throw new \Exception(
                         "Lô hàng của sản phẩm {$item->product->name} không đủ số lượng. Vui lòng tải lại trang và thử lại."
                     );

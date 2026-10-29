@@ -15,15 +15,10 @@ class CartPage extends Component
     public array $selectedItems = []; // Danh sách cart_item_id được tick chọn
     public bool $selectAll = true;
 
-    private function getAvailableStock(int $productId): int
+    private function getAvailableStock(int $productId): float
     {
-        $product = Product::withSum(['batches as total_stock' => function ($q) {
-            $q->where('product_batches.status', 'active')
-            ->where('product_batches.current_quantity', '>', 0)
-            ->whereDate('product_batches.expiry_date', '>=', now());
-        }], 'current_quantity')->find($productId);
-
-        return (int) ($product?->total_stock ?? 0);
+        $product = Product::find($productId);
+        return (float) ($product?->total_stock_units ?? 0);
     }
 
     public function mount()

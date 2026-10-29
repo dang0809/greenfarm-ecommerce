@@ -24,7 +24,7 @@ return new class extends Migration
           ->restrictOnDelete();                                                           // FK FEFO
     $table->string('product_name', 255);
     $table->decimal('price', 12, 2)->default(0);
-    $table->integer('quantity')->default(1);
+    $table->decimal('quantity', 10, 2)->default(1);
     $table->decimal('subtotal', 12, 2)->default(0);
     $table->timestamps();
 });

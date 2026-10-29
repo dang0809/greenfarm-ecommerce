@@ -17,7 +17,7 @@ return new class extends Migration
           ->constrained('product_batches')
           ->cascadeOnDelete();
     $table->string('type', 50)->index();                                      // import|export_sale|export_spoilage
-    $table->integer('quantity');
+    $table->decimal('quantity', 10, 2);
     $table->text('note')->nullable();
     $table->foreignId('created_by')
           ->constrained('users')

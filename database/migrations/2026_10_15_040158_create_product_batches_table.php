@@ -20,9 +20,9 @@ return new class extends Migration
     $table->string('status', 50)->default('active')->index();                 // active|suspended|recalled
     $table->date('manufactured_date')->nullable()->index();
     $table->date('expiry_date')->index();                                     // INDEX FEFO — cực quan trọng
-    $table->integer('initial_quantity')->default(0);
-    $table->integer('current_quantity')->default(0)->index();
-    $table->integer('spoiled_quantity')->default(0);
+    $table->decimal('initial_quantity', 10, 2)->default(0);
+    $table->decimal('current_quantity', 10, 2)->default(0)->index();
+    $table->decimal('spoiled_quantity', 10, 2)->default(0);
     $table->integer('discount_percent')->default(0);
     $table->timestamps();
 });
