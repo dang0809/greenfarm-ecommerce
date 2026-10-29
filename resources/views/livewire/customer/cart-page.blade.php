@@ -47,6 +47,7 @@
 
                                 $unitPrice = $product->sale_price ?? $product->price;
                                 $itemSubtotal = $unitPrice * $item->quantity;
+                                $availableStock = (int) ($product->batches?->sum('current_quantity') ?? 0);
                             @endphp
 
                             <div class="bg-white p-4 sm:p-5 rounded-3xl border border-gray-100 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -90,22 +91,21 @@
                                     <div class="flex items-center border border-gray-200 rounded-xl bg-gray-50/50 overflow-hidden h-9 w-28">
                                         <button type="button" 
                                                 wire:click="decrementQuantity({{ $item->id }})" 
-                                                @if($item->quantity <= 1) disabled @endif
-                                                class="w-8 h-full text-gray-500 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center cursor-pointer shrink-0">
+                                                @disabled($item->quantity <= 1)
+                                                class="w-8 h-full text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center justify-center cursor-pointer shrink-0">
                                             <i class="fa-solid fa-minus text-[10px]"></i>
                                         </button>
                                         
                                         <input type="number" 
-                                               wire:key="cart-qty-{{ $item->id }}-{{ $item->quantity }}"
                                                value="{{ $item->quantity }}" 
-                                               wire:change="updateQuantity({{ $item->id }}, $event.target.value)"
-                                               min="1"
-                                               onchange="if(this.value < 1) this.value = 1;" 
-                                               class="w-full h-full text-center font-bold text-gray-900 bg-transparent outline-none text-xs">
+                                               readonly
+                                               class="w-full h-full text-center font-bold text-gray-900 bg-transparent outline-none text-xs select-none cursor-default [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
                                         
                                         <button type="button" 
                                                 wire:click="incrementQuantity({{ $item->id }})" 
-                                                class="w-8 h-full text-gray-500 hover:bg-gray-100 transition-colors flex items-center justify-center cursor-pointer">
+                                                @disabled($item->quantity >= $availableStock)
+                                                class="w-8 h-full text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center justify-center cursor-pointer shrink-0"
+                                                title="{{ $item->quantity >= $availableStock ? 'Đã đạt số lượng tối đa trong kho (' . $availableStock . ')' : 'Tăng số lượng' }}">
                                             <i class="fa-solid fa-plus text-[10px]"></i>
                                         </button>
                                     </div>

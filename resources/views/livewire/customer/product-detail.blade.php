@@ -120,7 +120,10 @@
                 <div class="flex items-center gap-5">
                     <span class="text-sm font-bold text-gray-800">Số lượng:</span>
                     <div class="flex items-center border border-gray-200 rounded-2xl bg-white shadow-sm overflow-hidden h-11 w-32">
-                        <button type="button" wire:click="decrementQuantity" class="w-10 h-full text-gray-500 hover:bg-gray-50 hover:text-brand-600 transition-colors">
+                        <button type="button" 
+                                wire:click="decrementQuantity" 
+                                @disabled($quantity <= 1 || $totalStock <= 0)
+                                class="w-10 h-full text-gray-500 hover:bg-gray-50 hover:text-brand-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-500 cursor-pointer">
                             <i class="fa-solid fa-minus text-xs"></i>
                         </button>
                         
@@ -131,7 +134,10 @@
                                readonly
                                class="w-full h-full text-center font-bold text-gray-900 bg-transparent outline-none text-sm select-none cursor-default [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
                         
-                        <button type="button" wire:click="incrementQuantity" class="w-10 h-full text-gray-500 hover:bg-gray-50 hover:text-brand-600 transition-colors">
+                        <button type="button" 
+                                wire:click="incrementQuantity" 
+                                @disabled($quantity >= $totalStock || $totalStock <= 0)
+                                class="w-10 h-full text-gray-500 hover:bg-gray-50 hover:text-brand-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-500 cursor-pointer">
                             <i class="fa-solid fa-plus text-xs"></i>
                         </button>
                     </div>
