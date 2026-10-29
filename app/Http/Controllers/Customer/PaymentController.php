@@ -68,30 +68,6 @@ class PaymentController extends Controller
         }
 
         if ($order->order_type === 'subscription') {
-            $existingSub = \App\Models\Subscription::where('user_id', $order->user_id)
-                ->where('status', 'active')
-                ->whereNull('delivery_days')
-                ->latest()
-                ->first();
-
-            if (!$existingSub) {
-                \App\Models\Subscription::create([
-                    'user_id'           => $order->user_id,
-                    'recipient_name'    => $order->recipient_name,
-                    'recipient_phone'   => $order->recipient_phone,
-                    'recipient_address' => $order->recipient_address,
-                    'delivery_days'     => null,
-                    'total_price'       => $order->total,
-
-                    'status'            => 'active',
-                ]);
-            }
-
-            $order->update([
-                'status'         => 'delivered',
-
-            ]);
-
             return redirect()->route('customer.vip.setup')
                 ->with('success', 'Thanh toán Gói Rau VIP thành công! Vui lòng chọn ngày nhận và thực đơn cho 8 đợt giao.');
         }
