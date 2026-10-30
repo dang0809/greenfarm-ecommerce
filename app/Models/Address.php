@@ -15,6 +15,11 @@ class Address extends Model
         'province', 'district', 'ward', 'address_detail' , 'is_default', 'latitude', 'longitude',
     ];
 
+    public function getFullAddressAttribute(): string
+    {
+        return trim("{$this->address_detail}, {$this->ward}, {$this->district}, {$this->province}", ', ');
+    }
+
     protected function casts(): array
     {
         return ['is_default' => 'boolean'];

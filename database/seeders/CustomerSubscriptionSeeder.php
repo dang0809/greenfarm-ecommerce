@@ -24,6 +24,8 @@ class CustomerSubscriptionSeeder extends Seeder
                 'district'          => 'Quận 1',
                 'ward'              => 'Phường Bến Nghé',
                 'address_detail'    => 'Số 123 Đường Nguyễn Huệ, Căn hộ 4B',
+                'latitude'          => 10.7743,
+                'longitude'         => 106.7032,
                 'is_default'        => true,
                 'created_at'        => now(),
                 'updated_at'        => now(),

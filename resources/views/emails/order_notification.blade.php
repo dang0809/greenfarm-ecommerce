@@ -113,7 +113,7 @@
                                                 {{ $item->product_name }}
                                             </td>
                                             <td align="center" style="padding: 10px 8px; color: #4b5563;">
-                                                {{ $item->quantity }}
+                                                {{ $item->quantity + 0 }}
                                             </td>
                                             <td align="right" style="padding: 10px 8px; color: #4b5563;">
                                                 {{ number_format($item->price, 0, ',', '.') }}đ

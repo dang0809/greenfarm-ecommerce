@@ -15,52 +15,13 @@
                 <div class="lg:col-span-7 space-y-6">
                     
                     <!-- 1. KHỐI ĐỊA CHỈ NHẬN HÀNG -->
-                    <div class="bg-white p-6 sm:p-7 rounded-3xl border border-gray-100 shadow-sm space-y-4">
-                        <div class="flex items-center justify-between pb-3 border-b border-gray-100">
-                            <h2 class="font-bold text-gray-900 text-base flex items-center gap-2">
-                                <i class="fa-solid fa-location-dot text-brand-600"></i> Địa Chỉ Nhận Hàng
-                            </h2>
-                            <button type="button" 
-                                    wire:click="$set('showAddressModal', true)"
-                                    class="text-xs font-bold text-brand-700 hover:text-brand-800 bg-brand-50 hover:bg-brand-100 border border-brand-200 px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shadow-xs cursor-pointer">
-                                <i class="fa-solid fa-repeat text-[10px]"></i>
-                                <span>{{ $address ? 'Thay đổi' : 'Chọn địa chỉ' }}</span>
-                            </button>
-                        </div>
-
-                        <!-- LỰA CHỌN 1: Nếu ĐÃ chọn địa chỉ -->
-                        @if ($address)
-                            <div class="p-4 sm:p-5 rounded-2xl border border-gray-200 bg-gray-50/60">
-                                <div class="flex items-center gap-2.5 flex-wrap">
-                                    <span class="text-sm sm:text-base font-bold text-gray-900">
-                                        {{ $address->recipient_name  }}
-                                    </span>
-                                    <span class="text-xs sm:text-sm text-gray-600 font-mono">
-                                        {{ $address->recipient_phone  }}
-                                    </span>
-                                    @if ($address->is_default)
-                                        <span class="text-[10px] font-bold text-brand-700 bg-brand-100 px-2.5 py-0.5 rounded-full border border-brand-200">Mặc định</span>
-                                    @endif
-                                </div>
-                                <p class="text-xs sm:text-sm text-gray-600 mt-2 leading-relaxed">
-                                    {{ $address->address_detail }}, {{ $address->ward }}, {{ $address->district }}, {{ $address->province }}
-                                </p>
-                                <div class="mt-3 flex items-center gap-2 text-xs text-gray-400">
-                                    <i class="fa-solid fa-route text-brand-600"></i>
-                                    <span>Khoảng cách đến nông trại/hub: <b class="text-gray-700 font-mono">{{ $distance }} km</b></span>
-                                </div>
-                            </div>
-                        <!-- LỰA CHỌN 2: Nếu CHƯA chọn địa chỉ -->
-                        @else
-                            <div class="p-4 rounded-2xl border border-dashed border-amber-300 bg-amber-50 text-amber-800 text-xs flex items-center justify-between">
-                                <span class="font-medium flex items-center gap-2">
-                                    <i class="fa-solid fa-triangle-exclamation text-amber-600 text-sm"></i>
-                                    <span>Bạn chưa chọn địa chỉ nhận hàng. Vui lòng chọn địa chỉ để tính phí hỏa tốc!</span>
-                                </span>
-                            </div>
-                        @endif
-
-                        <!-- Ghi chú cho shipper -->
+                    <x-customer.address-card 
+                        :address="$address" 
+                        :distance="$distance" 
+                        :max-distance="$maxDistance" 
+                        :is-exceeded="$isDistanceExceeded"
+                        :is-unknown="$isDistanceUnknown">
+                        <!-- Ghi chú cho nông trại -->
                         <div>
                             <label class="block text-xs font-bold text-gray-700 mb-1.5">Ghi chú cho nông trại (tùy chọn)</label>
                             <input type="text" 
@@ -68,7 +29,7 @@
                                    placeholder="Ví dụ: Giao trước 11h trưa, gọi chuông cửa tầng 2..." 
                                    class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:bg-white focus:border-brand-500 transition-all">
                         </div>
-                    </div>
+                    </x-customer.address-card>
 
                     <!-- 2. VẬN CHUYỂN -->
                     <div class="bg-white p-6 sm:p-7 rounded-3xl border border-gray-100 shadow-sm space-y-4">
@@ -199,7 +160,7 @@
                                         <div class="min-w-0 flex-1">
                                             <p class="text-xs font-bold text-gray-900 truncate">{{ $product->name }}</p>
                                             <p class="text-[11px] text-gray-400">
-                                                {{ number_format($unitPrice) }}đ × {{ $item->quantity }}
+                                                {{ number_format($unitPrice) }}đ × {{ $item->quantity + 0 }}
                                             </p>
                                         </div>
                                     </div>
@@ -297,11 +258,14 @@
                         <!-- Nút Xác Nhận Đặt Hàng PayOS Desktop -->
                         <button type="submit" 
                                 wire:loading.attr="disabled"
-                                @disabled(!$address || $isDistanceExceeded)
+                                @disabled(!$address || $isDistanceExceeded || $isDistanceUnknown)
                                 class="w-full bg-brand-600 hover:bg-brand-700 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed text-white py-3.5 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-98 cursor-pointer">
                             @if (!$address)
                                 <i class="fa-solid fa-location-dot text-xs"></i>
                                 <span>Vui lòng chọn địa chỉ nhận hàng</span>
+                            @elseif ($isDistanceUnknown)
+                                <i class="fa-solid fa-triangle-exclamation text-xs text-amber-500"></i>
+                                <span>Địa chỉ chưa xác định được vị trí</span>
                             @elseif ($isDistanceExceeded)
                                 <i class="fa-solid fa-ban text-xs"></i>
                                 <span>Vượt Bán Kính Giao Hàng (Tối đa {{ $maxDistance }}km)</span>
@@ -330,53 +294,11 @@
     </main>
 
     <!-- MODAL CHỌN ĐỊA CHỈ NHẬN HÀNG -->
-    @if ($showAddressModal)
-        <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 transition-opacity">
-            <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-gray-100 space-y-5 max-h-[90vh] overflow-y-auto">
-                
-                <div class="flex items-center justify-between pb-3 border-b border-gray-100">
-                    <div>
-                        <h3 class="text-base sm:text-lg font-bold text-gray-900">Chọn Địa Chỉ Nhận Hàng</h3>
-                        <p class="text-xs text-gray-400 mt-0.5">Chọn một địa chỉ để giao nông sản hỏa tốc</p>
-                    </div>
-                    <button type="button" wire:click="$set('showAddressModal', false)" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center justify-center transition-colors">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                </div>
-
-                <!-- Danh sách địa chỉ -->
-                <div class="space-y-3">
-                    @forelse ($addresses as $addr)
-                        <div wire:click="selectAddress({{ $addr->id }})" 
-                             class="p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 {{ $selectedAddressId == $addr->id ? 'border-brand-500 bg-brand-50/20' : 'border-gray-200 bg-white hover:border-gray-300' }}">
-                            <input type="radio" name="modal_address_radio" {{ $selectedAddressId == $addr->id ? 'checked' : '' }} class="mt-1 text-brand-600 focus:ring-brand-500">
-                            <div class="min-w-0 flex-1">
-                                <div class="flex items-center gap-2 flex-wrap">
-                                    <span class="text-sm font-bold text-gray-900">{{ $addr->recipient_name  }}</span>
-                                    <span class="text-xs text-gray-500 font-mono">{{ $addr->recipient_phone  }}</span>
-                                    @if ($addr->is_default)
-                                        <span class="text-[10px] font-bold text-brand-700 bg-brand-100 px-2 py-0.5 rounded-full border border-brand-200">Mặc định</span>
-                                    @endif
-                                </div>
-                                <p class="text-xs text-gray-600 mt-1 leading-relaxed">
-                                    {{ $addr->address_detail }}, {{ $addr->ward }}, {{ $addr->district }}, {{ $addr->province }}
-                                </p>
-                            </div>
-                        </div>
-                    @empty
-                        <p class="text-xs text-gray-500 text-center py-4">Bạn chưa lưu địa chỉ nào trong sổ địa chỉ.</p>
-                    @endforelse
-                </div>
-
-                <!-- Footer Modal -->
-                <div class="pt-3 border-t border-gray-100 flex items-center justify-between gap-3">
-                    <a href="{{ route('customer.profile', ['tab' => 'addresses']) }}" target="_blank" class="text-xs font-semibold text-gray-500 hover:text-brand-600 flex items-center gap-1">
-                        <i class="fa-solid fa-pen-to-square"></i> Quản lý trong hồ sơ
-                    </a>
-                </div>
-            </div>
-        </div>
-    @endif
+    <x-customer.address-modal 
+        :show="$showAddressModal" 
+        :addresses="$addresses" 
+        :selected-id="$selectedAddressId" 
+        :max-distance="$maxDistance" />
 
     <!-- STICKY BAR ĐẶT HÀNG MOBILE (< lg) -->
     <div class="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-gray-200 p-4 shadow-xl">
@@ -390,11 +312,14 @@
             <button type="button" 
                     wire:click="placeOrder" 
                     wire:loading.attr="disabled"
-                    @disabled(!$address || $isDistanceExceeded)
+                    @disabled(!$address || $isDistanceExceeded || $isDistanceUnknown)
                     class="bg-brand-600 hover:bg-brand-700 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shadow-md active:scale-95 transition-all cursor-pointer">
                 @if (!$address)
                     <i class="fa-solid fa-location-dot text-[10px]"></i>
                     <span>Chưa chọn địa chỉ</span>
+                @elseif ($isDistanceUnknown)
+                    <i class="fa-solid fa-triangle-exclamation text-[10px] text-amber-400"></i>
+                    <span>Chưa có vị trí</span>
                 @elseif ($isDistanceExceeded)
                     <i class="fa-solid fa-ban text-[10px]"></i>
                     <span>Vượt bán kính {{ $maxDistance }}km</span>

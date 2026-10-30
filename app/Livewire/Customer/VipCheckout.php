@@ -94,6 +94,10 @@ class VipCheckout extends Component
         $maxDistance = $this->getMaxShippingDistance();
         if ($address) {
             $distance = $this->getShippingDistance($address->latitude ?? null, $address->longitude ?? null);
+            if ($distance === null) {
+                $this->dispatch('show-toast', type: 'error', message: 'Địa chỉ nhận hàng chưa xác định được vị trí trên bản đồ. Vui lòng chọn hoặc cập nhật lại địa chỉ!');
+                return;
+            }
             if ($distance > $maxDistance) {
                 $this->dispatch('show-toast', type: 'error', message: "Địa chỉ nhận hàng ({$distance} km) vượt quá bán kính giao hàng tối đa ({$maxDistance} km) của nông trại! Vui lòng chọn địa chỉ gần hơn.");
                 return;
@@ -268,10 +272,10 @@ class VipCheckout extends Component
         });
     }
 
-    private function getShippingDistance(?float $destLat, ?float $destLng): float
+    private function getShippingDistance(?float $destLat, ?float $destLng): ?float
     {
         if (!$destLat || !$destLng) {
-            return 0.0;
+            return null;
         }
 
         $cacheKey = 'osrm_dist_' . md5("{$destLat}_{$destLng}");
@@ -281,15 +285,15 @@ class VipCheckout extends Component
                 $coordinates = "{$farm['lng']},{$farm['lat']};{$destLng},{$destLat}";
                 $url = "https://router.project-osrm.org/route/v1/driving/{$coordinates}?overview=false";
 
-                $response = Http::timeout(1.5)->get($url);
+                $response = Http::timeout(2.5)->get($url);
                 if ($response->successful() && isset($response->json()['routes'][0]['distance'])) {
-                    return round($response->json()['routes'][0]['distance'] / 1000, 1);
+                    return (float) round($response->json()['routes'][0]['distance'] / 1000, 1);
                 }
             } catch (\Exception $e) {
                 Log::warning('Lỗi kết nối OSRM API tính khoảng cách VIP Checkout: ' . $e->getMessage());
             }
 
-            return 0.0;
+            return null;
         });
     }
 
@@ -309,39 +313,33 @@ class VipCheckout extends Component
 
         $user = Auth::user();
         $address = null;
-        $distance = 0.0;
+        $distance = null;
         $isDistanceExceeded = false;
+        $isDistanceUnknown = false;
         $maxDistance = $this->getMaxShippingDistance();
-        $addressesList = [];
+        $addresses = collect();
 
         if ($user) {
-            $rawAddresses = Address::where('user_id', $user->id)->get();
-            $addressesList = $rawAddresses->map(function ($addr) use ($maxDistance) {
-                $dist = $this->getShippingDistance($addr->latitude ?? null, $addr->longitude ?? null);
-                return [
-                    'id'          => $addr->id,
-                    'name'        => $addr->recipient_name,
-                    'phone'       => $addr->recipient_phone,
-                    'address'     => trim(($addr->address_detail ?? '') . ', ' . $addr->ward . ', ' . $addr->district . ', ' . $addr->province, ', '),
-                    'is_default'  => (bool) $addr->is_default,
-                    'distance'    => $dist,
-                    'is_exceeded' => $dist > $maxDistance,
-                ];
-            })->toArray();
+            $addresses = Address::where('user_id', $user->id)->get()->each(function ($addr) use ($maxDistance) {
+                $addr->distance    = $this->getShippingDistance($addr->latitude ?? null, $addr->longitude ?? null);
+                $addr->is_unknown  = is_null($addr->distance);
+                $addr->is_exceeded = !is_null($addr->distance) && $addr->distance > $maxDistance;
+            });
 
             if ($this->selectedAddressId) {
-                $address = $rawAddresses->firstWhere('id', $this->selectedAddressId);
+                $address = $addresses->firstWhere('id', $this->selectedAddressId);
             }
             if (!$address) {
-                $address = $rawAddresses->firstWhere('is_default', true) ?? $rawAddresses->first();
+                $address = $addresses->firstWhere('is_default', true) ?? $addresses->first();
                 if ($address) {
                     $this->selectedAddressId = $address->id;
                 }
             }
 
             if ($address) {
-                $distance = $this->getShippingDistance($address->latitude ?? null, $address->longitude ?? null);
-                $isDistanceExceeded = $distance > $maxDistance;
+                $distance           = $address->distance;
+                $isDistanceUnknown  = $address->is_unknown;
+                $isDistanceExceeded = $address->is_exceeded;
             }
         }
 
@@ -357,7 +355,8 @@ class VipCheckout extends Component
             'distance'              => $distance,
             'maxDistance'           => $maxDistance,
             'isDistanceExceeded'    => $isDistanceExceeded,
-            'addresses'             => $addressesList,
+            'isDistanceUnknown'     => $isDistanceUnknown,
+            'addresses'             => $addresses,
             'showAddressModal'      => $this->showAddressModal,
             'selectedAddressId'     => $this->selectedAddressId,
         ])->layout('layouts.customer.app');

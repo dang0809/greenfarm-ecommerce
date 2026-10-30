@@ -105,10 +105,10 @@ class CheckoutPage extends Component
     }
 
     // tính khoảng cách bằng OSRM API (được Cache 24h để không gây delay khi click)
-    private function getShippingDistance(?float $destLat, ?float $destLng): float
+    private function getShippingDistance(?float $destLat, ?float $destLng): ?float
     {
         if (!$destLat || !$destLng) {
-            return 0.0;
+            return null;
         }
 
         $cacheKey = 'osrm_dist_' . md5("{$destLat}_{$destLng}");
@@ -121,14 +121,14 @@ class CheckoutPage extends Component
                 $coordinates = "{$farmLng},{$farmLat};{$destLng},{$destLat}";
                 $url = "https://router.project-osrm.org/route/v1/driving/{$coordinates}?overview=false";
 
-                $response = Http::timeout(1.5)->get($url);
+                $response = Http::timeout(2.5)->get($url);
                 if ($response->successful() && isset($response->json()['routes'][0]['distance'])) {
-                    return round($response->json()['routes'][0]['distance'] / 1000, 1);
+                    return (float) round($response->json()['routes'][0]['distance'] / 1000, 1);
                 }
             } catch (\Exception $e) {
                 Log::warning('Lỗi kết nối OSRM API: ' . $e->getMessage());
             }
-            return (float) 2.0;
+            return null;
         });
     }
 
@@ -167,8 +167,12 @@ class CheckoutPage extends Component
     }
 
     // tính phí giao hàng
-    public function calculateShippingFee($distanceKm): int
+    public function calculateShippingFee(?float $distanceKm): int
     {
+        if ($distanceKm === null) {
+            return 0;
+        }
+
         if ($distanceKm <= 2) {
             return 15000;
         }
@@ -195,6 +199,15 @@ class CheckoutPage extends Component
         $address     = $this->selectedAddress;
         $distance    = $this->getShippingDistance($address->latitude ?? null, $address->longitude ?? null);
         $maxDistance = $this->getMaxShippingDistance();
+
+        if ($distance === null) {
+            $this->dispatch(
+                'show-toast', 
+                type: 'error', 
+                message: 'Không tìm thấy vị trí của địa chỉ nhận hàng trên bản đồ. Vui lòng chọn hoặc cập nhật lại địa chỉ!'
+            );
+            return;
+        }
 
         if ($distance > $maxDistance) {
             $this->dispatch(
@@ -418,21 +431,30 @@ class CheckoutPage extends Component
 
         $discount = ($this->usePoints && $canUsePoints) ? ($pointsToUse * $valuePerPoint) : 0;
 
-        $address = $this->selectedAddress;
         $maxDistance = $this->getMaxShippingDistance();
+        $addresses   = Address::where('user_id', Auth::id())->get()->each(function ($addr) use ($maxDistance) {
+            $addr->distance    = $this->getShippingDistance($addr->latitude ?? null, $addr->longitude ?? null);
+            $addr->is_unknown  = is_null($addr->distance);
+            $addr->is_exceeded = !is_null($addr->distance) && $addr->distance > $maxDistance;
+        });
+
+        $address = $addresses->firstWhere('id', $this->selectedAddressId)
+            ?? $addresses->firstWhere('is_default', true)
+            ?? $addresses->first();
 
         if ($address) {
-            $distance           = $this->getShippingDistance($address->latitude ?? null, $address->longitude ?? null);
-            $isDistanceExceeded = $distance > $maxDistance;
-            $shippingFee        = $isDistanceExceeded ? 0 : $this->calculateShippingFee($distance);
+            $distance           = $address->distance;
+            $isDistanceUnknown  = $address->is_unknown;
+            $isDistanceExceeded = $address->is_exceeded;
+            $shippingFee        = ($isDistanceExceeded || $isDistanceUnknown) ? 0 : $this->calculateShippingFee($distance);
         } else {
-            $distance           = 0;
+            $distance           = null;
+            $isDistanceUnknown  = false;
             $isDistanceExceeded = false;
             $shippingFee        = 0;
         }
 
         $totalAmount = max(0, $subtotal - $discount) + $shippingFee;
-        $addresses   = Address::where('user_id', Auth::id())->get();
 
         return view('livewire.customer.checkout-page', [
             'items'              => $items,
@@ -451,6 +473,7 @@ class CheckoutPage extends Component
             'distance'           => $distance,
             'maxDistance'        => $maxDistance,
             'isDistanceExceeded' => $isDistanceExceeded,
+            'isDistanceUnknown'  => $isDistanceUnknown,
             'addresses'          => $addresses,
             'address'            => $address,
         ])->layout('layouts.customer.app');

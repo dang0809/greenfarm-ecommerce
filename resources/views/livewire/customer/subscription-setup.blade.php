@@ -62,58 +62,12 @@
             <!-- ========================================== -->
 
             <!-- BƯỚC 1: ĐỊA CHỈ NHẬN HÀNG -->
-            <div class="bg-white p-6 sm:p-7 rounded-3xl border border-gray-100 shadow-xs space-y-4">
-                <div class="flex items-center justify-between pb-3 border-b border-gray-100">
-                    <h2 class="font-bold text-gray-900 text-base flex items-center gap-2">
-                        <i class="fa-solid fa-location-dot text-brand-600"></i> Địa Chỉ Nhận Hàng Cố Định
-                    </h2>
-                    
-                    <button type="button" 
-                            wire:click="$set('showAddressModal', true)" 
-                            class="text-xs font-bold text-brand-700 hover:text-brand-800 bg-brand-50 hover:bg-brand-100 border border-brand-200 px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer">
-                        <i class="fa-solid fa-repeat text-[10px]"></i>
-                        <span>Thay đổi địa chỉ</span>
-                    </button>
-                </div>
-
-                @if($currentAddress)
-                    <div class="p-4 sm:p-5 rounded-2xl border {{ $isCurrentAddressExceeded ? 'border-red-300 bg-red-50/50' : 'border-gray-200 bg-gray-50/60' }} space-y-2">
-                        <div class="flex items-center justify-between gap-2 flex-wrap">
-                            <div class="flex items-center gap-2.5 flex-wrap">
-                                <span class="text-sm sm:text-base font-bold text-gray-900">{{ $currentAddress['name'] }}</span>
-                                <span class="text-xs sm:text-sm text-gray-600 font-mono">{{ $currentAddress['phone'] }}</span>
-                                @if($currentAddress['is_default'])
-                                    <span class="text-[10px] font-bold text-brand-700 bg-brand-100 px-2.5 py-0.5 rounded-full border border-brand-200">Mặc định</span>
-                                @endif
-                            </div>
-                            <span class="text-[11px] font-bold {{ $isCurrentAddressExceeded ? 'text-red-700 bg-red-100 border-red-200' : 'text-brand-700 bg-brand-100 border-brand-200' }} px-2.5 py-0.5 rounded-full border">
-                                {{ $isCurrentAddressExceeded ? 'Vượt bán kính (' . ($currentAddress['distance'] ?? 0) . ' km)' : 'Trong bán kính (' . ($currentAddress['distance'] ?? 0) . ' km)' }}
-                            </span>
-                        </div>
-                        <p class="text-xs sm:text-sm text-gray-600 mt-2 leading-relaxed">
-                            {{ $currentAddress['address'] }}
-                        </p>
-                        @if(($currentAddress['distance'] ?? 0) > 0)
-                            <div class="mt-2 flex items-center gap-2 text-xs {{ $isCurrentAddressExceeded ? 'text-red-600 font-bold' : 'text-gray-500' }}">
-                                <i class="fa-solid fa-route {{ $isCurrentAddressExceeded ? 'text-red-600' : 'text-brand-600' }}"></i>
-                                <span>Khoảng cách vận chuyển thực tế: <b class="font-mono">{{ $currentAddress['distance'] }} km</b> / tối đa {{ $maxDistance }} km @if(!$isCurrentAddressExceeded)(Miễn phí ship VIP 8 đợt)@endif</span>
-                            </div>
-                        @endif
-
-                        @if ($isCurrentAddressExceeded)
-                            <div class="mt-3 p-3 rounded-xl border border-red-200 bg-red-50 text-red-700 text-xs space-y-1">
-                                <p class="font-bold flex items-center gap-1.5 text-xs">
-                                    <i class="fa-solid fa-triangle-exclamation text-red-600"></i>
-                                    <span>Địa chỉ này vượt quá bán kính giao hàng tối đa ({{ $maxDistance }} km)!</span>
-                                </p>
-                                <p class="leading-relaxed">
-                                    Nông trại không thể giao 8 đợt rau định kỳ đến địa chỉ này do vượt quá bán kính phục vụ. Vui lòng bấm <b>"Thay đổi địa chỉ"</b> để chọn một địa chỉ trong bán kính {{ $maxDistance }} km trước khi chốt lịch.
-                                </p>
-                            </div>
-                        @endif
-                    </div>
-                @endif
-            </div>
+            <x-customer.address-card 
+                :address="$address" 
+                :distance="$distance" 
+                :max-distance="$maxDistance" 
+                :is-exceeded="$isCurrentAddressExceeded"
+                :is-unknown="$isDistanceUnknown" />
 
             <!-- BƯỚC 2: CHỌN 2 NGÀY CỐ ĐỊNH TRONG TUẦN -->
             <div class="bg-white p-6 sm:p-7 rounded-3xl border border-gray-100 shadow-xs space-y-4">
@@ -328,7 +282,20 @@
                                     <span>Sao chép đợt này cho cả 8 đợt</span>
                                 </button>
 
-                                @if ($isCurrentAddressExceeded)
+                                @if (!$address)
+                                    <button type="button" disabled
+                                            class="w-full bg-gray-200 border-2 border-gray-300 text-gray-500 font-bold py-3.5 rounded-2xl transition flex items-center justify-center gap-2 text-xs sm:text-sm cursor-not-allowed shadow-xs">
+                                        <i class="fa-solid fa-location-dot"></i>
+                                        <span>Vui Lòng Chọn Địa Chỉ Nhận Hàng</span>
+                                    </button>
+                                @elseif ($isDistanceUnknown)
+                                    <button type="button" disabled
+                                            class="w-full bg-amber-100 border-2 border-amber-300 text-amber-800 font-bold py-3.5 rounded-2xl transition flex items-center justify-center gap-2 text-xs sm:text-sm cursor-not-allowed shadow-xs"
+                                            title="Địa chỉ chưa xác định được vị trí">
+                                        <i class="fa-solid fa-triangle-exclamation"></i>
+                                        <span>Địa Chỉ Chưa Xác Định Được Vị Trí</span>
+                                    </button>
+                                @elseif ($isCurrentAddressExceeded)
                                     <button type="button" disabled
                                             class="w-full bg-red-100 border-2 border-red-300 text-red-600 font-bold py-3.5 rounded-2xl transition flex items-center justify-center gap-2 text-xs sm:text-sm cursor-not-allowed shadow-xs"
                                             title="Địa chỉ vượt quá bán kính giao hàng {{ $maxDistance }}km">
@@ -378,8 +345,8 @@
                         <span class="text-brand-200 font-bold flex items-center gap-1.5">
                             <i class="fa-solid fa-location-dot text-amber-400"></i> Địa chỉ nhận hàng cố định:
                         </span>
-                        <p class="font-bold text-sm text-white">{{ $this->subscription?->recipient_name ?? $currentAddress['name'] ?? 'Khách VIP' }} • {{ $this->subscription?->recipient_phone ?? $currentAddress['phone'] ?? '' }}</p>
-                        <p class="text-brand-100/90 leading-relaxed">{{ $this->subscription?->recipient_address ?? $currentAddress['address'] ?? '' }}</p>
+                        <p class="font-bold text-sm text-white">{{ $this->subscription?->recipient_name }} • {{ $this->subscription?->recipient_phone }}</p>
+                        <p class="text-brand-100/90 leading-relaxed">{{ $this->subscription?->recipient_address }}</p>
                     </div>
 
                     <div class="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-1.5">
@@ -491,65 +458,9 @@
     </main>
 
     <!-- MODAL CHỌN ĐỊA CHỈ NHẬN HÀNG -->
-    @if ($showAddressModal)
-        <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 transition-opacity"
-             wire:click.self="$set('showAddressModal', false)">
-            <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-gray-100 space-y-5 max-h-[90vh] overflow-y-auto">
-                
-                <div class="flex items-center justify-between pb-3 border-b border-gray-100">
-                    <div>
-                        <h3 class="text-base sm:text-lg font-bold text-gray-900">Chọn Địa Chỉ Nhận Hàng</h3>
-                        <p class="text-xs text-gray-400 mt-0.5">Chọn một địa chỉ để giao nông sản hỏa tốc</p>
-                    </div>
-                    <button type="button" wire:click="$set('showAddressModal', false)" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center justify-center transition-colors">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                </div>
-
-                <!-- Danh sách địa chỉ -->
-                <div class="space-y-3">
-                    @forelse ($addresses as $addr)
-                        <div wire:click="selectAddress({{ $addr['id'] }})" 
-                             class="p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 {{ $selectedAddressId == $addr['id'] ? 'border-brand-500 bg-brand-50/20' : 'border-gray-200 bg-white hover:border-gray-300' }}">
-                            <input type="radio" name="modal_address_radio" {{ $selectedAddressId == $addr['id'] ? 'checked' : '' }} class="mt-1 text-brand-600 focus:ring-brand-500">
-                            <div class="min-w-0 flex-1">
-                                <div class="flex items-center justify-between gap-2 flex-wrap">
-                                    <div class="flex items-center gap-2 flex-wrap">
-                                        <span class="text-sm font-bold text-gray-900">{{ $addr['name'] }}</span>
-                                        <span class="text-xs text-gray-500 font-mono">{{ $addr['phone'] }}</span>
-                                        @if ($addr['is_default'])
-                                            <span class="text-[10px] font-bold text-brand-700 bg-brand-100 px-2 py-0.5 rounded-full border border-brand-200">Mặc định</span>
-                                        @endif
-                                    </div>
-                                    @if(isset($addr['distance']) && $addr['distance'] > 0)
-                                        @if($addr['is_exceeded'] ?? false)
-                                            <span class="text-[10px] font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full border border-red-200">
-                                                {{ $addr['distance'] }} km (Vượt bán kính)
-                                            </span>
-                                        @else
-                                            <span class="text-[10px] font-mono font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full border border-gray-200">
-                                                {{ $addr['distance'] }} km
-                                            </span>
-                                        @endif
-                                    @endif
-                                </div>
-                                <p class="text-xs text-gray-600 mt-1 leading-relaxed">
-                                    {{ $addr['address'] }}
-                                </p>
-                            </div>
-                        </div>
-                    @empty
-                        <p class="text-xs text-gray-500 text-center py-4">Bạn chưa lưu địa chỉ nào trong sổ địa chỉ.</p>
-                    @endforelse
-                </div>
-
-                <!-- Footer Modal -->
-                <div class="pt-3 border-t border-gray-100 flex items-center justify-between gap-3">
-                    <a href="{{ route('customer.profile', ['tab' => 'addresses']) }}" target="_blank" class="text-xs font-semibold text-gray-500 hover:text-brand-600 flex items-center gap-1">
-                        <i class="fa-solid fa-pen-to-square"></i> Quản lý trong hồ sơ
-                    </a>
-                </div>
-            </div>
-        </div>
-    @endif
+    <x-customer.address-modal 
+        :show="$showAddressModal" 
+        :addresses="$addresses" 
+        :selected-id="$selectedAddressId" 
+        :max-distance="$maxDistance" />
 </div>

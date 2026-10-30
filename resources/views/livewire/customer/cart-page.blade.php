@@ -97,7 +97,7 @@
                                         </button>
                                         
                                         <input type="number" 
-                                               value="{{ $item->quantity }}" 
+                                               value="{{ $item->quantity + 0 }}" 
                                                readonly
                                                class="w-full h-full text-center font-bold text-gray-900 bg-transparent outline-none text-xs select-none cursor-default [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
                                         
@@ -105,7 +105,7 @@
                                                 wire:click="incrementQuantity({{ $item->id }})" 
                                                 @disabled($item->quantity >= $availableStock)
                                                 class="w-8 h-full text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center justify-center cursor-pointer shrink-0"
-                                                title="{{ $item->quantity >= $availableStock ? 'Đã đạt số lượng tối đa trong kho (' . $availableStock . ')' : 'Tăng số lượng' }}">
+                                                title="{{ $item->quantity >= $availableStock ? 'Đã đạt số lượng tối đa trong kho (' . ($availableStock + 0) . ')' : 'Tăng số lượng' }}">
                                             <i class="fa-solid fa-plus text-[10px]"></i>
                                         </button>
                                     </div>

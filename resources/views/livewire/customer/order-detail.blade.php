@@ -265,9 +265,9 @@
                                     </h3>
                                     <p class="text-xs text-gray-400 mt-0.5">
                                         @if ($isVipDelivery)
-                                            <span class="text-purple-700 font-semibold">Số lượng: {{ $item->quantity }} • Đã bao gồm trong Gói VIP</span>
+                                            <span class="text-purple-700 font-semibold">Số lượng: {{ $item->quantity + 0 }} • Đã bao gồm trong Gói VIP</span>
                                         @else
-                                            {{ number_format($item->price, 0, ',', '.') }}đ/{{ $unit }} × {{ $item->quantity }}
+                                            {{ number_format($item->price, 0, ',', '.') }}đ/{{ $unit }} × {{ $item->quantity + 0 }}
                                         @endif
                                     </p>
                                     

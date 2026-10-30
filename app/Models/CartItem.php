@@ -20,7 +20,7 @@ class CartItem extends Model
     protected function casts(): array
     {
         return [
-            'quantity' => 'decimal:2',
+            'quantity' => 'float',
             'price' => 'decimal:2',
         ];
     }

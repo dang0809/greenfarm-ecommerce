@@ -28,9 +28,9 @@ class ProductBatch extends Model
         return [
             'manufactured_date' => 'date',
             'expiry_date' => 'date',
-            'initial_quantity' => 'decimal:2',
-            'current_quantity' => 'decimal:2',
-            'spoiled_quantity' => 'decimal:2',
+            'initial_quantity' => 'float',
+            'current_quantity' => 'float',
+            'spoiled_quantity' => 'float',
             'discount_percent' => 'integer',
         ];
     }

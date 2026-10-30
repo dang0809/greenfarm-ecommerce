@@ -203,9 +203,9 @@
                                         </h3>
                                         <p class="text-[11px] text-gray-500 mt-0.5">
                                             @if ($isVipDelivery)
-                                                Số lượng: {{ $item->quantity }} (Đã gồm trong Gói VIP)
+                                                Số lượng: {{ $item->quantity + 0 }} (Đã gồm trong Gói VIP)
                                             @else
-                                                Đơn giá: {{ number_format($item->price) }}đ • Số lượng: {{ $item->quantity }}
+                                                Đơn giá: {{ number_format($item->price) }}đ • Số lượng: {{ $item->quantity + 0 }}
                                             @endif
                                         </p>
                                         
