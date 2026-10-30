@@ -18,9 +18,13 @@ use App\Models\OrderItem;
 use App\Models\SystemSetting;
 use App\Models\Product;
 use App\Models\Payment;
+use App\Livewire\Traits\WithShippingAddress;
+
 #[Title('Thanh Toán Đơn Hàng | Nông Trại Đất Lành')]
 class CheckoutPage extends Component
 {
+    use WithShippingAddress;
+
     public ?int $selectedAddressId = null;
     public string $orderNote = '';
     public string $paymentMethod = 'payos';
@@ -78,59 +82,6 @@ class CheckoutPage extends Component
                 ->toArray();
         });
     }
-    // lấy tọa độ nông trại
-    private function getFarmCoordinates(): array
-    {
-        return Cache::remember('system_farm_coordinates', 86400, function () {
-            $settings = SystemSetting::whereIn('key', [
-                'farm_latitude', 'farm_longitude'
-            ])->pluck('value', 'key')->toArray();
-
-            return [
-                'lat' => (float) ($settings['farm_latitude'] ?? 10.7769),
-                'lng' => (float) ($settings['farm_longitude'] ?? 106.7009),
-            ];
-        });
-    }
-
-    // lấy khoảng cách giao hàng tối đa
-    private function getMaxShippingDistance(): float
-    {
-        return Cache::remember('system_max_shipping_distance', 86400, function () {
-            $val = SystemSetting::where('key', 'max_shipping_distance_km')
-                ->value('value');
-
-            return (float) ($val ?? 25.0);
-        });
-    }
-
-    // tính khoảng cách bằng OSRM API (được Cache 24h để không gây delay khi click)
-    private function getShippingDistance(?float $destLat, ?float $destLng): ?float
-    {
-        if (!$destLat || !$destLng) {
-            return null;
-        }
-
-        $cacheKey = 'osrm_dist_' . md5("{$destLat}_{$destLng}");
-        return Cache::remember($cacheKey, 86400, function () use ($destLat, $destLng) {
-            $farm = $this->getFarmCoordinates();
-            $farmLat = $farm['lat'];
-            $farmLng = $farm['lng'];
-
-            try {
-                $coordinates = "{$farmLng},{$farmLat};{$destLng},{$destLat}";
-                $url = "https://router.project-osrm.org/route/v1/driving/{$coordinates}?overview=false";
-
-                $response = Http::timeout(2.5)->get($url);
-                if ($response->successful() && isset($response->json()['routes'][0]['distance'])) {
-                    return (float) round($response->json()['routes'][0]['distance'] / 1000, 1);
-                }
-            } catch (\Exception $e) {
-                Log::warning('Lỗi kết nối OSRM API: ' . $e->getMessage());
-            }
-            return null;
-        });
-    }
 
     // lấy sản phẩm trong giỏ hàng
     public function getCheckoutItems()
@@ -146,24 +97,6 @@ class CheckoutPage extends Component
         return $cart->items->filter(function ($item) use ($selectedIds) {
             return in_array((int) $item->id, $selectedIds, true);
         });
-    }
-
-    // lấy địa chỉ được chọn
-    public function getSelectedAddressProperty()
-    {
-        if (!$this->selectedAddressId) return null;
-        return Address::where('user_id', Auth::id())->find($this->selectedAddressId);
-    }
-
-    // chọn địa chỉ
-    public function selectAddress(int $addressId)
-    {
-        $address = Address::where('user_id', Auth::id())->find($addressId);
-        if ($address) {
-            $this->selectedAddressId = $address->id;
-            $this->showAddressModal = false;
-            $this->dispatch('show-toast', type: 'success', message: 'Đã cập nhật địa chỉ giao hàng.');
-        }
     }
 
     // tính phí giao hàng
@@ -191,30 +124,11 @@ class CheckoutPage extends Component
             return redirect()->route('customer.cart');
         }
 
-        if (!$this->selectedAddress) {
-            $this->dispatch('show-toast', type: 'error', message: 'Vui lòng chọn địa chỉ nhận hàng!');
-            return;
-        }
-
-        $address     = $this->selectedAddress;
-        $distance    = $this->getShippingDistance($address->latitude ?? null, $address->longitude ?? null);
+        $address = $this->selectedAddress;
+        $distance = $this->getShippingDistance($address->latitude ?? null, $address->longitude ?? null);
         $maxDistance = $this->getMaxShippingDistance();
 
-        if ($distance === null) {
-            $this->dispatch(
-                'show-toast', 
-                type: 'error', 
-                message: 'Không tìm thấy vị trí của địa chỉ nhận hàng trên bản đồ. Vui lòng chọn hoặc cập nhật lại địa chỉ!'
-            );
-            return;
-        }
-
-        if ($distance > $maxDistance) {
-            $this->dispatch(
-                'show-toast', 
-                type: 'error', 
-                message: "Rất tiếc, khoảng cách ({$distance} km) vượt quá bán kính giao hàng tối đa ({$maxDistance} km) của nông trại!"
-            );
+        if (!$this->validateShippingAddress($address, $distance, $maxDistance)) {
             return;
         }
 
@@ -431,28 +345,14 @@ class CheckoutPage extends Component
 
         $discount = ($this->usePoints && $canUsePoints) ? ($pointsToUse * $valuePerPoint) : 0;
 
-        $maxDistance = $this->getMaxShippingDistance();
-        $addresses   = Address::where('user_id', Auth::id())->get()->each(function ($addr) use ($maxDistance) {
-            $addr->distance    = $this->getShippingDistance($addr->latitude ?? null, $addr->longitude ?? null);
-            $addr->is_unknown  = is_null($addr->distance);
-            $addr->is_exceeded = !is_null($addr->distance) && $addr->distance > $maxDistance;
-        });
-
-        $address = $addresses->firstWhere('id', $this->selectedAddressId)
-            ?? $addresses->firstWhere('is_default', true)
-            ?? $addresses->first();
-
-        if ($address) {
-            $distance           = $address->distance;
-            $isDistanceUnknown  = $address->is_unknown;
-            $isDistanceExceeded = $address->is_exceeded;
-            $shippingFee        = ($isDistanceExceeded || $isDistanceUnknown) ? 0 : $this->calculateShippingFee($distance);
-        } else {
-            $distance           = null;
-            $isDistanceUnknown  = false;
-            $isDistanceExceeded = false;
-            $shippingFee        = 0;
-        }
+        $shippingData       = $this->resolveShippingAddresses();
+        $addresses          = $shippingData['addresses'];
+        $address            = $shippingData['address'];
+        $distance           = $shippingData['distance'];
+        $maxDistance        = $shippingData['maxDistance'];
+        $isDistanceUnknown  = $shippingData['isDistanceUnknown'];
+        $isDistanceExceeded = $shippingData['isDistanceExceeded'];
+        $shippingFee        = ($isDistanceExceeded || $isDistanceUnknown || !$address) ? 0 : $this->calculateShippingFee($distance);
 
         $totalAmount = max(0, $subtotal - $discount) + $shippingFee;
 

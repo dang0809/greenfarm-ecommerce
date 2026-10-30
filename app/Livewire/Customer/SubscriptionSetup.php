@@ -13,10 +13,13 @@ use App\Models\Product;
 use App\Models\Category;
 use App\Models\DeliverySchedule;
 use App\Models\SystemSetting;
+use App\Livewire\Traits\WithShippingAddress;
 
 #[Title('Thiết Lập Lịch & Theo Dõi Gói VIP | Nông Trại Đất Lành')]
 class SubscriptionSetup extends Component
 {
+    use WithShippingAddress;
+
     public ?Subscription $subscription = null;
     public float $maxWeightTarget = 3.5;
     public int $activeTab = 1;
@@ -310,15 +313,6 @@ class SubscriptionSetup extends Component
         $this->dispatch('show-toast', type: 'success', message: "Đã sao chép thực đơn Đợt {$currentPlan['delivery_order']} cho toàn bộ 8 đợt giao!");
     }
 
-    // chọn địa chỉ giao hàng
-    public function selectAddress(int $id)
-    {
-        if ($this->isLocked) return;
-        $this->selectedAddressId = $id;
-        $this->showAddressModal = false;
-        $this->dispatch('show-toast', type: 'success', message: 'Đã cập nhật địa chỉ giao hàng.');
-    }
-
     // xác nhận và chốt lịch giao hàng
     public function confirmAndLockSchedule()
     {
@@ -331,24 +325,11 @@ class SubscriptionSetup extends Component
         }
 
         // 2. Kiểm tra địa chỉ giao hàng & bán kính giao hàng
-        $address = Address::where('user_id', Auth::id())->find($this->selectedAddressId)
-            ?? Address::where('user_id', Auth::id())->where('is_default', true)->first()
-            ?? Address::where('user_id', Auth::id())->first();
-
-        if (!$address) {
-            $this->dispatch('show-toast', type: 'error', message: 'Vui lòng chọn địa chỉ nhận hàng từ sổ địa chỉ!');
-            return;
-        }
-
-        // 🟢 KIỂM TRA BÁN KÍNH GIAO HÀNG TỐI ĐA (25KM)
+        $address = $this->selectedAddress;
         $maxDistance = $this->getMaxShippingDistance();
-        $distance = $this->getShippingDistance($address->latitude ?? null, $address->longitude ?? null);
-        if ($distance === null) {
-            $this->dispatch('show-toast', type: 'error', message: 'Không tìm thấy vị trí của địa chỉ nhận hàng trên bản đồ. Vui lòng chọn hoặc cập nhật lại địa chỉ!');
-            return;
-        }
-        if ($distance > $maxDistance) {
-            $this->dispatch('show-toast', type: 'error', message: "Địa chỉ nhận hàng ({$distance} km) vượt quá bán kính giao hàng tối đa ({$maxDistance} km) của nông trại! Vui lòng chọn địa chỉ khác.");
+        $distance = $this->getShippingDistance($address?->latitude, $address?->longitude);
+
+        if (!$this->validateShippingAddress($address, $distance, $maxDistance)) {
             return;
         }
 
@@ -439,54 +420,6 @@ class SubscriptionSetup extends Component
         $this->dispatch('show-toast', type: 'success', message: 'Đã chốt lịch nhận rau thành công! Lịch trình 8 đợt đã được lưu cố định vào hệ thống.');
     }
 
-    // lấy tọa độ nông trại
-    private function getFarmCoordinates(): array
-    {
-        return Cache::remember('system_farm_coordinates', 86400, function () {
-            $settings = SystemSetting::whereIn('key', ['farm_latitude', 'farm_longitude'])
-                ->pluck('value', 'key');
-            return [
-                'lat' => (float) ($settings['farm_latitude'] ?? 10.7769),
-                'lng' => (float) ($settings['farm_longitude'] ?? 106.7009),
-            ];
-        });
-    }
-
-    // lấy bán kính giao hàng tối đa
-    private function getMaxShippingDistance(): float
-    {
-        return Cache::remember('system_max_shipping_distance', 86400, function () {
-            $val = SystemSetting::where('key', 'max_shipping_distance_km')->value('value');
-            return (float) ($val ?? 25.0);
-        });
-    }
-
-    // tính khoảng cách giao hàng
-    private function getShippingDistance(?float $destLat, ?float $destLng): ?float
-    {
-        if (!$destLat || !$destLng) {
-            return null;
-        }
-
-        $cacheKey = 'osrm_dist_' . md5("{$destLat}_{$destLng}");
-        return Cache::remember($cacheKey, 86400, function () use ($destLat, $destLng) {
-            $farm = $this->getFarmCoordinates();
-            try {
-                $coordinates = "{$farm['lng']},{$farm['lat']};{$destLng},{$destLat}";
-                $url = "https://router.project-osrm.org/route/v1/driving/{$coordinates}?overview=false";
-
-                $response = Http::timeout(2.5)->get($url);
-                if ($response->successful() && isset($response->json()['routes'][0]['distance'])) {
-                    return (float) round($response->json()['routes'][0]['distance'] / 1000, 1);
-                }
-            } catch (\Exception $e) {
-                Log::warning('Lỗi kết nối OSRM API tính khoảng cách VIP: ' . $e->getMessage());
-            }
-
-            return null;
-        });
-    }
-
     // hiển thị giao diện và chuẩn bị dữ liệu
     public function render()
     {
@@ -497,22 +430,14 @@ class SubscriptionSetup extends Component
         }
 
         $user = Auth::user();
-        $maxDistance = $this->getMaxShippingDistance();
+        $shippingData = $this->resolveShippingAddresses($user?->id);
 
-        // 1. Query Danh sách Địa chỉ thật & tính khoảng cách OSRM thực tế
-        $addresses = Address::where('user_id', $user->id)->get()->each(function ($addr) use ($maxDistance) {
-            $addr->distance    = $this->getShippingDistance($addr->latitude ?? null, $addr->longitude ?? null);
-            $addr->is_unknown  = is_null($addr->distance);
-            $addr->is_exceeded = !is_null($addr->distance) && $addr->distance > $maxDistance;
-        });
-
-        $currentAddress = $addresses->firstWhere('id', $this->selectedAddressId) 
-            ?? $addresses->firstWhere('is_default', true) 
-            ?? $addresses->first();
-
-        $currentDist = $currentAddress?->distance;
-        $isCurrentAddressUnknown = $currentAddress && is_null($currentDist);
-        $isCurrentAddressExceeded = !is_null($currentDist) && ($currentDist > $maxDistance);
+        $addresses                = $shippingData['addresses'];
+        $currentAddress           = $shippingData['address'];
+        $currentDist              = $shippingData['distance'];
+        $maxDistance              = $shippingData['maxDistance'];
+        $isCurrentAddressUnknown  = $shippingData['isDistanceUnknown'];
+        $isCurrentAddressExceeded = $shippingData['isDistanceExceeded'];
 
         // 2. Query Sản phẩm CHUẨN FEFO (chỉ lấy sản phẩm còn hàng trong các lô active và còn hạn)
         $productQuery = Product::with([

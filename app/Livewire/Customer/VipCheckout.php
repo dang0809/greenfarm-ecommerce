@@ -14,11 +14,14 @@ use App\Models\Subscription;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Address;
+use App\Livewire\Traits\WithShippingAddress;
 use PayOS\PayOS;
 
 #[Title('Thanh Toán Gói Rau VIP | Nông Trại Đất Lành')]
 class VipCheckout extends Component
 {
+    use WithShippingAddress;
+
     public string $paymentMethod = 'payos';
     public string $packageName = 'Gói Bếp Xanh VIP Gia Đình (1 Tháng)';
     public int $price = 1200000;
@@ -82,33 +85,17 @@ class VipCheckout extends Component
         $user = Auth::user();
 
         // 3. Lấy thông tin địa chỉ giao hàng & kiểm tra bán kính giao hàng TRƯỚC TIÊN
-        $address = null;
-        if ($this->selectedAddressId) {
-            $address = Address::where('user_id', $user->id)->find($this->selectedAddressId);
-        }
-        if (!$address) {
-            $address = Address::where('user_id', $user->id)->where('is_default', true)->first()
-                ?? Address::where('user_id', $user->id)->first();
-        }
-
+        $address = $this->selectedAddress;
         $maxDistance = $this->getMaxShippingDistance();
-        if ($address) {
-            $distance = $this->getShippingDistance($address->latitude ?? null, $address->longitude ?? null);
-            if ($distance === null) {
-                $this->dispatch('show-toast', type: 'error', message: 'Địa chỉ nhận hàng chưa xác định được vị trí trên bản đồ. Vui lòng chọn hoặc cập nhật lại địa chỉ!');
-                return;
-            }
-            if ($distance > $maxDistance) {
-                $this->dispatch('show-toast', type: 'error', message: "Địa chỉ nhận hàng ({$distance} km) vượt quá bán kính giao hàng tối đa ({$maxDistance} km) của nông trại! Vui lòng chọn địa chỉ gần hơn.");
-                return;
-            }
+        $distance = $this->getShippingDistance($address?->latitude, $address?->longitude);
+
+        if (!$this->validateShippingAddress($address, $distance, $maxDistance)) {
+            return;
         }
 
-        $recipientName = $address?->recipient_name ?? $user->name;
-        $recipientPhone = $address?->recipient_phone ?? ($user->phone ?? '0900000000');
-        $shippingAddress = $address 
-            ? $address->address_detail . ', ' . $address->ward . ', ' . $address->district . ', ' . $address->province
-            : 'Đất Lành Farm (Chờ khách cập nhật khi thiết lập lịch)';
+        $recipientName = $address->recipient_name ?? $user->name;
+        $recipientPhone = $address->recipient_phone ?? ($user->phone ?? '0900000000');
+        $shippingAddress = $address->full_address;
 
         // 4. KIỂM TRA ĐƠN HÀNG CŨ: NẾU CÒN HẠN THÌ DÙNG LẠI QR CŨ, HẾT HẠN THÌ TẠO MỚI
         $existingOrder = Order::where('user_id', $user->id)
@@ -250,97 +237,22 @@ class VipCheckout extends Component
         $this->totalWeightMonthly = round($this->deliveryMaxWeight * 8, 1);
     }
 
-    private function getFarmCoordinates(): array
-    {
-        return Cache::remember('system_farm_coordinates', 86400, function () {
-            $settings = SystemSetting::whereIn('key', [
-                'farm_latitude', 'farm_longitude'
-            ])->pluck('value', 'key')->toArray();
-
-            return [
-                'lat' => (float) ($settings['farm_latitude'] ?? 10.7769),
-                'lng' => (float) ($settings['farm_longitude'] ?? 106.7009),
-            ];
-        });
-    }
-
-    private function getMaxShippingDistance(): float
-    {
-        return Cache::remember('system_max_shipping_distance', 86400, function () {
-            $val = SystemSetting::where('key', 'max_shipping_distance_km')->value('value');
-            return (float) ($val ?? 25.0);
-        });
-    }
-
-    private function getShippingDistance(?float $destLat, ?float $destLng): ?float
-    {
-        if (!$destLat || !$destLng) {
-            return null;
-        }
-
-        $cacheKey = 'osrm_dist_' . md5("{$destLat}_{$destLng}");
-        return Cache::remember($cacheKey, 86400, function () use ($destLat, $destLng) {
-            $farm = $this->getFarmCoordinates();
-            try {
-                $coordinates = "{$farm['lng']},{$farm['lat']};{$destLng},{$destLat}";
-                $url = "https://router.project-osrm.org/route/v1/driving/{$coordinates}?overview=false";
-
-                $response = Http::timeout(2.5)->get($url);
-                if ($response->successful() && isset($response->json()['routes'][0]['distance'])) {
-                    return (float) round($response->json()['routes'][0]['distance'] / 1000, 1);
-                }
-            } catch (\Exception $e) {
-                Log::warning('Lỗi kết nối OSRM API tính khoảng cách VIP Checkout: ' . $e->getMessage());
-            }
-
-            return null;
-        });
-    }
-
-    public function selectAddress(int $addressId): void
-    {
-        $address = Address::where('user_id', Auth::id())->find($addressId);
-        if ($address) {
-            $this->selectedAddressId = $address->id;
-            $this->showAddressModal = false;
-            $this->dispatch('show-toast', type: 'success', message: 'Đã đổi địa chỉ nhận hàng dự kiến.');
-        }
-    }
-
     public function render()
     {
         $this->loadVipSettings();
 
         $user = Auth::user();
-        $address = null;
-        $distance = null;
-        $isDistanceExceeded = false;
-        $isDistanceUnknown = false;
-        $maxDistance = $this->getMaxShippingDistance();
-        $addresses = collect();
+        $shippingData = $this->resolveShippingAddresses($user?->id);
 
-        if ($user) {
-            $addresses = Address::where('user_id', $user->id)->get()->each(function ($addr) use ($maxDistance) {
-                $addr->distance    = $this->getShippingDistance($addr->latitude ?? null, $addr->longitude ?? null);
-                $addr->is_unknown  = is_null($addr->distance);
-                $addr->is_exceeded = !is_null($addr->distance) && $addr->distance > $maxDistance;
-            });
+        $address            = $shippingData['address'];
+        $addresses          = $shippingData['addresses'];
+        $distance           = $shippingData['distance'];
+        $maxDistance        = $shippingData['maxDistance'];
+        $isDistanceUnknown  = $shippingData['isDistanceUnknown'];
+        $isDistanceExceeded = $shippingData['isDistanceExceeded'];
 
-            if ($this->selectedAddressId) {
-                $address = $addresses->firstWhere('id', $this->selectedAddressId);
-            }
-            if (!$address) {
-                $address = $addresses->firstWhere('is_default', true) ?? $addresses->first();
-                if ($address) {
-                    $this->selectedAddressId = $address->id;
-                }
-            }
-
-            if ($address) {
-                $distance           = $address->distance;
-                $isDistanceUnknown  = $address->is_unknown;
-                $isDistanceExceeded = $address->is_exceeded;
-            }
+        if ($address && !$this->selectedAddressId) {
+            $this->selectedAddressId = $address->id;
         }
 
         return view('livewire.customer.vip-checkout', [
