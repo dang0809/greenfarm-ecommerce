@@ -7,7 +7,6 @@ use Livewire\Attributes\Title;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use PayOS\PayOS;
 use App\Models\Cart;
@@ -31,37 +30,103 @@ class CheckoutPage extends Component
     public bool $showAddressModal = false;
     public array $selectedCartItemIds = [];
     public bool $usePoints = false;
+    public bool $isBuyNow = false;
 
     public function mount()
     {
         $user = Auth::user();
         if (!$user) {
             $this->dispatch('open-auth-modal', 'login');
-            return ;
+            return;
         }
 
-        $buyNowId = request()->query('buy_now');
+        $mode = request()->query('mode');
+        $buyNowData = session('checkout_buy_now');
 
-        if ($buyNowId) {
-            $this->selectedCartItemIds = [(int) $buyNowId];
-            session()->put('checkout_selected_items', $this->selectedCartItemIds);
-            session()->put('checkout_use_points', false);
-            session()->save();
+        if ($mode === 'buy_now' && !empty($buyNowData)) {
+            $this->isBuyNow = true;
+
+            $product = Product::withSum(['batches as total_stock' => function ($q) {
+                $q->where('product_batches.status', 'active')
+                  ->where('product_batches.current_quantity', '>', 0)
+                  ->whereDate('product_batches.expiry_date', '>=', now());
+            }], 'current_quantity')->find($buyNowData['product_id']);
+
+            if (!$product || $product->status !== 'active') {
+                session()->forget('checkout_buy_now');
+                session()->flash('error', 'Sản phẩm mua ngay hiện không khả dụng!');
+                return redirect()->route('products.index');
+            }
+
+            $availableUnits = (float) ($product->total_stock_units ?? 0);
+            if ($availableUnits <= 0) {
+                session()->forget('checkout_buy_now');
+                session()->flash('error', 'Sản phẩm đã hết hàng trong kho!');
+                return redirect()->route('customer.product.detail', $product->slug);
+            }
+
+            if ((float) $buyNowData['quantity'] > $availableUnits) {
+                $buyNowData['quantity'] = $availableUnits;
+                session()->put('checkout_buy_now', $buyNowData);
+                session()->flash('warning', 'Số lượng mua đã được tự động điều chỉnh theo tồn kho thực tế.');
+            }
         } else {
+            $this->isBuyNow = false;
             $rawSelected = session('checkout_selected_items', []);
             $this->selectedCartItemIds = array_map('intval', (array) $rawSelected);
-            $this->usePoints = session('checkout_use_points', false);
-        }
 
-        if (empty($this->selectedCartItemIds)) {
-            session()->flash('error', 'Vui lòng chọn sản phẩm để thanh toán!');
-            return redirect()->route('customer.cart');
-        }
+            if (empty($this->selectedCartItemIds)) {
+                session()->flash('error', 'Vui lòng chọn sản phẩm để thanh toán!');
+                return redirect()->route('customer.cart');
+            }
 
-        $cart = Cart::where('user_id', $user->id)->first();
-        if (!$cart || $cart->items()->count() === 0) {
-            session()->flash('error', 'Giỏ hàng của bạn đang rỗng!');
-            return redirect()->route('customer.cart');
+            $cart = Cart::with(['items.product.batches' => function ($q) {
+                $q->where('product_batches.status', 'active')
+                  ->where('product_batches.current_quantity', '>', 0)
+                  ->whereDate('product_batches.expiry_date', '>=', now());
+            }])->where('user_id', $user->id)->first();
+
+            if (!$cart || $cart->items()->count() === 0) {
+                session()->flash('error', 'Giỏ hàng của bạn đang rỗng!');
+                return redirect()->route('customer.cart');
+            }
+
+            // Tự động kiểm tra và đồng bộ lại tồn kho thực tế cho các sản phẩm đã chọn
+            $hasStockAdjusted = false;
+            $validCheckoutIds = [];
+
+            foreach ($cart->items as $cartItem) {
+                if (!in_array((int) $cartItem->id, $this->selectedCartItemIds, true)) {
+                    continue;
+                }
+
+                $availableUnits = (float) ($cartItem->product?->total_stock_units ?? 0);
+
+                if ($availableUnits <= 0) {
+                    $hasStockAdjusted = true;
+                    continue; // Bỏ qua món đã hết sạch kho
+                }
+
+                if ($cartItem->quantity > $availableUnits) {
+                    $cartItem->update(['quantity' => $availableUnits]);
+                    $cartItem->quantity = $availableUnits;
+                    $hasStockAdjusted = true;
+                }
+
+                $validCheckoutIds[] = (int) $cartItem->id;
+            }
+
+            $this->selectedCartItemIds = $validCheckoutIds;
+            session()->put('checkout_selected_items', $validCheckoutIds);
+
+            if (empty($this->selectedCartItemIds)) {
+                session()->flash('error', 'Các sản phẩm bạn chọn hiện đã hết hàng trong kho. Vui lòng kiểm tra lại giỏ hàng!');
+                return redirect()->route('customer.cart');
+            }
+
+            if ($hasStockAdjusted) {
+                session()->flash('warning', 'Một số sản phẩm trong giỏ đã được tự động điều chỉnh số lượng theo tồn kho thực tế.');
+            }
         }
 
         $defaultAddress = Address::where('user_id', $user->id)
@@ -83,10 +148,27 @@ class CheckoutPage extends Component
         });
     }
 
-    // lấy sản phẩm trong giỏ hàng
+    // lấy sản phẩm trong giỏ hàng hoặc từ luồng mua ngay
     public function getCheckoutItems()
     {
-        $cart = Cart::with(['items.product.category', 'items.product.productImages', 'items.product.batches'])
+        if ($this->isBuyNow) {
+            $buyNowData = session('checkout_buy_now');
+            if (empty($buyNowData)) return collect();
+
+            $product = Product::with(['category', 'productImages'])->find($buyNowData['product_id']);
+
+            if (!$product) return collect();
+
+            $item = new CartItem([
+                'product_id' => $product->id,
+                'quantity'   => (float) $buyNowData['quantity'],
+            ]);
+            $item->setRelation('product', $product);
+
+            return collect([$item]);
+        }
+
+        $cart = Cart::with(['items.product.category', 'items.product.productImages'])
             ->where('user_id', Auth::id())
             ->first();
 
@@ -120,8 +202,9 @@ class CheckoutPage extends Component
         $items = $this->getCheckoutItems();
 
         if ($items->isEmpty()) {
-            $this->dispatch('show-toast', type: 'error', message: 'Giỏ hàng của bạn đang rỗng!');
-            return redirect()->route('customer.cart');
+            $msg = $this->isBuyNow ? 'Sản phẩm mua ngay không hợp lệ!' : 'Giỏ hàng của bạn đang rỗng!';
+            $this->dispatch('show-toast', type: 'error', message: $msg);
+            return redirect()->route($this->isBuyNow ? 'products.index' : 'customer.cart');
         }
 
         $address = $this->selectedAddress;
@@ -147,45 +230,53 @@ class CheckoutPage extends Component
                 ->lockForUpdate()
                 ->get();
 
+            $subtotal = 0;
             foreach ($items as $item) {
                 $product = $productsInDB->firstWhere('id', $item->product_id);
                 
                 // 1. Kiểm tra trạng thái bán
-                if (!$product || $product->status !== 'active') { // Giả sử cột trạng thái là active
+                if (!$product || $product->status !== 'active') {
                     throw new \Exception("Sản phẩm {$item->product->name} hiện không khả dụng.");
                 }
 
                 // 2. Kiểm tra tồn kho có đủ số đơn vị mua không
                 $availableUnits = (float) $product->total_stock_units;
                 if ($availableUnits < (float) $item->quantity) {
-                    throw new \Exception("Sản phẩm {$item->product->name} không đủ số lượng (Chỉ còn {$availableUnits} {$product->unit}).");
+                    throw new \Exception("Sản phẩm {$product->name} không đủ số lượng (Chỉ còn {$availableUnits} {$product->unit}).");
                 }
 
-            }
-            $subtotal = 0;
-            foreach ($items as $item) {
-                $price = $item->product->sale_price ?? $item->product->price;
+                // 3. Tính tạm tính tiền hàng theo giá mới nhất từ DB
+                $price = $product->sale_price ?? $product->price;
                 $subtotal += $price * $item->quantity;
             }
 
             $loyaltyConfig      = $this->getLoyaltySettings();
+            // Số tiền chi tiêu để tích được 1 điểm thưởng (VD: 10.000đ được 1 điểm)
             $spendingPerPoint   = (int) ($loyaltyConfig['spending_per_point'] ?? 10000);
+            // Giá trị quy đổi tiền mặt của 1 điểm khi dùng giảm giá (VD: 1 điểm = 100đ)
             $valuePerPoint      = (int) ($loyaltyConfig['value_per_point'] ?? 100);
+            // Tỷ lệ giảm giá trần tối đa cho phép từ điểm thưởng (VD: tối đa 10% tiền hàng)
             $maxDiscountPercent = (float) ($loyaltyConfig['max_point_discount_percent'] ?? 10);
 
+            // Số điểm thưởng khách tích lũy được từ đơn hàng này
             $earnedPoints = ($spendingPerPoint > 0) ? (int) floor($subtotal / $spendingPerPoint) : 0;
 
             $user       = Auth::user();
+            // Tổng số điểm thưởng khách hiện có trong ví
             $userPoints = (int) ($user->reward_points ?? 0);
     
             $pointsUsed = 0;
             $discount   = 0;
 
             if ($this->usePoints && $userPoints > 0) {
+                // Số tiền giảm tối đa (VNĐ) theo quy định chính sách trần
                 $maxDiscountAllowed = $subtotal * ($maxDiscountPercent / 100);
+                // Quy đổi số tiền giảm tối đa sang số điểm thưởng tối đa đơn này chấp nhận
                 $maxPointsAllowed   = ($valuePerPoint > 0) ? (int) floor($maxDiscountAllowed / $valuePerPoint) : 0;
 
+                // Số điểm thực tế bị trừ trong ví (không vượt quá điểm khách có và không vượt trần)
                 $pointsUsed = min($userPoints, $maxPointsAllowed);
+                // Số tiền thực tế được giảm trừ vào tổng đơn
                 $discount   = $pointsUsed * $valuePerPoint;
             }
 
@@ -194,7 +285,7 @@ class CheckoutPage extends Component
 
             // Mã PayOS chuẩn 13 số
             $payosOrderCode = intval(time() . rand(100, 999));
-            $fullAddress    = $address->address_detail . ', ' . $address->ward . ', ' . $address->district . ', ' . $address->province;
+            $fullAddress    = $address->full_address;
 
             $order = Order::create([
                 'order_code'           => (string) $payosOrderCode,
@@ -221,7 +312,7 @@ class CheckoutPage extends Component
             Payment::create([
                 'order_id'         => $order->id,
                 'payment_code'     => 'PAY-' . $order->order_code,
-                'method'           => 'payos',
+                'method'           => $this->paymentMethod,
                 'amount'           => $totalAmount,
                 'status'           => 'pending',
                 'transaction_code' => null,
@@ -299,12 +390,15 @@ class CheckoutPage extends Component
 
             $response = $payOS->createPaymentLink($payosData);
 
-            session()->forget(['checkout_selected_items', 'checkout_use_points']);
+            if ($this->isBuyNow) {
+                session()->forget('checkout_buy_now');
+            } else {
+                session()->forget('checkout_selected_items');
+                CartItem::whereIn('id', $items->pluck('id'))->delete();
+                $this->dispatch('cart-updated');
+            }
 
-            CartItem::whereIn('id', $items->pluck('id'))->delete();
             DB::commit();
-
-            $this->dispatch('cart-updated');
 
             return redirect()->away($response['checkoutUrl']);
 
@@ -326,24 +420,36 @@ class CheckoutPage extends Component
         }
 
         $loyaltyConfig      = $this->getLoyaltySettings();
+        // Số tiền chi tiêu để tích được 1 điểm thưởng (VD: 10.000đ được 1 điểm)
         $spendingPerPoint   = (int) ($loyaltyConfig['spending_per_point'] ?? 10000);
+        // Giá trị quy đổi tiền mặt của 1 điểm khi dùng giảm giá (VD: 1 điểm = 100đ)
         $valuePerPoint      = (int) ($loyaltyConfig['value_per_point'] ?? 100);
+        // Tỷ lệ giảm giá trần tối đa cho phép từ điểm thưởng (VD: tối đa 10% tiền hàng)
         $maxDiscountPercent = (float) ($loyaltyConfig['max_point_discount_percent'] ?? 10);
 
+        // Số điểm thưởng khách sẽ tích lũy được từ đơn hàng này
         $earnedPoints      = ($spendingPerPoint > 0) ? (int) floor($subtotal / $spendingPerPoint) : 0;
+        // Giá trị quy đổi thành tiền mặt (VNĐ) của số điểm thưởng sắp nhận
         $earnedPointsValue = $earnedPoints * $valuePerPoint;
+        // Tỷ lệ điểm thưởng nhận được trên mỗi 100.000đ mua hàng (dùng để hiển thị gợi ý trên UI)
         $pointsPer100k     = ($spendingPerPoint > 0) ? (int) floor(100000 / $spendingPerPoint) : 0;
 
         $user       = Auth::user();
+        // Tổng số điểm thưởng khách hiện có trong ví
         $userPoints = (int) ($user->reward_points ?? 0);
 
+        // Số tiền giảm tối đa (VNĐ) theo quy định chính sách trần
         $maxDiscountAllowed = $subtotal * ($maxDiscountPercent / 100);
+        // Quy đổi số tiền giảm tối đa sang số điểm thưởng tối đa đơn này chấp nhận
         $maxPointsAllowed   = ($valuePerPoint > 0) ? (int) floor($maxDiscountAllowed / $valuePerPoint) : 0;
 
-        $pointsToUse  = min($userPoints, $maxPointsAllowed);
-        $canUsePoints = $userPoints > 0 && $pointsToUse > 0;
+        // Số điểm thực tế có thể dùng cho đơn (không vượt quá điểm khách có và không vượt trần)
+        $pointsUsed   = min($userPoints, $maxPointsAllowed);
+        // Điều kiện cho phép kích hoạt checkbox dùng điểm: khách có điểm và số điểm dùng được > 0
+        $canUsePoints = $userPoints > 0 && $pointsUsed > 0;
 
-        $discount = ($this->usePoints && $canUsePoints) ? ($pointsToUse * $valuePerPoint) : 0;
+        // Số tiền giảm thực tế: chỉ tính khi khách tick chọn dùng điểm và thỏa điều kiện dùng điểm
+        $discount = ($this->usePoints && $canUsePoints) ? ($pointsUsed * $valuePerPoint) : 0;
 
         $shippingData       = $this->resolveShippingAddresses();
         $addresses          = $shippingData['addresses'];
@@ -361,7 +467,7 @@ class CheckoutPage extends Component
             'subtotal'           => $subtotal,
             'shippingFee'        => $shippingFee,
             'discount'           => $discount,
-            'pointsUsed'         => $pointsToUse,
+            'pointsUsed'         => $pointsUsed,
             'userPoints'         => $userPoints,
             'canUsePoints'       => $canUsePoints,
             'valuePerPoint'      => $valuePerPoint,

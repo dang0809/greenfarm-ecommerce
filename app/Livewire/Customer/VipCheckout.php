@@ -6,7 +6,6 @@ use Livewire\Component;
 use Livewire\Attributes\Title;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\SystemSetting;
@@ -175,9 +174,10 @@ class VipCheckout extends Component
                 'order_code'        => (string) $payosOrderCode,
                 'order_type'        => 'subscription',
                 'recipient_name'    => $recipientName,
-                'recipient_phone'   => $recipientPhone,
-                'recipient_address' => $shippingAddress,
-                'subtotal'          => $this->price,
+                'recipient_phone'      => $recipientPhone,
+                'recipient_address'    => $shippingAddress,
+                'shipping_distance_km' => $distance,
+                'subtotal'             => $this->price,
                 'shipping_fee'      => 0,
                 'total'             => $this->price,
                 'status'            => 'pending',

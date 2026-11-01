@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Auth;
 
 trait HandlesCart
 {
-    public function addToCart(?int $productId = null, int$quantity = 1): bool
+    public function addToCart(?int $productId = null): bool
     {
         // 1. Kiểm tra đăng nhập
         if (!Auth::check()) {
@@ -28,7 +28,7 @@ trait HandlesCart
 
         $availableStock = (int) ($product?->total_stock ?? 0);
 
-        if ($availableStock <= 0 || $quantity < 1) {
+        if ($availableStock <= 0 ) {
             $this->dispatch(
             'show-toast',
             type: 'error',
@@ -48,7 +48,7 @@ trait HandlesCart
             ->first();
 
         $currentQty = $cartItem ? $cartItem->quantity : 0;
-        $newQty = $currentQty +$quantity;
+        $newQty = $currentQty + 1;
 
         // Kiểm tra số lượng vượt tồn kho
         if ($newQty >$availableStock) {
@@ -66,7 +66,7 @@ trait HandlesCart
             CartItem::create([
                 'cart_id'    => $cart->id,
                 'product_id' => $targetProductId,
-                'quantity'   => $quantity,
+                'quantity'   => 1,
             ]);
         }
 

@@ -97,7 +97,7 @@ class ProductDetail extends Component
         }
 
         return Order::where('user_id', Auth::id())
-            ->where('status', 'completed')
+            ->where('status', 'delivered')
             ->whereHas('items', fn($q) => $q->where('product_id', $this->product->id))
             ->exists();
     }
@@ -105,32 +105,21 @@ class ProductDetail extends Component
     public function buyNow()
     {
         $user = Auth::user();
-       if (!$user) {
+        if (!$user) {
             $this->dispatch('open-auth-modal', 'login');
-            return ;
+            return;
         }
 
-        // 1. Lấy hoặc tạo Giỏ hàng cho User
-        $cart = Cart::firstOrCreate(['user_id' => $user->id]);
+        $qty = $this->quantity > 0 ? (float) $this->quantity : 1.0;
 
-        // 2. Tìm hoặc tạo món trong giỏ
-        $cartItem = CartItem::firstOrNew([
-            'cart_id'    => $cart->id,
+        session()->put('checkout_buy_now', [
             'product_id' => $this->product->id,
+            'quantity'   => $qty,
         ]);
-
-        // Đặt đúng số lượng vừa chọn trên trang chi tiết
-        $cartItem->quantity = $this->quantity > 0 ? $this->quantity : 1;
-        $cartItem->save();
-
-        // 3. GHI ĐÈ SESSION VÀ LƯU NGAY BẰNG session()->save()
-        session()->put('checkout_selected_items', [(int) $cartItem->id]);
-        session()->put('checkout_use_points', false);
+        session()->forget('checkout_selected_items');
         session()->save();
 
-        // 4. Cập nhật icon giỏ hàng & chuyển hướng kèm tham số buy_now
-        $this->dispatch('cart-updated');
-        return redirect()->route('customer.checkout', ['buy_now' => $cartItem->id]);
+        return redirect()->route('customer.checkout', ['mode' => 'buy_now']);
     }
 
     public function submitReview(): void

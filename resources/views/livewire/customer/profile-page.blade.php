@@ -307,7 +307,7 @@
                                             @endif
                                         </div>
                                         <p class="text-xs text-gray-600 leading-relaxed">
-                                            {{ $addr->address_detail }}, {{$addr->ward }}, {{ $addr->district }}, {{$addr->province }}
+                                            {{ $addr->full_address }}
                                         </p>
                                     </div>
 

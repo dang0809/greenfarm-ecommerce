@@ -133,7 +133,9 @@
                     <div class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-5">
                         <div class="flex items-center justify-between pb-3 border-b border-gray-100">
                             <h3 class="font-bold text-gray-900 text-base">Đơn Hàng Của Bạn</h3>
-                            <a href="{{ route('customer.cart') }}" class="text-xs font-semibold text-brand-600 hover:underline">Sửa giỏ hàng</a>
+                            @if (!$isBuyNow)
+                                <a href="{{ route('customer.cart') }}" class="text-xs font-semibold text-brand-600 hover:underline">Sửa giỏ hàng</a>
+                            @endif
                         </div>
 
                         <!-- Danh sách mặt hàng -->
@@ -169,7 +171,7 @@
                                     </span>
                                 </div>
                             @empty
-                                <p class="text-xs text-gray-400 text-center py-4">Không có sản phẩm nào trong giỏ hàng.</p>
+                                <p class="text-xs text-gray-400 text-center py-4">Không có sản phẩm nào cần thanh toán.</p>
                             @endforelse
                         </div>
 

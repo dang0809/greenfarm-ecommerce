@@ -24,6 +24,45 @@ class CartPage extends Component
     public function mount()
     {
         $this->loadSelectedItems();
+        $messages = $this->syncCartStock();
+        if (!empty($messages)) {
+            $this->dispatch('show-toast', type: 'warning', message: $messages[0]);
+        }
+    }
+
+    /**
+     * Tự động đồng bộ số lượng sản phẩm trong giỏ hàng theo tồn kho thực tế
+     */
+    public function syncCartStock(): array
+    {
+        $cart = $this->getCart();
+        if (!$cart) return [];
+
+        $messages = [];
+        foreach ($cart->items as $item) {
+            $stock = (float) ($item->product?->total_stock_units ?? 0);
+
+            if ($stock <= 0) {
+                // Hết sạch hàng: tự động loại khỏi danh sách tick chọn
+                if (in_array((string) $item->id, $this->selectedItems, true)) {
+                    $this->selectedItems = array_values(array_diff($this->selectedItems, [(string) $item->id]));
+                    $messages[] = "Sản phẩm \"{$item->product->name}\" hiện đã hết hàng.";
+                }
+            } elseif ($item->quantity > $stock) {
+                // Vượt tồn kho: tự động hạ xuống đúng mức kho còn lại
+                $oldQty = $item->quantity + 0;
+                $newQty = $stock + 0;
+                $item->update(['quantity' => $stock]);
+                $item->quantity = $stock;
+                $messages[] = "Sản phẩm \"{$item->product->name}\" đã tự động giảm từ {$oldQty} xuống {$newQty} do kho vừa thay đổi.";
+            }
+        }
+
+        if (!empty($messages)) {
+            $this->updatedSelectedItems();
+        }
+
+        return $messages;
     }
 
     // Lấy giỏ hàng của User từ Database
@@ -42,13 +81,17 @@ class CartPage extends Component
         ->first();
     }
 
-    // Mặc định chọn tất cả sản phẩm khi vừa mở trang
+    // Mặc định chọn tất cả sản phẩm còn hàng khi vừa mở trang
     public function loadSelectedItems()
     {
         $cart = $this->getCart();
         if ($cart) {
-            $this->selectedItems = $cart->items->pluck('id')->map(fn($id) => (string) $id)->toArray();
-            $this->selectAll = count($this->selectedItems) > 0;
+            $this->selectedItems = $cart->items
+                ->filter(fn($item) => (float) ($item->product?->total_stock_units ?? 0) > 0)
+                ->pluck('id')
+                ->map(fn($id) => (string) $id)
+                ->toArray();
+            $this->selectAll = count($this->selectedItems) > 0 && count($this->selectedItems) === $cart->items->count();
         }
     }
 
@@ -59,7 +102,11 @@ class CartPage extends Component
         if (!$cart) return;
 
         if ($value) {
-            $this->selectedItems = $cart->items->pluck('id')->map(fn($id) => (string) $id)->toArray();
+            $this->selectedItems = $cart->items
+                ->filter(fn($item) => (float) ($item->product?->total_stock_units ?? 0) > 0)
+                ->pluck('id')
+                ->map(fn($id) => (string) $id)
+                ->toArray();
         } else {
             $this->selectedItems = [];
         }
@@ -139,12 +186,24 @@ class CartPage extends Component
 
     public function proceedToCheckout()
     {
-        if (empty($this->selectedItems)) {
-            $this->dispatch('show-toast', type: 'error', message: 'Vui lòng chọn ít nhất 1 sản phẩm để thanh toán!');
+        // 1. Kiểm tra biến động tồn kho trước khi chuyển trang
+        $messages = $this->syncCartStock();
+        if (!empty($messages)) {
+            $this->dispatch(
+                'show-toast',
+                type: 'warning',
+                message: 'Tồn kho vừa có thay đổi! ' . $messages[0] . ' Vui lòng kiểm tra lại trước khi tiếp tục.'
+            );
             return;
         }
 
-        // Chỉ lưu danh sách ID sản phẩm chọn mua sang Session
+        // 2. Kiểm tra danh sách sản phẩm còn hợp lệ
+        if (empty($this->selectedItems)) {
+            $this->dispatch('show-toast', type: 'error', message: 'Vui lòng chọn ít nhất 1 sản phẩm còn hàng để thanh toán!');
+            return;
+        }
+
+        // 3. Lưu danh sách ID sản phẩm chọn mua sang Session
         session([
             'checkout_selected_items' => array_map('intval', $this->selectedItems),
         ]);

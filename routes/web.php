@@ -81,7 +81,4 @@ Route::middleware(['role:customer'])->group(function () {
     Route::get('/thanh-toan/thanh-cong/{order_id}', [PaymentController::class, 'success'])->name('customer.checkout.success');
     Route::get('/thanh-toan/huy/{order_id}', [PaymentController::class, 'cancel'])->name('customer.checkout.cancel');
     Route::get('/don-hang/{order_code}', OrderDetail::class)->name('customer.order.detail');
-    // Sau này các trang riêng tư của khách bổ sung ở đây:
-    // Route::get('/gio-hang', CartPage::class)->name('customer.cart');
-    // Route::get('/don-hang-cua-toi', OrderHistory::class)->name('customer.orders');
 });

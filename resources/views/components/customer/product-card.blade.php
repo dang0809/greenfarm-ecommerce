@@ -73,7 +73,7 @@
                         <i class="fa-solid fa-ban text-xs sm:text-sm"></i>
                     </button>
                 @else
-                    <button type="button" wire:click="addToCart({{ $product->id }}, 1)" class="bg-gray-900 hover:bg-brand-600 text-white w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-colors shadow-md active:scale-95">
+                    <button type="button" wire:click="addToCart({{ $product->id }})" class="bg-gray-900 hover:bg-brand-600 text-white w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-colors shadow-md active:scale-95">
                         <i class="fa-solid fa-plus text-xs sm:text-sm"></i>
                     </button>
                 @endif

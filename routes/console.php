@@ -46,10 +46,12 @@ Schedule::call(function () {
                 ]);
             }
 
-            // 4. Hoàn lại kho (theo từng lô hàng)
+            // 4. Hoàn lại kho (theo từng lô hàng tính theo kg)
             foreach ($order->items as $item) {
                 if ($item->batch_id) {
-                    ProductBatch::where('id', $item->batch_id)->increment('current_quantity', $item->quantity);
+                    $unitWeight = (float) ($item->product?->weight_kg > 0 ? $item->product->weight_kg : 1.0);
+                    $returnKg = round((float) $item->quantity * $unitWeight, 2);
+                    ProductBatch::where('id', $item->batch_id)->increment('current_quantity', $returnKg);
                 }
             }
 

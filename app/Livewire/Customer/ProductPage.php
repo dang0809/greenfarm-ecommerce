@@ -72,28 +72,19 @@ class ProductPage extends Component
             $query->where('name', 'like', '%' . trim($this->search) . '%');
         }
 
-        if ($this->priceRange === 'under_50') {
-            $query->where('price', '<', 50000);
-        } elseif ($this->priceRange === '50_100') {
-            $query->whereBetween('price', [50000, 100000]);
-        } elseif ($this->priceRange === 'over_100') {
-            $query->where('price', '>', 100000);
-        }
+        match ($this->priceRange) {
+            'under_50' => $query->where('price', '<', 50000),
+            '50_100'   => $query->whereBetween('price', [50000, 100000]),
+            'over_100' => $query->where('price', '>', 100000),
+            default    => null, // Người dùng chọn "Tất cả mức giá" thì không thêm điều kiện
+        };
 
-        switch ($this->sortBy) {
-            case 'price_asc':
-                $query->orderBy('price', 'asc');
-                break;
-            case 'price_desc':
-                $query->orderBy('price', 'desc');
-                break;
-            case 'popular':
-                $query->orderBy('sold_count', 'desc');
-                break;
-            default:
-                $query->latest();
-                break;
-        }
+        match ($this->sortBy) {
+            'price_asc'  => $query->orderBy('price', 'asc'),
+            'price_desc' => $query->orderBy('price', 'desc'),
+            'popular'    => $query->orderBy('sold_count', 'desc'),
+            default      => $query->latest(), // Mặc định: sản phẩm mới nhất
+        };
 
         $products = $query->paginate(9);
 

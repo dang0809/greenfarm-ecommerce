@@ -118,7 +118,7 @@ class Product extends Model
                 ->sum('product_batches.current_quantity');
 
         $u = mb_strtolower(trim($this->unit ?? ''));
-        if ($u === 'kg' || $u === 'ký') {
+        if ($u === 'kg') {
             return round($totalKg, 2);
         }
 

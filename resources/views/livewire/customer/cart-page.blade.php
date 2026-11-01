@@ -50,17 +50,23 @@
                                 $availableStock = (float) $product->total_stock_units;
                             @endphp
 
-                            <div class="bg-white p-4 sm:p-5 rounded-3xl border border-gray-100 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                            <div class="bg-white p-4 sm:p-5 rounded-3xl border {{ $availableStock <= 0 ? 'border-red-100 bg-red-50/15' : 'border-gray-100' }} shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                 <div class="flex items-center gap-3.5 sm:gap-4 w-full sm:w-auto">
                                     <!-- Checkbox chọn item -->
                                     <input type="checkbox" 
                                            wire:model.live="selectedItems" 
                                            value="{{ $item->id }}" 
-                                           class="w-4 h-4 text-brand-600 rounded border-gray-300 focus:ring-brand-500 cursor-pointer shrink-0">
+                                           @disabled($availableStock <= 0)
+                                           class="w-4 h-4 text-brand-600 rounded border-gray-300 focus:ring-brand-500 cursor-pointer shrink-0 disabled:opacity-40 disabled:cursor-not-allowed">
                                     
                                     <!-- Ảnh sản phẩm -->
-                                    <a href="{{ route('customer.product.detail', ['slug' => $product->slug]) }}" class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 shrink-0">
-                                        <img src="{{ $primaryImage }}" alt="{{ $product->name }}" class="w-full h-full object-cover">
+                                    <a href="{{ route('customer.product.detail', ['slug' => $product->slug]) }}" class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 shrink-0 relative">
+                                        <img src="{{ $primaryImage }}" alt="{{ $product->name }}" class="w-full h-full object-cover {{ $availableStock <= 0 ? 'grayscale opacity-60' : '' }}">
+                                        @if ($availableStock <= 0)
+                                            <span class="absolute inset-0 bg-black/40 flex items-center justify-center text-[10px] font-bold text-white uppercase tracking-wider">
+                                                Hết hàng
+                                            </span>
+                                        @endif
                                     </a>
 
                                     <div class="min-w-0 flex-1">
@@ -72,7 +78,7 @@
                                                 {{ $product->name }}
                                             </a>
                                         </h3>
-                                        <div class="flex items-baseline gap-2 mt-0.5">
+                                        <div class="flex items-center gap-2 mt-1 flex-wrap">
                                             <span class="text-sm sm:text-base font-extrabold text-brand-700">
                                                 {{ number_format($unitPrice, 0, ',', '.') }}đ
                                             </span>
@@ -82,6 +88,16 @@
                                                 </span>
                                             @endif
                                             <span class="text-[11px] text-gray-500 font-medium">/ {{ $product->unit }}</span>
+
+                                            @if ($availableStock <= 0)
+                                                <span class="text-[10px] font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                                                    <i class="fa-solid fa-ban text-[9px]"></i> Tạm hết hàng
+                                                </span>
+                                            @elseif ($item->quantity >= $availableStock)
+                                                <span class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                                                    <i class="fa-solid fa-triangle-exclamation text-[9px]"></i> Tối đa kho ({{ $availableStock + 0 }})
+                                                </span>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -91,7 +107,7 @@
                                     <div class="flex items-center border border-gray-200 rounded-xl bg-gray-50/50 overflow-hidden h-9 w-28">
                                         <button type="button" 
                                                 wire:click="decrementQuantity({{ $item->id }})" 
-                                                @disabled($item->quantity <= 1)
+                                                @disabled($item->quantity <= 1 || $availableStock <= 0)
                                                 class="w-8 h-full text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center justify-center cursor-pointer shrink-0">
                                             <i class="fa-solid fa-minus text-[10px]"></i>
                                         </button>
@@ -103,7 +119,7 @@
                                         
                                         <button type="button" 
                                                 wire:click="incrementQuantity({{ $item->id }})" 
-                                                @disabled($item->quantity >= $availableStock)
+                                                @disabled($item->quantity >= $availableStock || $availableStock <= 0)
                                                 class="w-8 h-full text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center justify-center cursor-pointer shrink-0"
                                                 title="{{ $item->quantity >= $availableStock ? 'Đã đạt số lượng tối đa trong kho (' . ($availableStock + 0) . ')' : 'Tăng số lượng' }}">
                                             <i class="fa-solid fa-plus text-[10px]"></i>
