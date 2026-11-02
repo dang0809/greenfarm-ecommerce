@@ -145,7 +145,7 @@
                                         <select wire:model="bank_name" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:bg-white focus:border-brand-500 transition-all">
                                             <option value="">-- Chọn ngân hàng --</option>
                                             
-                                            @forelse ($this->banks as $bank)
+                                            @forelse ($this->banks() as $bank)
                                                 <option value="{{ $bank['shortName'] }}">
                                                     {{ $bank['shortName'] }} ({{$bank['code'] }})
                                                 </option>

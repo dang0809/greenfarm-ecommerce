@@ -13,7 +13,6 @@ use App\Models\Address;
 use App\Models\SystemSetting;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
-use Livewire\Attributes\Computed;
 #[Title('Tài Khoản Của Tôi | Nông Trại Đất Lành')]
 class ProfilePage extends Component
 {
@@ -326,7 +325,6 @@ class ProfilePage extends Component
             $this->dispatch('show-toast', type: 'success', message: 'Đã xóa địa chỉ thành công.');
         }
     }
-#[Computed]
     public function banks()
     {
     return Cache::remember('vietnam_banks_list', 86400, function () {
