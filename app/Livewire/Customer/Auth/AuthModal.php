@@ -194,6 +194,12 @@ class AuthModal extends Component
             $this->dispatch('user-authenticated');
             session()->flash('success', 'Đăng nhập thành công!');
 
+            if ($user->role === 'farm_staff') {
+                session()->flash('success', 'Đăng nhập thành công! Chào mừng Kỹ sư đến với trang quản trị nông trại.');
+                $this->redirect(route('farm-staff.farm-plot'), navigate: true);
+                return;
+            }
+
             $this->redirectIntended(default: route('home'));
             return;
         }

@@ -19,6 +19,11 @@ use App\Livewire\Customer\OrdersPage;
 use App\Livewire\Customer\OrderDetail;
 use App\Livewire\Customer\TraceabilityDetail;
 use App\Http\Controllers\Api\PayOSWebhookController;
+// Import đầy đủ các Livewire Farm Staff Components
+use App\Livewire\FarmStaff\ProductBatchManager;
+use App\Livewire\FarmStaff\FarmPlotManager;
+use App\Livewire\FarmStaff\CertificationManager;
+use App\Livewire\FarmStaff\ProfileManager;
 /*
 |--------------------------------------------------------------------------
 | 1. PUBLIC ROUTES (Ai cũng xem được - Không cần đăng nhập)
@@ -81,4 +86,17 @@ Route::middleware(['role:customer'])->group(function () {
     Route::get('/thanh-toan/thanh-cong/{order_id}', [PaymentController::class, 'success'])->name('customer.checkout.success');
     Route::get('/thanh-toan/huy/{order_id}', [PaymentController::class, 'cancel'])->name('customer.checkout.cancel');
     Route::get('/don-hang/{order_code}', OrderDetail::class)->name('customer.order.detail');
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| 3. FARM STAFF PROTECTED ROUTES (Nhân viên Nông trại đã đăng nhập | Vai trò farm_staff)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['role:farm_staff'])->prefix('nhan-vien-nong-trai')->name('farm-staff.')->group(function () {
+    Route::get('/', FarmPlotManager::class)->name('farm-plot');
+    Route::get('/lo-nong-san', ProductBatchManager::class)->name('product-batch');
+    Route::get('/luong-dat', FarmPlotManager::class)->name('farm-plot');
+    Route::get('/ho-so', ProfileManager::class)->name('profile');
 });
