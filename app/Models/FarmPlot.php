@@ -20,6 +20,12 @@ class FarmPlot extends Model
     {
         return ['area' => 'decimal:2'];
     }
+    
+    public function activeBatch(): ?PlantingBatch
+    {
+        return $this->plantingBatches
+            ->first(fn (PlantingBatch $b) => in_array($b->status, ['planting', 'harvesting'], true));
+    }
 
     public function plantingBatches(): HasMany { return $this->hasMany(PlantingBatch::class); }
 }
