@@ -26,6 +26,10 @@
                 <i class="fa-solid fa-boxes-stacked w-5 text-center"></i>
                 <span>Quản Lý Lô Nông Sản</span>
             </a>
+            <a href="{{ route('farm-staff.certification') }}" wire:navigate class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all {{ request()->routeIs('farm-staff.certifications*') || request()->routeIs('farm-staff.certification*') ? 'menu-active' : 'menu-inactive' }} text-left">
+                <i class="fa-solid fa-file-shield w-5 text-center"></i>
+                <span>Giấy Kiểm Định</span>
+            </a>
             <a href="{{ route('farm-staff.profile') }}" wire:navigate class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all {{ request()->routeIs('farm-staff.profile*') ? 'menu-active' : 'menu-inactive' }} text-left">
                 <i class="fa-solid fa-id-badge w-5 text-center"></i>
                     <span>Hồ Sơ Cá Nhân</span>

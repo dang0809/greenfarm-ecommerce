@@ -192,14 +192,6 @@ class AuthModal extends Component
 
             $this->closeModal();
             $this->dispatch('user-authenticated');
-
-            // Kiểm tra xem user có phải là farm staff không để chuyển trang sang layout /nhan-vien-nong-trai của Farm Staff
-            if ($user->role === 'farm_staff') {
-                session()->flash('success', 'Đăng nhập thành công! Chào mừng Kỹ sư đến với trang quản trị nông trại.');
-                $this->redirect(route('farm-staff.farm-plot'), navigate: true);
-                return;
-            }
-
             session()->flash('success', 'Đăng nhập thành công!');
 
             $this->redirectIntended(default: route('home'));
