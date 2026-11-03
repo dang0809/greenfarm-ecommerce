@@ -31,7 +31,7 @@
     <div
         class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 relative z-10 space-y-5 sm:space-y-6 custom-scrollbar h-[calc(100dvh-5rem)]">
 
-        {{-- ================= DANH SÁCH LUỐNG ================= --}}
+        <!-- ================= DANH SÁCH LUỐNG ================= -->
         @unless($this->selectedPlot)
         <div class="space-y-4 sm:space-y-6">
             <div
@@ -44,8 +44,12 @@
                         class="w-full pl-10 pr-4 py-2 sm:py-2.5 border border-gray-200 rounded-xl sm:rounded-2xl text-xs sm:text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 bg-[#FAFAF8] font-medium transition-all">
                 </div>
                 <div class="flex flex-wrap items-center gap-3 sm:gap-5 text-xs sm:text-sm font-bold text-gray-600">
-                    @foreach (['all' => 'Tất cả luống', 'active' => 'Đang canh tác', 'empty' => 'Đất trống'] as $key =>
-                    $label)
+                    @foreach ([
+                    'all' => 'Tất cả',
+                    'active' => 'Đang canh tác',
+                    'empty' => 'Đất trống',
+                    'maintenance' => 'Bảo trì',
+                    ] as $key => $label)
                     <label class="flex items-center gap-1.5 cursor-pointer hover:text-brand-700 transition">
                         <input type="radio" name="filter_plot" value="{{ $key }}" wire:click="setFilter('{{ $key }}')"
                             @checked($filter===$key) class="accent-brand-700">
@@ -57,79 +61,103 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 pb-12">
                 @forelse ($this->plots as $plot)
-                @php($batch = $plot->activeBatch())
+                @php
+                $batch = $plot->activeBatch();
+                $isMaintenance = $plot->status === 'maintenance';
+                $canSow = ! $batch && ! $isMaintenance;
+                @endphp
 
-                @if (! $batch)
-                <div
-                    class="bg-white rounded-2xl sm:rounded-3xl border border-dashed border-gray-300 p-4 sm:p-5 flex flex-col justify-between min-h-[190px] hover:bg-gray-50 transition shadow-sm">
-                    <div>
-                        <div class="flex items-center justify-between mb-2">
-                            <h3 class="font-extrabold text-gray-800 text-sm sm:text-base">{{ $plot->name }}</h3>
-                            <span class="bg-gray-100 text-gray-500 px-2.5 py-0.5 rounded-full text-[10px] font-bold">Đất
-                                trống</span>
-                        </div>
-                        <p class="text-xs text-gray-400">Diện tích: {{ $plot->area }}</p>
-                        <p
-                            class="text-xs text-gray-500 font-medium mt-2.5 bg-gray-50 p-2.5 rounded-xl border border-gray-100">
-                            Chưa có cây trồng</p>
-                    </div>
-                    <button wire:click="openSowFor({{ $plot->id }})"
-                        class="w-full mt-3 bg-white hover:bg-brand-50 text-brand-700 border border-brand-200 font-bold py-2 rounded-xl text-xs transition flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer">
-                        <i class="fa-solid fa-seedling text-xs"></i> <span>Xuống Giống Mới</span>
-                    </button>
-                </div>
-                @else
-                <div
-                    class="bg-white rounded-2xl sm:rounded-3xl border border-brand-100 p-4 sm:p-5 shadow-soft hover:shadow-card hover:border-brand-300 transition-all flex flex-col justify-between min-h-[190px]">
-                    <div>
-                        <div class="flex items-center justify-between mb-2.5">
-                            <h3 class="font-extrabold text-gray-900 text-sm sm:text-base">{{ $plot->name }}</h3>
-                            <span class="bg-brand-100 text-brand-800 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
-                                {{ $batch->status === 'harvesting' ? 'Đang thu hoạch' : 'Đang canh tác' }}
+                <div wire:key="plot-{{ $plot->id }}" class="bg-white rounded-3xl border p-4 sm:p-5 shadow-sm flex flex-col justify-between gap-4
+            {{ $isMaintenance
+                ? 'border-amber-200'
+                : ($batch ? 'border-brand-200' : 'border-dashed border-gray-300') }}">
+                    <div class="space-y-3">
+                        <div class="flex items-start justify-between gap-2">
+                            <h3 class="font-extrabold text-gray-900 text-sm">
+                                {{ $plot->name }}
+                            </h3>
+
+                            <span class="text-[10px] font-bold px-2 py-1 rounded-full shrink-0
+                    {{ $isMaintenance
+                        ? 'bg-amber-50 text-amber-800'
+                        : ($batch ? 'bg-brand-50 text-brand-800' : 'bg-gray-100 text-gray-600') }}">
+                                {{ $isMaintenance
+                        ? 'Bảo trì'
+                        : ($batch
+                            ? ($batch->status === 'harvesting'
+                                ? 'Đang thu hoạch'
+                                : 'Đang canh tác')
+                            : 'Đất trống') }}
                             </span>
                         </div>
-                        <div class="flex items-start gap-3 mb-2">
-                            <div
-                                class="w-10 h-10 rounded-2xl bg-brand-50 flex items-center justify-center shrink-0 border border-brand-100">
-                                <i class="fa-solid fa-leaf text-brand-700"></i>
-                            </div>
-                            <div class="min-w-0">
-                                <h4 class="text-xs sm:text-sm font-extrabold text-brand-900 truncate leading-tight">
-                                    {{ $batch->product?->name ?? 'Chưa rõ giống' }}
-                                </h4>
-                                <p class="text-[11px] text-gray-400 font-mono mt-0.5 truncate">Mã:
-                                    {{ $batch->planting_code }}</p>
-                                <p class="text-[11px] text-gray-400 font-mono">
-                                    Gieo: {{ $batch->planted_date?->format('d/m/Y') ?? '—' }}
-                                    @if ($batch->planted_date)
-                                    <span class="text-brand-600">({{ (int) $batch->planted_date->diffInDays(now()) }}
-                                        ngày)</span>
-                                    @endif
-                                </p>
-                            </div>
+
+                        <p class="text-xs text-gray-500">
+                            Diện tích:
+                            {{ $plot->area !== null
+                    ? number_format((float) $plot->area, 2, ',', '.') . ' m²'
+                    : '—' }}
+                        </p>
+
+                        @if ($batch)
+                        <div class="bg-brand-50/50 rounded-xl p-3 space-y-1">
+                            <p class="text-xs font-bold text-brand-900">
+                                {{ $batch->product?->name ?? 'Chưa rõ giống' }}
+                            </p>
+
+                            <p class="text-[10px] font-mono text-gray-500 break-all">
+                                {{ $batch->planting_code }}
+                            </p>
+
+                            <p class="text-[11px] text-gray-500">
+                                Gieo:
+                                {{ $batch->planted_date?->format('d/m/Y') ?? '—' }}
+                            </p>
                         </div>
+                        @else
+                        <p class="text-xs text-gray-500 bg-gray-50 rounded-xl p-3">
+                            {{ $isMaintenance
+                        ? 'Luống đang bảo trì, chưa thể xuống giống.'
+                        : 'Luống sẵn sàng cho vụ trồng mới.' }}
+                        </p>
+                        @endif
+
+                        @if ($plot->plantingBatches->count() > 1)
+                        <p class="text-xs text-red-600 font-bold">
+                            Cần kiểm tra: có nhiều vụ đang hoạt động.
+                        </p>
+                        @endif
                     </div>
-                    <div class="pt-2.5 border-t border-gray-100 flex items-center justify-end">
-                        <button wire:click="selectPlot({{ $plot->id }})"
-                            class="w-full sm:w-auto bg-brand-700 hover:bg-brand-800 text-white font-bold py-2 px-3.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer">
-                            <span>Quản Lý Luống</span> <i class="fa-solid fa-arrow-right text-xs"></i>
+
+                    <div class="space-y-2">
+                        @if ($canSow)
+                        <button type="button" wire:click="openSowFor({{ $plot->id }})"
+                            class="w-full bg-brand-700 hover:bg-brand-800 text-white font-bold py-2.5 rounded-xl text-xs">
+                            <i class="fa-solid fa-seedling mr-1"></i>
+                            Xuống Giống Mới
+                        </button>
+                        @endif
+
+                        <button type="button" wire:click="selectPlot({{ $plot->id }})"
+                            class="w-full border border-gray-200 hover:border-brand-300 text-gray-700 font-bold py-2.5 rounded-xl text-xs">
+                            {{ $batch ? 'Quản Lý Luống' : 'Xem Luống & Lịch Sử' }}
                         </button>
                     </div>
                 </div>
-                @endif
                 @empty
                 <div class="col-span-full py-12 text-center text-sm text-gray-400 italic">
-                    Không tìm thấy luống nào phù hợp với bộ lọc.
+                    Không tìm thấy luống phù hợp.
                 </div>
                 @endforelse
             </div>
         </div>
         @endunless
 
-        {{-- ================= CHI TIẾT LUỐNG ================= --}}
+        <!-- CHI TIẾT LUỐNG -->
         @if ($this->selectedPlot)
-        @php($plot = $this->selectedPlot)
-        @php($batch = $this->selectedBatch)
+        @php
+        $plot = $this->selectedPlot;
+        $batch = $this->selectedBatch;
+        @endphp
 
         <div class="space-y-4 sm:space-y-6 pb-12">
             <div class="flex items-center justify-between">
@@ -139,45 +167,139 @@
                 </button>
             </div>
 
-            <div class="bg-white rounded-2xl sm:rounded-3xl border border-gray-100 p-4 sm:p-6 shadow-soft">
-                <div class="flex items-center gap-3.5 sm:gap-5 min-w-0">
-                    <div
-                        class="w-12 h-12 sm:w-16 sm:h-16 bg-brand-50 border border-brand-100 rounded-2xl flex items-center justify-center shrink-0">
-                        <i class="fa-solid fa-seedling text-xl sm:text-2xl text-brand-700"></i>
-                    </div>
+            {{-- Thông tin luống và vụ đang xem --}}
+            <div class="bg-white rounded-3xl border border-gray-100 p-4 sm:p-6 shadow-sm space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                     <div class="min-w-0">
-                        <div class="flex items-center gap-2 sm:gap-3 mb-1">
-                            <h2 class="font-extrabold text-xl sm:text-2xl text-gray-900 truncate">{{ $plot->name }}</h2>
-                            <span
-                                class="text-[10px] sm:text-xs font-bold px-2.5 py-1 rounded-full border shrink-0
-                                    {{ $batch ? 'bg-brand-100 text-brand-800 border-brand-200' : 'bg-gray-100 text-gray-600 border-gray-200' }}">
-                                {{ $batch ? ($batch->status === 'harvesting' ? 'Đang thu hoạch' : 'Đang canh tác') : 'Đất trống' }}
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h2 class="font-extrabold text-xl text-gray-900">
+                                {{ $plot->name }}
+                            </h2>
+
+                            <span class="text-[10px] font-bold px-2.5 py-1 rounded-full border
+                    {{ $plot->status === 'maintenance'
+                        ? 'bg-amber-50 border-amber-200 text-amber-800'
+                        : 'bg-brand-50 border-brand-200 text-brand-800' }}">
+                                {{ $plot->status === 'maintenance' ? 'Bảo trì' : 'Đang hoạt động' }}
                             </span>
                         </div>
 
-                        @if ($batch)
-                        <h3 class="text-sm sm:text-base font-extrabold text-brand-700 truncate">
-                            {{ $batch->product?->name ?? 'Chưa rõ giống' }}
-                        </h3>
-                        <div
-                            class="flex flex-wrap items-center gap-2 sm:gap-4 text-[11px] sm:text-xs text-gray-500 font-mono mt-1">
-                            <span>Mã: <b class="text-gray-800">{{ $batch->planting_code }}</b></span>
-                            <span>•</span>
-                            <span>Gieo hạt: <b
-                                    class="text-gray-800">{{ $batch->planted_date?->format('d/m/Y') ?? '—' }}</b></span>
-                            <span>•</span>
-                            <span>Diện tích: <b class="text-gray-800">{{ $plot->area }}</b></span>
-                        </div>
-                        @else
-                        <p class="text-xs text-gray-500 mt-1">Luống chưa có cây trồng.</p>
-                        <button wire:click="openSowFor({{ $plot->id }})"
-                            class="mt-3 bg-brand-700 hover:bg-brand-800 text-white font-bold py-2 px-4 rounded-xl text-xs transition inline-flex items-center gap-1.5 active:scale-95 cursor-pointer">
-                            <i class="fa-solid fa-seedling"></i> Xuống Giống Mới
-                        </button>
-                        @endif
+                        <p class="text-xs text-gray-500 mt-2">
+                            Diện tích:
+                            <b class="text-gray-800">
+                                {{ $plot->area !== null
+                        ? number_format((float) $plot->area, 2, ',', '.') . ' m²'
+                        : '—' }}
+                            </b>
+                        </p>
+
+                        <p class="text-xs text-gray-500 mt-1">
+                            Hiện trạng:
+                            <b class="text-gray-800">
+                                {{ $this->currentBatch
+                        ? 'Có cây trồng trên luống'
+                        : 'Không có vụ đang canh tác' }}
+                            </b>
+                        </p>
                     </div>
+
+                    @if (! $this->currentBatch && $plot->status === 'active')
+                    <button type="button" wire:click="openSowFor({{ $plot->id }})"
+                        class="bg-brand-700 hover:bg-brand-800 text-white font-bold py-2.5 px-4 rounded-xl text-xs shrink-0">
+                        <i class="fa-solid fa-seedling mr-1"></i>
+                        Xuống Giống Vụ Mới
+                    </button>
+                    @endif
+                </div>
+
+                @if ($batch)
+                <div class="border-t border-gray-100 pt-4 space-y-1.5">
+                    <p class="text-[11px] uppercase text-gray-400 font-bold">
+                        Vụ đang xem
+                    </p>
+
+                    <h3 class="font-extrabold text-brand-800 text-sm">
+                        {{ $batch->product?->name ?? 'Chưa rõ giống' }}
+                    </h3>
+
+                    <p class="font-mono text-xs text-gray-600 break-all">
+                        {{ $batch->planting_code }}
+                    </p>
+
+                    <p class="text-xs text-gray-500">
+                        Gieo:
+                        {{ $batch->planted_date?->format('d/m/Y') ?? '—' }}
+
+                        · {{ match ($batch->status) {
+                    'planting' => 'Đang canh tác',
+                    'harvesting' => 'Đang thu hoạch',
+                    'completed' => 'Đã kết thúc vụ',
+                    default => $batch->status,
+                } }}
+                    </p>
+                </div>
+                @endif
+            </div>
+
+            {{-- Danh sách tất cả vụ trồng của luống --}}
+            <div class="bg-white border border-gray-100 rounded-3xl p-4 sm:p-6 space-y-3">
+                <div>
+                    <h3 class="font-extrabold text-sm text-gray-900">
+                        Các Vụ Trồng Trên Luống
+                    </h3>
+
+                    <p class="text-xs text-gray-500 mt-1">
+                        Chọn vụ để xem nhật ký và các lô đã thu hoạch.
+                    </p>
+                </div>
+
+                @if ($plot->plantingBatches->count() > 1)
+                <p class="rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-700">
+                    Luống đang có nhiều vụ hoạt động cùng lúc.
+                    Cần kiểm tra lại dữ liệu trước khi tiếp tục.
+                </p>
+                @endif
+
+                <div class="flex flex-wrap gap-2">
+                    @forelse ($this->historyBatches as $history)
+                    <button type="button" wire:key="history-{{ $history->id }}"
+                        wire:click="selectBatch({{ $history->id }})" class="text-left border rounded-2xl p-3 text-xs max-w-full
+                    {{ $batch?->id === $history->id
+                        ? 'border-brand-500 bg-brand-50'
+                        : 'border-gray-200 bg-white hover:border-brand-300' }}">
+                        <span class="block font-bold text-gray-900">
+                            {{ $history->product?->name ?? 'Sản phẩm' }}
+                        </span>
+
+                        <span class="block font-mono text-[10px] text-gray-500 mt-1 break-all">
+                            {{ $history->planting_code }}
+                        </span>
+
+                        <span class="block text-gray-600 mt-1">
+                            {{ match ($history->status) {
+                        'planting' => 'Đang canh tác',
+                        'harvesting' => 'Đang thu hoạch',
+                        'completed' => 'Đã kết thúc',
+                        default => $history->status,
+                    } }}
+
+                            · {{ $history->product_batches_count }} lô thu hoạch
+                        </span>
+                    </button>
+                    @empty
+                    <p class="text-xs text-gray-400">
+                        Luống chưa có vụ trồng.
+                    </p>
+                    @endforelse
                 </div>
             </div>
+
+            @if ($batch && ! $this->canManageSelectedBatch)
+            <p class="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
+                Bạn đang xem dữ liệu của vụ này.
+                Chức năng ghi nhật ký và thu hoạch hiện không khả dụng.
+            </p>
+            @endif
 
             @if ($batch)
             {{-- TABS --}}
@@ -206,18 +328,24 @@
                             <p class="text-[11px] sm:text-xs text-gray-400 mt-0.5">Lưu trữ minh chứng & băm mã SHA-256
                                 đối chiếu</p>
                         </div>
-                        <button wire:click="openLogModal"
-                            class="w-full sm:w-auto bg-brand-700 hover:bg-brand-800 text-white font-bold text-xs px-4 py-2.5 rounded-2xl transition flex items-center justify-center gap-2 active:scale-95 cursor-pointer">
-                            <i class="fa-solid fa-pen-to-square text-brand-200"></i>
-                            <span>Ghi Nhật Ký</span>
+                        @if ($this->canManageSelectedBatch)
+                        <button type="button" wire:click="openLogModal"
+                            class="w-full sm:w-auto bg-brand-700 hover:bg-brand-800 text-white font-bold text-xs px-4 py-2.5 rounded-2xl transition flex items-center justify-center gap-2 cursor-pointer">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                            Ghi Nhật Ký
                         </button>
+                        @endif
                     </div>
 
                     <div
                         class="space-y-4 relative before:absolute before:inset-0 before:left-3.5 before:w-0.5 before:bg-gray-100">
                         @forelse ($this->timelineEvents as $event)
-                        @php($isHarvest = $event->event_name === 'Thu hoạch' || str_contains($event->event_name, 'Thu
-                        hoạch'))
+                        @php
+                        $isHarvest = str_contains(
+                        mb_strtolower($event->event_name),
+                        'thu hoạch'
+                        );
+                        @endphp
                         <div class="relative pl-7" wire:key="evt-{{ $event->id }}">
                             <div
                                 class="absolute -left-[9px] top-1 w-4 h-4 rounded-full border-2 border-white shadow-xs {{ $isHarvest ? 'bg-blue-600' : 'bg-brand-700' }}">
@@ -239,14 +367,22 @@
                                     <i class="fa-regular fa-clock mr-1 text-gray-400"></i>
                                     {{ $event->recorded_at?->format('d/m/Y H:i') ?? '—' }} • {{ $event->recorded_by }}
                                 </p>
+                                <button type="button" wire:click="verifyLogHash({{ $event->id }})"
+                                    wire:loading.attr="disabled" wire:target="verifyLogHash"
+                                    class="text-[11px] font-bold text-brand-700 hover:underline disabled:opacity-50">
+                                    Kiểm Chứng Nội Dung & Ảnh
+                                </button>
                                 @if ($event->description)
                                 <p class="text-xs sm:text-sm text-gray-700 leading-relaxed">{{ $event->description }}
                                 </p>
                                 @endif
                                 @if ($event->image)
-                                <img src="{{ str_starts_with($event->image, 'http') ? $event->image : asset('storage/' . $event->image) }}"
+                                <img src="{{ str_starts_with($event->image, 'http')
+                                    ? $event->image
+                                    : asset('storage/' . $event->image) }}"
+                                    x-on:click="$dispatch('farm-preview-image', { src: $el.src })"
                                     class="w-24 h-24 rounded-xl object-cover border mt-2 cursor-pointer hover:scale-105 transition"
-                                    onclick="previewImage(this.src)" alt="Ảnh minh chứng">
+                                    alt="Ảnh minh chứng">
                                 @endif
                             </div>
                         </div>
@@ -268,11 +404,13 @@
                             <p class="text-[11px] sm:text-xs text-gray-400 mt-0.5">Mỗi lần thu hoạch sinh ra 1 Lô hàng
                                 riêng biệt quản lý theo chuẩn FEFO</p>
                         </div>
-                        <button wire:click="openHarvestModal"
-                            class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-2xl transition flex items-center justify-center gap-2 active:scale-95 cursor-pointer">
+                        @if ($this->canManageSelectedBatch)
+                        <button type="button" wire:click="openHarvestModal"
+                            class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-2xl transition flex items-center justify-center gap-2 cursor-pointer">
                             <i class="fa-solid fa-basket-shopping"></i>
-                            <span>Thu Hoạch (Tạo Lô Mới)</span>
+                            Thu Hoạch — Tạo Lô Mới
                         </button>
+                        @endif
                     </div>
 
                     <div class="w-full overflow-x-auto custom-scrollbar">
@@ -290,7 +428,9 @@
                             </thead>
                             <tbody class="divide-y divide-gray-100 font-medium">
                                 @forelse ($this->harvestBatches as $hb)
-                                @php($isExpired = $hb->expiry_date?->isPast())
+                                @php
+                                $isExpired = $hb->expiry_date?->isBefore(today()) ?? false;
+                                @endphp
                                 <tr wire:key="hb-{{ $hb->id }}" class="hover:bg-blue-50/30 transition">
                                     <td class="p-3 sm:p-4 font-mono font-bold text-blue-700 text-xs">
                                         {{ $hb->batch_code }}</td>
@@ -344,10 +484,9 @@
 
     </div>
 
-    {{-- ================= MODALS ĐẶT Ở CẤP ĐỘ GỐC ================= --}}
 
-    {{-- Modal Xuống Giống --}}
-    @if (!empty($showSowModal) && $showSowModal)
+    <!-- Modal Xuống Giống -->
+    @if ($showSowModal)
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4">
         <div
             class="bg-white rounded-3xl w-full max-w-md shadow-2xl p-5 sm:p-7 border border-gray-100 max-h-[90vh] overflow-y-auto">
@@ -355,17 +494,23 @@
                 <div>
                     <h3 class="text-base sm:text-lg font-extrabold text-gray-900">Xuống Giống Trồng Mới</h3>
                     <p class="text-xs text-gray-500 mt-0.5">
-                        Thao tác tại: <b
-                            class="text-brand-700">{{ $this->selectedPlot?->name ?? ($sowPlotId ? 'Luống #' . $sowPlotId : '—') }}</b>
+                        Thao tác tại: <b class="text-brand-700">{{ $this->sowPlot?->name ?? '—' }}</b>
                     </p>
                 </div>
-                <button wire:click="$set('showSowModal', false)" type="button"
+                <button wire:click="closeSowModal" type="button"
                     class="text-gray-400 hover:text-red-500 p-1 cursor-pointer">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
             <form wire:submit="sow" class="space-y-4 text-xs sm:text-sm">
+                @if ($errors->any())
+                <ul class="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700 space-y-1">
+                    @foreach ($errors->all() as $message)
+                    <li>{{ $message }}</li>
+                    @endforeach
+                </ul>
+                @endif
                 <div>
                     <label class="block font-bold text-gray-700 mb-1">Chọn giống cây trồng <span
                             class="text-red-500">*</span></label>
@@ -400,20 +545,27 @@
     </div>
     @endif
 
-    {{-- Modal Ghi Nhật Ký --}}
-    @if (!empty($showLogModal) && $showLogModal)
+    <!-- Modal Ghi Nhật Ký -->
+    @if ($showLogModal)
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4">
         <div
             class="bg-white rounded-3xl w-full max-w-md shadow-2xl p-5 sm:p-7 border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-5 border-b border-gray-100 pb-3">
                 <h3 class="text-base sm:text-lg font-extrabold text-gray-900">Viết Nhật Ký Chăm Sóc</h3>
-                <button wire:click="$set('showLogModal', false)" type="button"
+                <button wire:click="closeLogModal" type="button"
                     class="text-gray-400 hover:text-red-500 p-1 cursor-pointer">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
             <form wire:submit="saveLog" class="space-y-4 text-xs sm:text-sm">
+                @if ($errors->any())
+                <ul class="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700 space-y-1">
+                    @foreach ($errors->all() as $message)
+                    <li>{{ $message }}</li>
+                    @endforeach
+                </ul>
+                @endif
                 <div>
                     <label class="block font-bold text-gray-700 mb-1">Loại hoạt động <span
                             class="text-red-500">*</span></label>
@@ -444,9 +596,13 @@
                     <div wire:loading wire:target="logPhoto" class="text-[11px] text-brand-700 mt-1">
                         <i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang tải ảnh lên...
                     </div>
-                    @if ($logPhoto && ! $errors->has('logPhoto'))
-                    <img src="{{ $logPhoto->temporaryUrl() }}"
-                        class="mt-2 w-20 h-20 object-cover rounded-xl border border-gray-200" alt="Xem trước ảnh">
+                    @if (
+                    $logPhoto instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile
+                    && $logPhoto->isPreviewable()
+                    && ! $errors->has('logPhoto')
+                    )
+                    <img src="{{ $logPhoto->temporaryUrl() }}" class="mt-2 w-20 h-20 object-cover rounded-xl border"
+                        alt="Ảnh nhật ký">
                     @endif
                     @error('logPhoto') <p class="text-[11px] text-red-600 font-bold mt-1">{{ $message }}</p> @enderror
                 </div>
@@ -463,8 +619,8 @@
     </div>
     @endif
 
-    {{-- ================= MODAL THU HOẠCH & TẠO LÔ KHO MỚI ================= --}}
-    @if (!empty($showHarvestModal) && $showHarvestModal)
+    <!-- MODAL THU HOẠCH & TẠO LÔ KHO MỚI -->
+    @if ($showHarvestModal)
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4">
         <div
             class="bg-white rounded-3xl w-full max-w-lg shadow-2xl p-5 sm:p-7 max-h-[90vh] overflow-y-auto border border-gray-100">
@@ -476,34 +632,43 @@
                     </h3>
                     <p class="text-xs text-gray-500 mt-0.5">Tạo Lô Hàng Mới & ghi nhận chuẩn FEFO</p>
                 </div>
-                <button wire:click="$set('showHarvestModal', false)" type="button"
+                <button wire:click="closeHarvestModal" type="button"
                     class="text-gray-400 hover:text-red-500 p-1 cursor-pointer">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
-            <form wire:submit="saveHarvest" class="space-y-3.5 sm:space-y-4 text-xs sm:text-sm">
+            <form wire:submit="harvest" class="space-y-3.5 sm:space-y-4 text-xs sm:text-sm">
+                @if ($errors->any())
+                <ul class="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700 space-y-1">
+                    @foreach ($errors->all() as $message)
+                    <li>{{ $message }}</li>
+                    @endforeach
+                </ul>
+                @endif
                 <div>
                     <label class="block font-bold text-gray-700 mb-1">Mã Lô Hàng Mới (Tự sinh)</label>
-                    <input type="text" wire:model="harvestBatchCode" readonly
-                        class="w-full bg-gray-100 border border-gray-200 rounded-2xl px-3.5 py-2.5 font-mono font-bold text-blue-800 text-xs outline-none">
+                    <div class="rounded-2xl bg-blue-50 border border-blue-100 p-3 text-xs text-blue-800">
+                        Mã lô hàng sẽ được cấp khi lưu thu hoạch.
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block font-bold text-gray-700 mb-1">Ngày thu hái <span
                                 class="text-red-500">*</span></label>
-                        <input type="date" wire:model="harvestDate"
-                            class="w-full bg-[#FAFAF8] border border-gray-200 rounded-2xl px-3.5 py-2.5 outline-none focus:border-blue-600 font-mono text-xs">
+                        <input type="date" wire:model="harvestDate" max="{{ now()->toDateString() }}"
+                            min="{{ $this->selectedBatch?->planted_date?->toDateString() }}"
+                            class="w-full border rounded-2xl px-3 py-2.5">
                         @error('harvestDate') <p class="text-[11px] text-red-600 font-bold mt-1">{{ $message }}</p>
                         @enderror
                     </div>
                     <div>
                         <label class="block font-bold text-gray-700 mb-1">Hạn dùng (FEFO) <span
                                 class="text-red-500">*</span></label>
-                        <input type="date" wire:model="harvestExpiryDate"
-                            class="w-full bg-[#FAFAF8] border border-gray-200 rounded-2xl px-3.5 py-2.5 outline-none focus:border-blue-600 font-mono text-xs">
-                        @error('harvestExpiryDate') <p class="text-[11px] text-red-600 font-bold mt-1">{{ $message }}
+                        <input type="date" wire:model="harvestExpiry" min="{{ now()->toDateString() }}"
+                            class="w-full border rounded-2xl px-3 py-2.5">
+                        @error('harvestExpiry') <p class="text-[11px] text-red-600 font-bold mt-1">{{ $message }}
                         </p> @enderror
                     </div>
                 </div>
@@ -511,24 +676,29 @@
                 <div>
                     <label class="block font-bold text-gray-700 mb-1">Sản lượng nhập kho (Kg) <span
                             class="text-red-500">*</span></label>
-                    <input type="number" wire:model="harvestQuantity" step="0.01" min="0.01" placeholder="Nhập số kg..."
+                    <input type="number" wire:model="harvestQty" step="0.01" min="0.01" placeholder="Nhập số kg..."
                         class="w-full bg-[#FAFAF8] border border-gray-200 rounded-2xl px-3.5 py-2.5 outline-none focus:border-blue-600 font-bold font-mono text-blue-700 text-base">
-                    @error('harvestQuantity') <p class="text-[11px] text-red-600 font-bold mt-1">{{ $message }}</p>
+                    @error('harvestQty') <p class="text-[11px] text-red-600 font-bold mt-1">{{ $message }}</p>
                     @enderror
                 </div>
 
                 <div>
-                    <label class="block font-bold text-gray-700 mb-1">Ảnh thu hoạch thực tế <span
-                            class="text-red-500">*</span></label>
+                    <label class="block font-bold text-gray-700 mb-1">
+                        Ảnh thu hoạch thực tế
+                        <span class="font-normal text-gray-400">— không bắt buộc</span>
+                    </label>
                     <input type="file" wire:model="harvestPhoto" accept="image/*"
                         class="w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-blue-50 file:text-blue-700 cursor-pointer">
                     <div wire:loading wire:target="harvestPhoto" class="text-[11px] text-blue-600 mt-1">
                         <i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang tải ảnh...
                     </div>
-                    @if ($harvestPhoto && ! $errors->has('harvestPhoto'))
-                    <img src="{{ $harvestPhoto->temporaryUrl() }}"
-                        class="mt-2 w-20 h-20 object-cover rounded-xl border border-blue-200 shadow-xs"
-                        alt="Xem trước ảnh thu hoạch">
+                    @if (
+                    $harvestPhoto instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile
+                    && $harvestPhoto->isPreviewable()
+                    && ! $errors->has('harvestPhoto')
+                    )
+                    <img src="{{ $harvestPhoto->temporaryUrl() }}" class="mt-2 w-20 h-20 object-cover rounded-xl border"
+                        alt="Ảnh thu hoạch">
                     @endif
                     @error('harvestPhoto') <p class="text-[11px] text-red-600 font-bold mt-1">{{ $message }}</p>
                     @enderror
@@ -564,56 +734,98 @@
                 </div>
 
                 <div class="pt-2">
-                    <button type="submit" wire:loading.attr="disabled" wire:target="saveHarvest,harvestPhoto"
-                        class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold py-3 rounded-2xl shadow-sm transition active:scale-95 text-xs sm:text-sm flex justify-center items-center gap-2 cursor-pointer">
-                        <span wire:loading.remove wire:target="saveHarvest"><i class="fa-solid fa-box"></i> Lưu Thu
-                            Hoạch & Tạo Lô Kho</span>
-                        <span wire:loading wire:target="saveHarvest"><i class="fa-solid fa-spinner fa-spin"></i> Đang xử
-                            lý...</span>
+                    <button type="submit" wire:loading.attr="disabled" wire:target="harvest,harvestPhoto"
+                        class="w-full bg-blue-600 text-white rounded-2xl py-3 font-bold disabled:opacity-50">
+                        <span wire:loading.remove wire:target="harvest">
+                            Lưu Thu Hoạch & Tạo Lô Kho
+                        </span>
+
+                        <span wire:loading wire:target="harvest">
+                            Đang lưu...
+                        </span>
                     </button>
                 </div>
             </form>
         </div>
     </div>
     @endif
+    <!-- MODAL IN TEM QR -->
+    @if ($this->qrBatch)
+    @php
+    $qrBatch = $this->qrBatch;
 
-    {{-- ================= MODAL IN TEM NHIỆT QR 70x80 ================= --}}
-    @if (!empty($showPrintQrModal) && $showPrintQrModal)
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4">
-        <div class="bg-white rounded-3xl w-full max-w-[320px] shadow-2xl p-5 sm:p-6 text-center border border-gray-100">
-            <div class="flex justify-between items-center border-b border-gray-100 pb-3 mb-4">
-                <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">Tem Nhiệt Dán Thùng 70x80</span>
-                <button wire:click="$set('showPrintQrModal', false)" type="button"
-                    class="text-gray-400 hover:text-red-500 p-1 cursor-pointer">
-                    <i class="fa-solid fa-xmark"></i>
+    // Query batch giữ tương thích với bộ quét QR ở trang chủ.
+    $traceUrl = route('customer.traceability.detail', [
+    'batch' => $qrBatch->batch_code,
+    ]) . '?batch=' . rawurlencode($qrBatch->batch_code);
+
+    $qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?'
+    . http_build_query([
+    'size' => '300x300',
+    'data' => $traceUrl,
+    ]);
+    @endphp
+
+    @teleport('body')
+    <div id="farm-print-root" wire:key="qr-modal-{{ $qrBatch->id }}" x-data="{ qrReady: false }" x-init="$nextTick(() => {
+                qrReady = $refs.qr.complete && $refs.qr.naturalWidth > 0;
+            })" x-on:keydown.escape.window="$wire.closeQr()"
+        class="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4">
+        <div class="farm-print-card bg-white rounded-3xl p-5 w-full max-w-sm shadow-xl">
+            <div class="farm-no-print flex justify-between items-center mb-4">
+                <h3 class="font-bold text-sm text-gray-900">
+                    In Tem 70 × 80 mm
+                </h3>
+
+                <button type="button" wire:click="closeQr" class="text-gray-500 hover:text-red-600 text-xs font-bold">
+                    Đóng
                 </button>
             </div>
-            <div id="printable-thermal-label"
-                class="p-4 border-2 border-dashed border-brand-500 rounded-2xl bg-brand-50/20 mb-5">
-                <div
-                    class="flex items-center justify-center gap-1.5 text-brand-900 border-b border-brand-200 pb-1.5 mb-2">
-                    <i class="fa-solid fa-leaf text-brand-600"></i>
-                    <span class="font-extrabold text-[11px] tracking-wider uppercase">ĐẤT LÀNH FARM</span>
+
+            <div id="farm-thermal-label" class="border border-dashed rounded-xl p-4 text-center space-y-3">
+                <p class="font-extrabold text-sm">
+                    NÔNG TRẠI ĐẤT LÀNH
+                </p>
+
+                <p class="farm-label-name font-bold text-sm leading-tight">
+                    {{ $qrBatch->plantingBatch?->product?->name ?? 'Nông sản' }}
+                </p>
+
+                <img x-ref="qr" src="{{ $qrImageUrl }}" x-on:load="qrReady = true" x-on:error="qrReady = false"
+                    class="w-36 h-36 mx-auto" alt="QR truy xuất nguồn gốc">
+
+                <p class="font-mono text-[9px] break-all">
+                    {{ $qrBatch->batch_code }}
+                </p>
+
+                <div class="text-[10px] leading-relaxed">
+                    <p>
+                        Thu hoạch:
+                        {{ $qrBatch->manufactured_date?->format('d/m/Y') ?? '—' }}
+                    </p>
+
+                    <p>
+                        Hạn dùng:
+                        {{ $qrBatch->expiry_date?->format('d/m/Y') ?? '—' }}
+                    </p>
                 </div>
-                <p class="font-bold text-sm text-gray-900 mb-2 leading-tight">
-                    {{ $printBatchCropName ?? 'Nông Sản Sạch' }}</p>
-                <div
-                    class="w-32 h-32 mx-auto bg-white border border-gray-200 rounded-xl p-1.5 mb-2 shadow-xs flex items-center justify-center">
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data={{ $printBatchCode ?? 'FARM-BATCH' }}"
-                        class="w-full h-full object-contain" alt="QR Code Lô">
-                </div>
-                <div
-                    class="text-[10px] text-gray-600 font-mono leading-tight space-y-0.5 border-t border-brand-200 pt-2">
-                    <p class="font-bold text-gray-900">MÃ LÔ: {{ $printBatchCode ?? '—' }}</p>
-                    <p>Thu: {{ $printBatchDate ?? '—' }} • HSD: {{ $printBatchExp ?? '—' }}</p>
-                </div>
-                <p class="text-[8px] text-gray-400 italic mt-1.5">Quét mã QR để xem nhật ký nguồn gốc</p>
+
+                <p class="text-[9px]">
+                    Quét QR để xem nguồn gốc nông sản
+                </p>
             </div>
-            <button onclick="window.print()"
-                class="w-full bg-brand-700 hover:bg-brand-800 text-white font-bold py-2.5 sm:py-3 rounded-2xl transition active:scale-95 flex items-center justify-center gap-2 text-xs sm:text-sm cursor-pointer">
-                <i class="fa-solid fa-print"></i> In Tem Dán Bao Bì
+
+            <p x-show="!qrReady" class="farm-no-print text-xs text-amber-700 mt-3">
+                Đang tải QR. Nếu chưa hiện mã, hãy kiểm tra kết nối mạng.
+            </p>
+
+            <button type="button" x-bind:disabled="!qrReady" x-on:click="window.print()"
+                class="farm-no-print w-full mt-4 rounded-xl bg-brand-700 hover:bg-brand-800 text-white py-3 text-sm font-bold disabled:opacity-50">
+                <i class="fa-solid fa-print mr-1"></i>
+                In Tem
             </button>
         </div>
     </div>
+    @endteleport
     @endif
 </div>

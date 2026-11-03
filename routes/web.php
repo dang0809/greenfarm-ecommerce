@@ -22,7 +22,6 @@ use App\Http\Controllers\Api\PayOSWebhookController;
 // Import đầy đủ các Livewire Farm Staff Components
 use App\Livewire\FarmStaff\ProductBatchManager;
 use App\Livewire\FarmStaff\FarmPlotManager;
-use App\Livewire\FarmStaff\CertificationManager;
 use App\Livewire\FarmStaff\ProfileManager;
 /*
 |--------------------------------------------------------------------------
@@ -95,7 +94,9 @@ Route::middleware(['role:customer'])->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['role:farm_staff'])->prefix('nhan-vien-nong-trai')->name('farm-staff.')->group(function () {
-    Route::get('/', FarmPlotManager::class)->name('farm-plot');
+     Route::get('/', function () {
+            return redirect()->route('farm-staff.farm-plot');
+        })->name('dashboard');
     Route::get('/lo-nong-san', ProductBatchManager::class)->name('product-batch');
     Route::get('/luong-dat', FarmPlotManager::class)->name('farm-plot');
     Route::get('/ho-so', ProfileManager::class)->name('profile');

@@ -17,14 +17,40 @@ class FarmBlockchainSeeder extends Seeder
         $pDuaLuoi = Product::where('slug', 'dua-luoi-tach-mat')->first();
 
         // 1. Khu đất canh tác
-        $p1 = DB::table('farm_plots')->insertGetId(['name' => 'Nhà Màng A1 - Hữu Cơ', 'area' => '1000m2', 'status' => 'active', 'created_at' => now()]);
-        $p2 = DB::table('farm_plots')->insertGetId(['name' => 'Nhà Màng A2 - Công Nghệ Cao', 'area' => '1200m2', 'status' => 'active', 'created_at' => now()]);
-        $p3 = DB::table('farm_plots')->insertGetId(['name' => 'Luống B1 - Ngoài Trời', 'area' => '800m2', 'status' => 'active', 'created_at' => now()]);
+        $p1 = DB::table('farm_plots')->insertGetId(['name' => 'Nhà Màng A1 - Hữu Cơ', 'area' => '1000', 'status' => 'active', 'created_at' => now()]);
+        $p2 = DB::table('farm_plots')->insertGetId(['name' => 'Nhà Màng A2 - Công Nghệ Cao', 'area' => '1200', 'status' => 'active', 'created_at' => now()]);
+        $p3 = DB::table('farm_plots')->insertGetId(['name' => 'Luống B1 - Ngoài Trời', 'area' => '800', 'status' => 'active', 'created_at' => now()]);
 
         // 2. Lô canh tác
-        $b1 = DB::table('planting_batches')->insertGetId(['farm_plot_id' => $p1, 'product_id' => $pBoxoi?->id ?? 1, 'planting_code' => 'TRONG-BOXOI-L1', 'status' => 'completed', 'created_at' => now()->subDays(60)]);
-        $b2 = DB::table('planting_batches')->insertGetId(['farm_plot_id' => $p2, 'product_id' => $pCachua?->id ?? 2, 'planting_code' => 'TRONG-CACHUA-L2', 'status' => 'harvesting', 'created_at' => now()->subDays(45)]);
-        $b3 = DB::table('planting_batches')->insertGetId(['farm_plot_id' => $p2, 'product_id' => $pDuaLuoi?->id ?? 7, 'planting_code' => 'TRONG-DUALUOI-L3', 'status' => 'planting', 'created_at' => now()->subDays(20)]);
+        $b1 = DB::table('planting_batches')->insertGetId([
+            'farm_plot_id' => $p1,
+            'product_id' => $pBoxoi?->id ?? 1,
+            'planting_code' => 'TRONG-BOXOI-L1',
+            'planted_date' => now()->subDays(60)->toDateString(),
+            'status' => 'completed',
+            'created_at' => now()->subDays(60),
+            'updated_at' => now(),
+        ]);
+
+        $b2 = DB::table('planting_batches')->insertGetId([
+            'farm_plot_id' => $p2,
+            'product_id' => $pCachua?->id ?? 2,
+            'planting_code' => 'TRONG-CACHUA-L2',
+            'planted_date' => now()->subDays(45)->toDateString(),
+            'status' => 'harvesting',
+            'created_at' => now()->subDays(45),
+            'updated_at' => now(),
+        ]);
+
+        $b3 = DB::table('planting_batches')->insertGetId([
+            'farm_plot_id' => $p3,
+            'product_id' => $pDuaLuoi?->id ?? 7,
+            'planting_code' => 'TRONG-DUALUOI-L3',
+            'planted_date' => now()->subDays(20)->toDateString(),
+            'status' => 'planting',
+            'created_at' => now()->subDays(20),
+            'updated_at' => now(),
+        ]);
 
         // 3. Sự kiện Blockchain (Traceability Events)
         $events = [

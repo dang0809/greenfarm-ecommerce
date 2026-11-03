@@ -21,6 +21,7 @@ class ProductBatch extends Model
         'current_quantity',
         'spoiled_quantity',
         'discount_percent',
+        'harvest_token',
     ];
 
     protected function casts(): array
