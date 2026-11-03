@@ -11,9 +11,7 @@ use Illuminate\Support\Facades\Log;
 
 trait WithShippingAddress
 {
-    /**
-     * Thay đổi địa chỉ nhận hàng từ Modal popup
-     */
+    // Hàm thay đổi địa chỉ nhận hàng từ Modal popup
     public function selectAddress(int $addressId): void
     {
         if (isset($this->isLocked) && $this->isLocked) {
@@ -25,10 +23,7 @@ trait WithShippingAddress
         $this->dispatch('show-toast', type: 'success', message: 'Đã cập nhật địa chỉ giao hàng.');
     }
 
-    /**
-     * Livewire Computed Property: $this->selectedAddress
-     * Tự động lấy địa chỉ đang chọn (theo ID, hoặc mặc định, hoặc địa chỉ đầu tiên)
-     */
+    // Hàm lấy địa chỉ đang được chọn của khách hàng (theo ID, mặc định hoặc địa chỉ đầu tiên)
     public function getSelectedAddressProperty(): ?Address
     {
         return Address::where('user_id', Auth::id())
@@ -38,9 +33,7 @@ trait WithShippingAddress
             ?? Address::where('user_id', Auth::id())->first();
     }
 
-    /**
-     * Lấy tọa độ nông trại từ bảng system_settings (Cache 24h)
-     */
+    // Hàm lấy tọa độ nông trại từ bảng system_settings (có cache 24h)
     protected function getFarmCoordinates(): array
     {
         return Cache::remember('system_farm_coordinates', 86400, function () {
@@ -55,9 +48,7 @@ trait WithShippingAddress
         });
     }
 
-    /**
-     * Lấy bán kính giao hàng tối đa từ bảng system_settings (Cache 24h)
-     */
+    // Hàm lấy bán kính giao hàng tối đa từ bảng system_settings (có cache 24h)
     protected function getMaxShippingDistance(): float
     {
         return Cache::remember('system_max_shipping_distance', 86400, function () {
@@ -66,9 +57,7 @@ trait WithShippingAddress
         });
     }
 
-    /**
-     * Tính khoảng cách đường bộ bằng OSRM API (Cache 24h theo cặp tọa độ)
-     */
+    // Hàm tính khoảng cách đường bộ bằng OSRM API (có cache 24h theo tọa độ)
     protected function getShippingDistance(?float $destLat, ?float $destLng): ?float
     {
         if (!$destLat || !$destLng) {
@@ -96,9 +85,7 @@ trait WithShippingAddress
         });
     }
 
-    /**
-     * Lấy danh sách địa chỉ của khách hàng, tính toán khoảng cách và trạng thái bán kính phục vụ
-     */
+    // Hàm tổng hợp danh sách địa chỉ, tính khoảng cách và kiểm tra bán kính giao hàng
     protected function resolveShippingAddresses(?int $userId = null): array
     {
         $userId = $userId ?? Auth::id();
@@ -128,9 +115,7 @@ trait WithShippingAddress
         ];
     }
 
-    /**
-     * Kiểm tra tính hợp lệ của địa chỉ nhận hàng trước khi thanh toán / lưu hợp đồng
-     */
+    // Hàm kiểm tra tính hợp lệ của địa chỉ nhận hàng trước khi thanh toán / lưu hợp đồng
     protected function validateShippingAddress(?Address $address, ?float $distance, float $maxDistance): bool
     {
         if (!$address) {
