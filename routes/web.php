@@ -94,9 +94,9 @@ Route::middleware(['role:customer'])->group(function () {
 | 3. FARM STAFF PROTECTED ROUTES (Nhân viên Nông trại đã đăng nhập | Vai trò farm_staff)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['role:farm_staff'])->prefix('nhan-vien')->name('farm-staff.')->group(function () {
+Route::middleware(['role:farm_staff'])->prefix('nhan-vien-nong-trai')->name('farm-staff.')->group(function () {
+    Route::get('/', FarmPlotManager::class)->name('farm-plot');
     Route::get('/lo-nong-san', ProductBatchManager::class)->name('product-batch');
     Route::get('/luong-dat', FarmPlotManager::class)->name('farm-plot');
-    Route::get('/giay-kiem-dinh', CertificationManager::class)->name('certification');
     Route::get('/ho-so', ProfileManager::class)->name('profile');
 });
