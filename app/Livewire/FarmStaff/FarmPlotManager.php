@@ -105,6 +105,17 @@ class FarmPlotManager extends Component
     }
 
     #[Computed]
+    public function sowPlot(): ?FarmPlot
+    {
+        // Ưu tiên luống đang mở chi tiết, sau đó tới luống bấm từ danh sách
+        if ($this->selectedPlot) {
+            return $this->selectedPlot;
+        }
+
+        return $this->sowPlotId ? FarmPlot::find($this->sowPlotId) : null;
+    }
+
+    #[Computed]
     public function timelineEvents(): Collection
     {
         if (! $batch = $this->selectedBatch) {
@@ -167,16 +178,31 @@ class FarmPlotManager extends Component
     /* ================== MỞ MODAL TỪ DANH SÁCH ================== */
     public function openSowFor(int $plotId): void
     {
-         $this->sowPlotId = $plotId;
-         $this->openSowModal();
+        $this->sowPlotId = $plotId;
+        $this->initSowForm();
     }
 
     public function openSowModal(): void
+    {
+        $this->sowPlotId = null;   // dùng luống đang mở chi tiết (nếu có)
+        $this->initSowForm();
+    }
+
+    /** Khởi tạo dữ liệu form xuống giống (dùng chung cho 2 điểm mở modal). */
+    private function initSowForm(): void
     {
         $this->resetValidation();
         $this->sowProductId = $this->products->first()?->id;
         $this->sowDate = now()->toDateString();
         $this->showSowModal = true;
+    }
+
+    public function closeSowModal(): void
+    {
+        $this->showSowModal = false;
+        $this->sowPlotId = null;
+        $this->resetValidation();
+        unset($this->sowPlot);
     }
 
     public function sow(FarmPlotService $service): void
@@ -191,7 +217,8 @@ class FarmPlotManager extends Component
             'sowDate.before_or_equal' => 'Ngày xuống giống không được ở tương lai.',
         ]);
         // Resolve luống: ưu tiên luống đang mở chi tiết, sau đó tới luống bấm từ danh sách
-        $plot = $this->selectedPlot ?? FarmPlot::find($this->sowPlotId);
+        $plot = $this->sowPlot;
+
         if (! $plot) {
             $this->addError('sowProductId', 'Không xác định được luống cần xuống giống.');
             return;
