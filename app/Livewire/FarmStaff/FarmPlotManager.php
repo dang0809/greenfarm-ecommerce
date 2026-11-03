@@ -15,8 +15,8 @@ class FarmPlotManager extends Component
     public function render()
     {
         $plots = FarmPlot::with(['plantingBatches' => function ($query) {
-        $query->where('status', 'active')->with('product');
-        }])->get();
+            $query->where('status', 'active')->with('product');
+            }])->get();
 
         return view('livewire.farm-staff.farm-plot-manager', [
             'plots' => $plots,
