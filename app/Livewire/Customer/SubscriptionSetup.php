@@ -308,11 +308,7 @@ class SubscriptionSetup extends Component
         // Kiểm tra tồn kho và khống chế cân nặng khi khách bấm TĂNG (+)
         if ($delta > 0) {
             // 1. Kiểm tra tồn kho FEFO thực tế của sản phẩm
-            $product = Product::withSum(['batches as total_stock' => function ($q) {
-                $q->where('product_batches.status', 'active')
-                  ->where('product_batches.current_quantity', '>', 0)
-                  ->whereDate('product_batches.expiry_date', '>=', now());
-            }], 'current_quantity')->find($veggieId);
+            $product = Product::withTotalStock()->find($veggieId);
 
             if (!$product) {
                 $this->dispatch('show-toast', type: 'error', message: 'Sản phẩm không tồn tại hoặc đã ngừng kinh doanh!');
@@ -526,11 +522,7 @@ class SubscriptionSetup extends Component
                 $q->where('is_primary', true);
             }
         ])
-        ->withSum(['batches as total_stock' => function ($q) {
-            $q->where('product_batches.status', 'active')
-              ->where('product_batches.current_quantity', '>', 0)
-              ->whereDate('product_batches.expiry_date', '>=', now());
-        }], 'current_quantity')
+        ->withTotalStock()
         ->where('status', 'active')
         ->having('total_stock', '>', 0); // CHỈ HIỆN SẢN PHẨM CÒN HÀNG TRONG KHO
 

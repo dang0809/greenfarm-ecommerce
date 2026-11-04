@@ -56,12 +56,7 @@ class ProductPage extends Component
                 $q->where('is_primary', true);
             }
         ])
-        // Tính tổng tồn kho thực tế từ các lô còn hạn (FEFO)
-        ->withSum(['batches as total_stock' => function ($q) {
-            $q->where('product_batches.status', 'active')
-            ->where('product_batches.current_quantity', '>', 0)
-            ->whereDate('product_batches.expiry_date', '>=', now());
-        }], 'current_quantity')
+        ->withTotalStock()
         ->where('status', 'active');
 
         if (!empty($this->selectedCategory)) {

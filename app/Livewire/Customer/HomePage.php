@@ -32,11 +32,7 @@ class HomePage extends Component
                 $query->where('is_primary', true);
             }
         ])
-        ->withSum(['batches as total_stock' => function ($q) {
-            $q->where('product_batches.status', 'active')
-              ->where('product_batches.current_quantity', '>', 0)
-              ->whereDate('product_batches.expiry_date', '>=', now());
-        }], 'current_quantity')
+        ->withTotalStock()
         ->where('status', 'active')
         ->orderByRaw('CASE WHEN total_stock > 0 THEN 0 ELSE 1 END') // Ưu tiên sản phẩm CÒN HÀNG xếp trước
         ->orderBy('sold_count', 'desc')

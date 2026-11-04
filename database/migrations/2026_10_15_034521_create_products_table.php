@@ -23,6 +23,7 @@ return new class extends Migration
     $table->decimal('price', 12, 2)->default(0)->index();
     $table->decimal('sale_price', 12, 2)->nullable()->index();
     $table->string('unit', 50)->default('Kg');
+    $table->decimal('weight_kg', 8, 2)->default(1.0);
 
     $table->integer('sold_count')->default(0);
     $table->decimal('avg_rating', 3, 2)->default(0);
