@@ -21,18 +21,20 @@ class VipCheckout extends Component
 {
     use WithShippingAddress;
 
-    public string $paymentMethod = 'payos';
-    public string $packageName = 'Gói Bếp Xanh VIP Gia Đình (1 Tháng)';
-    public int $price = 1200000;
-    public float $deliveryMaxWeight = 3.5;
-    public int $totalDeliveries = 8;
-    public float $totalWeightMonthly = 28.0;
-    public bool $isEnabled = true;
-    public ?int $pendingSubscriptionId = null;
+    // Các state quản lý thông tin gói và thanh toán
+    public string $paymentMethod = 'payos';                            // Phương thức thanh toán (mặc định payos)
+    public string $packageName = 'Gói Bếp Xanh VIP Gia Đình (1 Tháng)'; // Tên gói VIP
+    public int $price = 1200000;                                       // Giá gói VIP (VNĐ)
+    public float $deliveryMaxWeight = 3.5;                             // Trọng lượng tối đa mỗi đợt giao (kg)
+    public int $totalDeliveries = 8;                                   // Tổng số đợt giao cố định (8 đợt/tháng)
+    public float $totalWeightMonthly = 28.0;                           // Tổng số kg rau nhận trong tháng
+    public bool $isEnabled = true;                                     // Trạng thái mở bán gói VIP
+    public ?int $pendingSubscriptionId = null;                         // ID hợp đồng VIP đang chờ
 
-    public bool $showAddressModal = false;
-    public int $selectedAddressId = 0;
+    public bool $showAddressModal = false;                             // Bật/tắt modal chọn địa chỉ
+    public int $selectedAddressId = 0;                                 // ID địa chỉ nhận hàng được chọn
 
+    // Khởi tạo trang, kiểm tra tiến độ gói VIP và nạp cấu hình
     public function mount()
     {
         // 1. Tải toàn bộ cấu hình Gói VIP từ Database
@@ -64,6 +66,7 @@ class VipCheckout extends Component
         }
     }
 
+    // Xử lý tạo đơn hàng và thanh toán gói VIP qua PayOS
     public function processPayment()
     {
         // Đồng bộ toàn bộ thông số (Giá tiền, Tên, Trạng thái) thời gian thực từ Database
@@ -71,8 +74,8 @@ class VipCheckout extends Component
 
         // 1. Kiểm tra đăng nhập
         if (!Auth::check()) {
-            session()->flash('error', 'Vui lòng đăng nhập để tiến hành thanh toán Gói Rau VIP.');
-            return $this->redirect(route('login'), navigate: true);
+            $this->dispatch('open-auth-modal', 'login');
+            return;
         }
 
         // 2. Kiểm tra trạng thái mở bán thời gian thực từ Database (ngăn chặn trường hợp khách mở trang trước khi Admin tắt)
@@ -218,13 +221,7 @@ class VipCheckout extends Component
         }
     }
 
-            /**
-     * Tải toàn bộ cấu hình Gói VIP thời gian thực từ database
-     */
-    /**
-     * Tải toàn bộ cấu hình Gói VIP thời gian thực từ Database
-     * Tổng số đợt giao cố định luôn là 8 đợt (1 tháng = 4 tuần x 2 đợt/tuần)
-     */
+    // Tải toàn bộ cấu hình gói VIP thời gian thực từ Database
     private function loadVipSettings(): void
     {
         $settings = SystemSetting::where('group', 'subscription')->pluck('value', 'key');
@@ -237,6 +234,7 @@ class VipCheckout extends Component
         $this->totalWeightMonthly = round($this->deliveryMaxWeight * 8, 1);
     }
 
+    // Hiển thị giao diện thanh toán gói VIP
     public function render()
     {
         $this->loadVipSettings();

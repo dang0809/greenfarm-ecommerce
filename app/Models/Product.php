@@ -89,7 +89,7 @@ class Product extends Model
         if (preg_match('/(\d+(?:\.\d+)?)\s*kg/ui', $u, $m)) {
             return (float) $m[1];
         }
-        if ($u === 'kg' || $u === 'ký') {
+        if ($u === 'kg') {
             return 1.0;
         }
         if (preg_match('/(\d+(?:\.\d+)?)\s*g/ui', $u, $m)) {

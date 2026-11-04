@@ -11,7 +11,6 @@
             <div class="min-w-0">
                 <div
                     class="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5 truncate">
-                    <span class="text-brand-700">Nông Trại Đất Lành</span>
                 </div>
                 <h1 class="text-base sm:text-2xl font-extrabold text-gray-900 tracking-tight truncate leading-tight">
                     {{ $this->selectedPlot ? 'Điều Khiển: ' . $this->selectedPlot->name : 'Sơ Đồ Luống Canh Tác' }}

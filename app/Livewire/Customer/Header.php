@@ -14,6 +14,7 @@ class Header extends Component
     protected $listeners = [
         'user-authenticated' => '$refresh',
         'cart-updated' => 'updateCartCount',
+        'profile-updated' => '$refresh'
     ];
 
     public function mount(): void

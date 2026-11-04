@@ -23,12 +23,19 @@ use App\Http\Controllers\Api\PayOSWebhookController;
 use App\Livewire\FarmStaff\ProductBatchManager;
 use App\Livewire\FarmStaff\FarmPlotManager;
 use App\Livewire\FarmStaff\ProfileManager;
+// Import Authentication & Sales Components
+use App\Livewire\Auth\Login;
+use App\Livewire\Sales\OrderManager;
+use App\Livewire\Sales\SubscriptionManager;
+use App\Livewire\Sales\ComplaintManager;
+use App\Livewire\Sales\ClearanceManager;
 /*
 |--------------------------------------------------------------------------
 | 1. PUBLIC ROUTES (Ai cũng xem được - Không cần đăng nhập)
 |--------------------------------------------------------------------------
 */
 Route::get('/', HomePage::class)->name('home');
+Route::get('/quan-tri/dang-nhap', Login::class)->name('login');
 Route::get('/san-pham', ProductPage::class)->name('products.index');
 Route::get('/ve-nong-trai', AboutPage::class)->name('about');
 Route::get('/san-pham/{slug}', ProductDetail::class)->name('customer.product.detail');
@@ -100,4 +107,17 @@ Route::middleware(['role:farm_staff'])->prefix('nhan-vien-nong-trai')->name('far
     Route::get('/lo-nong-san', ProductBatchManager::class)->name('product-batch');
     Route::get('/luong-dat', FarmPlotManager::class)->name('farm-plot');
     Route::get('/ho-so', ProfileManager::class)->name('profile');
+});
+
+/*
+|--------------------------------------------------------------------------
+| 4. SALES STAFF PROTECTED ROUTES (Nhân viên Bán hàng & Quản lý đơn)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['role:sales'])->prefix('nhan-vien-ban-hang')->name('sales.')->group(function () {
+    Route::get('/', OrderManager::class)->name('orders');
+    Route::get('/don-hang', OrderManager::class)->name('orders');
+    Route::get('/khieu-nai', ComplaintManager::class)->name('complaints');
+    Route::get('/xa-hang', ClearanceManager::class)->name('clearance');
+    Route::get('/goi-dinh-ky', SubscriptionManager::class)->name('subscriptions');
 });
