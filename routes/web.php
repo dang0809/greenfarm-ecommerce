@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\PayOSWebhookController;
 use App\Livewire\FarmStaff\ProductBatchManager;
 use App\Livewire\FarmStaff\FarmPlotManager;
 use App\Livewire\FarmStaff\ProfileManager;
+use App\Livewire\FarmStaff\CertificationManager;
 // Import Authentication & Sales Components
 use App\Livewire\Auth\Login;
 use App\Livewire\Sales\OrderManager;
@@ -104,6 +105,7 @@ Route::middleware(['role:farm_staff'])->prefix('nhan-vien-nong-trai')->name('far
      Route::get('/', function () {
             return redirect()->route('farm-staff.farm-plot');
         })->name('dashboard');
+    Route::get('/giay-chung-nhan', CertificationManager::class)->name('certification');
     Route::get('/lo-nong-san', ProductBatchManager::class)->name('product-batch');
     Route::get('/luong-dat', FarmPlotManager::class)->name('farm-plot');
     Route::get('/ho-so', ProfileManager::class)->name('profile');
