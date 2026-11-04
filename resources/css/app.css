@@ -20,4 +20,8 @@
     --color-brand-900: #14532d;
 
     --color-cream: #FAFAF7;
+
+    --shadow-soft: 0 4px 20px -2px rgba(20, 83, 45, 0.05);
+    --shadow-modal: 0 25px 50px -12px rgba(20, 83, 45, 0.25);
+    --shadow-floating: 0 10px 35px -5px rgba(20, 83, 45, 0.2);
 }
