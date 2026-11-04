@@ -21,6 +21,7 @@ class Product extends Model
         'price',
         'sale_price',
         'unit',
+        'weight_kg',
         'sold_count',
         'avg_rating',
         'status',
@@ -31,6 +32,7 @@ class Product extends Model
         return [
             'price' => 'decimal:2',
             'sale_price' => 'decimal:2',
+            'weight_kg' => 'float',
             'sold_count' => 'integer',
             'avg_rating' => 'decimal:2',
         ];
@@ -81,47 +83,26 @@ class Product extends Model
     }
 
     /**
-     * Lấy số kg thực tế theo quy cách đóng gói (unit) của sản phẩm
+     * Scope tính tổng số lượng tồn kho của các lô còn hạn & active (dùng cho query danh sách)
      */
-    public function getWeightKgAttribute(): float
+    public function scopeWithTotalStock($query)
     {
-        $u = mb_strtolower(trim($this->unit ?? ''));
-        if (preg_match('/(\d+(?:\.\d+)?)\s*kg/ui', $u, $m)) {
-            return (float) $m[1];
-        }
-        if ($u === 'kg') {
-            return 1.0;
-        }
-        if (preg_match('/(\d+(?:\.\d+)?)\s*g/ui', $u, $m)) {
-            return round(((float) $m[1]) / 1000, 2);
-        }
-        return 0.5;
+        return $query->withSum(['batches as total_stock' => function ($q) {
+            $q->where('product_batches.status', 'active')
+              ->where('product_batches.current_quantity', '>', 0)
+              ->whereDate('product_batches.expiry_date', '>=', now());
+        }], 'current_quantity');
     }
 
     /**
-     * Tổng số đơn vị thành phẩm bán lẻ (hộp/gói/trái/kg) sẵn có trong kho
-     * Quy đổi từ tổng số kg trong các lô còn hạn & còn hàng
+     * Thuộc tính tổng tồn kho (lấy từ SQL nếu có withTotalStock, hoặc tự động tính nếu gọi lẻ)
      */
-    public function getTotalStockUnitsAttribute(): float
+    public function getTotalStockAttribute(): int
     {
-        $weightPerUnit = $this->weight_kg;
-        if ($weightPerUnit <= 0) {
-            $weightPerUnit = 1.0;
-        }
-
-        $totalKg = isset($this->attributes['total_stock']) 
-            ? (float) $this->attributes['total_stock']
-            : (float) $this->batches()
-                ->where('product_batches.status', 'active')
-                ->where('product_batches.current_quantity', '>', 0)
-                ->whereDate('product_batches.expiry_date', '>=', now())
-                ->sum('product_batches.current_quantity');
-
-        $u = mb_strtolower(trim($this->unit ?? ''));
-        if ($u === 'kg') {
-            return round($totalKg, 2);
-        }
-
-        return (float) floor(round($totalKg / $weightPerUnit, 4));
+        return (int) ($this->attributes['total_stock'] ?? $this->batches()
+            ->where('product_batches.status', 'active')
+            ->where('product_batches.current_quantity', '>', 0)
+            ->whereDate('product_batches.expiry_date', '>=', now())
+            ->sum('product_batches.current_quantity'));
     }
 }

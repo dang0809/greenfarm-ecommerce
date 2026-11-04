@@ -21,10 +21,7 @@ trait HandlesCart
         if (!$targetProductId) return false;
 
         // 2. Lấy thông tin sản phẩm & tính tổng tồn kho các lô còn hạn
-        $product = Product::withSum(['batches as total_stock' => function ($q) {$q->where('product_batches.status', 'active')
-              ->where('product_batches.current_quantity', '>', 0)
-              ->whereDate('product_batches.expiry_date', '>=', now());
-        }], 'current_quantity')->find($targetProductId);
+        $product = Product::withTotalStock()->find($targetProductId);
 
         $availableStock = (int) ($product?->total_stock ?? 0);
 

@@ -155,13 +155,11 @@ trait WithOrderActions
                 ]);
             }
 
-            // Hoàn lại kho theo số kg thực tế
+            // Hoàn lại kho trực tiếp theo số lượng sản phẩm/hộp
             foreach ($lockedOrder->items as $item) {
                 if ($item->batch_id) {
-                    $unitWeight = (float) ($item->product?->weight_kg > 0 ? $item->product->weight_kg : 1.0);
-                    $returnKg = round((float) $item->quantity * $unitWeight, 2);
                     ProductBatch::where('id', $item->batch_id)
-                        ->increment('current_quantity', $returnKg);
+                        ->increment('current_quantity', $item->quantity);
                 }
             }
 
