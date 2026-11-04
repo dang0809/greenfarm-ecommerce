@@ -160,22 +160,25 @@ class AuthModal extends Component
     // ================= 2. XỬ LÝ ĐĂNG NHẬP =================
     public function handleLogin(): void
     {
+        // Chuẩn hóa email tài khoản
+        $this->loginAccount = strtolower(trim($this->loginAccount));
+
         $this->validate([
-            'loginAccount' => 'required|string',
+            'loginAccount'  => 'required|email:rfc',
             'loginPassword' => 'required|string',
         ], [
-    'loginAccount.required' => 'Vui lòng nhập số điện thoại hoặc email.',
-    'loginAccount.string' => 'Tài khoản đăng nhập không đúng định dạng.',
-    'loginPassword.required' => 'Vui lòng nhập mật khẩu.',
-    'loginPassword.string' => 'Mật khẩu không đúng định dạng.',
-]); 
+            'loginAccount.required'  => 'Vui lòng nhập địa chỉ email.',
+            'loginAccount.email'     => 'Địa chỉ email không đúng định dạng.',
+            'loginPassword.required' => 'Vui lòng nhập mật khẩu.',
+            'loginPassword.string'   => 'Mật khẩu không đúng định dạng.',
+        ]); 
+
         $throttleKey = Str::lower($this->loginAccount) . '|' . request()->ip();
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
             $seconds = RateLimiter::availableIn($throttleKey);
             $this->addError('loginAccount', "Thử lại sau $seconds giây.");
             return;
         }
-
 
         if (Auth::attempt(['email' => $this->loginAccount, 'password' => $this->loginPassword], (bool) $this->remember)) {
             $user = Auth::user();
@@ -194,18 +197,12 @@ class AuthModal extends Component
             $this->dispatch('user-authenticated');
             session()->flash('success', 'Đăng nhập thành công!');
 
-            if ($user->role === 'farm_staff') {
-                session()->flash('success', 'Đăng nhập thành công! Chào mừng Kỹ sư đến với trang quản trị nông trại.');
-                $this->redirect(route('farm-staff.farm-plot'), navigate: true);
-                return;
-            }
-
             $this->redirectIntended(default: route('home'));
             return;
         }
 
         RateLimiter::hit($throttleKey, 60);
-        $this->addError('loginAccount', 'Thông tin đăng nhập không chính xác.');
+        $this->addError('loginAccount', 'Email hoặc mật khẩu không chính xác.');
     }
     public function prevForgotStep(): void
     {

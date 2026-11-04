@@ -19,9 +19,16 @@ class CheckRole
     {
         // 1. Kiểm tra chưa đăng nhập
         if (!Auth::check()) {
-            return redirect()->route('home')
-                ->with('error', 'Vui lòng đăng nhập để tiếp tục.')
-                ->with('open_auth_modal', true); // 🟢 Cờ tín hiệu mở Popup
+            // Nếu là khu vực của Khách hàng -> Về trang chủ và mở Popup đăng nhập
+            if (in_array('customer', $roles)) {
+                return redirect()->route('home')
+                    ->with('error', 'Vui lòng đăng nhập để tiếp tục.')
+                    ->with('open_auth_modal', true);
+            }
+
+            // Nếu là khu vực Cán bộ nhân viên (sales, farm_staff, admin) -> Về trang /login riêng
+            return redirect()->route('login')
+                ->with('error', 'Vui lòng đăng nhập tài khoản quản trị để tiếp tục.');
         }
 
         $user = Auth::user();
@@ -29,18 +36,22 @@ class CheckRole
         // 2. Kiểm tra tài khoản bị khóa
         if ($user->status === 'blocked') {
             Auth::logout();
-            return redirect()->route('home')
-                ->with('error', 'Tài khoản của bạn đã bị khóa.')
-                ->with('open_auth_modal', true);
+
+            if (in_array('customer', $roles)) {
+                return redirect()->route('home')
+                    ->with('error', 'Tài khoản của bạn đã bị khóa.')
+                    ->with('open_auth_modal', true);
+            }
+
+            return redirect()->route('login')
+                ->with('error', 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ ban quản lý.');
         }
 
-        // 3. Kiểm tra Enum role (nếu có)
-        $userRole = $user->role instanceof \BackedEnum ? $user->role->value : $user->role;
-
-        if (in_array($userRole, $roles)) {
+        // 3. Kiểm tra phân quyền truy cập
+        if (in_array($user->role, $roles)) {
             return $next($request);
         }
 
         abort(403, 'Bạn không có quyền truy cập vào khu vực này.');
-    }
+}
 }
