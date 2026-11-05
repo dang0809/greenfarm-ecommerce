@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Log;
 use PayOS\PayOS;
 use App\Models\Order;
 use App\Models\Product;
+  use App\Models\ProductBatch;
+use App\Models\InventoryLog;
 use App\Models\User;
 use App\Models\Payment;
 use App\Services\OrderNotificationService;
@@ -131,6 +133,21 @@ class PayOSWebhookController extends Controller
 
                     foreach ($order->items as $item) {
                         Product::where('id', $item->product_id)->increment('sold_count', $item->quantity);
+
+                        if ($item->batch_id) {
+                            // 1. Nhả giữ chỗ
+                            ProductBatch::where('id', $item->batch_id)->decrement('reserved_quantity', $item->quantity);
+                            // 2. Chính thức xuất kho thực tế
+                            ProductBatch::where('id', $item->batch_id)->decrement('current_quantity', $item->quantity);
+                            // 3. Ghi sổ nhật ký xuất bán (type: export_sale)
+                            InventoryLog::create([
+                                'batch_id'   => $item->batch_id,
+                                'type'       => 'export_sale',
+                                'quantity'   => $item->quantity,
+                                'note'       => "Xuất kho bán hàng đơn #{$order->order_code}",
+                                'created_by' => $order->user_id ?? 1,
+                            ]);
+                        }
                     }
 
                    

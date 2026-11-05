@@ -76,11 +76,9 @@ class CheckoutPage extends Component
                 return redirect()->route('customer.cart');
             }
 
-            $cart = Cart::with(['items.product.batches' => function ($q) {
-                $q->where('product_batches.status', 'active')
-                  ->where('product_batches.current_quantity', '>', 0)
-                  ->whereDate('product_batches.expiry_date', '>=', now());
-            }])->where('user_id', $user->id)->first();
+            $cart = Cart::with([
+                'items.product' => fn($q) => $q->withTotalStock(),
+            ])->where('user_id', $user->id)->first();
 
             if (!$cart || $cart->items()->count() === 0) {
                 session()->flash('error', 'Giỏ hàng của bạn đang rỗng!');
@@ -323,11 +321,11 @@ class CheckoutPage extends Component
                 $price = $item->product->sale_price ?? $item->product->price;
                 $remainingNeeded = (int) $item->quantity;
 
-                // Lấy các lô hàng còn hạn và còn hàng, sắp xếp hạn sử dụng gần nhất lên đầu (FEFO)
+                // Lấy các lô hàng còn hạn và còn hàng khả dụng, sắp xếp hạn sử dụng gần nhất lên đầu (FEFO)
                 $availableBatches = $item->product->batches()
                     ->where('product_batches.status', 'active')
                     ->whereDate('product_batches.expiry_date', '>=', now())
-                    ->where('product_batches.current_quantity', '>', 0)
+                    ->whereRaw('product_batches.current_quantity > COALESCE(product_batches.reserved_quantity, 0)')
                     ->orderBy('product_batches.expiry_date', 'asc')
                     ->lockForUpdate()
                     ->get();
@@ -335,7 +333,9 @@ class CheckoutPage extends Component
                 foreach ($availableBatches as $batch) {
                     if ($remainingNeeded <= 0) break;
 
-                    $take = min((int) $batch->current_quantity, $remainingNeeded);
+                    $availableInBatch = max(0, (int) $batch->current_quantity - (int) ($batch->reserved_quantity ?? 0));
+                    $take = min($availableInBatch, $remainingNeeded);
+                    if ($take <= 0) continue;
 
                     OrderItem::create([
                         'order_id'     => $order->id,
@@ -347,8 +347,8 @@ class CheckoutPage extends Component
                         'subtotal'     => $price * $take,
                     ]);
 
-                    // Trừ trực tiếp số lượng hộp/gói tồn kho của lô này (FEFO)
-                    $batch->decrement('current_quantity', $take);
+                    // Tạm giữ kho trong 5 phút (Tăng reserved_quantity, KHÔNG trừ current_quantity, KHÔNG ghi InventoryLog)
+                    $batch->increment('reserved_quantity', $take);
 
                     $remainingNeeded -= $take;
                 }

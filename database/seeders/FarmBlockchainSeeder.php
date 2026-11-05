@@ -46,8 +46,8 @@ class FarmBlockchainSeeder extends Seeder
         }
 
         // 4. Lô Thu Hoạch Kho (Product Batches) & Nhật ký biến động
-        $pb1 = DB::table('product_batches')->insertGetId(['planting_batch_id' => $b1, 'batch_code' => 'DL-20261015-K1', 'status' => 'active', 'manufactured_date' => now()->subDays(2)->format('Y-m-d'), 'expiry_date' => now()->addDays(5)->format('Y-m-d'), 'initial_quantity' => 100, 'current_quantity' => 45, 'spoiled_quantity' => 5, 'discount_percent' => 15]);
-        $pb2 = DB::table('product_batches')->insertGetId(['planting_batch_id' => $b2, 'batch_code' => 'DL-20261016-K2', 'status' => 'active', 'manufactured_date' => now()->subDays(1)->format('Y-m-d'), 'expiry_date' => now()->addDays(7)->format('Y-m-d'), 'initial_quantity' => 80, 'current_quantity' => 60, 'spoiled_quantity' => 0, 'discount_percent' => 0]);
+        $pb1 = DB::table('product_batches')->insertGetId(['planting_batch_id' => $b1, 'batch_code' => 'DL-20261015-K1', 'status' => 'active', 'manufactured_date' => now()->subDays(2)->format('Y-m-d'), 'expiry_date' => now()->addDays(5)->format('Y-m-d'), 'initial_quantity' => 100, 'current_quantity' => 45, 'reserved_quantity' => 0, 'spoiled_quantity' => 5, 'discount_percent' => 15]);
+        $pb2 = DB::table('product_batches')->insertGetId(['planting_batch_id' => $b2, 'batch_code' => 'DL-20261016-K2', 'status' => 'active', 'manufactured_date' => now()->subDays(1)->format('Y-m-d'), 'expiry_date' => now()->addDays(7)->format('Y-m-d'), 'initial_quantity' => 80, 'current_quantity' => 60, 'reserved_quantity' => 0, 'spoiled_quantity' => 0, 'discount_percent' => 0]);
 
         DB::table('inventory_logs')->insert([
             ['batch_id' => $pb1, 'type' => 'import', 'quantity' => 100, 'note' => 'Thu hoạch nhập kho sáng sớm', 'created_by' => $farmStaff?->id ?? 2, 'created_at' => now()->subDays(2)],

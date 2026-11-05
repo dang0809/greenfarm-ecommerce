@@ -22,6 +22,7 @@ return new class extends Migration
     $table->date('expiry_date')->index();                                     // INDEX FEFO — cực quan trọng
     $table->integer('initial_quantity')->default(0);
     $table->integer('current_quantity')->default(0)->index();
+    $table->integer('reserved_quantity')->default(0)->index();
     $table->integer('spoiled_quantity')->default(0);
     $table->integer('discount_percent')->default(0);
     $table->timestamps();
