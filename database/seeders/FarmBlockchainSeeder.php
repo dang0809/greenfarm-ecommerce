@@ -52,12 +52,12 @@ class FarmBlockchainSeeder extends Seeder
             'updated_at' => now(),
         ]);
 
-        // 3. Sự kiện Blockchain (Traceability Events)
+        // 3. Nhật ký (Traceability Events)
         $events = [
-            ['planting_batch_id' => $b1, 'event_name' => 'Gieo Hạt Hữu Cơ', 'description' => 'Hạt giống thuần chủng F1 nhập khẩu Hà Lan, kiểm định xơ dừa và khay ươm.', 'image' => 'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?w=500', 'recorded_by' => $farmStaff?->name, 'recorded_at' => now()->subDays(60), 'data_hash' => hash('sha256', 'Gieo Hạt L1'), 'blockchain_tx_hash' => '0x8f2a41d9c2e3a1b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8'],
-            ['planting_batch_id' => $b1, 'event_name' => 'Bón Phân Trùn Quế', 'description' => 'Bón 50kg phân trùn quế vi sinh kết hợp tưới đạm cá lên men.', 'image' => 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=500', 'recorded_by' => $farmStaff?->name, 'recorded_at' => now()->subDays(35), 'data_hash' => hash('sha256', 'Bon Phan L1'), 'blockchain_tx_hash' => '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b'],
-            ['planting_batch_id' => $b1, 'event_name' => 'Thu Hoạch Sáng Sớm', 'description' => 'Thu hoạch cắt gốc từ 5h30 sáng, đưa ngay vào phòng mát 18 độ C.', 'image' => 'https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?w=500', 'recorded_by' => $farmStaff?->name, 'recorded_at' => now()->subDays(2), 'data_hash' => hash('sha256', 'Thu Hoach L1'), 'blockchain_tx_hash' => '0x9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c'],
-            ['planting_batch_id' => $b2, 'event_name' => 'Tỉa Chồi & Thụ Phấn Ong', 'description' => 'Thả ong mật tự nhiên thụ phấn nhà màng A2.', 'image' => 'https://images.unsplash.com/photo-1592282139728-28040d96a922?w=500', 'recorded_by' => $farmStaff?->name, 'recorded_at' => now()->subDays(15), 'data_hash' => hash('sha256', 'Thu Phan L2'), 'blockchain_tx_hash' => '0x3c2b1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0d9c8b7a6f5e4d3c2b'],
+            ['planting_batch_id' => $b1, 'event_name' => 'Gieo Hạt Hữu Cơ', 'description' => 'Hạt giống thuần chủng F1 nhập khẩu Hà Lan, kiểm định xơ dừa và khay ươm.', 'image' => 'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?w=500', 'recorded_by' => $farmStaff?->name, 'recorded_at' => now()->subDays(60)],
+            ['planting_batch_id' => $b1, 'event_name' => 'Bón Phân Trùn Quế', 'description' => 'Bón 50kg phân trùn quế vi sinh kết hợp tưới đạm cá lên men.', 'image' => 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=500', 'recorded_by' => $farmStaff?->name, 'recorded_at' => now()->subDays(35)],
+            ['planting_batch_id' => $b1, 'event_name' => 'Thu Hoạch Sáng Sớm', 'description' => 'Thu hoạch cắt gốc từ 5h30 sáng, đưa ngay vào phòng mát 18 độ C.', 'image' => 'https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?w=500', 'recorded_by' => $farmStaff?->name, 'recorded_at' => now()->subDays(2)],
+            ['planting_batch_id' => $b2, 'event_name' => 'Tỉa Chồi & Thụ Phấn Ong', 'description' => 'Thả ong mật tự nhiên thụ phấn nhà màng A2.', 'image' => 'https://images.unsplash.com/photo-1592282139728-28040d96a922?w=500', 'recorded_by' => $farmStaff?->name, 'recorded_at' => now()->subDays(15)],
         ];
         foreach ($events as $e) {
             DB::table('traceability_events')->insert($e);

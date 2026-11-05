@@ -324,8 +324,6 @@
                         <div>
                             <h3 class="text-sm sm:text-base font-extrabold text-gray-900">Dòng Thời Gian Sinh Trưởng &
                                 Chăm Sóc</h3>
-                            <p class="text-[11px] sm:text-xs text-gray-400 mt-0.5">Lưu trữ minh chứng & băm mã SHA-256
-                                đối chiếu</p>
                         </div>
                         @if ($this->canManageSelectedBatch)
                         <button type="button" wire:click="openLogModal"
@@ -357,14 +355,11 @@
                                         class="font-extrabold text-xs sm:text-sm leading-tight {{ $isHarvest ? 'text-blue-800' : 'text-gray-900' }}">
                                         {{ $event->event_name }}
                                     </h4>
-                                    <span class="text-[10px] font-mono text-gray-400 shrink-0"
-                                        title="{{ $event->data_hash }}">
-                                        Hash: {{ substr($event->data_hash, 0, 8) }}...
-                                    </span>
                                 </div>
                                 <p class="text-[11px] text-gray-500 font-mono">
                                     <i class="fa-regular fa-clock mr-1 text-gray-400"></i>
-                                    {{ $event->recorded_at?->format('d/m/Y H:i') ?? '—' }} • {{ $event->recorded_by }}
+                                    {{ $event->recorded_at?->format('d/m/Y H:i') ?? '—' }} •
+                                    {{ $event->recorded_by }}
                                 </p>
                                 <button type="button" wire:click="verifyLogHash({{ $event->id }})"
                                     wire:loading.attr="disabled" wire:target="verifyLogHash"
@@ -372,7 +367,8 @@
                                     Kiểm Chứng Nội Dung & Ảnh
                                 </button>
                                 @if ($event->description)
-                                <p class="text-xs sm:text-sm text-gray-700 leading-relaxed">{{ $event->description }}
+                                <p class="text-xs sm:text-sm text-gray-700 leading-relaxed">
+                                    {{ $event->description }}
                                 </p>
                                 @endif
                                 @if ($event->image)
@@ -398,9 +394,11 @@
                     <div
                         class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
                         <div>
-                            <h3 class="text-sm sm:text-base font-extrabold text-blue-700">Các Lô Hàng Thương Mại Đã Nhập
+                            <h3 class="text-sm sm:text-base font-extrabold text-blue-700">Các Lô Hàng Thương Mại Đã
+                                Nhập
                                 Kho</h3>
-                            <p class="text-[11px] sm:text-xs text-gray-400 mt-0.5">Mỗi lần thu hoạch sinh ra 1 Lô hàng
+                            <p class="text-[11px] sm:text-xs text-gray-400 mt-0.5">Mỗi lần thu hoạch sinh ra 1 Lô
+                                hàng
                                 riêng biệt quản lý theo chuẩn FEFO</p>
                         </div>
                         @if ($this->canManageSelectedBatch)
@@ -529,12 +527,14 @@
                             class="text-red-500">*</span></label>
                     <input type="date" wire:model="sowDate" max="{{ now()->toDateString() }}"
                         class="w-full bg-[#FAFAF8] border border-gray-200 rounded-2xl px-3.5 py-2.5 outline-none focus:border-brand-500 font-mono text-xs">
-                    @error('sowDate') <p class="text-[11px] text-red-600 font-bold mt-1">{{ $message }}</p> @enderror
+                    @error('sowDate') <p class="text-[11px] text-red-600 font-bold mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <button type="submit" wire:loading.attr="disabled" wire:target="sow"
                     class="w-full mt-2 bg-brand-700 hover:bg-brand-800 disabled:opacity-60 text-white font-bold py-3 rounded-2xl shadow-sm transition active:scale-95 text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer">
-                    <span wire:loading.remove wire:target="sow"><i class="fa-solid fa-seedling mr-1"></i> Khởi Tạo Lô
+                    <span wire:loading.remove wire:target="sow"><i class="fa-solid fa-seedling mr-1"></i> Khởi Tạo
+                        Lô
                         Canh Tác</span>
                     <span wire:loading wire:target="sow"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang
                         lưu...</span>
@@ -577,7 +577,8 @@
                         <option value="Cắt tỉa cành lá, làm cỏ">
                         <option value="Phun chế phẩm sinh học tỏi ớt">
                     </datalist>
-                    @error('logName') <p class="text-[11px] text-red-600 font-bold mt-1">{{ $message }}</p> @enderror
+                    @error('logName') <p class="text-[11px] text-red-600 font-bold mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <div>
@@ -585,7 +586,8 @@
                             class="text-red-500">*</span></label>
                     <textarea wire:model="logDesc" rows="3" placeholder="Ghi nhận độ ẩm đất, liều lượng phân bón..."
                         class="w-full bg-[#FAFAF8] border border-gray-200 rounded-2xl p-3 outline-none focus:border-brand-500 resize-none text-xs font-medium"></textarea>
-                    @error('logDesc') <p class="text-[11px] text-red-600 font-bold mt-1">{{ $message }}</p> @enderror
+                    @error('logDesc') <p class="text-[11px] text-red-600 font-bold mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <div>
@@ -603,13 +605,15 @@
                     <img src="{{ $logPhoto->temporaryUrl() }}" class="mt-2 w-20 h-20 object-cover rounded-xl border"
                         alt="Ảnh nhật ký">
                     @endif
-                    @error('logPhoto') <p class="text-[11px] text-red-600 font-bold mt-1">{{ $message }}</p> @enderror
+                    @error('logPhoto') <p class="text-[11px] text-red-600 font-bold mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <button type="submit" wire:loading.attr="disabled" wire:target="saveLog,logPhoto"
                     class="w-full mt-2 bg-brand-700 hover:bg-brand-800 disabled:opacity-60 text-white font-bold py-3 rounded-2xl shadow-sm transition active:scale-95 text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer">
-                    <span wire:loading.remove wire:target="saveLog"><i class="fa-solid fa-fingerprint mr-1"></i> Lưu Tức
-                        Thì &amp; Băm Hash</span>
+                    <span wire:loading.remove wire:target="saveLog"><i class="fa-solid fa-fingerprint mr-1"></i> Lưu
+                        Nhật Ký
+                    </span>
                     <span wire:loading wire:target="saveLog"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang
                         lưu...</span>
                 </button>
@@ -716,8 +720,9 @@
                         <input type="radio" wire:model="harvestMode" value="inherit"
                             class="w-4 h-4 text-brand-700 accent-brand-700 mt-0.5">
                         <div class="text-xs">
-                            <span class="font-bold text-brand-800 block">Tiếp tục nuôi cây (Kế thừa lô cũ)</span>
-                            <span class="text-[11px] text-gray-500 block mt-0.5 leading-relaxed">Cây vẫn ở trên luống.
+                            <span class="font-bold text-brand-800 block">Thu hoạch định kỳ (Tiếp tục mùa vụ)</span>
+                            <span class="text-[11px] text-gray-500 block mt-0.5 leading-relaxed">Cây vẫn ở trên
+                                luống.
                                 Lô hàng mới kế thừa toàn bộ nhật ký trước đó.</span>
                         </div>
                     </label>
@@ -725,7 +730,7 @@
                         <input type="radio" wire:model="harvestMode" value="finish"
                             class="w-4 h-4 text-red-600 accent-red-600 mt-0.5">
                         <div class="text-xs">
-                            <span class="font-bold text-red-800 block">Dọn luống kết thúc vụ</span>
+                            <span class="font-bold text-red-800 block">Thu hoạch tổng kết (Kết thúc mùa vụ)</span>
                             <span class="text-[11px] text-gray-500 block mt-0.5 leading-relaxed">Luống đất sẽ chuyển
                                 thành Đất trống để chuẩn bị xuống giống mới.</span>
                         </div>

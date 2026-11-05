@@ -50,7 +50,7 @@ class Product extends Model
         return $this->hasMany(PlantingBatch::class);
     }
 
-    public function batches(): HasManyThrough
+    public function productbatches(): HasManyThrough
     {
         return $this->hasManyThrough(
             ProductBatch::class,

@@ -38,7 +38,7 @@ class CategoryManager extends Component
 
     public function render()
     {
-        $query = Category::with('parent')->withCount('products');
+        $query = Category::withCount('products');
 
         if (!empty($this->search)) {
             $query->where(function($q) {
@@ -48,11 +48,10 @@ class CategoryManager extends Component
         }
 
         $categories = $query->latest()->paginate(10);
-        $parentCategories = Category::whereNull('parent_id')->get();
+        
 
         return view('livewire.farm-staff.category-manager', [
             'categories' => $categories,
-            'parentCategories' => $parentCategories,
         ]);
     }
 }

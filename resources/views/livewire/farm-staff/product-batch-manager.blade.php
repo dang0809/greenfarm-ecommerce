@@ -10,7 +10,7 @@
             </button>
             <div class="min-w-0">
                 <h1 class="text-base sm:text-2xl font-extrabold text-gray-900 tracking-tight truncate leading-tight">
-                    Quản Lý Lô Nông Sản Thương Mại</h1>
+                    Quản Lý Lô Nông Sản</h1>
             </div>
         </div>
 

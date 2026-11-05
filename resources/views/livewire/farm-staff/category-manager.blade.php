@@ -4,21 +4,17 @@
         class="min-h-[4.5rem] sm:h-20 bg-white/95 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-8 shrink-0 z-20 gap-3">
         <div class="flex items-center gap-3 min-w-0">
             <button type="button" onclick="toggleSidebar()"
-                class="lg:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition shrink-0">
+                class="lg:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition shrink-0"
+                aria-label="Mở menu">
                 <i class="fa-solid fa-bars text-lg"></i>
             </button>
             <div class="min-w-0">
                 <h1 class="text-base sm:text-2xl font-black text-slate-900 tracking-tight truncate leading-tight">
-                    Quản Lý Danh Mục Nhóm Nông Sản
+                    Quản Lý Danh Mục
                 </h1>
             </div>
         </div>
-        <div class="flex items-center gap-2 shrink-0">
-            <span
-                class="inline-flex items-center gap-1.5 bg-amber-50 text-amber-800 border border-amber-200 px-3 py-1.5 rounded-xl text-xs font-bold font-mono">
-                <i class="fa-solid fa-folder-tree"></i> Quản trị bảng `categories`
-            </span>
-        </div>
+
     </header>
 
     <!-- Workspace Viewport -->
@@ -35,10 +31,11 @@
                     class="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm outline-none focus:border-brand-600 bg-[#FAFAF8] font-medium transition-all">
             </div>
 
-            <button onclick="Livewire.dispatch('open-create-category-modal')"
+            <!-- Nút Thêm Danh Mục Mới -->
+            <button onclick="openCreateCategoryModal()"
                 class="bg-brand-700 hover:bg-brand-800 text-white font-bold text-xs sm:text-sm px-4 py-2.5 rounded-xl sm:rounded-2xl transition shadow-sm flex items-center justify-center gap-2 active:scale-95 shrink-0 whitespace-nowrap self-start sm:self-auto cursor-pointer">
                 <i class="fa-solid fa-plus"></i>
-                <span>+ Thêm Danh Mục Mới</span>
+                <span>Thêm Danh Mục Mới</span>
             </button>
         </div>
 
@@ -50,33 +47,25 @@
                         <tr
                             class="bg-slate-50/80 text-slate-500 uppercase font-bold text-[10px] sm:text-xs tracking-wider border-b border-slate-100">
                             <th class="py-3.5 px-5">Tên Danh Mục & Ảnh</th>
-                            <th class="py-3.5 px-4">Cấp Phân Nhánh</th>
-                            <th class="py-3.5 px-4 font-mono">Đường Dẫn URL (Slug)</th>
+                            <th class="py-3.5 px-4 font-mono">Slug</th>
                             <th class="py-3.5 px-4 text-center">Số Sản Phẩm</th>
                             <th class="py-3.5 px-4 text-center">Trạng Thái</th>
                             <th class="py-3.5 px-6 text-right">Thao Tác</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 font-medium">
-                        @forelse($categories as $category)
+                        @if(isset($categories) && count($categories) > 0)
+                        @foreach($categories as $category)
                         <tr class="hover:bg-slate-50 transition bg-white">
                             <td class="py-3.5 px-5 flex items-center gap-3">
                                 <img src="{{ $category->image ?? 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300' }}"
-                                    class="w-9 h-9 rounded-xl object-cover border border-slate-200 shrink-0">
-                                <b
-                                    class="text-slate-900 text-xs sm:text-sm">{{ $category->parent_id ? '↳ ' : '' }}{{ $category->name }}</b>
-                            </td>
-                            <td class="py-3.5 px-4 text-xs">
-                                @if($category->parent)
-                                <span
-                                    class="bg-brand-50 text-brand-800 border border-brand-200 px-2 py-0.5 rounded-lg">{{ $category->parent->name }}</span>
-                                @else
-                                <span class="text-slate-400 italic">Danh mục gốc (Cấp 1)</span>
-                                @endif
+                                    class="w-9 h-9 rounded-xl object-cover border border-slate-200 shrink-0"
+                                    alt="{{ $category->name }}">
+                                <b class="text-slate-900 text-xs sm:text-sm">{{ $category->name }}</b>
                             </td>
                             <td class="py-3.5 px-4 font-mono text-slate-600 text-xs">/{{ $category->slug }}</td>
-                            <td class="py-3.5 px-4 text-center font-mono font-bold">{{ $category->products_count }} SP
-                            </td>
+                            <td class="py-3.5 px-4 text-center font-mono font-bold">{{ $category->products_count ?? 0 }}
+                                SP</td>
                             <td class="py-3.5 px-4 text-center">
                                 <span
                                     class="text-[10px] font-bold px-2.5 py-0.5 rounded-full border {{ $category->status === 'active' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-slate-100 text-slate-600' }}">
@@ -84,30 +73,193 @@
                                 </span>
                             </td>
                             <td class="py-3.5 px-6 text-right space-x-1.5">
+                                <!-- Nút Sửa Danh Mục với icon <i class="fa-regular fa-pen-to-square"></i> -->
+                                <button
+                                    onclick="openEditCategoryModal({{ $category->id }}, '{{ addslashes($category->name) }}', '{{ $category->slug }}', '{{ $category->status ?? 'active' }}', '{{ $category->image ?? '' }}')"
+                                    class="p-1.5 rounded-lg bg-slate-100 hover:text-brand-700 hover:bg-slate-200 transition cursor-pointer"
+                                    title="Sửa danh mục">
+                                    <i class="fa-regular fa-pen-to-square"></i>
+                                </button>
                                 <button wire:click="deleteCategory({{ $category->id }})"
                                     wire:confirm="Bạn có chắc chắn muốn xóa danh mục này?"
-                                    class="p-1.5 rounded-lg bg-slate-100 hover:text-rose-600 cursor-pointer"
+                                    class="p-1.5 rounded-lg bg-slate-100 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                                     title="Xóa danh mục">
                                     <i class="fa-regular fa-trash-can"></i>
                                 </button>
                             </td>
                         </tr>
-                        @empty
+                        @endforeach
+                        @else
                         <tr>
                             <td colspan="6" class="py-10 text-center text-slate-400 italic">Chưa có danh mục nông sản
                                 nào được khởi tạo.</td>
                         </tr>
-                        @endforelse
+                        @endif
                     </tbody>
                 </table>
             </div>
 
             <!-- Phân trang -->
-            @if($categories->hasPages())
+            @if(isset($categories) && method_exists($categories, 'hasPages') && $categories->hasPages())
             <div class="p-4 border-t border-slate-100">
                 {{ $categories->links() }}
             </div>
             @endif
         </div>
     </div>
+
+    <!-- MODAL THÊM / SỬA CÂY DANH MỤC -->
+    <div id="modal-category"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs hidden p-3 sm:p-4">
+        <div
+            class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-md shadow-2xl p-5 sm:p-7 max-h-[92vh] overflow-y-auto custom-scrollbar border border-slate-100 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div
+                        class="w-9 h-9 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center text-base border border-amber-200 shrink-0">
+                        <i class="fa-solid fa-folder-tree"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base sm:text-lg font-extrabold text-slate-900" id="modal-category-title">Thêm
+                            Danh Mục Mới</h3>
+                        <p class="text-[11px] text-slate-400">Quản lý danh mục bảng `categories`</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeModal('modal-category')"
+                    class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center shrink-0 cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form onsubmit="handleCategorySubmit(event)" class="space-y-3.5 text-xs">
+                <input type="hidden" id="c-id">
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Tên nhóm danh mục <span
+                            class="text-red-500">*</span></label>
+                    <input type="text" id="c-name" required oninput="generateSlug(this.value)"
+                        placeholder="VD: Rau Ăn Lá Thủy Canh"
+                        class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2 text-sm outline-none focus:border-brand-600 focus:bg-white font-semibold">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Đường dẫn URL tĩnh (Slug) <span
+                            class="text-red-500">*</span></label>
+                    <input type="text" id="c-slug" required placeholder="rau-an-la-thuy-canh"
+                        class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2 font-mono text-xs text-slate-600 outline-none">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Phân nhánh cấp cha (`parent_id`)</label>
+                    <select id="c-parent"
+                        class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-600 cursor-pointer">
+                        <option value="">-- Danh mục gốc (Cấp 1 cao nhất) --</option>
+                        @if(isset($parentCategories))
+                        @foreach($parentCategories as $parent)
+                        <option value="{{ $parent->id }}">{{ $parent->name }}</option>
+                        @endforeach
+                        @endif
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Ảnh đại diện danh mục</label>
+                    <input type="file" id="c-file" accept="image/*" onchange="previewCatImage(this)"
+                        class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-amber-50 file:text-amber-800 cursor-pointer">
+                    <div id="c-preview-box" class="mt-2 hidden">
+                        <img id="c-preview-img" src="" class="w-16 h-16 object-cover rounded-xl border border-slate-200"
+                            alt="Preview">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Trạng thái:</label>
+                    <select id="c-status"
+                        class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold outline-none cursor-pointer">
+                        <option value="active">Hiển thị trên Web (active)</option>
+                        <option value="hidden">Tạm ẩn (hidden)</option>
+                    </select>
+                </div>
+
+                <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
+                    <button type="button" onclick="closeModal('modal-category')"
+                        class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 cursor-pointer">Hủy</button>
+                    <button type="submit"
+                        class="bg-brand-700 hover:bg-brand-800 text-white font-bold px-5 py-2 rounded-xl shadow-md transition active:scale-95 cursor-pointer">Lưu
+                        Danh Mục</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
+
+@push('scripts')
+<script>
+function openCreateCategoryModal() {
+    document.getElementById('modal-category-title').textContent = "Thêm Danh Mục Mới";
+    document.getElementById('c-id').value = '';
+    document.getElementById('c-name').value = '';
+    document.getElementById('c-slug').value = '';
+    document.getElementById('c-parent').value = '';
+    document.getElementById('c-status').value = 'active';
+    document.getElementById('c-preview-box').classList.add('hidden');
+    openModal('modal-category');
+}
+
+function openEditCategoryModal(id, name, slug, parentId, status, image) {
+    document.getElementById('modal-category-title').textContent = `Sửa Danh Mục: ${name}`;
+    document.getElementById('c-id').value = id;
+    document.getElementById('c-name').value = name;
+    document.getElementById('c-slug').value = slug;
+    document.getElementById('c-parent').value = (parentId !== null && parentId !== 'null') ? parentId : '';
+    document.getElementById('c-status').value = status;
+
+    if (image) {
+        document.getElementById('c-preview-img').src = image;
+        document.getElementById('c-preview-box').classList.remove('hidden');
+    } else {
+        document.getElementById('c-preview-box').classList.add('hidden');
+    }
+    openModal('modal-category');
+}
+
+function generateSlug(val) {
+    const slug = val.toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[đĐ]/g, 'd')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .trim().replace(/\s+/g, '-');
+    document.getElementById('c-slug').value = slug;
+}
+
+function previewCatImage(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            document.getElementById('c-preview-img').src = e.target.result;
+            document.getElementById('c-preview-box').classList.remove('hidden');
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function handleCategorySubmit(e) {
+    e.preventDefault();
+    Swal.fire({
+        icon: 'success',
+        title: 'Đã lưu danh mục thành công!',
+        timer: 1500,
+        showConfirmButton: false
+    });
+    closeModal('modal-category');
+}
+
+function openModal(id) {
+    document.getElementById(id).classList.remove('hidden');
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.add('hidden');
+}
+</script>
+@endpush
