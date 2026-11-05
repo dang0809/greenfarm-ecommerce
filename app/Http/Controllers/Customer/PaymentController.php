@@ -109,7 +109,6 @@ class PaymentController extends Controller
                         'old_status' => 'pending',
                         'new_status' => 'cancelled',
                         'changed_by' => $order->user_id,
-                        'note'       => 'Đơn bị hủy do khách hủy giao dịch trên cổng PayOS.',
                     ]);
                 }
 

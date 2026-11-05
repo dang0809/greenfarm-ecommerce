@@ -77,12 +77,7 @@ class OrderNotificationService
                 return;
             }
 
-            // 2. CỘNG ĐIỂM THƯỞNG KHI ĐƠN HÀNG HOÀN THÀNH (Đã giao thành công)
-            if ($order->points_earned > 0) {
-                User::where('id', $order->user_id)->increment('reward_points', $order->points_earned);
-            }
-
-            // 3. Ghi thông báo Web vào bảng notifications (hiển thị quả chuông Header)
+            // 2. Ghi thông báo Web vào bảng notifications (hiển thị quả chuông Header)
             $pointsNote = $order->points_earned > 0 ? " Bạn được tích lũy +{$order->points_earned} điểm thưởng!" : '';
             Notification::create([
                 'user_id' => $order->user_id,

@@ -7,10 +7,11 @@ use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Order;
 use App\Livewire\Traits\WithOrderActions;
+use App\Livewire\Traits\WithOrderTimeline;
 
 class OrderDetail extends Component
 {
-    use WithFileUploads, WithOrderActions;
+    use WithFileUploads, WithOrderActions, WithOrderTimeline;
 
     public string $order_code = '';
     public ?int $orderId = null;
@@ -47,6 +48,7 @@ class OrderDetail extends Component
             'order'              => $order,
             'canRefund'          => $canRefund,
             'showComplaintModal' => $this->showComplaintModal,
+            'timeline'           => $this->getOrderTimeline($order),
         ])->layout('layouts.customer.app', [
             'title' => "Chi Tiết Đơn Hàng #{$order->order_code} | Nông Trại Đất Lành"
         ]);
