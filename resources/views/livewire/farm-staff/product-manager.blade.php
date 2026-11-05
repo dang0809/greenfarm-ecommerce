@@ -244,7 +244,7 @@
                             Danh mục <span class="text-red-500">*</span>
                         </label>
 
-                        <select id="p-category" wire:model="category_id" required
+                        <select id="p-category" wire:model.live="category_id" required
                             class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600 cursor-pointer">
                             @if(isset($categories))
                             @foreach($categories as $cat)
@@ -339,8 +339,7 @@
             icon: 'error',
             title: 'Không thể lưu sản phẩm',
             text: messages.length ?
-                messages.join('\n') :
-                'Yêu cầu chưa hoàn tất. Vui lòng kiểm tra kết nối và thử lại.',
+                messages.join('\n') : 'Yêu cầu chưa hoàn tất. Vui lòng kiểm tra kết nối và thử lại.',
             confirmButtonText: 'Đã hiểu',
             confirmButtonColor: '#15803d'
         });

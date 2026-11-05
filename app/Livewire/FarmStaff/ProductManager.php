@@ -102,14 +102,26 @@ class ProductManager extends Component
     }
 
     public function createProduct(): void
-    {
-        $this->staff();
-        $this->resetForm();
+{
+    $this->staff();
+    $this->resetForm();
 
-        // Chỉ là SKU gợi ý; khi lưu vẫn kiểm tra unique.
-        $this->sku = 'PROD-'.Str::upper(Str::random(8));
-        $this->showModal = true;
+    // Cùng thứ tự với danh sách danh mục trong render().
+    $categoryId = Category::orderBy('name')->value('id');
+
+    if ($categoryId === null) {
+        $this->notify(
+            'error',
+            'Chưa có danh mục. Vui lòng tạo danh mục trước.'
+        );
+
+        return;
     }
+
+    $this->category_id = (string) $categoryId;
+    $this->sku = 'PROD-'.Str::upper(Str::random(8));
+    $this->showModal = true;
+}
 
     public function editProduct(int $id): void
     {
