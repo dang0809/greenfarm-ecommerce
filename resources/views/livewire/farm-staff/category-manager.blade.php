@@ -56,7 +56,7 @@
                     <tbody class="divide-y divide-slate-100 font-medium">
                         @if(isset($categories) && count($categories) > 0)
                         @foreach($categories as $category)
-                        <tr class="hover:bg-slate-50 transition bg-white">
+                        <tr wire:key="category-{{ $category->id }}" class="hover:bg-slate-50 transition bg-white">
                             <td class="py-3.5 px-5 flex items-center gap-3">
                                 <img src="{{ $category->image ?? 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300' }}"
                                     class="w-9 h-9 rounded-xl object-cover border border-slate-200 shrink-0"
@@ -68,20 +68,20 @@
                                 SP</td>
                             <td class="py-3.5 px-4 text-center">
                                 <span
-                                    class="text-[10px] font-bold px-2.5 py-0.5 rounded-full border {{ $category->status === 'active' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-slate-100 text-slate-600' }}">
-                                    {{ $category->status === 'active' ? 'Hiển thị' : 'Ẩn' }}
+                                    class="text-[10px] font-bold px-2.5 py-0.5 rounded-full border {{ $category->is_active ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-slate-100 text-slate-600' }}">
+                                    {{ $category->is_active ? 'Hiển thị' : 'Ẩn' }}
                                 </span>
                             </td>
                             <td class="py-3.5 px-6 text-right space-x-1.5">
                                 <!-- Nút Sửa Danh Mục với icon <i class="fa-regular fa-pen-to-square"></i> -->
-                                <button
-                                    onclick="openEditCategoryModal({{ $category->id }}, '{{ addslashes($category->name) }}', '{{ $category->slug }}', '{{ $category->status ?? 'active' }}', '{{ $category->image ?? '' }}')"
+                                <button type="button" wire:click="editCategory({{ $category->id }})"
                                     class="p-1.5 rounded-lg bg-slate-100 hover:text-brand-700 hover:bg-slate-200 transition cursor-pointer"
                                     title="Sửa danh mục">
                                     <i class="fa-regular fa-pen-to-square"></i>
                                 </button>
-                                <button wire:click="deleteCategory({{ $category->id }})"
-                                    wire:confirm="Bạn có chắc chắn muốn xóa danh mục này?"
+                                <button type="button" wire:click="deleteCategory({{ $category->id }})"
+                                    wire:confirm="Bạn có chắc chắn muốn xóa danh mục này?" wire:loading.attr="disabled"
+                                    wire:target="deleteCategory"
                                     class="p-1.5 rounded-lg bg-slate-100 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                                     title="Xóa danh mục">
                                     <i class="fa-regular fa-trash-can"></i>
@@ -91,7 +91,7 @@
                         @endforeach
                         @else
                         <tr>
-                            <td colspan="6" class="py-10 text-center text-slate-400 italic">Chưa có danh mục nông sản
+                            <td colspan="5" class="py-10 text-center text-slate-400 italic">Chưa có danh mục nông sản
                                 nào được khởi tạo.</td>
                         </tr>
                         @endif
@@ -110,7 +110,7 @@
 
     <!-- MODAL THÊM / SỬA CÂY DANH MỤC -->
     <div id="modal-category"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs hidden p-3 sm:p-4">
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs {{ $showModal ? '' : 'hidden' }} p-3 sm:p-4">
         <div
             class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-md shadow-2xl p-5 sm:p-7 max-h-[92vh] overflow-y-auto custom-scrollbar border border-slate-100 space-y-4">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -120,61 +120,109 @@
                         <i class="fa-solid fa-folder-tree"></i>
                     </div>
                     <div>
-                        <h3 class="text-base sm:text-lg font-extrabold text-slate-900" id="modal-category-title">Thêm
-                            Danh Mục Mới</h3>
-                        <p class="text-[11px] text-slate-400">Quản lý danh mục bảng `categories`</p>
+                        <h3 class="text-base sm:text-lg font-extrabold text-slate-900" id="modal-category-title">
+                            {{ $editingId === null ? 'Thêm Danh Mục Mới' : 'Sửa Danh Mục: '.$name }}
+                        </h3>
                     </div>
                 </div>
-                <button type="button" onclick="closeModal('modal-category')"
+                <button type="button" wire:click="closeModal"
                     class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center shrink-0 cursor-pointer">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
-            <form onsubmit="handleCategorySubmit(event)" class="space-y-3.5 text-xs">
-                <input type="hidden" id="c-id">
+            <form wire:submit="saveCategory" class="space-y-3.5 text-xs">
+                {{-- Chỉ hiển thị ID; không bind vào editingId vì đây là Locked property. --}}
+                <input type="hidden" id="c-id" value="{{ $editingId }}">
+
+                @error('form')
+                <p role="alert">{{ $message }}</p>
+                @enderror
 
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Tên nhóm danh mục <span
-                            class="text-red-500">*</span></label>
-                    <input type="text" id="c-name" required oninput="generateSlug(this.value)"
+                    <label class="block font-bold text-slate-700 mb-1">
+                        Tên nhóm danh mục
+                        <span class="text-red-500">*</span>
+                    </label>
+
+                    <input type="text" id="c-name" required maxlength="255" wire:model.live.debounce.300ms="name"
                         placeholder="VD: Rau Ăn Lá Thủy Canh"
                         class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2 text-sm outline-none focus:border-brand-600 focus:bg-white font-semibold">
+
+                    @error('name')
+                    <p role="alert">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Đường dẫn URL tĩnh (Slug) <span
-                            class="text-red-500">*</span></label>
-                    <input type="text" id="c-slug" required placeholder="rau-an-la-thuy-canh"
+                    <label class="block font-bold text-slate-700 mb-1">
+                        Đường dẫn URL tĩnh (Slug)
+                        <span class="text-red-500">*</span>
+                    </label>
+
+                    {{-- Để trống thì saveCategory() tự sinh slug từ tên. --}}
+                    <input type="text" id="c-slug" maxlength="255" wire:model="slug" placeholder="rau-an-la-thuy-canh"
                         class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2 font-mono text-xs text-slate-600 outline-none">
+
+                    @error('slug')
+                    <p role="alert">{{ $message }}</p>
+                    @enderror
                 </div>
 
-
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Ảnh đại diện danh mục</label>
-                    <input type="file" id="c-file" accept="image/*" onchange="previewCatImage(this)"
+                    <label class="block font-bold text-slate-700 mb-1">
+                        Ảnh đại diện danh mục
+                    </label>
+
+                    <input type="file" id="c-file" wire:key="category-image-{{ $imageInputKey }}" wire:model="newImage"
+                        accept="image/jpeg,image/png,image/webp" wire:loading.attr="disabled" wire:target="saveCategory"
                         class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-amber-50 file:text-amber-800 cursor-pointer">
-                    <div id="c-preview-box" class="mt-2 hidden">
-                        <img id="c-preview-img" src="" class="w-16 h-16 object-cover rounded-xl border border-slate-200"
-                            alt="Preview">
+
+                    @error('newImage')
+                    <p role="alert">{{ $message }}</p>
+                    @enderror
+
+                    @php
+                    $previewUrl = $newImage && ! $errors->has('newImage')
+                    ? $newImage->temporaryUrl()
+                    : $currentImageUrl;
+                    @endphp
+
+                    <div id="c-preview-box" class="mt-2 {{ $previewUrl ? '' : 'hidden' }}">
+                        @if ($previewUrl)
+                        <img id="c-preview-img" src="{{ $previewUrl }}"
+                            class="w-16 h-16 object-cover rounded-xl border border-slate-200" alt="Preview">
+                        @endif
                     </div>
                 </div>
 
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Trạng thái:</label>
-                    <select id="c-status"
+                    <label class="block font-bold text-slate-700 mb-1">
+                        Trạng thái:
+                    </label>
+
+                    <select id="c-status" wire:model="status"
                         class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold outline-none cursor-pointer">
                         <option value="active">Hiển thị trên Web (active)</option>
                         <option value="hidden">Tạm ẩn (hidden)</option>
                     </select>
+
+                    @error('status')
+                    <p role="alert">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
-                    <button type="button" onclick="closeModal('modal-category')"
-                        class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 cursor-pointer">Hủy</button>
-                    <button type="submit"
-                        class="bg-brand-700 hover:bg-brand-800 text-white font-bold px-5 py-2 rounded-xl shadow-md transition active:scale-95 cursor-pointer">Lưu
-                        Danh Mục</button>
+                    <button type="button" wire:click="closeModal" wire:loading.attr="disabled"
+                        wire:target="saveCategory,newImage"
+                        class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 cursor-pointer">
+                        Hủy
+                    </button>
+
+                    <button type="submit" wire:loading.attr="disabled" wire:target="saveCategory,newImage"
+                        class="bg-brand-700 hover:bg-brand-800 text-white font-bold px-5 py-2 rounded-xl shadow-md transition active:scale-95 cursor-pointer">
+                        Lưu Danh Mục
+                    </button>
                 </div>
             </form>
         </div>
