@@ -204,7 +204,16 @@
     </div>
 
     <!-- MODAL THÊM / SỬA SẢN PHẨM -->
-    <div id="modal-product" wire:key="product-modal-{{ $editingId ?? 'new' }}"
+    <div id="modal-product" wire:key="product-modal-{{ $editingId ?? 'new' }}" x-data="{ uploadingImage: false }"
+        x-on:livewire-upload-start="
+        if ($event.detail.property === 'newImage') uploadingImage = true
+    " x-on:livewire-upload-finish="
+        if ($event.detail.property === 'newImage') uploadingImage = false
+    " x-on:livewire-upload-error="
+        if ($event.detail.property === 'newImage') uploadingImage = false
+    " x-on:livewire-upload-cancel="
+        if ($event.detail.property === 'newImage') uploadingImage = false
+    "
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs {{ $showModal ? '' : 'hidden' }} p-3 sm:p-4">
 
         <div
@@ -215,13 +224,19 @@
                     {{ $editingId ? 'Sửa Sản Phẩm: '.$name : 'Thêm Sản Phẩm Nông Sản Mới' }}
                 </h3>
 
-                <button type="button" wire:click="closeModal" wire:loading.attr="disabled"
+                <button type="button" wire:click="closeModal" x-bind:disabled="uploadingImage"
+                    wire:loading.attr="disabled" wire:target="requestSaveProduct,saveProduct,cancelNewImage,closeModal"
                     class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center cursor-pointer">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
-            <form wire:submit="$js.submitProduct" class="space-y-3.5 text-xs sm:text-sm">
+            <form wire:submit="$js.submitProduct" x-on:submit.capture="
+                if (uploadingImage) {
+                    $event.preventDefault();
+                    $event.stopImmediatePropagation();
+                }
+            " class="space-y-3.5 text-xs sm:text-sm">
 
                 <input type="hidden" id="p-id" value="{{ $editingId }}">
 
@@ -313,13 +328,123 @@
                         class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl p-2.5 outline-none focus:border-brand-600 resize-none"></textarea>
                 </div>
 
+                {{-- Ảnh chính của sản phẩm --}}
+                <div class="space-y-3">
+                    <label for="p-image" class="block font-bold text-slate-700 mb-1">
+                        Ảnh sản phẩm
+                    </label>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {{-- Khi chỉnh sửa: luôn hiển thị ảnh đang lưu --}}
+                        @if ($editingId)
+                        <div class="border border-slate-200 rounded-xl p-3">
+                            <p class="font-bold text-slate-600 mb-2">
+                                Ảnh đang lưu
+                            </p>
+
+                            @if ($currentImageUrl)
+                            <img src="{{ $currentImageUrl }}" alt="Ảnh sản phẩm đang lưu"
+                                class="w-full h-36 object-contain rounded-lg bg-slate-50">
+                            @else
+                            <p class="text-slate-400">
+                                Sản phẩm chưa có ảnh.
+                            </p>
+                            @endif
+                        </div>
+                        @endif
+
+                        {{-- Preview ảnh vừa chọn --}}
+                        <div class="border border-slate-200 rounded-xl p-3">
+                            <p class="font-bold text-slate-600 mb-2">
+                                {{ $editingId ? 'Ảnh mới đang chọn' : 'Xem trước ảnh' }}
+                            </p>
+
+                            @if ($newImage && ! $errors->has('newImage'))
+                            <img src="{{ $newImage->temporaryUrl() }}" alt="Xem trước ảnh mới"
+                                class="w-full h-36 object-contain rounded-lg bg-slate-50">
+                            @else
+                            <p class="text-slate-400">
+                                Chưa chọn ảnh mới.
+                            </p>
+                            @endif
+                        </div>
+                    </div>
+
+                    <input type="file" id="p-image" wire:key="product-image-{{ $imageInputKey }}" wire:model="newImage"
+                        accept=".jpg,.jpeg,.png,.webp" x-bind:disabled="uploadingImage" wire:loading.attr="disabled"
+                        wire:target="requestSaveProduct,saveProduct,cancelNewImage,closeModal" x-on:change.capture="
+            const input = $event.target;
+            const file = input.files?.[0];
+
+            if (!file) return;
+
+            const extension = file.name.split('.').pop().toLowerCase();
+            const mime = (file.type || '').toLowerCase();
+
+            let message = '';
+
+            if (
+                !['jpg', 'jpeg', 'png', 'webp'].includes(extension)
+                || (
+                    mime !== ''
+                    && !['image/jpeg', 'image/png', 'image/webp'].includes(mime)
+                )
+            ) {
+                message = 'Tệp được chọn không phải ảnh hợp lệ. Chỉ chấp nhận JPG, JPEG, PNG hoặc WEBP.';
+            } else if (file.size > 2 * 1024 * 1024) {
+                message = 'Ảnh sản phẩm không được vượt quá 2 MB.';
+            }
+
+            if (message !== '') {
+                $event.preventDefault();
+                $event.stopImmediatePropagation();
+
+                input.value = '';
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Ảnh không hợp lệ',
+                    text: message,
+                    confirmButtonText: 'Đã hiểu',
+                    confirmButtonColor: '#15803d'
+                });
+            }
+        " class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600">
+
+                    <p class="text-[11px] text-slate-400">
+                        JPG, JPEG, PNG hoặc WEBP. Tối đa 2 MB.
+                    </p>
+
+                    <p x-show="uploadingImage" x-cloak class="text-xs text-brand-700">
+                        Đang tải ảnh lên…
+                    </p>
+
+                    @error('newImage')
+                    <p role="alert" class="text-xs text-red-600">
+                        {{ $message }}
+                    </p>
+                    @enderror
+
+                    @if ($newImage)
+                    <button type="button" wire:click="cancelNewImage" x-bind:disabled="uploadingImage"
+                        wire:loading.attr="disabled"
+                        wire:target="requestSaveProduct,saveProduct,cancelNewImage,closeModal"
+                        class="text-xs font-bold text-red-600 hover:text-red-700">
+                        Hủy ảnh đang chọn
+                    </button>
+                    @endif
+                </div>
+
                 <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
-                    <button type="button" wire:click="closeModal" wire:loading.attr="disabled"
+                    <button type="button" wire:click="closeModal" x-bind:disabled="uploadingImage"
+                        wire:loading.attr="disabled"
+                        wire:target="requestSaveProduct,saveProduct,cancelNewImage,closeModal"
                         class="px-4 py-2 border border-slate-200 rounded-xl text-slate-600 font-bold hover:bg-slate-50 cursor-pointer">
                         Hủy
                     </button>
 
-                    <button type="submit" wire:loading.attr="disabled"
+                    <button type="submit" x-bind:disabled="uploadingImage" wire:loading.attr="disabled"
+                        wire:target="requestSaveProduct,saveProduct,cancelNewImage,closeModal"
                         class="bg-brand-700 hover:bg-brand-800 text-white font-bold px-5 py-2 rounded-xl transition cursor-pointer">
                         Lưu Sản Phẩm
                     </button>
@@ -365,6 +490,7 @@
         submitting = true;
 
         try {
+            // Kiểm tra dữ liệu trước khi mở xác nhận.
             await runProductAction(
                 () => $wire.requestSaveProduct()
             );
@@ -381,8 +507,9 @@
         try {
             const result = await Swal.fire({
                 icon: 'question',
-                title: 'Xác nhận lưu sản phẩm?',
-                text: 'Bạn có muốn lưu thông tin sản phẩm này?',
+                title: $wire.editingId ?
+                    'Xác nhận cập nhật sản phẩm?' : 'Xác nhận thêm sản phẩm?',
+                text: 'Bạn có muốn lưu thông tin và ảnh sản phẩm?',
                 showCancelButton: true,
                 confirmButtonText: 'Xác nhận',
                 cancelButtonText: 'Hủy',
@@ -397,6 +524,9 @@
                     () => $wire.saveProduct()
                 );
             }
+
+            // Hủy: không gọi closeModal hoặc reset.
+            // Giữ thông tin và ảnh mới đang chọn.
         } finally {
             confirming = false;
         }
