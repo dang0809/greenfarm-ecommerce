@@ -84,6 +84,7 @@
                         <tr
                             class="bg-slate-50/80 text-slate-500 uppercase font-bold text-[10px] sm:text-xs tracking-wider border-b border-slate-100">
                             <th class="py-3.5 sm:py-4 px-4 sm:px-5">Sản Phẩm & SKU</th>
+                            <th class="py-3.5 sm:py-4 px-4 sm:px-5">Slug</th>
                             <th class="py-3.5 sm:py-4 px-4">Danh Mục</th>
                             <th class="py-3.5 sm:py-4 px-4 text-right">Giá Bán Niêm Yết</th>
                             <th class="py-3.5 sm:py-4 px-4 text-center">Đơn Vị</th>
@@ -120,6 +121,10 @@
                                         {{ $product->sku }}
                                     </span>
                                 </div>
+                            </td>
+
+                            <td class="py-3.5 px-4 text-slate-700">
+                                {{ $product->slug}}
                             </td>
 
                             <td class="py-3.5 px-4 text-slate-700">
@@ -225,7 +230,7 @@
                         Tên sản phẩm <span class="text-red-500">*</span>
                     </label>
 
-                    <input type="text" id="p-name" wire:model="name" maxlength="255" required
+                    <input type="text" id="p-name" wire:model.live.debounce.300ms="name" maxlength="255" required
                         class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600">
                 </div>
 

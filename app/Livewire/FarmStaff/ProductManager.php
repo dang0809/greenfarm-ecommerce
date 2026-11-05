@@ -159,10 +159,27 @@ class ProductManager extends Component
 
     public function updatedName(): void
     {
-        // Khi sửa tên, không tự thay slug đang được sử dụng.
+        $this->staff();
+        $this->syncSlugWithName();
+    }
+
+    private function syncSlugWithName(): void
+    {
+        $name = trim($this->name);
+
+        // Thêm mới: sinh slug từ tên đang nhập.
         if ($this->editingId === null) {
-            $this->slug = Str::slug($this->name);
+            $this->slug = Str::slug($name);
+
+            return;
         }
+
+        // Chỉnh sửa: đối chiếu với tên và slug đang lưu trong DB.
+        $product = Product::findOrFail($this->editingId);
+
+        $this->slug = $name === trim((string) $product->name)
+            ? (string) $product->slug
+            : Str::slug($name);
     }
 
     protected function rules(): array
@@ -307,9 +324,7 @@ class ProductManager extends Component
         $this->description = trim($this->description);
         $this->sale_price = trim($this->sale_price);
 
-        if ($this->editingId === null && $this->slug === '') {
-            $this->slug = Str::slug($this->name);
-        }
+        $this->syncSlugWithName();
 
         $v = $this->validate();
 
