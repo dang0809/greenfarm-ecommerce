@@ -42,9 +42,49 @@
                         <i class="fa-solid fa-camera text-xs"></i>
                     </label>
 
-                    <input type="file" id="avatar-input" wire:key="avatar-input-{{ $avatarInputKey }}"
-                        wire:model="newAvatar" wire:loading.attr="disabled" wire:target="saveProfile,cancelAvatar"
-                        accept="image/jpeg,image/png,image/webp" class="hidden">
+                    <input type="file" id="avatar-input" x-data="{}" wire:key="avatar-input-{{ $avatarInputKey }}"
+                        wire:model="newAvatar" wire:loading.attr="disabled"
+                        wire:target="requestSaveProfile,saveProfile,cancelAvatar,cancelProfileChanges"
+                        accept=".jpg,.jpeg,.png,.webp" x-on:change.capture="
+        const input = $event.target;
+        const file = input.files?.[0];
+
+        if (!file) return;
+
+        const extension = file.name.split('.').pop().toLowerCase();
+        const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        const mime = (file.type || '').toLowerCase();
+
+        let message = '';
+
+        // Kiểm tra định dạng trước dung lượng.
+        if (
+            !allowedExtensions.includes(extension)
+            || (mime !== '' && !allowedTypes.includes(mime))
+        ) {
+            message = 'Tệp được chọn không phải định dạng ảnh hợp lệ. Chỉ chấp nhận JPG, JPEG, PNG hoặc WEBP.';
+        } else if (file.size > 2 * 1024 * 1024) {
+            message = 'Ảnh đại diện không được vượt quá 2 MB.';
+        }
+
+        if (message !== '') {
+            // Chặn listener upload của Livewire.
+            $event.preventDefault();
+            $event.stopImmediatePropagation();
+
+            // Xóa lựa chọn để có thể chọn lại tệp.
+            input.value = '';
+
+            Swal.fire({
+                icon: 'error',
+                title: 'Ảnh không hợp lệ',
+                text: message,
+                confirmButtonText: 'Đã hiểu',
+                confirmButtonColor: '#15803d'
+            });
+        }
+    " class="hidden">
                 </div>
 
                 <p class="text-xs text-gray-500">
@@ -67,7 +107,7 @@
                 </p>
 
                 <button type="button" wire:click="cancelAvatar" wire:loading.attr="disabled"
-                    wire:target="saveProfile,newAvatar,cancelAvatar"
+                    wire:target="requestSaveProfile,saveProfile,newAvatar,cancelAvatar,cancelProfileChanges"
                     class="text-xs font-bold text-red-600 disabled:opacity-50">
                     Hủy ảnh đang chọn
                 </button>
@@ -102,7 +142,7 @@
 
             {{-- Form cập nhật --}}
             <div class="lg:col-span-2 bg-white rounded-3xl border border-gray-100 p-5 sm:p-8 shadow-soft">
-                <form wire:submit="saveProfile" class="space-y-5 text-sm">
+                <form wire:submit="requestSaveProfile" class="space-y-5 text-sm">
                     @error('profile')
                     <div role="alert" class="rounded-xl bg-red-50 text-red-700 p-3">
                         {{ $message }}
@@ -222,15 +262,21 @@
 
                     <div class="pt-4 border-t border-gray-100 flex justify-end">
                         <button type="submit" wire:loading.attr="disabled"
-                            wire:target="saveProfile,newAvatar,cancelAvatar"
+                            wire:target="requestSaveProfile,saveProfile,newAvatar,cancelAvatar,cancelProfileChanges"
                             class="w-full sm:w-auto bg-brand-700 hover:bg-brand-800 text-white font-bold px-8 py-3 rounded-xl disabled:opacity-50 disabled:cursor-wait">
 
-                            <span wire:loading.remove wire:target="saveProfile">
-                                Lưu thông tin
+                            <span wire:loading.remove wire:target="requestSaveProfile,saveProfile,cancelProfileChanges">
+                                Lưu thông tin </span>
+
+                            <span wire:loading wire:target=" requestSaveProfile">
+                                Đang kiểm tra…
                             </span>
 
                             <span wire:loading wire:target="saveProfile">
                                 Đang lưu…
+                            </span>
+                            <span wire:loading wire:target="cancelProfileChanges">
+                                Đang khôi phục…
                             </span>
                         </button>
                     </div>
@@ -238,4 +284,40 @@
             </div>
         </div>
     </div>
+    @script
+    <script>
+    let confirmationOpen = false;
+
+    $wire.on('confirm-profile-save', async () => {
+        if (confirmationOpen) {
+            return;
+        }
+
+        confirmationOpen = true;
+
+        try {
+            const result = await Swal.fire({
+                icon: 'question',
+                title: 'Xác nhận lưu thay đổi?',
+                text: 'Chọn Hủy để bỏ chỉnh sửa và khôi phục thông tin đã lưu.',
+                showCancelButton: true,
+                confirmButtonText: 'Xác nhận',
+                cancelButtonText: 'Hủy',
+                confirmButtonColor: '#15803d',
+                cancelButtonColor: '#6b7280',
+                reverseButtons: true,
+                allowOutsideClick: false,
+            });
+
+            if (result.isConfirmed) {
+                await $wire.saveProfile();
+            } else {
+                await $wire.cancelProfileChanges();
+            }
+        } finally {
+            confirmationOpen = false;
+        }
+    });
+    </script>
+    @endscript
 </div>

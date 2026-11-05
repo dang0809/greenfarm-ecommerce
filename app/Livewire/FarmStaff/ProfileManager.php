@@ -54,6 +54,7 @@ class ProfileManager extends Component
             ],
 
             'newAvatar' => [
+                'bail',
                 'nullable',
                 'image',
                 'mimes:jpg,jpeg,png,webp',
@@ -95,7 +96,7 @@ class ProfileManager extends Component
             'phone.string' => 'Số điện thoại không hợp lệ.',
             'phone.regex' => 'Số điện thoại gồm 10 số, bắt đầu bằng 03, 05, 07, 08 hoặc 09.',
 
-            'newAvatar.image' => 'Tệp tải lên phải là hình ảnh.',
+            'newAvatar.image' => 'Tệp được chọn không phải định dạng ảnh hợp lệ.',
             'newAvatar.mimes' => 'Chỉ chấp nhận ảnh JPG, JPEG, PNG hoặc WEBP.',
             'newAvatar.max' => 'Ảnh đại diện không được vượt quá 2 MB.',
 
@@ -139,9 +140,138 @@ class ProfileManager extends Component
         $this->resetValidation('newAvatar');
     }
 
+    private function discardDuplicateAvatar(User $user): void
+{
+    if ($this->newAvatar === null) {
+        return;
+    }
+
+    // Chỉ đọc nội dung sau khi ảnh vượt qua validation.
+    $this->validateOnly('newAvatar');
+
+    $path = trim((string) $user->avatar);
+
+    // Chỉ so sánh với ảnh đang lưu trên disk public.
+    if (
+        $path === ''
+        || Str::startsWith($path, ['https://', 'http://'])
+    ) {
+        return;
+    }
+
+    try {
+        $disk = Storage::disk('public');
+
+        // Ảnh cũ bị thiếu: cho phép lưu ảnh thay thế.
+        if (! $disk->exists($path)) {
+            return;
+        }
+
+        $oldContents = $disk->get($path);
+        $newContents = $this->newAvatar->get();
+
+        if (
+            ! is_string($oldContents)
+            || ! is_string($newContents)
+        ) {
+            throw new RuntimeException(
+                'Không đọc được nội dung ảnh.'
+            );
+        }
+
+        $identical = hash_equals(
+            hash('sha256', $oldContents),
+            hash('sha256', $newContents)
+        );
+    } catch (Throwable $exception) {
+        report($exception);
+
+        throw ValidationException::withMessages([
+            'newAvatar' => 'Không thể kiểm tra ảnh đại diện. Vui lòng chọn lại ảnh.',
+        ]);
+    }
+
+    if ($identical) {
+        // Loại ảnh trùng khỏi dữ liệu chuẩn bị lưu.
+        $this->reset('newAvatar');
+        $this->avatarInputKey++;
+        $this->resetValidation('newAvatar');
+    }
+}
+
+public function cancelProfileChanges(): void
+{
+    // staff() truy vấn mới tài khoản từ DB.
+    $user = $this->staff();
+
+    Auth::setUser($user);
+
+    $this->name = $user->name;
+    $this->phone = $user->phone ?? '';
+
+    // Bỏ ảnh mới và dữ liệu mật khẩu đang nhập.
+    $this->reset([
+        'newAvatar',
+        'current_password',
+        'new_password',
+        'new_password_confirmation',
+    ]);
+
+    // Tạo lại file input, xóa lựa chọn tệp trên trình duyệt.
+    $this->avatarInputKey++;
+
+    $this->resetValidation();
+
+    // Đồng bộ lại thông tin sidebar.
+    $this->dispatch('profile-updated');
+}
+
+    public function requestSaveProfile(): void
+    {
+         $user = $this->staff();
+
+        // Loại bỏ ảnh trùng trước khi kiểm tra thay đổi.
+        $this->discardDuplicateAvatar($user);
+
+        if (! $this->hasProfileChanges($user)) {
+            $this->notifyNoChanges();
+
+            return;
+    }
+
+    $this->dispatch('confirm-profile-save');
+    }
+
+    private function hasProfileChanges(User $user): bool
+    {
+        return trim($this->name) !== trim((string) $user->name)
+            || trim($this->phone) !== trim((string) $user->phone)
+            || $this->newAvatar !== null
+            || $this->wantsPasswordChange();
+    }
+
+    private function notifyNoChanges(): void
+    {
+        $this->dispatch(
+            'swal',
+            icon: 'info',
+            title: 'Không có thay đổi nào',
+            text: 'Thông tin hồ sơ vẫn giữ nguyên.'
+        );
+    }
+
     public function saveProfile(): void
     {
-        $user = $this->staff();
+          $user = $this->staff();
+
+        // Kiểm tra lại ảnh theo dữ liệu DB tại thời điểm lưu.
+        $this->discardDuplicateAvatar($user);
+
+        if (! $this->hasProfileChanges($user)) {
+            $this->notifyNoChanges();
+
+            return;
+        }
 
         $this->resetValidation();
 
