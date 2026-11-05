@@ -8,12 +8,14 @@
                 aria-label="Mở menu">
                 <i class="fa-solid fa-bars text-lg"></i>
             </button>
+
             <div class="min-w-0">
                 <h1 class="text-base sm:text-2xl font-black text-slate-900 tracking-tight truncate leading-tight">
                     Quản Lý Danh Sách Sản Phẩm Nông Sản
                 </h1>
             </div>
         </div>
+
         <div class="flex items-center gap-2 shrink-0">
             <span
                 class="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-bold font-mono">
@@ -29,10 +31,12 @@
         <!-- Thanh Công Cụ & Bộ Lọc -->
         <div
             class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-soft flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
+
             <div class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-3 flex-1">
                 <div class="relative w-full sm:w-72 md:w-80">
                     <i
                         class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs sm:text-sm"></i>
+
                     <input type="text" wire:model.live.debounce.300ms="search" placeholder="Tìm tên sản phẩm, mã SKU..."
                         class="w-full pl-10 pr-4 py-2 sm:py-2.5 border border-slate-200 rounded-xl sm:rounded-2xl text-xs sm:text-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100 bg-[#FAFAF8] font-medium transition-all">
                 </div>
@@ -40,9 +44,12 @@
                 <select wire:model.live="selectedCategory"
                     class="w-full sm:w-auto bg-[#FAFAF8] border border-slate-200 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-semibold text-slate-700 outline-none focus:border-brand-600 transition cursor-pointer">
                     <option value="">-- Tất cả danh mục --</option>
+
                     @if(isset($categories))
                     @foreach($categories as $cat)
-                    <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                    <option value="{{ $cat->id }}">
+                        {{ $cat->name }}
+                    </option>
                     @endforeach
                     @endif
                 </select>
@@ -54,7 +61,7 @@
                     <option value="hidden">Tạm ẩn (hidden)</option>
                 </select>
 
-                <button wire:click="$set('search', ''); $set('selectedCategory', ''); $set('selectedStatus', '');"
+                <button type="button" wire:click="resetFilters"
                     class="self-end sm:self-auto p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 transition shadow-xs cursor-pointer"
                     title="Đặt lại bộ lọc">
                     <i class="fa-solid fa-rotate-right"></i>
@@ -62,7 +69,7 @@
             </div>
 
             <!-- Nút Thêm Sản Phẩm Mới -->
-            <button onclick="openCreateProductModal()"
+            <button type="button" wire:click="createProduct" wire:loading.attr="disabled"
                 class="bg-brand-700 hover:bg-brand-800 text-white font-bold text-xs sm:text-sm px-4 py-2.5 rounded-xl sm:rounded-2xl transition shadow-sm flex items-center justify-center gap-2 active:scale-95 shrink-0 whitespace-nowrap cursor-pointer">
                 <i class="fa-solid fa-plus"></i>
                 <span>Thêm Sản Phẩm Mới</span>
@@ -87,57 +94,83 @@
                             <th class="py-3.5 sm:py-4 px-4 sm:px-6 text-right">Thao Tác</th>
                         </tr>
                     </thead>
+
                     <tbody class="divide-y divide-slate-100 font-medium">
                         @if(isset($products) && count($products) > 0)
                         @foreach($products as $product)
                         @php
-                        $totalStock = method_exists($product, 'productBatches')
-                        ? $product->productBatches->where('status', 'active')->sum('current_quantity')
-                        : ($product->total_stock ?? 0);
+                        $totalStock = $product->total_stock;
                         @endphp
-                        <tr class="hover:bg-slate-50 transition bg-white">
+
+                        <tr wire:key="product-{{ $product->id }}" class="hover:bg-slate-50 transition bg-white">
+
                             <td class="py-3.5 px-4 pl-5 flex items-center gap-3">
-                                <img src="{{ $product->image ?? 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300' }}"
+                                <img src="{{ $product->cover_image_url ?? 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300' }}"
                                     class="w-10 h-10 rounded-xl object-cover border border-slate-200 shrink-0"
                                     alt="{{ $product->name }}">
+
                                 <div class="min-w-0">
                                     <b
-                                        class="text-slate-900 text-xs sm:text-sm block truncate hover:text-brand-700 cursor-pointer">{{ $product->name }}</b>
+                                        class="text-slate-900 text-xs sm:text-sm block truncate hover:text-brand-700 cursor-pointer">
+                                        {{ $product->name }}
+                                    </b>
+
                                     <span
-                                        class="font-mono text-[11px] text-brand-800 font-bold bg-brand-50 px-1.5 py-0.2 rounded border border-brand-200">{{ $product->sku }}</span>
+                                        class="font-mono text-[11px] text-brand-800 font-bold bg-brand-50 px-1.5 py-0.2 rounded border border-brand-200">
+                                        {{ $product->sku }}
+                                    </span>
                                 </div>
                             </td>
-                            <td class="py-3.5 px-4 text-slate-700">{{ $product->category->name ?? 'Chưa phân nhóm' }}
+
+                            <td class="py-3.5 px-4 text-slate-700">
+                                {{ $product->category->name ?? 'Chưa phân nhóm' }}
                             </td>
+
                             <td class="py-3.5 px-4 text-right font-mono font-extrabold text-slate-900">
-                                {{ number_format($product->price, 0, ',', '.') }}đ</td>
-                            <td class="py-3.5 px-4 text-center font-mono font-bold">{{ $product->unit }}</td>
+                                {{ number_format($product->price, 0, ',', '.') }}đ
+                            </td>
+
+                            <td class="py-3.5 px-4 text-center font-mono font-bold">
+                                {{ $product->unit }}
+                            </td>
+
                             <td class="py-3.5 px-4 text-center">
                                 <b
-                                    class="font-mono text-sm {{ $totalStock > 0 ? 'text-brand-800' : 'text-slate-400' }}">{{ $totalStock }}
-                                    kg</b>
+                                    class="font-mono text-sm {{ $totalStock > 0 ? 'text-brand-800' : 'text-slate-400' }}">
+                                    {{ $totalStock }} {{ $product->unit }}
+                                </b>
                             </td>
-                            <td class="py-3.5 px-4 text-center font-mono">{{ $product->sold_count ?? 0 }} kg</td>
+
+                            <td class="py-3.5 px-4 text-center font-mono">
+                                {{ $product->sold_count ?? 0 }} {{ $product->unit }}
+                            </td>
+
                             <td class="py-3.5 px-4 text-center font-mono text-amber-500 font-bold">
-                                {{ $product->avg_rating ?? '5.0' }} ★</td>
+                                {{ $product->avg_rating ?? '5.0' }} ★
+                            </td>
+
                             <td class="py-3.5 px-4 text-center">
                                 <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" wire:click="toggleStatus({{ $product->id }})"
-                                        {{ $product->status === 'active' ? 'checked' : '' }} class="sr-only peer">
+                                    <input type="checkbox" wire:click.prevent="toggleStatus({{ $product->id }})"
+                                        wire:loading.attr="disabled" @checked($product->status === 'active')
+                                    class="sr-only peer">
+
                                     <div
                                         class="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-600">
                                     </div>
                                 </label>
                             </td>
+
                             <td class="py-3.5 px-4 pr-6 text-right space-x-1.5">
-                                <a href="{{ route('farm-staff.product-batch', $product->id) }}"
+                                <a href="{{ route('farm-staff.product-batch') }}"
                                     class="inline-flex items-center p-2 rounded-xl bg-amber-50 text-amber-800 hover:bg-amber-100 transition shadow-2xs font-bold text-xs"
                                     title="Quản lý Lô thu hoạch & FEFO">
-                                    <i class="fa-solid fa-boxes-stacked mr-1"></i> Quản lý Lô
+                                    <i class="fa-solid fa-boxes-stacked mr-1"></i>
+                                    Quản lý Lô
                                 </a>
-                                <!-- Nút Sửa Sản Phẩm với icon <i class="fa-regular fa-pen-to-square"></i> -->
-                                <button
-                                    onclick="openEditProductModal({{ $product->id }}, '{{ addslashes($product->name) }}', '{{ $product->sku }}', {{ $product->category_id ?? 0 }}, '{{ $product->unit }}', {{ $product->price }}, {{ $product->sale_price ?? 'null' }}, '{{ addslashes($product->description ?? '') }}')"
+
+                                <button type="button" wire:click="editProduct({{ $product->id }})"
+                                    wire:loading.attr="disabled"
                                     class="p-2 rounded-xl bg-slate-100 text-slate-700 hover:text-brand-700 hover:bg-brand-50 transition cursor-pointer"
                                     title="Sửa sản phẩm">
                                     <i class="fa-regular fa-pen-to-square"></i>
@@ -147,8 +180,9 @@
                         @endforeach
                         @else
                         <tr>
-                            <td colspan="9" class="py-10 text-center text-slate-400 italic">Không tìm thấy sản phẩm nông
-                                sản nào phù hợp.</td>
+                            <td colspan="9" class="py-10 text-center text-slate-400 italic">
+                                Không tìm thấy sản phẩm nông sản nào phù hợp.
+                            </td>
                         </tr>
                         @endif
                     </tbody>
@@ -165,128 +199,204 @@
     </div>
 
     <!-- MODAL THÊM / SỬA SẢN PHẨM -->
-    <div id="modal-product"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs hidden p-3 sm:p-4">
+    <div id="modal-product" wire:key="product-modal-{{ $editingId ?? 'new' }}"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs {{ $showModal ? '' : 'hidden' }} p-3 sm:p-4">
+
         <div
             class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-2xl shadow-2xl p-5 sm:p-8 max-h-[92vh] overflow-y-auto custom-scrollbar border border-slate-100 space-y-4">
+
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 class="text-base sm:text-xl font-extrabold text-slate-900" id="modal-product-title">Thêm Sản Phẩm
-                    Nông Sản Mới</h3>
-                <button type="button" onclick="closeModal('modal-product')"
-                    class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center cursor-pointer"><i
-                        class="fa-solid fa-xmark"></i></button>
+                <h3 class="text-base sm:text-xl font-extrabold text-slate-900" id="modal-product-title">
+                    {{ $editingId ? 'Sửa Sản Phẩm: '.$name : 'Thêm Sản Phẩm Nông Sản Mới' }}
+                </h3>
+
+                <button type="button" wire:click="closeModal" wire:loading.attr="disabled"
+                    class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
             </div>
-            <form onsubmit="handleProductSubmit(event)" class="space-y-3.5 text-xs sm:text-sm">
-                <input type="hidden" id="p-id">
+
+            <form wire:submit="$js.submitProduct" class="space-y-3.5 text-xs sm:text-sm">
+
+                <input type="hidden" id="p-id" value="{{ $editingId }}">
+
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Tên sản phẩm <span
-                            class="text-red-500">*</span></label>
-                    <input type="text" id="p-name" required
+                    <label class="block font-bold text-slate-700 mb-1">
+                        Tên sản phẩm <span class="text-red-500">*</span>
+                    </label>
+
+                    <input type="text" id="p-name" wire:model="name" maxlength="255" required
                         class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600">
                 </div>
+
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">Mã SKU <span
-                                class="text-red-500">*</span></label>
-                        <input type="text" id="p-sku" required
+                        <label class="block font-bold text-slate-700 mb-1">
+                            Mã SKU <span class="text-red-500">*</span>
+                        </label>
+
+                        <input type="text" id="p-sku" wire:model="sku" maxlength="100" required
                             class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono uppercase outline-none focus:border-brand-600">
                     </div>
+
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">Danh mục <span
-                                class="text-red-500">*</span></label>
-                        <select id="p-category" required
+                        <label class="block font-bold text-slate-700 mb-1">
+                            Danh mục <span class="text-red-500">*</span>
+                        </label>
+
+                        <select id="p-category" wire:model="category_id" required
                             class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600 cursor-pointer">
                             @if(isset($categories))
                             @foreach($categories as $cat)
-                            <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                            <option value="{{ $cat->id }}">
+                                {{ $cat->name }}
+                            </option>
                             @endforeach
                             @endif
                         </select>
                     </div>
                 </div>
+
                 <div class="grid grid-cols-3 gap-3">
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">Đơn vị tính</label>
-                        <select id="p-unit" required
+                        <label class="block font-bold text-slate-700 mb-1">
+                            Đơn vị tính
+                        </label>
+
+                        <select id="p-unit" wire:model="unit" required
                             class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600 cursor-pointer">
-                            <option value="Kg">Kg</option>
-                            <option value="Bó">Bó</option>
-                            <option value="Hộp 500g">Hộp 500g</option>
+
+                            <option value="kg">Kg</option>
+                            <option value="bó">Bó</option>
+                            <option value="hộp 500g">Hộp 500g</option>
+
+                            @if ($unit !== '' && !in_array($unit, ['kg', 'bó', 'hộp 500g'], true))
+                            <option value="{{ $unit }}">
+                                {{ $unit }}
+                            </option>
+                            @endif
                         </select>
                     </div>
+
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">Giá bán gốc (đ) <span
-                                class="text-red-500">*</span></label>
-                        <input type="number" id="p-price" required
+                        <label class="block font-bold text-slate-700 mb-1">
+                            Giá bán gốc (đ) <span class="text-red-500">*</span>
+                        </label>
+
+                        <input type="number" id="p-price" wire:model="price" min="0.01" max="9999999999.99" step="0.01"
+                            required
                             class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono outline-none focus:border-brand-600">
                     </div>
+
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">Giá khuyến mãi (đ)</label>
-                        <input type="number" id="p-sale-price"
+                        <label class="block font-bold text-slate-700 mb-1">
+                            Giá khuyến mãi (đ)
+                        </label>
+
+                        <input type="number" id="p-sale-price" wire:model="sale_price" min="0.01" max="9999999999.99"
+                            step="0.01"
                             class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono outline-none focus:border-brand-600">
                     </div>
                 </div>
+
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Mô tả đặc tính</label>
-                    <textarea id="p-desc" rows="2"
+                    <label class="block font-bold text-slate-700 mb-1">
+                        Mô tả đặc tính
+                    </label>
+
+                    <textarea id="p-desc" wire:model="description" maxlength="10000" rows="2"
                         class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl p-2.5 outline-none focus:border-brand-600 resize-none"></textarea>
                 </div>
+
                 <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
-                    <button type="button" onclick="closeModal('modal-product')"
-                        class="px-4 py-2 border border-slate-200 rounded-xl text-slate-600 font-bold hover:bg-slate-50 cursor-pointer">Hủy</button>
-                    <button type="submit"
-                        class="bg-brand-700 hover:bg-brand-800 text-white font-bold px-5 py-2 rounded-xl transition cursor-pointer">Lưu
-                        Sản Phẩm</button>
+                    <button type="button" wire:click="closeModal" wire:loading.attr="disabled"
+                        class="px-4 py-2 border border-slate-200 rounded-xl text-slate-600 font-bold hover:bg-slate-50 cursor-pointer">
+                        Hủy
+                    </button>
+
+                    <button type="submit" wire:loading.attr="disabled"
+                        class="bg-brand-700 hover:bg-brand-800 text-white font-bold px-5 py-2 rounded-xl transition cursor-pointer">
+                        Lưu Sản Phẩm
+                    </button>
                 </div>
             </form>
         </div>
     </div>
-</div>
 
-@push('scripts')
-<script>
-function openCreateProductModal() {
-    document.getElementById('modal-product-title').textContent = "Thêm Sản Phẩm Nông Sản Mới";
-    document.getElementById('p-id').value = '';
-    document.getElementById('p-name').value = '';
-    document.getElementById('p-sku').value = 'PROD-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-    document.getElementById('p-price').value = '';
-    document.getElementById('p-sale-price').value = '';
-    document.getElementById('p-desc').value = '';
-    openModal('modal-product');
-}
+    @script
+    <script>
+    let submitting = false;
+    let confirming = false;
 
-function openEditProductModal(id, name, sku, categoryId, unit, price, salePrice, desc) {
-    document.getElementById('modal-product-title').textContent = `Sửa Sản Phẩm: ${name}`;
-    document.getElementById('p-id').value = id;
-    document.getElementById('p-name').value = name;
-    document.getElementById('p-sku').value = sku;
-    document.getElementById('p-category').value = categoryId;
-    document.getElementById('p-unit').value = unit;
-    document.getElementById('p-price').value = price;
-    document.getElementById('p-sale-price').value = (salePrice !== null && salePrice !== 'null') ? salePrice : '';
-    document.getElementById('p-desc').value = desc;
-    openModal('modal-product');
-}
+    async function showProductErrors(error = null) {
+        const messages = error?.errors ?
+            Object.values(error.errors).flat() :
+            $wire.$errors.all();
 
-function handleProductSubmit(e) {
-    e.preventDefault();
-    // Có thể tích hợp gọi Livewire action ở đây hoặc xử lý Ajax/SweetAlert2
-    Swal.fire({
-        icon: 'success',
-        title: 'Đã lưu sản phẩm thành công!',
-        timer: 1500,
-        showConfirmButton: false
+        if (!messages.length && !error) return;
+
+        await Swal.fire({
+            icon: 'error',
+            title: 'Không thể lưu sản phẩm',
+            text: messages.length ?
+                messages.join('\n') :
+                'Yêu cầu chưa hoàn tất. Vui lòng kiểm tra kết nối và thử lại.',
+            confirmButtonText: 'Đã hiểu',
+            confirmButtonColor: '#15803d'
+        });
+    }
+
+    async function runProductAction(action) {
+        try {
+            await action();
+            await showProductErrors();
+        } catch (error) {
+            await showProductErrors(error);
+        }
+    }
+
+    $js('submitProduct', async () => {
+        if (submitting || confirming) return;
+
+        submitting = true;
+
+        try {
+            await runProductAction(
+                () => $wire.requestSaveProduct()
+            );
+        } finally {
+            submitting = false;
+        }
     });
-    closeModal('modal-product');
-}
 
-function openModal(id) {
-    document.getElementById(id).classList.remove('hidden');
-}
+    $wire.on('confirm-product-save', async () => {
+        if (confirming) return;
 
-function closeModal(id) {
-    document.getElementById(id).classList.add('hidden');
-}
-</script>
-@endpush
+        confirming = true;
+
+        try {
+            const result = await Swal.fire({
+                icon: 'question',
+                title: 'Xác nhận lưu sản phẩm?',
+                text: 'Bạn có muốn lưu thông tin sản phẩm này?',
+                showCancelButton: true,
+                confirmButtonText: 'Xác nhận',
+                cancelButtonText: 'Hủy',
+                confirmButtonColor: '#15803d',
+                cancelButtonColor: '#6b7280',
+                reverseButtons: true,
+                allowOutsideClick: false
+            });
+
+            if (result.isConfirmed) {
+                await runProductAction(
+                    () => $wire.saveProduct()
+                );
+            }
+        } finally {
+            confirming = false;
+        }
+    });
+    </script>
+    @endscript
+</div>

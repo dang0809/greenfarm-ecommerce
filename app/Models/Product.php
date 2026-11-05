@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class Product extends Model
 {
@@ -38,6 +41,26 @@ class Product extends Model
         ];
     }
 
+    public function coverImage(): HasOne
+    {
+        return $this->hasOne(ProductImage::class)
+            ->orderByDesc('is_primary')
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
+
+    public function getCoverImageUrlAttribute(): ?string
+    {
+        $path = $this->coverImage?->image;
+
+        if (! $path) {
+            return null;
+        }
+
+        return Str::startsWith($path, ['http://', 'https://'])
+            ? $path
+            : Storage::disk('public')->url(ltrim($path, '/'));
+    }
 
     public function category(): BelongsTo
     {
@@ -98,10 +121,15 @@ class Product extends Model
      */
     public function getTotalStockAttribute(): int
     {
-        return (int) ($this->attributes['total_stock'] ?? $this->batches()
+        // SQL SUM có thể trả NULL khi không có lô phù hợp.
+        if (array_key_exists('total_stock', $this->attributes)) {
+            return (int) ($this->attributes['total_stock'] ?? 0);
+        }
+
+        return (int) $this->batches()
             ->where('product_batches.status', 'active')
             ->where('product_batches.current_quantity', '>', 0)
-            ->whereDate('product_batches.expiry_date', '>=', now())
-            ->sum('product_batches.current_quantity'));
+            ->whereDate('product_batches.expiry_date', '>=', today())
+            ->sum('product_batches.current_quantity');
     }
 }
