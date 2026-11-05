@@ -37,7 +37,17 @@
             <a href="{{ route('farm-staff.certification') }}" wire:navigate
                 class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all {{ request()->routeIs('farm-staff.certification') ? 'menu-active' : 'menu-inactive' }} text-left">
                 <i class="fa-solid fa-file-shield w-5 text-center"></i>
-                <span>Giấy Kiểm Định</span>
+                <span>Giấy Chứng Nhận</span>
+            </a>
+            <a href="{{ route('farm-staff.product-manager') }}" wire:navigate
+                class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all {{ request()->routeIs('farm-staff.product-manager') ? 'menu-active' : 'menu-inactive' }} text-left">
+                <i class="fa-solid fa-brands fa-pagelines w-5 text-center"></i>
+                <span>Quản lý sản phẩm</span>
+            </a>
+            <a href="{{ route('farm-staff.category-manager') }}" wire:navigate
+                class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all {{ request()->routeIs('farm-staff.category-manager') ? 'menu-active' : 'menu-inactive' }} text-left">
+                <i class="fa-solid fa-layer-group w-5 text-center"></i>
+                <span>Quản lý danh mục</span>
             </a>
             <a href="{{ route('farm-staff.profile') }}" wire:navigate
                 class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all {{ request()->routeIs('farm-staff.profile') ? 'menu-active' : 'menu-inactive' }} text-left">
