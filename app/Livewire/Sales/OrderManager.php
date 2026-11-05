@@ -300,7 +300,8 @@ class OrderManager extends Component
                 'cancelled_at'  => now(),
             ]);
 
-            // 1. Hoàn lại kho trực tiếp theo số lượng kiện/hộp vào từng lô hàng
+            // 1. Xử lý hoàn kho thực tế và ghi sổ nhật ký return_cancel
+            // Toàn bộ đơn ở OrderManager đều đã thanh toán thành công (kho thực tế đã bị trừ qua webhook)
             foreach ($order->items as $item) {
                 if ($item->batch_id) {
                     ProductBatch::where('id', $item->batch_id)->increment('current_quantity', $item->quantity);
