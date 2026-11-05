@@ -38,7 +38,6 @@ class Product extends Model
         ];
     }
 
-    
 
     public function category(): BelongsTo
     {
@@ -50,7 +49,7 @@ class Product extends Model
         return $this->hasMany(PlantingBatch::class);
     }
 
-    public function productbatches(): HasManyThrough
+    public function batches(): HasManyThrough
     {
         return $this->hasManyThrough(
             ProductBatch::class,

@@ -36,7 +36,7 @@ class ProductManager extends Component
 
     public function render()
     {
-        $query = Product::with(['category', 'productBatches']);
+        $query = Product::with(['category', 'batches']);
 
         if (!empty($this->search)) {
             $query->where(function($q) {
