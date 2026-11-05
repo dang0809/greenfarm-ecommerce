@@ -127,7 +127,6 @@ class PayOSWebhookController extends Controller
                         'old_status' => 'pending',
                         'new_status' => 'pending',
                         'changed_by' => $order->user_id,
-                        'note'       => 'Xác nhận thanh toán tự động qua Webhook PayOS.',
                     ]);
 
                     foreach ($order->items as $item) {

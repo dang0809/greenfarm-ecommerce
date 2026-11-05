@@ -316,7 +316,6 @@ class CheckoutPage extends Component
                     'old_status' => null,
                     'new_status' => 'pending',
                     'changed_by' => Auth::id(),
-                    'note'       => 'Khách tạo đơn hàng qua cổng trực tuyến PayOS',
                 ]);
             }
 

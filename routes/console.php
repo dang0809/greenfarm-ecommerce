@@ -42,7 +42,6 @@ Schedule::call(function () {
                     'old_status' => 'pending',
                     'new_status' => 'cancelled',
                     'changed_by' => $order->user_id,
-                    'note'       => 'Hệ thống tự động hủy do quá hạn thanh toán 5 phút.',
                 ]);
             }
 

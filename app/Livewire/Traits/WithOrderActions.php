@@ -151,7 +151,6 @@ trait WithOrderActions
                     'old_status' => $oldStatus,
                     'new_status' => 'cancelled',
                     'changed_by' => Auth::id(),
-                    'note'       => 'Khách hàng tự hủy đơn hàng trực tuyến.',
                 ]);
             }
 

@@ -11,6 +11,14 @@ class FarmBlockchainSeeder extends Seeder
 {
     public function run(): void
     {
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        DB::table('inventory_logs')->truncate();
+        DB::table('product_batches')->truncate();
+        DB::table('traceability_events')->truncate();
+        DB::table('planting_batches')->truncate();
+        DB::table('farm_plots')->truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
         $farmStaff = User::where('role', 'farm_staff')->first();
         $pBoxoi = Product::where('slug', 'cai-bo-xoi-huu-co')->first();
         $pCachua = Product::where('slug', 'ca-chua-cherry-da-lat')->first();

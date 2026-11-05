@@ -326,17 +326,44 @@
                         <p class="text-gray-500">
                             Hình thức giao: <span class="font-semibold text-gray-800">{{ $order->shipping_provider ?? 'Giao hỏa tốc (Nông trại tự giao)' }}</span>
                         </p>
-                        @if (!empty($order->tracking_code))
-                            <p class="text-gray-500">
-                                Mã vận đơn: <span class="font-mono font-bold text-gray-800">{{ $order->tracking_code }}</span>
-                            </p>
-                        @endif
+                        <p class="text-gray-500">
+                            Mã vận đơn: <span class="font-mono font-bold text-gray-800">{{ $order->tracking_code ?: ('SHIP-DL-' . date('Ymd', strtotime($order->created_at)) . '-' . str_pad($order->id, 4, '0', STR_PAD_LEFT)) }}</span>
+                        </p>
                         @if (!empty($order->note))
                             <p class="text-gray-500">
                                 Ghi chú giao hàng: <span class="italic text-gray-800 font-medium">"{{ $order->note }}"</span>
                             </p>
                         @endif
                     </div>
+
+                    <!-- THẺ SHIPPER PHỤ TRÁCH GIAO HÀNG (MOCK) -->
+                    @if(in_array($order->status, ['processing', 'shipped', 'delivered']))
+                        <div class="mt-3 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-blue-50/80 to-indigo-50/70 border border-blue-200/80 text-blue-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center text-lg shrink-0 shadow-sm">
+                                    <i class="fa-solid fa-motorcycle"></i>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="font-extrabold text-xs sm:text-sm text-blue-950">
+                                            Shipper: Nguyễn Văn Bình
+                                        </span>
+                                        <span class="text-[10px] font-bold bg-white text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full font-mono">
+                                            Đội xe hỏa tốc Đất Lành
+                                        </span>
+                                    </div>
+                                    <p class="text-[11px] text-blue-800 font-mono mt-0.5">
+                                        Xe máy thùng lạnh chuyên dụng • 59-X1 889.24
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <a href="tel:0938445566" class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition shadow-xs cursor-pointer">
+                                    <i class="fa-solid fa-phone text-[10px]"></i> Gọi 0938.445.566
+                                </a>
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -349,144 +376,9 @@
                     <span class="text-[11px] font-semibold text-gray-400">Thời gian thực</span>
                 </div>
 
-                @php
-                    $timelineEvents = [];
-
-                    // 1. Duyệt qua statusHistories
-                    foreach ($order->statusHistories as $h) {
-                        $status = $h->new_status;
-                        $old    = $h->old_status;
-                        $note   = mb_strtolower($h->note ?? '', 'UTF-8');
-                        $time   = $h->created_at;
-
-                        if ($status === 'delivered') {
-                            $timelineEvents[] = [
-                                'title' => 'Giao hàng thành công',
-                                'desc'  => $isVipDelivery ? "Đã giao thành công đợt rau VIP{$batchInfo} đến bạn!" : 'Đơn hàng đã được giao thành công đến bạn! Cảm ơn bạn đã tin chọn nông sản sạch GreenFarm.',
-                                'icon'  => 'fa-circle-check',
-                                'color' => 'emerald',
-                                'time'  => $time,
-                                'order' => 10,
-                            ];
-                        } elseif ($status === 'shipped') {
-                            $timelineEvents[] = [
-                                'title' => 'Đang giao hàng',
-                                'desc'  => 'Shipper đã lấy hàng thành công và đang trên đường giao đơn hàng này tới bạn. Vui lòng chú ý điện thoại nhé!',
-                                'icon'  => 'fa-truck-fast',
-                                'color' => 'blue',
-                                'time'  => $time,
-                                'order' => 5,
-                            ];
-                        } elseif ($status === 'processing') {
-                            $timelineEvents[] = [
-                                'title' => 'Chờ lấy hàng',
-                                'desc'  => $isVipDelivery ? "Nông trại đang thu hoạch & đóng gói thùng rau VIP{$batchInfo} theo chuẩn VietGAP, chờ shipper đến lấy hàng." : 'Đơn hàng đã được xác nhận & đang đóng gói, chờ shipper đến lấy hàng.',
-                                'icon'  => 'fa-box-open',
-                                'color' => 'amber',
-                                'time'  => $time,
-                                'order' => 4,
-                            ];
-                        } elseif ($status === 'pending' && $old === 'pending') {
-                            if ($isVipDelivery) {
-                                $timelineEvents[] = [
-                                    'title' => "Chờ xác nhận đợt giao VIP{$batchInfo}",
-                                    'desc'  => "Đợt giao rau định kỳ{$batchInfo} đã được khởi tạo. Hệ thống đang chờ nhân viên Nông trại Đất Lành kiểm tra và xác nhận đơn hàng.",
-                                    'icon'  => 'fa-crown',
-                                    'color' => 'purple',
-                                    'time'  => $time,
-                                    'order' => 2,
-                                ];
-                            } else {
-                                $timelineEvents[] = [
-                                    'title' => 'Chờ xác nhận',
-                                    'desc'  => 'Bạn đã thanh toán thành công. Hệ thống đang chờ nhân viên Nông trại Đất Lành kiểm tra và xác nhận đơn hàng.',
-                                    'icon'  => 'fa-credit-card',
-                                    'color' => 'emerald',
-                                    'time'  => $time,
-                                    'order' => 2,
-                                ];
-                            }
-                        } elseif ($status === 'pending' && empty($old)) {
-                            if ($isVipDelivery) {
-                                $timelineEvents[] = [
-                                    'title' => "Khởi tạo đợt giao VIP{$batchInfo}",
-                                    'desc'  => "Hệ thống tự động kích hoạt đợt giao rau{$batchInfo} từ Gói VIP.",
-                                    'icon'  => 'fa-truck-ramp-box',
-                                    'color' => 'purple',
-                                    'time'  => $time,
-                                    'order' => 1,
-                                ];
-                            } else {
-                                $timelineEvents[] = [
-                                    'title' => ($order->payment?->status === 'success') ? 'Đơn hàng đã được đặt' : 'Chờ thanh toán',
-                                    'desc'  => ($order->payment?->status === 'success') ? 'Đơn hàng của bạn đã được hệ thống ghi nhận.' : 'Đơn hàng của bạn đã được hệ thống ghi nhận. Vui lòng hoàn tất thanh toán để nông trại bắt đầu chuẩn bị hàng nhé!',
-                                    'icon'  => 'fa-file-lines',
-                                    'color' => 'gray',
-                                    'time'  => $time,
-                                    'order' => 1,
-                                ];
-                            }
-                        } elseif ($status === 'cancelled') {
-                            $timelineEvents[] = [
-                                'title' => 'Đơn hàng đã hủy',
-                                'desc'  => $h->note ?: ($order->cancel_reason ?: 'Đơn hàng đã được hủy.'),
-                                'icon'  => 'fa-circle-xmark',
-                                'color' => 'red',
-                                'time'  => $time,
-                                'order' => 20,
-                            ];
-                        }
-                    }
-
-                    // 2. Toàn bộ tiến trình khiếu nại đọc từ bảng complaints
-                    if ($order->complaint) {
-                        $c = $order->complaint;
-                        $cTime = $c->created_at ?? $order->updated_at;
-
-                        // Mốc 1: Khách gửi khiếu nại
-                        $timelineEvents[] = [
-                            'title' => 'Khách gửi khiếu nại hoàn tiền',
-                            'desc'  => 'Nội dung: "' . $c->reason . '"',
-                            'icon'  => 'fa-triangle-exclamation',
-                            'color' => 'amber',
-                            'time'  => $cTime,
-                            'order' => 20,
-                        ];
-
-                        // Mốc 2: Kết quả xử lý khiếu nại (Đã hoàn tiền hoặc Từ chối)
-                        if ($c->status === 'resolved') {
-                            $timelineEvents[] = [
-                                'title' => 'Bồi hoàn tiền thành công',
-                                'desc'  => $c->resolution_note ?: 'Nông trại đã chuyển khoản bồi hoàn tiền cho đơn hàng này.',
-                                'icon'  => 'fa-hand-holding-dollar',
-                                'color' => 'emerald',
-                                'time'  => $c->updated_at ?? $cTime,
-                                'order' => 30,
-                            ];
-                        } elseif ($c->status === 'rejected') {
-                            $timelineEvents[] = [
-                                'title' => 'Từ chối khiếu nại bồi hoàn',
-                                'desc'  => $c->resolution_note ?: 'Nông trại từ chối khiếu nại bồi hoàn cho đơn hàng này.',
-                                'icon'  => 'fa-circle-xmark',
-                                'color' => 'red',
-                                'time'  => $c->updated_at ?? $cTime,
-                                'order' => 30,
-                            ];
-                        }
-                    }
-
-                    // Sắp xếp sự kiện mới nhất lên trên
-                    usort($timelineEvents, function($a, $b) {
-                        if ($a['time']->equalTo($b['time'])) {
-                            return $b['order'] <=> $a['order'];
-                        }
-                        return $b['time'] <=> $a['time'];
-                    });
-                @endphp
-
-                @if (!empty($timelineEvents))
+                @if (!empty($timeline))
                     <div class="mt-6 space-y-7 relative before:absolute before:left-[17px] before:top-3 before:bottom-3 before:w-[2px] before:bg-gray-100">
-                        @foreach ($timelineEvents as $index => $event)
+                        @foreach ($timeline as $index => $event)
                             @php
                                 $isLatest  = ($index === 0);
                                 $title     = $event['title'];
