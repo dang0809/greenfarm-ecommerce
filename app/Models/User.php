@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -100,4 +102,21 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasMany(Notification::class);
     }
+
+    public function getAvatarUrlAttribute(): ?string
+{
+    $path = trim((string) $this->avatar);
+
+    if ($path === '') {
+        return null;
+    }
+
+    /*
+     * Avatar ở trong đường dẫn tương đối,
+     * ví dụ: avatars/farm-staff/userid/hinhanh.jpg
+     */
+    return Storage::disk('public')->url(
+        ltrim($path, '/')
+    );
+}
 }
