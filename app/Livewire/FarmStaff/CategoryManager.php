@@ -38,7 +38,7 @@ class CategoryManager extends Component
     // Dữ liệu form.
     public string $name = '';
     public string $slug = '';
-
+    public string $description = '';
     // Chỉ dùng trong form; khi lưu sẽ chuyển sang is_active.
     public string $status = 'active';
 
@@ -86,7 +86,7 @@ class CategoryManager extends Component
         $this->editingId = $category->id;
         $this->name = $category->name;
         $this->slug = $category->slug;
-
+        $this->description = (string) ($category->description ?? '');
         $this->status = $category->is_active
             ? 'active'
             : 'hidden';
@@ -95,6 +95,63 @@ class CategoryManager extends Component
         $this->showModal = true;
     }
 
+
+    private function validatedData(): array
+    {
+        $this->resetValidation('form');
+
+        $this->name = trim($this->name);
+        $this->slug = trim($this->slug);
+        $this->description = trim($this->description);
+
+        if ($this->slug === '') {
+            $this->slug = Str::slug($this->name);
+        }
+
+        $validated = $this->validate();
+
+        return [
+            'name' => $validated['name'],
+            'slug' => $validated['slug'],
+
+            'description' => $validated['description'] === ''
+                ? null
+                : $validated['description'],
+
+            'is_active' => $validated['status'] === 'active',
+        ];
+    }
+
+    public function requestSaveCategory(): void
+    {
+        // Chỉ kiểm tra, chưa ghi dữ liệu hoặc lưu ảnh.
+        $this->validatedData();
+
+        $this->dispatch(
+            'confirm-category-save',
+            editing: $this->editingId !== null
+        )->self();
+    }
+
+    public function requestDeleteCategory(int $id): void
+    {
+        $category = Category::find($id);
+
+        if (! $category) {
+            $this->resetPage();
+            $this->notify('error', 'Danh mục không còn tồn tại.');
+
+            return;
+        }
+
+        // Chưa xóa ở bước này.
+        $this->dispatch(
+            'confirm-category-delete',
+            id: $category->id,
+            name: $category->name
+        )->self();
+    }
+    
     public function closeModal(): void
     {
         $this->showModal = false;
@@ -141,6 +198,11 @@ class CategoryManager extends Component
                 'mimes:jpg,jpeg,png,webp',
                 'max:2048',
             ],
+            'description' => [
+            'nullable',
+            'string',
+            'max:10000',
+            ],
         ];
     }
 
@@ -161,6 +223,8 @@ class CategoryManager extends Component
             'newImage.image' => 'Tệp được chọn không phải ảnh hợp lệ.',
             'newImage.mimes' => 'Chỉ chấp nhận ảnh JPG, JPEG, PNG hoặc WEBP.',
             'newImage.max' => 'Ảnh không được vượt quá 2 MB.',
+            'description.string' => 'Mô tả phải là văn bản.',
+            'description.max' => 'Mô tả tối đa 10.000 ký tự.',
         ];
     }
 
@@ -179,24 +243,7 @@ class CategoryManager extends Component
 
     public function saveCategory(): void
     {
-        $this->resetValidation('form');
-
-        $this->name = trim($this->name);
-        $this->slug = trim($this->slug);
-
-        // Cho phép để trống slug để hệ thống sinh từ tên.
-        if ($this->slug === '') {
-            $this->slug = Str::slug($this->name);
-        }
-
-        $validated = $this->validate();
-
-        // Chỉ nhận những trường form thực sự được phép cập nhật.
-        $data = [
-            'name' => $validated['name'],
-            'slug' => $validated['slug'],
-            'is_active' => $validated['status'] === 'active',
-        ];
+        $data = $this->validatedData();
 
         $wasEditing = $this->editingId !== null;
 
@@ -204,7 +251,7 @@ class CategoryManager extends Component
         $oldPath = null;
 
         try {
-            $saved = DB::transaction(function () use (
+            DB::transaction(function () use (
                 $data,
                 &$newPath,
                 &$oldPath
@@ -217,21 +264,12 @@ class CategoryManager extends Component
 
                 $category->fill($data);
 
-                if (
-                    $category->exists
-                    && ! $category->isDirty()
-                    && $this->newImage === null
-                ) {
-                    return false;
-                }
-
                 if ($this->newImage !== null) {
                     $path = $this->newImage->store(
                         'categories',
                         'public'
                     );
 
-                    // Public disk hiện cấu hình throw => false.
                     if (! is_string($path) || $path === '') {
                         throw new RuntimeException(
                             'Không lưu được ảnh danh mục.'
@@ -239,23 +277,18 @@ class CategoryManager extends Component
                     }
 
                     $newPath = $path;
-
-                    // Lấy đường dẫn ảnh cũ từ DB.
                     $oldPath = $category->image;
+
                     $category->image = $newPath;
                 }
 
-                // Không chọn ảnh mới thì giữ nguyên ảnh hiện tại.
                 if (! $category->save()) {
                     throw new RuntimeException(
                         'Không lưu được danh mục.'
                     );
                 }
-
-                return true;
             });
         } catch (UniqueConstraintViolationException $exception) {
-            // Có thể xảy ra nếu hai người cùng lưu một slug.
             $this->deleteManagedImage($newPath);
 
             $this->addError(
@@ -265,7 +298,6 @@ class CategoryManager extends Component
 
             return;
         } catch (Throwable $exception) {
-            // DB rollback nhưng file upload cần được dọn riêng.
             $this->deleteManagedImage($newPath);
 
             report($exception);
@@ -278,13 +310,7 @@ class CategoryManager extends Component
             return;
         }
 
-        if (! $saved) {
-            $this->notify('info', 'Không có thay đổi nào.');
-
-            return;
-        }
-
-        // Chỉ dọn ảnh cũ sau khi DB đã commit.
+        // DB đã commit, lúc này mới dọn ảnh bị thay thế.
         $this->deleteManagedImage($oldPath);
 
         $this->closeModal();
@@ -396,6 +422,7 @@ class CategoryManager extends Component
             'editingId',
             'name',
             'slug',
+            'description',
             'status',
             'newImage',
             'currentImageUrl',
