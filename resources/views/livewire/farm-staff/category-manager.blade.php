@@ -160,7 +160,6 @@
                         <span class="text-red-500">*</span>
                     </label>
 
-                    {{-- Để trống thì saveCategory() tự sinh slug từ tên. --}}
                     <input type="text" id="c-slug" maxlength="255" wire:model="slug" placeholder="rau-an-la-thuy-canh"
                         class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2 font-mono text-xs text-slate-600 outline-none">
 
