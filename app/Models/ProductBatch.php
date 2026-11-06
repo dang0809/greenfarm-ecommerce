@@ -22,7 +22,6 @@ class ProductBatch extends Model
         'reserved_quantity',
         'spoiled_quantity',
         'discount_percent',
-        'harvest_token',
     ];
 
     protected function casts(): array
@@ -49,6 +48,38 @@ class ProductBatch extends Model
             'product_id'
         );
     }
+public function getAvailableQuantityAttribute(): int
+{
+    return max(
+        0,
+        (int) $this->current_quantity
+            - (int) $this->reserved_quantity
+    );
+}
+
+public function getDisplayStatusAttribute(): string
+{
+    if (in_array($this->status, ['recalled', 'suspended'], true)) {
+        return $this->status;
+    }
+
+    // HSD bằng hôm nay vẫn còn hạn trong ngày.
+    if ($this->expiry_date->lt(today())) {
+        return 'expired';
+    }
+
+    if ($this->current_quantity <= 0) {
+        return 'out_of_stock';
+    }
+
+    if ($this->available_quantity <= 0) {
+        return 'reserved';
+    }
+
+    return $this->expiry_date->lte(today()->addDays(3))
+        ? 'near_expiry'
+        : 'active';
+}
 
     public function plantingBatch(): BelongsTo
     {
