@@ -69,11 +69,11 @@ class PaymentController extends Controller
 
         if ($order->order_type === 'subscription') {
             return redirect()->route('customer.vip.setup')
-                ->with('success', 'Thanh toán Gói Rau VIP thành công! Vui lòng chọn ngày nhận và thực đơn cho 8 đợt giao.');
+                ->with('success', '👑 Gói Rau VIP đã kích hoạt thành công!');
         }
 
         return redirect()->route('customer.profile', ['tab' => 'orders'])
-            ->with('success', 'Thanh toán thành công! Hệ thống đang xử lý đơn hàng của bạn.');
+            ->with('success', '🛒 Đơn hàng #' . $order->order_code . ' đã thanh toán thành công');
     }
 
     public function cancel(Request $request, $order_id = null)
