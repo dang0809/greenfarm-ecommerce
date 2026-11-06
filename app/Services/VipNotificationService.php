@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\UserNotificationSent;
 use App\Mail\VipSubscriptionMail;
 use App\Models\Notification;
 use App\Models\Order;
@@ -29,7 +30,7 @@ class VipNotificationService
             }
 
             // 2. Ghi thông báo Web vào bảng notifications (hiển thị quả chuông Header)
-            Notification::create([
+            $notification = Notification::create([
                 'user_id' => $subscription->user_id,
                 'type'    => 'vip_activated',
                 'title'   => '👑 Gói Rau VIP đã kích hoạt thành công!',
@@ -42,6 +43,9 @@ class VipNotificationService
                     'url'             => '/goi-vip/thiet-lap-lich',
                 ],
             ]);
+
+            // Phát sóng Realtime tới Quả chuông trên Header của người dùng
+            broadcast(new UserNotificationSent($notification));
 
             // 3. Gửi Email xác nhận kích hoạt Gói VIP (chuyên biệt, khác mail đơn hàng thường)
             $user = $subscription->user;

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\UserNotificationSent;
 use App\Mail\OrderNotificationMail;
 use App\Models\Notification;
 use App\Models\Order;
@@ -32,7 +33,7 @@ class OrderNotificationService
             }
 
             // 2. Ghi thông báo Web vào bảng notifications (hiển thị quả chuông Header)
-            Notification::create([
+            $notification = Notification::create([
                 'user_id' => $order->user_id,
                 'type'    => 'order_paid',
                 'title'   => '🛒 Đơn hàng #' . $order->order_code . ' đã thanh toán thành công',
@@ -44,6 +45,9 @@ class OrderNotificationService
                     'url'        => '/ho-so?tab=orders',
                 ],
             ]);
+
+            // Phát sóng Realtime tới Quả chuông trên Header của người dùng
+            broadcast(new UserNotificationSent($notification));
 
             // 3. Gửi Email biên nhận chi tiết
             $user = $order->user;
@@ -79,7 +83,7 @@ class OrderNotificationService
 
             // 2. Ghi thông báo Web vào bảng notifications (hiển thị quả chuông Header)
             $pointsNote = $order->points_earned > 0 ? " Bạn được tích lũy +{$order->points_earned} điểm thưởng!" : '';
-            Notification::create([
+            $notification = Notification::create([
                 'user_id' => $order->user_id,
                 'type'    => 'order_delivered',
                 'title'   => '🎉 Giao hàng thành công đơn #' . $order->order_code,
@@ -92,6 +96,9 @@ class OrderNotificationService
                     'url'           => '/ho-so?tab=orders',
                 ],
             ]);
+
+            // Phát sóng Realtime tới Quả chuông trên Header của người dùng
+            broadcast(new UserNotificationSent($notification));
 
             // 3. Gửi Email thông báo đã nhận hàng & bảo hiểm 24H
             $user = $order->user;

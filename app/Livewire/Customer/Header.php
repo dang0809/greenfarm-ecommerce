@@ -1,7 +1,9 @@
 <?php
 namespace App\Livewire\Customer;
 
+use App\Events\NotificationRead;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use App\Models\Cart;
 use App\Models\Notification;
@@ -9,17 +11,46 @@ use App\Models\Notification;
 class Header extends Component
 {
     public int $cartCount = 0;
+    public ?int $userId = null;
+    public bool $showAllNotifs = false;
 
-    // Bắt sự kiện khi giỏ hàng thay đổi hoặc đăng nhập thành công để tự động reload
-    protected $listeners = [
-        'user-authenticated' => '$refresh',
-        'cart-updated' => 'updateCartCount',
-        'profile-updated' => '$refresh'
-    ];
+    /**
+     * Khai báo danh sách sự kiện lắng nghe động (Chỉ nghe WebSocket khi đã đăng nhập)
+     */
+    public function getListeners(): array
+    {
+        $listeners = [
+            'user-authenticated' => '$refresh',
+            'cart-updated'       => 'updateCartCount',
+            'profile-updated'    => '$refresh',
+        ];
+
+        if (Auth::check()) {
+            $listeners['echo-private:App.Models.User.' . Auth::id() . ',.NotificationSent'] = 'onNotificationReceived';
+            $listeners['echo-private:App.Models.User.' . Auth::id() . ',.NotificationRead'] = '$refresh';
+        }
+
+        return $listeners;
+    }
 
     public function mount(): void
     {
         $this->updateCartCount();
+    }
+
+    /**
+     * Tự động bắt sự kiện thông báo mới từ WebSocket
+     */
+    public function onNotificationReceived(array $payload = []): void
+    {
+        // 1. Livewire tự động re-render quả chuông và dropdown thông báo
+        
+        // 2. Bắn thông báo Toast màu xanh lá chuẩn thành công ở góc màn hình
+        $title = $payload['notificationData']['title'] ?? ($payload['title'] ?? 'Bạn có thông báo mới!');
+        $this->dispatch('show-toast', [
+            'type'    => 'success',
+            'message' => $title,
+        ]);
     }
 
     public function updateCartCount(): void
@@ -37,27 +68,32 @@ class Header extends Component
     {
         if (!Auth::check()) return;
 
+        $userId = (int) Auth::id();
+
         if ($notificationId) {
-            $notif = Notification::where('user_id', Auth::id())
+            $notif = Notification::where('user_id', $userId)
                 ->where('id', $notificationId)
                 ->first();
 
             if ($notif) {
                 if (is_null($notif->read_at)) {
                     $notif->update(['read_at' => now()]);
+                    // Phát sóng Realtime đồng bộ cho các tab khác biết đã đọc
+                    broadcast(new NotificationRead($userId, $notificationId));
                 }
                 if (!empty($notif->data['url'])) {
                     return $this->redirect($notif->data['url']);
                 }
             }
         } else {
-            Notification::where('user_id', Auth::id())
+            Notification::where('user_id', $userId)
                 ->whereNull('read_at')
                 ->update(['read_at' => now()]);
+
+            // Phát sóng Realtime xóa số đỏ trên tất cả các tab khác
+            broadcast(new NotificationRead($userId, null));
         }
     }
-
-    public bool $showAllNotifs = false;
 
     public function toggleShowAllNotifs(): void
     {

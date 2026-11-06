@@ -119,6 +119,11 @@
         addToast(type, message) {
             if (!message) return;
 
+            // Chống hiển thị trùng lặp tin nhắn giống nhau đang có trên màn hình
+            if (this.toasts.some(t => t.message === message)) {
+                return;
+            }
+
             const id = this.nextId++;
 
             this.toasts.push({
