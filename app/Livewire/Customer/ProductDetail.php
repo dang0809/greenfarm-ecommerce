@@ -39,7 +39,7 @@ class ProductDetail extends Component
             'category',
             'productImages',
             'batches' => fn($q) => $q->where('product_batches.status', 'active')
-                                    ->where('product_batches.current_quantity', '>', 0)
+                                    ->whereRaw('product_batches.current_quantity > COALESCE(product_batches.reserved_quantity, 0)')
                                     ->whereDate('product_batches.expiry_date', '>=', now())
                                     ->orderBy('product_batches.expiry_date', 'asc'),
             'reviews.user'

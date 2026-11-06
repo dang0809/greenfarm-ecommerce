@@ -42,14 +42,13 @@ Schedule::call(function () {
                     'old_status' => 'pending',
                     'new_status' => 'cancelled',
                     'changed_by' => $order->user_id,
-                    'note'       => 'Hệ thống tự động hủy do quá hạn thanh toán 5 phút.',
                 ]);
             }
 
-            // 4. Hoàn lại kho trực tiếp theo số lượng sản phẩm/hộp
+            // 4. Nhả số lượng giữ chỗ 5 phút (kho thực tế current_quantity chưa hề bị trừ)
             foreach ($order->items as $item) {
                 if ($item->batch_id) {
-                    ProductBatch::where('id', $item->batch_id)->increment('current_quantity', $item->quantity);
+                    ProductBatch::where('id', $item->batch_id)->decrement('reserved_quantity', $item->quantity);
                 }
             }
 

@@ -44,8 +44,8 @@ trait WithOrderActions
             return;
         }
 
-        // Nếu đơn hàng đã quá hạn 4 phút, không cho phép thanh toán tiếp
-        if ($order->created_at->diffInMinutes(now()) >= 4) {
+        // Nếu đơn hàng đã quá hạn 5 phút, không cho phép thanh toán tiếp
+        if ($order->created_at->diffInMinutes(now()) >= 5) {
             $this->dispatch('show-toast', type: 'error', message: 'Đơn hàng đã quá hạn thanh toán.');
             return;
         }
@@ -151,15 +151,14 @@ trait WithOrderActions
                     'old_status' => $oldStatus,
                     'new_status' => 'cancelled',
                     'changed_by' => Auth::id(),
-                    'note'       => 'Khách hàng tự hủy đơn hàng trực tuyến.',
                 ]);
             }
 
-            // Hoàn lại kho trực tiếp theo số lượng sản phẩm/hộp
+            // Nhả số lượng giữ chỗ (kho thực tế current_quantity chưa hề bị trừ)
             foreach ($lockedOrder->items as $item) {
                 if ($item->batch_id) {
                     ProductBatch::where('id', $item->batch_id)
-                        ->increment('current_quantity', $item->quantity);
+                        ->decrement('reserved_quantity', $item->quantity);
                 }
             }
 

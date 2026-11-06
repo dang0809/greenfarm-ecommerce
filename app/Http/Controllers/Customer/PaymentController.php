@@ -109,14 +109,13 @@ class PaymentController extends Controller
                         'old_status' => 'pending',
                         'new_status' => 'cancelled',
                         'changed_by' => $order->user_id,
-                        'note'       => 'Đơn bị hủy do khách hủy giao dịch trên cổng PayOS.',
                     ]);
                 }
 
-                // 4. Hoàn lại kho trực tiếp theo số lượng sản phẩm/hộp
+                // 4. Nhả số lượng giữ chỗ (kho thực tế current_quantity chưa hề bị trừ)
                 foreach ($order->items as $item) {
                     if ($item->batch_id) {
-                        \App\Models\ProductBatch::where('id', $item->batch_id)->increment('current_quantity', $item->quantity);
+                        \App\Models\ProductBatch::where('id', $item->batch_id)->decrement('reserved_quantity', $item->quantity);
                     }
                 }
 
