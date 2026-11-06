@@ -61,7 +61,7 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
         session()->flash('error', 'Link xác thực đã hết hạn!');
         return redirect()->route('home');
     }
-
+        
     // 3. Kích hoạt tài khoản: đổi status thành 'active'
     if (! $user->hasVerifiedEmail()) {
         $user->markEmailAsVerified();
@@ -104,7 +104,7 @@ Route::middleware(['role:customer'])->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['role:farm_staff'])->prefix('nhan-vien-nong-trai')->name('farm-staff.')->group(function () {
-     Route::get('/', function () {
+    Route::get('/', function () {
             return redirect()->route('farm-staff.farm-plot');
         })->name('dashboard');
     Route::get('/luong-dat', FarmPlotManager::class)->name('farm-plot');

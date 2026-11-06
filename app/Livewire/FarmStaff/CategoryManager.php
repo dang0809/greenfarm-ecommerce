@@ -160,11 +160,11 @@ class CategoryManager extends Component
 
     public function updatedName(): void
     {
-        // Thêm mới: tự sinh slug khi nhập tên.
-        // Chỉnh sửa: giữ slug hiện tại để tránh tự đổi URL cũ.
-        if ($this->editingId === null) {
-            $this->slug = Str::slug(trim($this->name));
-        }
+        // Tự động cập nhật slug theo tên ở form thêm và sửa.
+        $this->slug = Str::slug(trim($this->name));
+
+        // Xóa lỗi của slug trước đó khi tên đã thay đổi.
+        $this->resetValidation('slug');
     }
 
     protected function rules(): array
