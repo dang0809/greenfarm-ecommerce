@@ -19,25 +19,32 @@
         <!-- Menu Điều Hướng (Đúng 4 Tab Yêu Cầu) -->
         <nav class="px-3.5 space-y-1.5 mt-6">
             <!-- 1. Quản lý đơn hàng -->
-            <a href="{{ route('sales.orders') }}" wire:navigate class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all {{ request()->routeIs('sales.orders*') ? 'menu-active' : 'menu-inactive' }} text-left">
-                <i class="fa-solid fa-boxes-stacked w-5 text-center"></i>
-                <span>Quản Lý Đơn Hàng</span>
+            <a href="{{ route('sales.orders') }}" wire:navigate class="w-full flex items-center justify-between px-4 py-3 rounded-2xl font-bold text-sm transition-all {{ str_starts_with($activeRoute, 'sales.orders') ? 'menu-active' : 'menu-inactive' }} text-left">
+                <div class="flex items-center space-x-3">
+                    <i class="fa-solid fa-boxes-stacked w-5 text-center"></i>
+                    <span>Quản Lý Đơn Hàng</span>
+                </div>
+                @if (isset($pendingCount) && $pendingCount > 0)
+                    <span class="inline-flex items-center justify-center px-2 py-0.5 text-[11px] font-black rounded-full bg-rose-500 text-white shadow-xs">
+                        {{ $pendingCount > 99 ? '99+' : $pendingCount }}
+                    </span>
+                @endif
             </a>
 
             <!-- 2. Xử lý khiếu nại -->
-            <a href="{{ route('sales.complaints') }}" wire:navigate class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all {{ request()->routeIs('sales.complaints*') ? 'menu-active' : 'menu-inactive' }} text-left">
+            <a href="{{ route('sales.complaints') }}" wire:navigate class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all {{ str_starts_with($activeRoute, 'sales.complaints') ? 'menu-active' : 'menu-inactive' }} text-left">
                 <i class="fa-solid fa-shield-heart w-5 text-center"></i>
                 <span>Xử Lý Khiếu Nại</span>
             </a>
 
             <!-- 3. Quản lý xả hàng -->
-            <a href="{{ route('sales.clearance') }}" wire:navigate class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all {{ request()->routeIs('sales.clearance*') ? 'menu-active' : 'menu-inactive' }} text-left">
+            <a href="{{ route('sales.clearance') }}" wire:navigate class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all {{ str_starts_with($activeRoute, 'sales.clearance') ? 'menu-active' : 'menu-inactive' }} text-left">
                 <i class="fa-solid fa-tags w-5 text-center"></i>
                 <span>Quản Lý Xả Hàng</span>
             </a>
 
             <!-- 4. Gói rau định kỳ VIP -->
-            <a href="{{ route('sales.subscriptions') }}" wire:navigate class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all {{ request()->routeIs('sales.subscriptions*') ? 'menu-active' : 'menu-inactive' }} text-left">
+            <a href="{{ route('sales.subscriptions') }}" wire:navigate class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all {{ str_starts_with($activeRoute, 'sales.subscriptions') ? 'menu-active' : 'menu-inactive' }} text-left">
                 <i class="fa-solid fa-calendar-check w-5 text-center"></i>
                 <span>Gói Rau Định Kỳ VIP</span>
             </a>

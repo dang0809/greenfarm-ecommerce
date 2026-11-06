@@ -71,7 +71,7 @@
 
         // Lắng nghe sự kiện thông báo Toast từ Livewire
         window.addEventListener('show-toast', event => {
-            const data = event.detail;
+            const data = Array.isArray(event.detail) ? (event.detail[0] || {}) : (event.detail || {});
             const type = (data && data.type) ? data.type : 'success';
             const message = (data && data.message) ? data.message : '';
             Swal.fire({

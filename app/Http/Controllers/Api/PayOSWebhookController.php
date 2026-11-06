@@ -153,6 +153,11 @@ class PayOSWebhookController extends Controller
                    
                     DB::commit();
 
+                    // Phát sóng sự kiện Realtime cho giao diện NVBH (OrderManager & Sidebar)
+                    if ($order->order_type !== 'subscription') {
+                        broadcast(new \App\Events\OrderPaidEvent($order));
+                    }
+
                     // Gửi thông báo sau khi commit thành công
                     if ($order->order_type === 'subscription' && $subscription) {
                         // Email + Notification chuẩn VIP (không dùng mail đơn hàng thường)
