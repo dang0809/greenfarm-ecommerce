@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -58,6 +59,31 @@ class OrderManager extends Component
         $this->statusFilter = 'pending';
         $this->typeFilter = '';
         $this->resetPage();
+    }
+
+    /**
+     * Tự động bắt sự kiện nổ đơn từ WebSockets
+     */
+    #[On('echo:sales-orders,.OrderPaid')]
+    public function onOrderPaidReceived(array $payload = []): void
+    {
+        // 1. Đưa phân trang về trang 1 để đơn mới nhất hiện ngay lên đầu bảng
+        $this->resetPage();
+
+        // 2. Lấy dữ liệu đơn vừa nổ và hiển thị Toast màu xanh góc màn hình
+        $orderCode = $payload['orderData']['order_code'] ?? ($payload['order_code'] ?? '');
+        $customerName = $payload['orderData']['recipient_name'] ?? ($payload['recipient_name'] ?? 'Khách hàng');
+        $totalFormatted = isset($payload['orderData']['total']) 
+            ? number_format($payload['orderData']['total'], 0, ',', '.') . 'đ'
+            : '';
+
+        $message = "🔔 ĐƠN MỚI #{$orderCode} vừa thanh toán";
+        if ($totalFormatted) {
+            $message .= " {$totalFormatted}";
+        }
+        $message .= " từ {$customerName}!";
+
+        $this->dispatch('show-toast', type: 'success', message: $message);
     }
 
     /**
@@ -180,6 +206,7 @@ class OrderManager extends Component
             $this->openOrderDetail($orderId);
         }
 
+        $this->dispatch('order-status-changed');
         $this->dispatch('show-toast', type: 'success', message: "Đã duyệt đơn {$order->order_code} (Chuyển sang Chờ lấy hàng).");
     }
 
@@ -335,6 +362,7 @@ class OrderManager extends Component
             $this->openOrderDetail($order->id);
         }
 
+        $this->dispatch('order-status-changed');
         $this->dispatch('show-toast', type: 'success', message: "Đã hủy đơn {$order->order_code} và hoàn trả kho thành công!");
     }
 
