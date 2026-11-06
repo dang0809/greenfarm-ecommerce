@@ -68,6 +68,22 @@
                 overlay.classList.add('hidden');
             }
         }
+
+        // Lắng nghe sự kiện thông báo Toast từ Livewire
+        window.addEventListener('show-toast', event => {
+            const data = Array.isArray(event.detail) ? (event.detail[0] || {}) : (event.detail || {});
+            const type = (data && data.type) ? data.type : 'success';
+            const message = (data && data.message) ? data.message : '';
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: type,
+                title: message,
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true
+            });
+        });
     </script>
     @stack('scripts')
 </body>

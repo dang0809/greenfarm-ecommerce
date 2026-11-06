@@ -20,8 +20,7 @@ class DatabaseSeeder extends Seeder
             SystemContentSeeder::class,            // 2. Cấu hình & Banner
             CatalogCertificationSeeder::class,    // 3. Danh mục & Sản phẩm
             FarmBlockchainSeeder::class,          // 4. Lô nông trại & FEFO Kho
-            OrderComplaintReviewSeeder::class,    // 5. TẠO ĐƠN HÀNG TRƯỚC (Để có id trong bảng orders)
-            CustomerSubscriptionSeeder::class,    // 6. TẠO GÓI VIP & LỊCH GIAO (Mới tham chiếu order_id an toàn)
+            CustomerSubscriptionSeeder::class,    // 5. Địa chỉ & giỏ hàng mẫu cho khách hàng
         ]);
     }
 }

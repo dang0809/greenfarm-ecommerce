@@ -216,6 +216,24 @@ class AuthModal extends Component
             fn (User $user): bool => $user->hasVerifiedEmail(),
             (bool) $this->remember
         );
+      
+        if (Auth::attempt(['email' => $this->loginAccount, 'password' => $this->loginPassword], (bool) $this->remember)) {
+            $user = Auth::user();
+
+            // Chặn tài khoản quản trị / nhân viên nội bộ đăng nhập ở form khách hàng (báo lỗi chung để bảo mật)
+            if ($user->role !== 'customer') {
+                Auth::logout();
+                RateLimiter::hit($throttleKey, 60);
+                $this->addError('loginAccount', 'Email hoặc mật khẩu không chính xác.');
+                return;
+            }
+
+            if ($user->status !== 'active' || !$user->hasVerifiedEmail()) {
+                Auth::logout();
+                RateLimiter::hit($throttleKey, 60);
+                $this->addError('loginAccount', 'Tài khoản chưa kích hoạt! Vui lòng kiểm tra email để kích hoạt.');
+                return;
+            }
 
         if (! $authenticated) {
             RateLimiter::hit($key, 60);

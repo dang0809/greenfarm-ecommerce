@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class Product extends Model
 {
@@ -105,19 +106,19 @@ class Product extends Model
     }
 
     /**
-     * Scope tính tổng số lượng tồn kho của các lô còn hạn & active (dùng cho query danh sách)
+     * Scope tính tổng số lượng tồn kho khả dụng của các lô còn hạn & active (đã trừ phần giữ chỗ)
      */
     public function scopeWithTotalStock($query)
     {
         return $query->withSum(['batches as total_stock' => function ($q) {
             $q->where('product_batches.status', 'active')
-              ->where('product_batches.current_quantity', '>', 0)
+              ->whereRaw('product_batches.current_quantity > COALESCE(product_batches.reserved_quantity, 0)')
               ->whereDate('product_batches.expiry_date', '>=', now());
-        }], 'current_quantity');
+        }], DB::raw('current_quantity - COALESCE(reserved_quantity, 0)'));
     }
 
     /**
-     * Thuộc tính tổng tồn kho (lấy từ SQL nếu có withTotalStock, hoặc tự động tính nếu gọi lẻ)
+     * Thuộc tính tổng tồn kho khả dụng (lấy từ SQL nếu có withTotalStock, hoặc tự động tính nếu gọi lẻ)
      */
     public function getTotalStockAttribute(): int
     {
@@ -131,5 +132,8 @@ class Product extends Model
             ->where('product_batches.current_quantity', '>', 0)
             ->whereDate('product_batches.expiry_date', '>=', today())
             ->sum('product_batches.current_quantity');
+            ->whereRaw('product_batches.current_quantity > COALESCE(product_batches.reserved_quantity, 0)')
+            ->whereDate('product_batches.expiry_date', '>=', now())
+            ->sum(DB::raw('current_quantity - COALESCE(reserved_quantity, 0)')));
     }
 }

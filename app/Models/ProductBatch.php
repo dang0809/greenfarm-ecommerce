@@ -19,6 +19,7 @@ class ProductBatch extends Model
         'expiry_date',
         'initial_quantity',
         'current_quantity',
+        'reserved_quantity',
         'spoiled_quantity',
         'discount_percent',
         'harvest_token',
@@ -31,6 +32,7 @@ class ProductBatch extends Model
             'expiry_date' => 'date',
             'initial_quantity' => 'integer',
             'current_quantity' => 'integer',
+            'reserved_quantity' => 'integer',
             'spoiled_quantity' => 'integer',
             'discount_percent' => 'integer',
         ];
