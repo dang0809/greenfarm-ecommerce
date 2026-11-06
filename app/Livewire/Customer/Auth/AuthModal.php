@@ -115,6 +115,22 @@ class AuthModal extends Component
         $existingUser = User::where('email', $email)->first();
         $existingPhone = User::where('phone', $phone)->first();
 
+        if (
+            $existingUser
+            && (
+                $existingUser->role !== 'customer'
+                || $existingUser->status !== 'inactive'
+                || $existingUser->hasVerifiedEmail()
+            )
+        ) {
+    $this->addError(
+        'registerEmail',
+        'Email này không thể tiếp tục đăng ký. Vui lòng đăng nhập hoặc liên hệ hỗ trợ.'
+    );
+
+    return;
+}
+
         if ($existingPhone && (!$existingUser || $existingPhone->id !== $existingUser->id)) {
             $this->addError('registerPhone', 'Số điện thoại này đã được sử dụng.');
             return;
@@ -160,50 +176,71 @@ class AuthModal extends Component
     // ================= 2. XỬ LÝ ĐĂNG NHẬP =================
     public function handleLogin(): void
     {
-        // Chuẩn hóa email tài khoản
-        $this->loginAccount = strtolower(trim($this->loginAccount));
+        $this->loginAccount = Str::lower(trim($this->loginAccount));
 
         $this->validate([
-            'loginAccount'  => 'required|email:rfc',
-            'loginPassword' => 'required|string',
+            'loginAccount' => ['required', 'email:rfc', 'max:255'],
+            'loginPassword' => ['required', 'string'],
         ], [
-            'loginAccount.required'  => 'Vui lòng nhập địa chỉ email.',
-            'loginAccount.email'     => 'Địa chỉ email không đúng định dạng.',
+            'loginAccount.required' => 'Vui lòng nhập email.',
+            'loginAccount.email' => 'Email không đúng định dạng.',
             'loginPassword.required' => 'Vui lòng nhập mật khẩu.',
-            'loginPassword.string'   => 'Mật khẩu không đúng định dạng.',
-        ]); 
+        ]);
 
-        $throttleKey = Str::lower($this->loginAccount) . '|' . request()->ip();
-        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
-            $seconds = RateLimiter::availableIn($throttleKey);
-            $this->addError('loginAccount', "Thử lại sau $seconds giây.");
+        // Tách bộ đếm đăng nhập khách hàng và nội bộ.
+        $key = 'login:customer:'
+            .$this->loginAccount
+            .'|'
+            .request()->ip();
+
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            $seconds = RateLimiter::availableIn($key);
+
+            $this->addError(
+                'loginAccount',
+                "Vui lòng thử lại sau {$seconds} giây."
+            );
+
             return;
         }
 
-        if (Auth::attempt(['email' => $this->loginAccount, 'password' => $this->loginPassword], (bool) $this->remember)) {
-            $user = Auth::user();
+        // Kiểm tra vai trò, trạng thái và xác thực email
+        // trước khi thiết lập danh tính đăng nhập.
+        $authenticated = Auth::guard('web')->attemptWhen(
+            [
+                'email' => $this->loginAccount,
+                'password' => $this->loginPassword,
+                'role' => 'customer',
+                'status' => 'active',
+            ],
+            fn (User $user): bool => $user->hasVerifiedEmail(),
+            (bool) $this->remember
+        );
 
-            if ($user->status !== 'active' || !$user->hasVerifiedEmail()) {
-                Auth::logout();
-                RateLimiter::hit($throttleKey, 60);
-                $this->addError('loginAccount', 'Tài khoản chưa kích hoạt! Vui lòng kiểm tra email để kích hoạt.');
-                return;
-            }
+        if (! $authenticated) {
+            RateLimiter::hit($key, 60);
 
-            RateLimiter::clear($throttleKey);
-            session()->regenerate();
+            $this->addError(
+                'loginAccount',
+                'Thông tin đăng nhập không hợp lệ hoặc tài khoản chưa được kích hoạt.'
+            );
 
-            $this->closeModal();
-            $this->dispatch('user-authenticated');
-            session()->flash('success', 'Đăng nhập thành công!');
-
-            $this->redirectIntended(default: route('home'));
             return;
         }
 
-        RateLimiter::hit($throttleKey, 60);
-        $this->addError('loginAccount', 'Email hoặc mật khẩu không chính xác.');
+        RateLimiter::clear($key);
+
+        // SessionGuard của Laravel đang cài đã tự tái tạo session
+        // khi đăng nhập thành công.
+        $this->closeModal();
+        $this->dispatch('user-authenticated');
+
+        session()->flash('success', 'Đăng nhập thành công!');
+
+        // Không dùng chung url.intended với khu vực nội bộ.
+        $this->redirect(route('home'));
     }
+    
     public function prevForgotStep(): void
     {
         if ($this->forgotStep > 1) {
@@ -246,7 +283,15 @@ class AuthModal extends Component
             }
 
             // 3. NẾU GỬI MÃ MỚI: Đặt đếm ngược từ tròn 60s
-            $user = User::where('email', $this->forgotAccount)->first();
+            $user = User::query()
+                ->where(
+                    'email',
+                    Str::lower(trim($this->forgotAccount))
+                )
+                ->where('role', 'customer')
+                ->where('status', 'active')
+                ->whereNotNull('email_verified_at')
+                ->first();
 
             if ($user) {
                 $otp = (string) rand(100000, 999999);
@@ -312,7 +357,15 @@ class AuthModal extends Component
                 return;
             }
 
-            $user = User::where('email', $this->forgotAccount)->first();
+            $user = User::query()
+                ->where(
+                    'email',
+                    Str::lower(trim($this->forgotAccount))
+                )
+                ->where('role', 'customer')
+                ->where('status', 'active')
+                ->whereNotNull('email_verified_at')
+                ->first();
 
             if ($user) {
                 // BẢO MẬT 6: Cập nhật mật khẩu + Reset remember_token để đăng xuất các thiết bị ghi nhớ

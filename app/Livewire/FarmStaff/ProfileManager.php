@@ -204,7 +204,7 @@ public function cancelProfileChanges(): void
     // staff() truy vấn mới tài khoản từ DB.
     $user = $this->staff();
 
-    Auth::setUser($user);
+    Auth::guard('staff')->setUser($user);
 
     $this->name = $user->name;
     $this->phone = $user->phone ?? '';
@@ -354,7 +354,7 @@ public function cancelProfileChanges(): void
             $this->deleteManagedAvatar($oldAvatar, $user->id);
         }
 
-        Auth::setUser($user);
+        Auth::guard('staff')->setUser($user);
 
         $this->reset([
             'newAvatar',
@@ -388,7 +388,7 @@ public function cancelProfileChanges(): void
 
     private function staff(): User
     {
-        $id = Auth::id();
+        $id = Auth::guard('staff')->id();
 
         abort_unless($id, 401);
 

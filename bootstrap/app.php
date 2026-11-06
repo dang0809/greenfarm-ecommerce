@@ -12,13 +12,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        
-        // 1. Đăng ký Alias cho Middleware kiểm tra vai trò
-        $middleware->alias([
-            'role' => \App\Http\Middleware\CheckRole::class,
-        ]);
-        
-    })
+    $middleware->alias([
+        'role' => \App\Http\Middleware\CheckRole::class,
+    ]);
+
+    // Chạy sau các middleware web mặc định, bao gồm StartSession.
+    $middleware->web(append: [
+        \App\Http\Middleware\EnsureGuardIdentity::class,
+    ]);
+})
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();

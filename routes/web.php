@@ -47,33 +47,113 @@ Route::get('/truy-xuat/{batch}', TraceabilityDetail::class)->name('customer.trac
 
 
 // Route xử lý Link Xác Thực Email từ Mail gửi về
-Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) {
-    $user = User::findOrFail($id);
+// Xác thực email và tự động đăng nhập khách hàng.
+Route::get(
+    '/email/verify/{id}/{hash}',
+    function (Request $request, string $id, string $hash) {
+        // 1. Kiểm tra chữ ký và thời hạn trước khi xử lý tài khoản.
+        if (! $request->hasValidSignature()) {
+            return redirect()
+                ->route('home')
+                ->with(
+                    'error',
+                    'Link xác thực không hợp lệ hoặc đã hết hạn.'
+                );
+        }
 
-    // 1. Kiểm tra SHA-1 hash email
-    if (! hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
-        session()->flash('error', 'Link xác thực không hợp lệ!');
-        return redirect()->route('home');
+        // 2. Link này chỉ phục vụ tài khoản khách hàng.
+        $user = User::query()
+            ->where('role', 'customer')
+            ->find($id);
+
+        if (
+            ! $user
+            || ! hash_equals(
+                sha1($user->getEmailForVerification()),
+                $hash
+            )
+        ) {
+            return redirect()
+                ->route('home')
+                ->with('error', 'Link xác thực không hợp lệ.');
+        }
+
+        // 3. Không cho kích hoạt tài khoản bị khóa
+        // hoặc thuộc trạng thái khác.
+        if (
+            ! in_array(
+                $user->status,
+                ['inactive', 'active'],
+                true
+            )
+        ) {
+            return redirect()
+                ->route('home')
+                ->with(
+                    'error',
+                    'Tài khoản không thể được kích hoạt.'
+                );
+        }
+
+        $newlyVerified = ! $user->hasVerifiedEmail();
+
+        // 4. Xác thực lần đầu.
+        if ($newlyVerified) {
+            $user->status = 'active';
+
+            // Phương thức này gán email_verified_at rồi save().
+            // Vì status đang thay đổi, cả hai trường được lưu
+            // trong cùng lần save.
+            if (! $user->markEmailAsVerified()) {
+                return redirect()
+                    ->route('home')
+                    ->with(
+                        'error',
+                        'Chưa thể kích hoạt tài khoản. Vui lòng thử lại.'
+                    );
+            }
+
+            event(new \Illuminate\Auth\Events\Verified($user));
+        }
+
+        // 5. Chỉ đăng nhập khi tài khoản đã xác thực và active.
+        if (
+            $user->status !== 'active'
+            || ! $user->hasVerifiedEmail()
+        ) {
+            return redirect()
+                ->route('home')
+                ->with(
+                    'error',
+                    'Tài khoản chưa đủ điều kiện đăng nhập.'
+                );
+        }
+
+        // 6. Tự động đăng nhập vào guard khách hàng.
+        $guard = Auth::guard('web');
+
+        // Dọn danh tính/cookie ghi nhớ khách hàng trước đó
+        // nếu trình duyệt đang có tài khoản web khác.
+        $guard->logoutCurrentDevice();
+
+        $guard->login($user);
+
+        // Không mở lại popup đăng nhập sau khi đã tự đăng nhập.
+        $request->session()->forget('open_auth_modal');
+
+        // 7. Về trang chủ; header sẽ đọc được customer vừa đăng nhập.
+        return redirect()
+            ->route('home')
+            ->with(
+                'success',
+                $newlyVerified
+                    ? 'Xác thực email thành công! Bạn đã được tự động đăng nhập.'
+                    : 'Email đã được xác thực. Bạn đã được đăng nhập.'
+            );
     }
-
-    // 2. Kiểm tra chữ ký bảo mật (Hạn 60 phút)
-    if (! $request->hasValidSignature()) {
-        session()->flash('error', 'Link xác thực đã hết hạn!');
-        return redirect()->route('home');
-    }
-        
-    // 3. Kích hoạt tài khoản: đổi status thành 'active'
-    if (! $user->hasVerifiedEmail()) {
-        $user->markEmailAsVerified();
-        $user->update(['status' => 'active']);
-    }
-
-    // 4. Đăng nhập và đưa về trang chủ
-    Auth::login($user);
-    session()->flash('success', 'Xác thực Email thành công! Tài khoản của bạn đã được kích hoạt.');
-
-    return redirect()->route('home');
-})->name('verification.verify');
+)
+    ->whereNumber('id')
+    ->name('verification.verify');
 
 
 
@@ -82,7 +162,7 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
 | 2. CUSTOMER PROTECTED ROUTES (Bắt buộc Đăng nhập & Đúng vai trò Customer)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['role:customer'])->group(function () {
+Route::middleware(['role:web,customer'])->group(function () {
     
     // Trang Thanh toán gói VIP
     Route::get('/goi-vip/thanh-toan', VipCheckout::class)->name('customer.vip.checkout');
@@ -103,7 +183,7 @@ Route::middleware(['role:customer'])->group(function () {
 | 3. FARM STAFF PROTECTED ROUTES (Nhân viên Nông trại đã đăng nhập | Vai trò farm_staff)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['role:farm_staff'])->prefix('nhan-vien-nong-trai')->name('farm-staff.')->group(function () {
+Route::middleware(['role:staff,farm_staff'])->prefix('nhan-vien-nong-trai')->name('farm-staff.')->group(function () {
     Route::get('/', function () {
             return redirect()->route('farm-staff.farm-plot');
         })->name('dashboard');
@@ -120,7 +200,7 @@ Route::middleware(['role:farm_staff'])->prefix('nhan-vien-nong-trai')->name('far
 | 4. SALES STAFF PROTECTED ROUTES (Nhân viên Bán hàng & Quản lý đơn)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['role:sales'])->prefix('nhan-vien-ban-hang')->name('sales.')->group(function () {
+Route::middleware(['role:staff,sales'])->prefix('nhan-vien-ban-hang')->name('sales.')->group(function () {
     Route::get('/', OrderManager::class)->name('orders');
     Route::get('/don-hang', OrderManager::class)->name('orders');
     Route::get('/khieu-nai', ComplaintManager::class)->name('complaints');

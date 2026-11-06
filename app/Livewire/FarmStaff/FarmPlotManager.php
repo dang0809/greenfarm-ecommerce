@@ -570,7 +570,11 @@ class FarmPlotManager extends Component
 
     private function staff(): User
     {
-        $user = Auth::id() ? User::find(Auth::id()) : null;
+        $id = Auth::guard('staff')->id();
+        $user = $id
+            ? User::find($id)
+            : null;
+            
         $role = $user?->role;
 
         if ($role instanceof \BackedEnum) {

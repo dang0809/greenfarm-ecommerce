@@ -53,9 +53,10 @@ class CategoryManager extends Component
     public function boot(): void
     {
         // boot() chạy ở lần tải đầu và các request Livewire tiếp theo.
-        $user = Auth::id()
-            ? User::find(Auth::id())
-            : null;
+        $id = Auth::guard('staff')->id();
+        $user = $id
+        ? User::find($id)
+        : null;
 
         abort_unless(
             $user

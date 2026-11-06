@@ -575,8 +575,9 @@ class ProductManager extends Component
 
     private function staff(): User
     {
-        $user = Auth::id()
-            ? User::find(Auth::id())
+        $id = Auth::guard('staff')->id();
+        $user = $id
+            ? User::find($id)
             : null;
 
         abort_unless(

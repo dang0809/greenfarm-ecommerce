@@ -66,12 +66,15 @@ class Header extends Component
 
     public function logout(): void
     {
-        Auth::logout();
+        Auth::guard('web')->logout();
 
-        session()->invalidate();
-        session()->regenerateToken();
+        // Đổi session ID, giữ dữ liệu guard staff và CSRF token.
+        session()->migrate(true);
 
-        session()->flash('success', 'Đã đăng xuất tài khoản thành công!');
+        session()->flash(
+            'success',
+            'Đã đăng xuất tài khoản khách hàng!'
+        );
 
         $this->redirect(route('home'));
     }

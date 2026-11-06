@@ -11,22 +11,25 @@ class Sidebar extends Component
         'profile-updated' => '$refresh',
     ];
     // Hàm xử lý đăng xuất
-    public function logout()
+    public function logout(): void
     {
-        Auth::logout();
+        Auth::guard('staff')->logout();
 
-        session()->invalidate();
-        session()->regenerateToken();
+        // Giữ danh tính khách hàng trong guard web.
+        session()->migrate(true);
 
-        session()->flash('success', 'Đã đăng xuất tài khoản thành công!');
+        session()->flash(
+            'success',
+            'Đã đăng xuất tài khoản nội bộ!'
+        );
 
-        return $this->redirect(route('home'), navigate: true);
+        $this->redirect(route('login'));
     }
 
     public function render()
     {
         return view('livewire.farm-staff.sidebar', [
-            'user' => Auth::user(),
+            'user' => Auth::guard('staff')->user(),
         ]);
     }
 }

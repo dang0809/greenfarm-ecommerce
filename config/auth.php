@@ -38,10 +38,17 @@ return [
     */
 
     'guards' => [
+        // Khách hàng
         'web' => [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        // Staff: farm_staff, sale, admin
+        'staff' => [
+            'driver' => 'session',
+            'provider' => 'users'
+        ]
     ],
 
     /*
