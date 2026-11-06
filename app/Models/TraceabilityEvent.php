@@ -17,8 +17,6 @@ class TraceabilityEvent extends Model
         'image',
         'recorded_by',
         'recorded_at',
-        'data_hash',
-        'blockchain_tx_hash',
     ];
 
     protected function casts(): array

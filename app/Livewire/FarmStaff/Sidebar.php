@@ -7,7 +7,10 @@ use Livewire\Component;
 
 class Sidebar extends Component
 {
-    // Hàm xử lý đăng xuất an toàn
+    protected $listeners = [
+        'profile-updated' => '$refresh',
+    ];
+    // Hàm xử lý đăng xuất
     public function logout()
     {
         Auth::logout();

@@ -18,8 +18,31 @@ class FarmPlot extends Model
 
     protected function casts(): array
     {
-        return ['area' => 'decimal:2'];
+        return [
+            'area' => 'decimal:2',
+        ];
     }
 
-    public function plantingBatches(): HasMany { return $this->hasMany(PlantingBatch::class); }
+    public function plantingBatches(): HasMany
+    {
+        return $this->hasMany(PlantingBatch::class);
+    }
+
+    public function activeBatch(): ?PlantingBatch
+    {
+        if ($this->relationLoaded('plantingBatches')) {
+            return $this->plantingBatches
+                ->sortByDesc('id')
+                ->first(fn (PlantingBatch $batch) => in_array(
+                    $batch->status,
+                    ['planting', 'harvesting'],
+                    true
+                ));
+        }
+
+        return $this->plantingBatches()
+            ->occupying()
+            ->latest('id')
+            ->first();
+    }
 }

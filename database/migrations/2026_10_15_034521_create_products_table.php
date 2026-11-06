@@ -24,7 +24,6 @@ return new class extends Migration
     $table->decimal('sale_price', 12, 2)->nullable()->index();
     $table->string('unit', 50)->default('Kg');
     $table->decimal('weight_kg', 8, 2)->default(1.0);
-
     $table->integer('sold_count')->default(0);
     $table->decimal('avg_rating', 3, 2)->default(0);
     $table->string('status', 50)->default('active')->index();                 // active|hidden

@@ -15,8 +15,20 @@ class PlantingBatch extends Model
         'farm_plot_id',
         'product_id',
         'planting_code',
+        'planted_date',
         'status',
     ];
+
+    protected function casts(): array{
+        return [
+            'planted_date' => 'date',
+        ];
+    }
+
+    public function scopeOccupying($query)
+    {
+        return $query->whereIn('status', ['planting', 'harvesting']);
+    }
 
     public function farmPlot(): BelongsTo
     {

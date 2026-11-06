@@ -22,8 +22,10 @@ use App\Http\Controllers\Api\PayOSWebhookController;
 // Import đầy đủ các Livewire Farm Staff Components
 use App\Livewire\FarmStaff\ProductBatchManager;
 use App\Livewire\FarmStaff\FarmPlotManager;
-use App\Livewire\FarmStaff\CertificationManager;
 use App\Livewire\FarmStaff\ProfileManager;
+use App\Livewire\FarmStaff\CertificationManager;
+use App\Livewire\FarmStaff\ProductManager;
+use App\Livewire\FarmStaff\CategoryManager;
 // Import Authentication & Sales Components
 use App\Livewire\Auth\Login;
 use App\Livewire\Sales\OrderManager;
@@ -59,7 +61,7 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
         session()->flash('error', 'Link xác thực đã hết hạn!');
         return redirect()->route('home');
     }
-
+        
     // 3. Kích hoạt tài khoản: đổi status thành 'active'
     if (! $user->hasVerifiedEmail()) {
         $user->markEmailAsVerified();
@@ -102,9 +104,14 @@ Route::middleware(['role:customer'])->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['role:farm_staff'])->prefix('nhan-vien-nong-trai')->name('farm-staff.')->group(function () {
-    Route::get('/', FarmPlotManager::class)->name('farm-plot');
-    Route::get('/lo-nong-san', ProductBatchManager::class)->name('product-batch');
+    Route::get('/', function () {
+            return redirect()->route('farm-staff.farm-plot');
+        })->name('dashboard');
     Route::get('/luong-dat', FarmPlotManager::class)->name('farm-plot');
+    Route::get('/lo-nong-san', ProductBatchManager::class)->name('product-batch');
+    Route::get('/giay-chung-nhan', CertificationManager::class)->name('certification');
+    Route::get('/quan-ly-san-pham', ProductManager::class)->name('product-manager');
+    Route::get('/quan-ly-danh-muc', CategoryManager::class)->name('category-manager');
     Route::get('/ho-so', ProfileManager::class)->name('profile');
 });
 

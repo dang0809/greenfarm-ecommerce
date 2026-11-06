@@ -21,6 +21,7 @@ return new class extends Migration
             ->restrictOnDelete();
         $table->string('planting_code', 100)->unique();                           // UK
         $table->string('status', 50)->default('planting')->index();               // planting|harvesting|completed
+        $table->date('planted_date')->nullable()->index();
         $table->timestamps();
 });
 

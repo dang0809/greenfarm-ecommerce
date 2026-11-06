@@ -22,8 +22,6 @@ return new class extends Migration
     $table->string('image', 255)->nullable();
     $table->string('recorded_by', 255);
     $table->timestamp('recorded_at')->nullable()->index();
-    $table->string('data_hash', 255)->index();                                // SHA256 hash
-    $table->string('blockchain_tx_hash', 255)->nullable()->unique();          // UK
     $table->timestamps();
 });
 
