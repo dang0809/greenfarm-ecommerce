@@ -59,3 +59,8 @@ Schedule::call(function () {
         });
     }
 })->everyMinute();
+
+// Tự động quét và tạo đơn hàng cho các đợt giao rau VIP vào 06:00 sáng mỗi ngày
+Schedule::command('vip:generate-orders')
+    ->dailyAt('06:00')
+    ->withoutOverlapping();

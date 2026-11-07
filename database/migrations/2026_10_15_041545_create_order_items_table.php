@@ -20,8 +20,9 @@ return new class extends Migration
           ->constrained('products')
           ->restrictOnDelete();
     $table->foreignId('batch_id')
+          ->nullable()
           ->constrained('product_batches')
-          ->restrictOnDelete();                                                           // FK FEFO
+          ->nullOnDelete();                                                           // FK FEFO
     $table->string('product_name', 255);
     $table->decimal('price', 12, 2)->default(0);
     $table->integer('quantity')->default(1);

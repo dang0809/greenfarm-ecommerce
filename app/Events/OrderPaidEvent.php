@@ -20,6 +20,7 @@ class OrderPaidEvent implements ShouldBroadcastNow
         $this->orderData = [
             'id'             => $order->id,
             'order_code'     => $order->order_code,
+            'order_type'     => $order->order_type,
             'recipient_name' => $order->recipient_name,
             'total'          => $order->total,
             'created_at'     => $order->created_at ? $order->created_at->format('H:i • d/m/Y') : now()->format('H:i • d/m/Y'),
