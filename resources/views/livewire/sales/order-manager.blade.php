@@ -64,8 +64,13 @@
                         <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs sm:text-sm"></i>
                         <input type="text" 
                                wire:model.live.debounce.300ms="search" 
-                               placeholder="Tìm mã đơn, tên khách, số điện thoại..." 
-                               class="w-full pl-10 pr-4 py-2 sm:py-2.5 border border-gray-200 rounded-xl sm:rounded-2xl text-xs sm:text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 bg-[#FAFAF8] font-medium transition-all">
+                               placeholder="Tìm theo mã đơn hàng (#1794...)" 
+                               class="w-full pl-10 pr-9 py-2 sm:py-2.5 border border-gray-200 rounded-xl sm:rounded-2xl text-xs sm:text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 bg-[#FAFAF8] font-medium transition-all">
+                        @if(!empty($search))
+                            <button type="button" wire:click="$set('search', '')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1" title="Xóa tìm kiếm">
+                                <i class="fa-solid fa-xmark text-xs"></i>
+                            </button>
+                        @endif
                     </div>
 
                     <!-- Lọc theo loại đơn hàng CSDL -->

@@ -141,14 +141,10 @@ class OrderManager extends Component
             $query->where('status', $this->statusFilter);
         }
 
-        // Lọc theo từ khóa tìm kiếm (Mã đơn, Tên, Số điện thoại)
-        if (!empty(trim($this->search))) {
-            $keyword = trim($this->search);
-            $query->where(function ($q) use ($keyword) {
-                $q->where('order_code', 'like', "%{$keyword}%")
-                  ->orWhere('recipient_name', 'like', "%{$keyword}%")
-                  ->orWhere('recipient_phone', 'like', "%{$keyword}%");
-            });
+        // Lọc theo từ khóa tìm kiếm (Chỉ tìm theo mã đơn hàng)
+        $rawSearch = ltrim(trim($this->search), '#');
+        if ($rawSearch !== '') {
+            $query->where('order_code', 'like', "%{$rawSearch}%");
         }
 
         // Lọc theo Loại đơn (retail hoặc subscription_delivery)

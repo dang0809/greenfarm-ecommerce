@@ -50,15 +50,15 @@
             ->first();
     @endphp
 
-    @if ($activeVipSub && !request()->routeIs('customer.vip.setup'))
-        <!-- 3. NÚT NỔI DÀNH RIÊNG CHO THÀNH VIÊN VIP (ĐÃ MUA GÓI, ẨN KHI ĐANG Ở TRANG THIẾT LẬP LỊCH) -->
+    @if ($activeVipSub)
+        <!-- 3. NÚT NỔI DÀNH RIÊNG CHO THÀNH VIÊN VIP (ĐÃ MUA GÓI) -->
         <a href="{{ route('customer.vip.setup') }}" wire:navigate 
-           class="fixed bottom-6 right-4 sm:right-6 z-40 bg-gradient-to-r from-emerald-800 via-brand-700 to-amber-700 hover:from-emerald-900 hover:to-amber-800 text-white px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-full shadow-2xl flex items-center gap-2.5 sm:gap-3 transition-all hover:scale-105 active:scale-95 border-2 border-amber-300/80 group ring-4 ring-amber-400/20">
-            <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-amber-400/30 border border-amber-200/50 flex items-center justify-center text-amber-300 text-sm sm:text-base shadow-inner">
+           class="fixed bottom-6 right-4 sm:right-6 z-40 bg-gradient-to-r from-emerald-800 via-brand-700 to-amber-700 hover:from-emerald-900 hover:to-amber-800 text-white px-4 py-3 rounded-full shadow-2xl flex items-center gap-3 transition-all hover:scale-105 active:scale-95 border-2 border-amber-300/80 group ring-4 ring-amber-400/20">
+            <div class="w-9 h-9 rounded-full bg-amber-400/30 border border-amber-200/50 flex items-center justify-center text-amber-300 text-base shadow-inner">
                 <i class="fa-solid fa-crown group-hover:rotate-12 transition-transform text-amber-300"></i>
             </div>
             <div class="text-left pr-1">
-                <span class="block text-[9px] sm:text-[10px] text-amber-200 uppercase font-black tracking-wider leading-tight flex items-center gap-1.5">
+                <span class="block text-[10px] text-amber-200 uppercase font-black tracking-wider leading-tight flex items-center gap-1.5">
                     <span>Thành Viên VIP</span>
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                 </span>
@@ -68,15 +68,15 @@
                 {{ $activeVipSub->deliverySchedules()->where('status', 'delivered')->count() }}/8 Đợt
             </span>
         </a>
-    @elseif(!request()->routeIs('customer.vip.checkout') && filter_var(\App\Models\SystemSetting::where('group', 'subscription')->where('key', 'vip_subscription_enabled')->value('value') ?? 'true', FILTER_VALIDATE_BOOLEAN))
+    @elseif(filter_var(\App\Models\SystemSetting::where('group', 'subscription')->where('key', 'vip_subscription_enabled')->value('value') ?? 'true', FILTER_VALIDATE_BOOLEAN))
         <!-- 3. NÚT NỔI ĐĂNG KÝ GÓI RAU (KHI CHƯA MUA GÓI & ĐANG MỞ BÁN) -->
         <a href="{{ route('customer.vip.checkout') }}" wire:navigate 
-           class="fixed bottom-6 right-4 sm:right-6 z-40 bg-gradient-to-r from-emerald-700 to-brand-600 hover:from-emerald-800 hover:to-brand-700 text-white px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-full shadow-2xl flex items-center gap-2.5 sm:gap-3 transition-all hover:scale-105 active:scale-95 border-2 border-white/70 group">
-            <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/20 flex items-center justify-center text-amber-300 text-sm sm:text-base shadow-inner">
+           class="fixed bottom-6 right-4 sm:right-6 z-40 bg-gradient-to-r from-emerald-700 to-brand-600 hover:from-emerald-800 hover:to-brand-700 text-white px-4 py-3 rounded-full shadow-2xl flex items-center gap-3 transition-all hover:scale-105 active:scale-95 border-2 border-white/70 group">
+            <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-amber-300 text-base shadow-inner">
                 <i class="fa-solid fa-box-open group-hover:rotate-12 transition-transform"></i>
             </div>
             <div class="text-left pr-1">
-                <span class="block text-[9px] sm:text-[10px] text-brand-100 uppercase font-extrabold tracking-wider leading-tight">Combo tươi mỗi tuần</span>
+                <span class="block text-[10px] text-brand-100 uppercase font-extrabold tracking-wider leading-tight">Combo tươi mỗi tuần</span>
                 <span class="block text-xs sm:text-sm font-black leading-tight">Đăng Ký Gói Rau Tuần</span>
             </div>
             <span class="bg-amber-400 text-gray-900 text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs">-10%</span>

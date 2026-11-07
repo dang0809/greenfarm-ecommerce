@@ -159,9 +159,14 @@
                     <div class="relative sm:w-64">
                         <input type="text" 
                                wire:model.live.debounce.300ms="searchVeggie" 
-                               placeholder="Tìm tên rau củ..." 
-                               class="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-hidden">
+                               placeholder="Tìm theo tên sản phẩm..." 
+                               class="w-full pl-9 pr-8 py-2 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-hidden">
                         <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                        @if(!empty($searchVeggie))
+                            <button type="button" wire:click="$set('searchVeggie', '')" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer" title="Xóa từ khóa">
+                                <i class="fa-solid fa-xmark text-xs"></i>
+                            </button>
+                        @endif
                     </div>
                 </div>
 
