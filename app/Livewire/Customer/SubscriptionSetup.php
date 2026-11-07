@@ -589,7 +589,7 @@ class SubscriptionSetup extends Component
             foreach ($saved as $ds) {
                 $rawItems = $ds->items ?? [];
                 foreach ($rawItems as $it) {
-                    $pId = $it['product_id'] ?? $it['id'] ?? null;
+                    $pId = $it['product_id'] ?? null;
                     if ($pId) $allProdIds[] = (int) $pId;
                 }
             }
@@ -606,8 +606,8 @@ class SubscriptionSetup extends Component
                 $itemsDetail = [];
                 $w = 0.0;
                 foreach ($rawItems as $it) {
-                    $pId = $it['product_id'] ?? $it['id'] ?? null;
-                    $q = (int) ($it['quantity'] ?? $it['qty'] ?? 1);
+                    $pId = $it['product_id'] ?? null;
+                    $q = (int) ($it['quantity'] ?? 1);
                     $prod = $pId ? ($productsKeyed->get($pId)) : null;
 
                     // Xử lý lấy ảnh đại diện của món rau:
