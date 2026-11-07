@@ -259,12 +259,16 @@
                     @forelse ($order->items as $item)
                         @php
                             $product = $item->product;
-                            $thumb = $product?->productImages?->first()?->image_url ?? $product?->image_url ?? 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?auto=format&fit=crop&q=80&w=200';
+                            $rawThumb = $product?->productImages?->firstWhere('is_primary', true)?->image 
+                                ?? $product?->productImages?->first()?->image;
+                            $thumb = $rawThumb 
+                                ? (str_starts_with($rawThumb, 'http') ? $rawThumb : asset('storage/' . $rawThumb))
+                                : 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?auto=format&fit=crop&q=80&w=200';
                             $unit = $product?->unit ?? 'phần';
                         @endphp
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-50 last:border-0 last:pb-0">
                             <div class="flex items-start gap-3.5">
-                                <img src="{{ $thumb }}" alt="{{ $item->product_name }}" class="w-16 h-16 rounded-2xl object-cover border border-gray-100 shrink-0">
+                                <img src="{{ $thumb }}" alt="{{ $item->product_name }}" class="w-16 h-16 rounded-2xl object-cover border border-gray-100 shrink-0" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?auto=format&fit=crop&q=80&w=200'">
                                 <div>
                                     <h3 class="text-sm font-bold text-gray-900">
                                         @if ($product && !empty($product->slug))
@@ -494,10 +498,14 @@
                         </span>
                     </div>
 
+                    @php
+                        $pointDiscount = max(0, ($order->subtotal + $order->shipping_fee) - $order->total);
+                    @endphp
+
                     @if ($order->points_used > 0)
                         <div class="flex justify-between text-brand-700">
-                            <span>Khấu trừ điểm thưởng:</span>
-                            <span class="font-bold">-{{ number_format($order->points_used * 1000, 0, ',', '.') }}đ</span>
+                            <span>Khấu trừ điểm thưởng ({{ number_format($order->points_used) }} điểm):</span>
+                            <span class="font-bold">-{{ number_format($pointDiscount, 0, ',', '.') }}đ</span>
                         </div>
                     @endif
 

@@ -148,11 +148,12 @@
                                     @php
                                         $payStatus = $order->payment?->status ?? 'pending';
                                         $isPaid = ($payStatus === 'success') || $order->total == 0;
-                                        $payMethod = strtoupper($order->payment?->method ?: 'PAYOS');
+                                        $isVipDelivery = $order->order_type === 'subscription_delivery';
+                                        $payMethod = $isVipDelivery ? 'GÓI VIP' : strtoupper($order->payment?->method ?: 'PAYOS');
                                     @endphp
                                     <div class="mt-0.5">
                                         @if($isPaid)
-                                            <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono">
+                                            <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full {{ $isVipDelivery ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200' }} font-mono">
                                                 ĐÃ THANH TOÁN ({{ $payMethod }})
                                             </span>
                                         @elseif($payStatus === 'failed')
@@ -461,11 +462,18 @@
                     </div>
 
                     <div class="p-4 rounded-xl sm:rounded-2xl bg-gray-50 border border-gray-200/80 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2">
-                        <div class="space-y-0.5 text-gray-500 font-mono">
+                        <div class="space-y-1 text-gray-500 font-mono">
                             <p>Tiền hàng: <b class="text-gray-800">{{ number_format($selectedOrder->subtotal, 0, ',', '.') }}đ</b></p>
                             <p>Phí vận chuyển: <b class="text-gray-800">{{ number_format($selectedOrder->shipping_fee, 0, ',', '.') }}đ</b></p>
+                            @php
+                                $pointDiscount = max(0, ($selectedOrder->subtotal + $selectedOrder->shipping_fee) - $selectedOrder->total);
+                            @endphp
                             @if($selectedOrder->points_used > 0)
-                                <p class="text-emerald-700">Điểm thưởng trừ: <b>-{{ number_format($selectedOrder->points_used * 1000, 0, ',', '.') }}đ</b></p>
+                                <p class="text-emerald-700 font-bold flex items-center gap-1.5">
+                                    <i class="fa-solid fa-coins text-amber-500 text-xs"></i>
+                                    Điểm thưởng trừ ({{ number_format($selectedOrder->points_used) }} điểm): 
+                                    <b>-{{ number_format($pointDiscount, 0, ',', '.') }}đ</b>
+                                </p>
                             @endif
                         </div>
                         <div class="text-left sm:text-right">
@@ -616,7 +624,7 @@
                         <h3 class="text-base font-black font-mono">#{{ ltrim($selectedOrder->order_code, '#') }}</h3>
                         <p class="text-[10px] text-gray-500 font-mono">{{ $selectedOrder->created_at->format('d/m/Y') }}</p>
                         <span class="inline-block text-[10px] font-bold uppercase border px-1.5 py-0.5 rounded">
-                            {{ strtoupper($selectedOrder->payment?->method ?: 'PAYOS') }}
+                            {{ $selectedOrder->order_type === 'subscription_delivery' ? 'GÓI VIP TRẢ TRƯỚC' : strtoupper($selectedOrder->payment?->method ?: 'PAYOS') }}
                         </span>
                     </div>
                 </div>
@@ -645,6 +653,17 @@
                         @endforeach
                     </tbody>
                 </table>
+                <div class="flex justify-between items-start border-t pt-2 mb-3 text-[11px]">
+                    <div class="space-y-0.5 text-gray-600 font-mono">
+                        <p>Tiền hàng: {{ number_format($selectedOrder->subtotal, 0, ',', '.') }}đ | Phí ship: {{ number_format($selectedOrder->shipping_fee, 0, ',', '.') }}đ</p>
+                        @if($selectedOrder->points_used > 0)
+                            <p class="text-emerald-700 font-bold">Điểm thưởng trừ: -{{ number_format(max(0, ($selectedOrder->subtotal + $selectedOrder->shipping_fee) - $selectedOrder->total), 0, ',', '.') }}đ ({{ $selectedOrder->points_used }} điểm)</p>
+                        @endif
+                    </div>
+                    <div class="text-right font-mono">
+                        <p class="font-bold text-xs">Tổng thanh toán: <span class="text-sm font-black">{{ $selectedOrder->total == 0 ? '0đ (GÓI VIP)' : number_format($selectedOrder->total, 0, ',', '.') . 'đ' }}</span></p>
+                    </div>
+                </div>
                 <div class="flex justify-between items-end border-t pt-3">
                     <div class="text-[10px] text-gray-400">
                         <p>Quét mã QR trên tem nhãn để đối chiếu nhật ký nông trại.</p>
@@ -652,8 +671,6 @@
                     <div class="text-center font-mono">
                         <p class="font-bold">Ký tên đóng gói</p>
                         <div class="h-10"></div>
-                        <p class="text-[10px] text-gray-400">KS. Hoàng Nam</p>
-                    </div>
                 </div>
             </div>
         </div>
