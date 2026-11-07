@@ -421,11 +421,11 @@
                                 <!-- Danh sách món rau -->
                                 <div class="border-t border-gray-100 pt-3 space-y-2">
                                     <span class="text-[11px] font-bold text-gray-600 block">Thực đơn đợt này ({{ $sch['total_weight'] }} kg):</span>
-                                    <div class="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                                    <div class="space-y-1.5 max-h-36 overflow-y-auto pr-1.5 custom-scrollbar">
                                         @forelse($sch['items'] as $item)
                                             <div class="flex items-center justify-between text-xs py-1 border-b border-gray-50 last:border-none">
                                                 <div class="flex items-center gap-2 min-w-0">
-                                                    <img src="{{ $item['image'] }}" class="w-6 h-6 rounded-md object-cover border border-gray-100 shrink-0">
+                                                    <img src="{{ $item['image'] }}" class="w-6 h-6 rounded-md object-cover border border-gray-100 shrink-0" onerror="this.src='https://images.unsplash.com/photo-1540420773420-3366772f4999?w=100'">
                                                     <a href="{{ !empty($item['slug']) ? route('customer.product.detail', $item['slug']) : '#' }}" target="_blank" class="truncate font-medium text-gray-800 hover:text-brand-600">
                                                         {{ $item['name'] }}
                                                     </a>
