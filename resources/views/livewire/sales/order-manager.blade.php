@@ -104,7 +104,7 @@
                                         <span>#{{ ltrim($order->order_code, '#') }}</span>
                                         <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-gray-400"></i>
                                     </button>
-                                    <div class="flex items-center gap-1.5 mt-1">
+                                    <div class="flex items-center gap-1.5 mt-1 flex-wrap">
                                         @if($order->order_type === 'subscription_delivery')
                                             <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
                                                 <i class="fa-solid fa-crown text-[8px]"></i> Gói VIP {{ $order->deliverySchedule ? "(Đợt {$order->deliverySchedule->delivery_order}/8)" : '' }}
@@ -112,6 +112,11 @@
                                         @else
                                             <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
                                                 <i class="fa-solid fa-basket-shopping text-[8px]"></i> Mua Lẻ
+                                            </span>
+                                        @endif
+                                        @if($order->items->contains(fn($i) => empty($i->batch_id)))
+                                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 animate-pulse">
+                                                <i class="fa-solid fa-triangle-exclamation text-[8px]"></i> Thiếu kho
                                             </span>
                                         @endif
                                         <span class="text-[11px] font-mono text-gray-500" title="{{ $order->created_at->format('H:i d/m/Y') }}">
@@ -444,8 +449,8 @@
                                                     <span class="text-[10px] text-amber-700 font-mono">HSD: {{ $item->batch->expiry_date?->format('d/m/Y') }}</span>
                                                 </div>
                                             @else
-                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold bg-red-50 text-red-600 border border-red-200">
-                                                    <i class="fa-solid fa-circle-exclamation text-red-500"></i> Thiếu hàng (Hết kho)
+                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                                    <i class="fa-solid fa-circle-exclamation text-rose-500"></i> Thiếu {{ $item->quantity }} {{ $item->product?->unit ?? 'hộp' }} (Hết kho)
                                                 </span>
                                             @endif
                                         </td>

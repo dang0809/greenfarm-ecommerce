@@ -46,8 +46,14 @@ class OrdersPage extends Component
     {
         $userId = Auth::id();
 
-        $pendingPaymentQuery      = fn($q) => $q->where('status', 'pending')->whereHas('payment', fn($q) => $q->where('status', 'pending'));
-        $pendingConfirmationQuery = fn($q) => $q->where('status', 'pending')->whereHas('payment', fn($pq) => $pq->where('status', 'success'));
+        $pendingPaymentQuery      = fn($q) => $q->where('status', 'pending')
+            ->whereHas('payment', fn($q) => $q->where('status', 'pending'));
+
+        $pendingConfirmationQuery = fn($q) => $q->where('status', 'pending')
+            ->where(function($sub) {
+                $sub->where('order_type', 'subscription_delivery')
+                    ->orWhereHas('payment', fn($pq) => $pq->where('status', 'success'));
+            });
         $processingQuery          = fn($q) => $q->where('status', 'processing');
         $shippedQuery             = fn($q) => $q->where('status', 'shipped');
         $deliveredQuery           = fn($q) => $q->where('status', 'delivered');
