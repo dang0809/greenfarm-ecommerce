@@ -132,7 +132,7 @@
                         <span class="inline-flex items-center gap-1.5 text-xs font-bold text-yellow-800 bg-yellow-50 border border-yellow-200 px-2.5 py-0.5 rounded-full">
                             <i class="fa-solid fa-hourglass-half text-[10px]"></i> Chờ thanh toán
                         </span>
-                    @elseif ($order->status === 'pending' && $order->payment?->status === 'success')
+                    @elseif ($order->status === 'pending' && ($order->order_type === 'subscription_delivery' || $order->payment?->status === 'success'))
                         <span class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
                             <i class="fa-solid fa-circle-notch text-[10px] animate-spin"></i> Chờ xác nhận
                         </span>
@@ -142,8 +142,8 @@
                 <!-- THÔNG BÁO TÓM TẮT TRẠNG THÁI -->
                 @php
                     $orderStatusMsg = match(true) {
+                        $order->status === 'pending' && $isVipDelivery => "Đợt giao rau định kỳ{$batchInfo} đã được khởi tạo từ gói VIP trả trước. Hệ thống đang chờ nhân viên Nông trại Đất Lành kiểm tra và xác nhận đơn hàng.",
                         $order->status === 'pending' && $order->payment?->status === 'pending' => 'Đơn hàng của bạn đã được hệ thống ghi nhận. Vui lòng hoàn tất thanh toán để nông trại bắt đầu chuẩn bị hàng nhé!',
-                        $order->status === 'pending' && $order->payment?->status === 'success' && $isVipDelivery => "Đợt giao rau định kỳ{$batchInfo} đã được khởi tạo. Hệ thống đang chờ nhân viên Nông trại Đất Lành kiểm tra và xác nhận đơn hàng.",
                         $order->status === 'pending' && $order->payment?->status === 'success' => 'Bạn đã thanh toán thành công. Hệ thống đang chờ nhân viên Nông trại Đất Lành kiểm tra và xác nhận đơn hàng.',
                         $order->status === 'processing' && $isVipDelivery => "Nông trại đang thu hoạch & đóng gói thùng rau VIP{$batchInfo} theo chuẩn VietGAP, chờ shipper đến lấy hàng.",
                         $order->status === 'processing' => 'Đơn hàng đã được xác nhận & đang đóng gói, chờ shipper đến lấy hàng.',
@@ -172,8 +172,13 @@
                     </div>
                 @else
                     <!-- CASE 2: ĐƠN BÁN LẺ HOẶC ĐƠN GIAO RAU VIP THEO ĐỢT (Có order_items) -->
-                    <div class="space-y-3">
-                        @foreach ($order->items as $item)
+                    @php
+                        $itemsCount = $order->items->count();
+                        $previewLimit = 2;
+                    @endphp
+
+                    <div x-data="{ expanded: false }" class="space-y-3">
+                        @foreach ($order->items as $index => $item)
                             @php
                                 $product = $item->product;
                                 $rawImage = $product?->productImages?->firstWhere('is_primary', true)?->image 
@@ -184,10 +189,11 @@
                                     : 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?w=200';
                             @endphp
 
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 last:border-0 last:pb-0">
+                            <div @if($index >= $previewLimit) x-show="expanded" x-transition style="display: none;" @endif 
+                                 class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 last:border-0 last:pb-0">
                                 <div class="flex items-start gap-3">
                                     <a href="{{ route('customer.order.detail', $order->order_code) }}" class="shrink-0">
-                                        <img src="{{ $primaryImage }}" alt="{{ $item->product_name }}" class="w-14 h-14 rounded-xl object-cover border border-gray-200 shrink-0 hover:opacity-90 transition">
+                                        <img src="{{ $primaryImage }}" alt="{{ $item->product_name }}" class="w-14 h-14 rounded-xl object-cover border border-gray-200 shrink-0 hover:opacity-90 transition" onerror="this.src='https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?w=200'">
                                     </a>
                                     <div>
                                         <h3 class="text-xs sm:text-sm font-bold text-gray-900">
@@ -217,6 +223,20 @@
                                 </span>
                             </div>
                         @endforeach
+
+                        @if ($itemsCount > $previewLimit)
+                            <div class="pt-1 text-center">
+                                <button type="button" 
+                                        @click="expanded = !expanded" 
+                                        class="inline-flex items-center gap-1.5 text-xs font-bold text-brand-700 hover:text-brand-800 bg-white hover:bg-brand-50 border border-brand-200 px-3.5 py-1.5 rounded-full transition-all shadow-2xs cursor-pointer">
+                                    <span x-text="expanded ? 'Thu gọn sản phẩm' : 'Xem thêm {{ $itemsCount - $previewLimit }} sản phẩm khác'">
+                                        Xem thêm {{ $itemsCount - $previewLimit }} sản phẩm khác
+                                    </span>
+                                    <i class="fa-solid text-[10px] transition-transform duration-200" 
+                                       :class="expanded ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                                </button>
+                            </div>
+                        @endif
                     </div>
                 @endif
 
