@@ -193,7 +193,7 @@
                                  class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 last:border-0 last:pb-0">
                                 <div class="flex items-start gap-3">
                                     <a href="{{ route('customer.order.detail', $order->order_code) }}" class="shrink-0">
-                                        <img src="{{ $primaryImage }}" alt="{{ $item->product_name }}" class="w-14 h-14 rounded-xl object-cover border border-gray-200 shrink-0 hover:opacity-90 transition" onerror="this.src='https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?w=200'">
+                                        <img src="{{ $primaryImage }}" alt="{{ $item->product_name }}" class="w-14 h-14 rounded-xl object-cover border border-gray-200 shrink-0 hover:opacity-90 transition" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?w=200'">
                                     </a>
                                     <div>
                                         <h3 class="text-xs sm:text-sm font-bold text-gray-900">
@@ -243,7 +243,9 @@
                 <!-- Footer Đơn Hàng & Thao tác -->
                 <div class="pt-3 border-t {{ ($isVipPayment || $isVipDelivery) ? 'border-purple-100' : 'border-gray-200/80' }} flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div class="text-xs text-gray-500">
-                        <span>Cổng thanh toán: <b class="uppercase text-brand-700 font-extrabold">{{ $order->payment?->method ?? 'PAYOS' }}</b></span>
+                        @if (!$isVipDelivery)
+                            <span>Cổng thanh toán: <b class="uppercase text-brand-700 font-extrabold">{{ $order->payment?->method ?? 'PAYOS' }}</b></span>
+                        @endif
                         <div class="flex items-baseline gap-1.5 mt-0.5">
                             <span class="text-gray-400">Tổng thanh toán:</span>
                             <span class="text-base font-black text-brand-700">
