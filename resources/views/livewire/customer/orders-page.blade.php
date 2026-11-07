@@ -79,13 +79,7 @@
                                 @elseif ($isVipDelivery)
                                     @php
                                         $sched = $order->deliverySchedule;
-                                        if ($sched) {
-                                            $total = 8;
-                                            $batchInfo = " (Đợt {$sched->delivery_order}/{$total})";
-                                        } else {
-                                            preg_match('/Đợt\s+\d+\/\d+/ui', $order->note ?? '', $batchMatches);
-                                            $batchInfo = !empty($batchMatches[0]) ? ' (' . $batchMatches[0] . ')' : '';
-                                        }
+                                        $batchInfo = $sched ? " (Đợt {$sched->delivery_order}/8)" : '';
                                     @endphp
                                     <span class="inline-flex items-center gap-1 text-[10px] font-black text-purple-700 bg-purple-100 border border-purple-300 px-2 py-0.5 rounded-md">
                                         <i class="fa-solid fa-truck-ramp-box text-[9px]"></i> GIAO RAU VIP{{ $batchInfo }}

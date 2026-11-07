@@ -374,7 +374,8 @@
                     @foreach($lockedSchedules as $sch)
                         @php
                             $status = $sch['status'];
-                            // Xác định màu sắc và badge chuẩn 4 trạng thái
+
+                            // Xác định màu sắc và badge chuẩn trạng thái theo tiến độ đợt giao
                             if ($status === 'delivered') {
                                 $badgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-200';
                                 $badgeText = '✓ Đã giao thành công';
@@ -384,12 +385,13 @@
                                 $badgeClass = 'bg-sky-100 text-sky-800 border-sky-200 animate-pulse';
                                 $badgeText = '🚚 Đang giao hàng';
                                 $badgeIcon = 'fa-truck-fast';
-                                $cardBorder = 'border-sky-300 bg-sky-50/20';
+                                $cardBorder = 'border-sky-300 bg-sky-50/20 ring-1 ring-sky-300';
                             } elseif ($status === 'processing') {
+                                // Trạng thái processing trong DB: đổi giao diện hiển thị "Hôm nay tới đợt"
                                 $badgeClass = 'bg-amber-100 text-amber-800 border-amber-200 animate-pulse';
-                                $badgeText = '📦 Đang chuẩn bị';
-                                $badgeIcon = 'fa-boxes-packing';
-                                $cardBorder = 'border-amber-300 bg-amber-50/20';
+                                $badgeText = '🌱 Hôm nay tới đợt';
+                                $badgeIcon = 'fa-calendar-check';
+                                $cardBorder = 'border-amber-300 bg-amber-50/20 ring-1 ring-amber-300';
                             } else {
                                 // pending: Chờ đến ngày giao
                                 $badgeClass = 'bg-gray-100 text-gray-700 border-gray-200';
@@ -443,7 +445,7 @@
                                 @elseif($status === 'shipped')
                                     <span class="text-sky-700 font-bold">Shipper đang trên đường tới</span>
                                 @elseif($status === 'processing')
-                                    <span class="text-amber-700 font-bold">Đang đóng gói nông sản</span>
+                                    <span class="text-amber-700 font-bold">Hôm nay tới đợt giao</span>
                                 @else
                                     <span>Nông trại thu hoạch & giao đúng hẹn</span>
                                 @endif
