@@ -43,7 +43,7 @@
                 <i
                     class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs sm:text-sm"></i>
                 <input type="text" id="search-input" wire:model.live.debounce.300ms="search"
-                    placeholder="Tìm theo tên bài test, mã code..."
+                    placeholder="Tìm theo tên chứng nhận, mã chứng nhận..."
                     class="w-full pl-10 pr-4 py-2 sm:py-2.5 border border-gray-200 rounded-xl sm:rounded-2xl text-xs sm:text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 bg-[#FAFAF8] font-medium transition-all">
             </div>
 
@@ -205,13 +205,14 @@
                     <h3 class="text-base sm:text-xl font-extrabold text-gray-900 truncate" id="modal-form-title">Đăng
                         Giấy Kiểm Định Mới</h3>
                 </div>
-                <button type="button" wire:click="closeForm"
+                <button type="button" wire:click="closeForm" wire:loading.attr="disabled"
+                    wire:target="requestSave,save,newFile"
                     class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center justify-center transition-colors shrink-0 cursor-pointer">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
-            <form wire:submit="save" class="space-y-3.5 sm:space-y-4 text-xs sm:text-sm">
+            <form wire:submit="requestSave" class="space-y-3.5 sm:space-y-4 text-xs sm:text-sm">
                 @if ($errors->any())
                 <div role="alert">
                     @foreach ($errors->all() as $message)
@@ -312,11 +313,16 @@
                 </div>
 
                 <div class="pt-2">
-                    <button type="submit" wire:loading.attr="disabled" wire:target="save,newFile"
+                    <button type="submit" wire:loading.attr="disabled" wire:target="requestSave,save,newFile"
                         class="w-full bg-brand-700 hover:bg-brand-800 text-white font-bold py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl shadow-md transition active:scale-95 text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer">
+
                         <i class="fa-solid fa-cloud-arrow-up"></i>
-                        <span wire:loading.remove wire:target="save,newFile">Lưu & Công Bố Giấy Kiểm Định</span>
-                        <span wire:loading wire:target="save,newFile">
+
+                        <span wire:loading.remove wire:target="requestSave,save,newFile">
+                            Lưu & Công Bố Giấy Kiểm Định
+                        </span>
+
+                        <span wire:loading wire:target="requestSave,save,newFile">
                             Đang xử lý...
                         </span>
                     </button>
@@ -327,147 +333,71 @@
     @endif
 
     <!-- MODAL 2: XEM BẢN SCAN PHÓNG TO -->
-    @if ($scanCertification)
-    <div id="modal-scan" wire:key="certification-scan-{{ $scanCertification->id }}"
-        class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/80 backdrop-blur-xs p-3 sm:p-4">
 
-        <div class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-2xl
-               max-h-[92dvh] overflow-hidden flex flex-col
-               shadow-2xl border border-gray-100">
-
-            {{-- Header modal --}}
-            <div class="shrink-0 flex items-start justify-between gap-3
-                   border-b border-gray-100 p-4 sm:p-6">
-
-                <div class="min-w-0 flex-1">
-                    <h3 id="scan-title" class="text-base sm:text-lg font-extrabold text-gray-900 break-words">
-
-                        {{ $scanCertification->name }}
-                    </h3>
-
-                    <p id="scan-code" class="text-xs text-brand-700 font-mono font-bold mt-1 break-all">
-
-                        MÃ QUẢN LÝ: {{ $scanCertification->code }}
-                    </p>
-                </div>
-
-                <button type="button" wire:click="closeScan" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500
-                       hover:bg-gray-200 flex items-center justify-center
-                       transition-colors shrink-0 cursor-pointer" aria-label="Đóng bản scan">
-
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-
-            {{-- Khu vực hiển thị bản scan --}}
-            <div class="flex-1 min-h-0 overflow-y-auto
-                   rounded-xl sm:rounded-2xl bg-gray-50
-                   p-3 sm:p-5 text-center custom-scrollbar">
-
-                @if ($scanCertification->image_url)
-                @if ($scanCertification->is_pdf)
-                <div class="flex flex-col items-center gap-3">
-                    <object data="{{ $scanCertification->image_url }}" type="application/pdf" class="w-full h-[55vh] sm:h-[60vh] min-h-[300px]
-                                   rounded-xl border border-gray-200 bg-white">
-
-                        <p class="text-xs sm:text-sm text-gray-500 p-4">
-                            Trình duyệt không thể hiển thị PDF trực tiếp.
-                        </p>
-                    </object>
-
-                    <a href="{{ $scanCertification->image_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2
-                                   px-4 py-2 rounded-xl bg-brand-50
-                                   text-brand-700 hover:bg-brand-100
-                                   text-xs font-bold">
-
-                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                        Mở PDF trong tab mới
-                    </a>
-                </div>
-                @else
-                <div class="min-h-full flex items-center justify-center">
-                    <img id="scan-img" src="{{ $scanCertification->image_url }}" alt="{{ $scanCertification->name }}"
-                        class="max-w-full w-auto h-auto
-                                   max-h-[58vh] sm:max-h-[64vh]
-                                   object-contain rounded-xl shadow-md">
-                </div>
-                @endif
-                @else
-                <div class="min-h-[240px] flex items-center justify-center">
-                    <p class="text-xs sm:text-sm text-gray-500">
-                        Giấy kiểm định chưa có bản scan.
-                    </p>
-                </div>
-                @endif
-            </div>
-
-            {{-- Footer modal --}}
-            <div class="shrink-0 border-t border-gray-100
-                   p-4 sm:p-5 flex flex-col items-stretch gap-3
-                   text-xs text-gray-500">
-
-                <p id="scan-dates" class="font-mono text-center leading-relaxed">
-
-                    Ngày cấp:
-                    {{ $scanCertification->issued_date?->format('d/m/Y') ?? '—' }}
-
-                    <span class="mx-1">|</span>
-
-                    Hết hạn:
-                    {{ $scanCertification->expiry_date?->format('d/m/Y') ?? 'Vô thời hạn' }}
-                </p>
-
-                <button type="button" wire:click="closeScan" class="w-full px-5 py-2.5 rounded-xl
-                       bg-gray-100 hover:bg-gray-200
-                       text-gray-700 font-bold transition cursor-pointer">
-
-                    Đóng
-                </button>
-            </div>
-        </div>
-    </div>
-    @endif
 </div>
 
 @script
 <script>
-let confirmingDelete = false;
+let confirming = false;
 
-$wire.on('confirm-certification-delete', async ({
-    id,
-    name
-}) => {
-    if (confirmingDelete) return;
+async function runConfirmation(options, action) {
+    if (confirming) return;
 
-    confirmingDelete = true;
+    confirming = true;
 
     try {
         const result = await Swal.fire({
-            icon: 'warning',
-            title: 'Gỡ bỏ giấy kiểm định?',
-            text: `Bạn có chắc muốn xóa “${name}”?`,
             showCancelButton: true,
-            confirmButtonText: 'Đồng ý xóa',
             cancelButtonText: 'Hủy',
-            confirmButtonColor: '#dc2626',
             cancelButtonColor: '#6b7280',
             reverseButtons: true,
-            allowOutsideClick: false
+            allowOutsideClick: false,
+            ...options
         });
 
         if (result.isConfirmed) {
-            await $wire.deleteCertification(id);
+            await action();
         }
+
+        // Hủy: không lưu, không đóng form, không reset file.
     } catch (error) {
         await Swal.fire({
             icon: 'error',
             title: 'Yêu cầu chưa hoàn tất',
-            text: 'Vui lòng tải lại trang và thử lại.',
+            text: 'Kiểm tra dữ liệu trên form hoặc kết nối rồi thử lại.',
             confirmButtonColor: '#15803d'
         });
     } finally {
-        confirmingDelete = false;
+        confirming = false;
     }
+}
+
+$wire.on('confirm-certification-save', ({
+    editing
+}) => {
+    return runConfirmation({
+        icon: 'question',
+
+        title: editing ?
+            'Xác nhận cập nhật giấy kiểm định?' : 'Xác nhận thêm giấy kiểm định?',
+
+        text: 'Thông tin và bản scan sẽ được lưu sau khi xác nhận.',
+        confirmButtonText: 'Xác nhận',
+        confirmButtonColor: '#15803d'
+    }, () => $wire.save());
+});
+
+$wire.on('confirm-certification-delete', ({
+    id,
+    name
+}) => {
+    return runConfirmation({
+        icon: 'warning',
+        title: 'Gỡ bỏ giấy kiểm định?',
+        text: 'Bạn có chắc muốn xóa “' + name + '”?',
+        confirmButtonText: 'Đồng ý xóa',
+        confirmButtonColor: '#dc2626'
+    }, () => $wire.deleteCertification(id));
 });
 </script>
 @endscript

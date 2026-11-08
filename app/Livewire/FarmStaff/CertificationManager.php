@@ -210,100 +210,226 @@ class CertificationManager extends Component
         }
     }
 
-    public function save(): void
+    private function validatedPayload(): array
     {
         $this->resetValidation('form');
 
-        $this->name = trim($this->name);
-        $this->code = trim($this->code);
-        $this->description = trim($this->description);
-
         $data = $this->validate();
+        $expiry = $data['expiryDate'] ?: null;
 
-        $newPath = null;
-        $oldPath = null;
+        // Chuẩn hóa trong mảng riêng, không sửa dữ liệu đang nhập.
+        return [
+            'name' => trim($data['name']),
+            'code' => trim($data['code']),
+
+            'description' => str_replace(
+                ["\r\n", "\r"],
+                "\n",
+                trim($data['description'])
+            ),
+
+            'issued_date' => $data['issuedDate'],
+            'expiry_date' => $expiry,
+
+            'status' => $expiry !== null
+                && $expiry < today()->toDateString()
+                    ? 'expired'
+                    : $data['status'],
+        ];
+    }
+
+    private function hasChanges(
+        Certification $cert,
+        array $data
+    ): bool {
+        $current = [
+            'name' => trim((string) $cert->name),
+            'code' => trim((string) $cert->code),
+
+            'description' => str_replace(
+                ["\r\n", "\r"],
+                "\n",
+                trim((string) $cert->description)
+            ),
+
+            'issued_date' => $cert->issued_date?->toDateString(),
+            'expiry_date' => $cert->expiry_date?->toDateString(),
+
+            // So sánh theo trạng thái đang hiển thị trên form.
+            'status' => $this->effectiveStatus($cert),
+        ];
+
+        return $current !== $data
+            || $this->scanHasChanged($cert);
+    }
+
+    private function scanHasChanged(Certification $cert): bool
+    {
+        if ($this->newFile === null) {
+            return false;
+        }
+
+        $path = (string) $cert->image;
+
+        // Với URL bên ngoài, chọn file upload là thay bản scan.
+        if (! preg_match(
+            '#\Acertifications/[A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp|pdf)\z#i',
+            $path
+        )) {
+            return true;
+        }
 
         try {
-            DB::transaction(function () use (
-                $data,
-                &$newPath,
-                &$oldPath
-            ) {
-                $cert = $this->editingId === null
-                    ? new Certification()
-                    : Certification::query()
-                        ->lockForUpdate()
-                        ->findOrFail($this->editingId);
+            $disk = Storage::disk('public');
 
-                $cert->fill([
-                    'name' => $data['name'],
-                    'code' => $data['code'],
-                    'description' => $data['description'],
-                    'issued_date' => $data['issuedDate'],
-                    'expiry_date' => $data['expiryDate'] ?: null,
+            if (! $disk->exists($path)) {
+                return true;
+            }
 
-                    // Khi lưu, giấy đã quá ngày hết hạn luôn là expired.
-                    'status' => $data['expiryDate'] !== ''
-                        && $data['expiryDate'] < today()->toDateString()
-                            ? 'expired'
-                            : $data['status'],
-                ]);
-
-                if ($this->newFile !== null) {
-                    $newPath = $this->newFile->store(
-                        'certifications',
-                        'public'
-                    );
-
-                    if (
-                        ! is_string($newPath)
-                        || $newPath === ''
-                        || ! Storage::disk('public')->exists($newPath)
-                    ) {
-                        throw new RuntimeException(
-                            'Không lưu được bản scan.'
-                        );
-                    }
-
-                    // Đường dẫn cũ lấy từ bản ghi đã khóa.
-                    $oldPath = $cert->image;
-                    $cert->image = $newPath;
-                }
-
-                // Không chọn file mới: giữ nguyên image hiện có.
-                if (! $cert->save()) {
-                    throw new RuntimeException(
-                        'Không lưu được giấy kiểm định.'
-                    );
-                }
-            });
-        } catch (UniqueConstraintViolationException $exception) {
-            $this->deleteManagedFile($newPath);
-
-            $this->addError(
-                'code',
-                'Mã vừa được sử dụng. Vui lòng chọn mã khác.'
+            // Chọn lại file cùng nội dung không tính là thay đổi.
+            return ! hash_equals(
+                hash('sha256', $disk->get($path)),
+                hash('sha256', $this->newFile->get())
             );
-
-            return;
         } catch (Throwable $exception) {
-            $this->deleteManagedFile($newPath);
             report($exception);
 
-            $this->addError(
-                'form',
-                'Không thể lưu giấy kiểm định. Vui lòng thử lại.'
-            );
+            return true;
+        }
+    }
 
+    public function requestSave(): void
+    {
+        if (! $this->showForm) {
             return;
         }
 
-        // Chỉ dọn file cũ sau khi database đã commit.
-        $this->deleteManagedFile($oldPath);
+        $data = $this->validatedPayload();
 
-        $this->closeForm();
-        $this->notify('success', 'Đã lưu giấy kiểm định!');
+        if ($this->editingId !== null) {
+            $cert = Certification::findOrFail($this->editingId);
+
+            if (! $this->hasChanges($cert, $data)) {
+                $this->notify(
+                    'info',
+                    'Chưa có sự thay đổi nào.'
+                );
+
+                return;
+            }
+        }
+
+        // Chưa ghi database, chưa lưu file ở bước này.
+        $this->dispatch(
+            'confirm-certification-save',
+            editing: $this->editingId !== null
+        )->self();
     }
+
+    public function save(): void
+{
+    if (! $this->showForm) {
+        return;
+    }
+
+    // Kiểm tra lại khi người dùng đã xác nhận.
+    $data = $this->validatedPayload();
+
+    $wasEditing = $this->editingId !== null;
+    $newPath = null;
+    $oldPath = null;
+
+    try {
+        $result = DB::transaction(function () use (
+            $data,
+            &$newPath,
+            &$oldPath
+        ) {
+            $cert = $this->editingId === null
+                ? new Certification()
+                : Certification::query()
+                    ->lockForUpdate()
+                    ->findOrFail($this->editingId);
+
+            // Kiểm tra lại bằng bản ghi mới nhất đã khóa.
+            if (
+                $cert->exists
+                && ! $this->hasChanges($cert, $data)
+            ) {
+                return 'unchanged';
+            }
+
+            $cert->fill($data);
+
+            if ($this->newFile !== null) {
+                $newPath = $this->newFile->store(
+                    'certifications',
+                    'public'
+                );
+
+                if (
+                    ! is_string($newPath)
+                    || $newPath === ''
+                    || ! Storage::disk('public')->exists($newPath)
+                ) {
+                    throw new RuntimeException(
+                        'Không lưu được bản scan.'
+                    );
+                }
+
+                $oldPath = $cert->image;
+                $cert->image = $newPath;
+            }
+
+            if (! $cert->save()) {
+                throw new RuntimeException(
+                    'Không lưu được giấy kiểm định.'
+                );
+            }
+
+            return 'saved';
+        });
+    } catch (UniqueConstraintViolationException $exception) {
+        $this->deleteManagedFile($newPath);
+
+        $this->addError(
+            'code',
+            'Mã vừa được sử dụng. Vui lòng chọn mã khác.'
+        );
+
+        return;
+    } catch (Throwable $exception) {
+        $this->deleteManagedFile($newPath);
+        report($exception);
+
+        $this->addError(
+            'form',
+            'Không thể lưu giấy kiểm định. Vui lòng thử lại.'
+        );
+
+        return;
+    }
+
+    if ($result === 'unchanged') {
+        $this->notify(
+            'info',
+            'Chưa có sự thay đổi nào.'
+        );
+
+        return;
+    }
+
+    // Database đã commit, lúc này mới dọn file cũ.
+    $this->deleteManagedFile($oldPath);
+    $this->closeForm();
+
+    $this->notify(
+        'success',
+        $wasEditing
+            ? 'Đã cập nhật giấy kiểm định!'
+            : 'Đã thêm giấy kiểm định!'
+    );
+}
 
     public function requestDelete(int $id): void
     {
