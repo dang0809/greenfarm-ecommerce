@@ -24,7 +24,7 @@
             </div>
         </div>
 
-        <button onclick="openCreateModal()"
+        <button type="button" wire:click="openCreate"
             class="bg-brand-700 hover:bg-brand-800 text-white font-bold text-xs sm:text-sm px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl transition shadow-md flex items-center gap-2 active:scale-95 shrink-0 whitespace-nowrap cursor-pointer">
             <i class="fa-solid fa-cloud-arrow-up"></i>
             <span class="hidden sm:inline">Đăng Giấy Mới</span>
@@ -42,24 +42,24 @@
             <div class="relative w-full md:w-80">
                 <i
                     class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs sm:text-sm"></i>
-                <input type="text" id="search-input" oninput="renderCards()"
-                    placeholder="Tìm theo tên bài test, mã code..."
+                <input type="text" id="search-input" wire:model.live.debounce.300ms="search"
+                    placeholder="Tìm theo tên chứng nhận, mã chứng nhận..."
                     class="w-full pl-10 pr-4 py-2 sm:py-2.5 border border-gray-200 rounded-xl sm:rounded-2xl text-xs sm:text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 bg-[#FAFAF8] font-medium transition-all">
             </div>
 
             <div class="flex flex-wrap items-center gap-3.5 sm:gap-6 text-xs sm:text-sm font-bold text-gray-600">
                 <label class="flex items-center gap-1.5 cursor-pointer hover:text-brand-700 transition">
-                    <input type="radio" name="filter_status" value="all" checked onchange="renderCards()"
+                    <input type="radio" name="filter_status" value="all" wire:model.live="statusFilter"
                         class="accent-brand-700">
                     <span>Tất cả</span>
                 </label>
                 <label class="flex items-center gap-1.5 cursor-pointer hover:text-brand-700 transition">
-                    <input type="radio" name="filter_status" value="active" onchange="renderCards()"
+                    <input type="radio" name="filter_status" value="active" wire:model.live="statusFilter"
                         class="accent-brand-700">
                     <span class="text-brand-800">Còn hiệu lực</span>
                 </label>
                 <label class="flex items-center gap-1.5 cursor-pointer hover:text-red-600 transition">
-                    <input type="radio" name="filter_status" value="expired" onchange="renderCards()"
+                    <input type="radio" name="filter_status" value="expired" wire:model.live="statusFilter"
                         class="accent-red-600">
                     <span class="text-red-700">Hết hiệu lực</span>
                 </label>
@@ -69,13 +69,134 @@
         <!-- DANH SÁCH CHỨNG CHỈ -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 pb-12" id="cert-cards-container">
 
+            @forelse ($certifications as $cert)
+            @php
+            $isActive = $cert->effective_status === 'active';
+            @endphp
+
+            <div wire:key="cert-{{ $cert->id }}"
+                class="bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft hover:shadow-lg transition-all duration-300 flex flex-col justify-between overflow-hidden group">
+
+                <div wire:click="openScan({{ $cert->id }})"
+                    class="relative h-44 sm:h-52 bg-gray-100 overflow-hidden cursor-pointer">
+
+                    @if ($cert->is_pdf)
+                    <div class="w-full h-full flex items-center justify-center">
+                        <span>
+                            <i class="fa-solid fa-file-pdf"></i>
+                            Bản scan PDF
+                        </span>
+                    </div>
+                    @elseif ($cert->image_url)
+                    <img src="{{ $cert->image_url }}" alt="{{ $cert->name }}"
+                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                    @else
+                    <div class="w-full h-full flex items-center justify-center">
+                        Chưa có bản scan
+                    </div>
+                    @endif
+
+                    <div
+                        class="absolute inset-0 bg-black/25 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                        <span
+                            class="bg-white/95 text-gray-900 font-bold px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl text-xs shadow-md flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">
+                            <i class="fa-solid fa-magnifying-glass-plus text-brand-700"></i>
+                            Phóng to bản scan
+                        </span>
+                    </div>
+
+                    <div class="absolute top-3 right-3">
+                        <span class="text-[10px] sm:text-xs font-bold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-sm border {{ $isActive
+                        ? 'bg-brand-100 text-brand-800 border-brand-200'
+                        : 'bg-red-100 text-red-700 border-red-200' }}">
+
+                            @if ($isActive)
+                            <i class="fa-solid fa-circle-check text-[10px] mr-1"></i>
+                            Còn hiệu lực
+                            @else
+                            <i class="fa-solid fa-clock-rotate-left text-[10px] mr-1"></i>
+                            Hết hiệu lực
+                            @endif
+                        </span>
+                    </div>
+                </div>
+
+                <div class="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3">
+                    <div>
+                        <span
+                            class="font-mono text-xs font-bold text-brand-700 bg-brand-50 border border-brand-200 px-2 py-0.5 rounded-lg inline-block mb-1.5">
+                            {{ $cert->code }}
+                        </span>
+
+                        <h3
+                            class="font-extrabold text-sm sm:text-base text-gray-900 group-hover:text-brand-700 transition-colors leading-snug">
+                            {{ $cert->name }}
+                        </h3>
+
+                        <p class="text-xs text-gray-600 leading-relaxed mt-2 line-clamp-3">
+                            {{ $cert->description }}
+                        </p>
+                    </div>
+
+                    <div class="pt-3 border-t border-gray-100 text-xs font-mono text-gray-500 space-y-1">
+                        <div class="flex justify-between">
+                            <span>Ngày cấp:</span>
+
+                            <b class="text-gray-800">
+                                {{ $cert->issued_date?->format('d/m/Y') ?? '—' }}
+                            </b>
+                        </div>
+
+                        <div class="flex justify-between">
+                            <span>Hết hạn:</span>
+
+                            <b class="{{ $isActive ? 'text-gray-800' : 'text-red-600' }}">
+                                {{ $cert->expiry_date?->format('d/m/Y') ?? 'Vô thời hạn' }}
+                            </b>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="px-4 pb-4 sm:px-5 sm:pb-5 pt-1 flex gap-2">
+                    <button type="button" wire:click="openEdit({{ $cert->id }})" wire:loading.attr="disabled"
+                        class="flex-1 bg-brand-50 hover:bg-brand-100 text-brand-800 font-bold py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs transition flex items-center justify-center gap-1.5 border border-brand-200 active:scale-95 cursor-pointer">
+
+                        <i class="fa-regular fa-pen-to-square"></i>
+                        Cập nhật
+                    </button>
+
+                    <button type="button" wire:click="requestDelete({{ $cert->id }})" wire:loading.attr="disabled"
+                        class="p-2 sm:p-2.5 bg-gray-50 hover:bg-red-50 hover:text-red-600 text-gray-400 rounded-xl sm:rounded-2xl text-xs transition border border-gray-200 active:scale-95 cursor-pointer"
+                        title="Xóa">
+
+                        <i class="fa-regular fa-trash-can"></i>
+                    </button>
+                </div>
+            </div>
+            @empty
+            <div
+                class="col-span-full py-12 sm:py-16 text-center bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft">
+                <i class="fa-regular fa-folder-open text-3xl sm:text-4xl text-gray-300 mb-3"></i>
+
+                <p class="text-sm sm:text-base font-bold text-gray-700">
+                    Không tìm thấy giấy tờ kiểm định nào
+                </p>
+
+                <p class="text-xs text-gray-400 mt-1">
+                    Vui lòng thay đổi bộ lọc hoặc bổ sung giấy kiểm định mới.
+                </p>
+            </div>
+            @endforelse
         </div>
 
     </div>
 
     <!-- MODAL 1: FORM ĐĂNG / SỬA GIẤY KIỂM ĐỊNH -->
-    <div id="modal-form"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs hidden p-3 sm:p-4">
+    @if ($showForm)
+    <div id="modal-form" wire:key="certification-form-{{ $editingId !== null
+    ? 'Cập Nhật Giấy Kiểm Định'
+    : 'Đăng Giấy Kiểm Định Mới' }}"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
         <div
             class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-lg shadow-2xl p-5 sm:p-7 max-h-[90vh] overflow-y-auto no-scrollbar border border-gray-100">
             <div
@@ -83,36 +204,42 @@
                 <div class="min-w-0">
                     <h3 class="text-base sm:text-xl font-extrabold text-gray-900 truncate" id="modal-form-title">Đăng
                         Giấy Kiểm Định Mới</h3>
-                    <p class="text-[11px] sm:text-xs text-gray-400 mt-0.5 truncate">Lưu dữ liệu vào bảng
-                        `certifications`</p>
                 </div>
-                <button type="button" onclick="closeModal('modal-form')"
+                <button type="button" wire:click="closeForm" wire:loading.attr="disabled"
+                    wire:target="requestSave,save,newFile"
                     class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center justify-center transition-colors shrink-0 cursor-pointer">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
-            <form onsubmit="handleSaveCert(event)" class="space-y-3.5 sm:space-y-4 text-xs sm:text-sm">
-                <input type="hidden" id="cert-id">
-
+            <form wire:submit="requestSave" class="space-y-3.5 sm:space-y-4 text-xs sm:text-sm">
+                @if ($errors->any())
+                <div role="alert">
+                    @foreach ($errors->all() as $message)
+                    <p class="text-red-500">{{ $message }}</p>
+                    @endforeach
+                </div>
+                @endif
                 <div>
-                    <label class="block font-bold text-gray-700 mb-1">Tên chuẩn / Bài test (`name`) <span
+                    <label class="block font-bold text-gray-700 mb-1">Tên chứng nhận chuẩn<span
                             class="text-red-500">*</span></label>
-                    <input type="text" id="cert-name" required placeholder="VD: VietGAP Trồng Trọt, Test mẫu đất T10..."
+                    <input type="text" id="cert-name" wire:model="name" maxlength="255" required
+                        placeholder="VD: VietGAP Trồng Trọt, Test mẫu đất T10..."
                         class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl sm:rounded-2xl px-3.5 py-2 sm:py-2.5 outline-none focus:border-brand-500 font-semibold text-xs sm:text-sm">
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                        <label class="block font-bold text-gray-700 mb-1">Mã quản lý (`code`) <span
+                        <label class="block font-bold text-gray-700 mb-1">Mã chứng nhận <span
                                 class="text-red-500">*</span></label>
-                        <input type="text" id="cert-code" required placeholder="VD: vietgap, soil-test-2026..."
+                        <input type="text" id="cert-code" wire:model="code" maxlength="50" required
+                            placeholder="VD: vietgap, soil-test-2026..."
                             class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl sm:rounded-2xl px-3.5 py-2 sm:py-2.5 outline-none focus:border-brand-500 font-mono text-xs uppercase">
                     </div>
                     <div>
-                        <label class="block font-bold text-gray-700 mb-1">Trạng thái (`status`) <span
+                        <label class="block font-bold text-gray-700 mb-1">Trạng thái<span
                                 class="text-red-500">*</span></label>
-                        <select id="cert-status" required
+                        <select id="cert-status" wire:model="status" required
                             class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl sm:rounded-2xl px-3.5 py-2 sm:py-2.5 outline-none focus:border-brand-500 font-semibold text-xs cursor-pointer">
                             <option value="active">Còn hiệu lực</option>
                             <option value="expired">Hết hiệu lực</option>
@@ -122,32 +249,63 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                        <label class="block font-bold text-gray-700 mb-1">Ngày cấp / test (`issued_date`) <span
+                        <label class="block font-bold text-gray-700 mb-1">Ngày cấp<span
                                 class="text-red-500">*</span></label>
-                        <input type="date" id="cert-issued" required
+                        <input type="date" id="cert-issued" wire:model="issuedDate" required
                             class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl sm:rounded-2xl px-3.5 py-2 sm:py-2.5 outline-none focus:border-brand-500 font-mono text-xs">
                     </div>
                     <div>
-                        <label class="block font-bold text-gray-700 mb-1">Ngày hết hạn (`expiry_date`)</label>
-                        <input type="date" id="cert-expiry"
+                        <label class="block font-bold text-gray-700 mb-1">Ngày hết hạn</label>
+                        <input type="date" id="cert-expiry" wire:model="expiryDate"
                             class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl sm:rounded-2xl px-3.5 py-2 sm:py-2.5 outline-none focus:border-brand-500 font-mono text-xs">
                         <span class="text-[10px] text-gray-400 mt-0.5 block italic">Bỏ trống nếu vô thời hạn</span>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block font-bold text-gray-700 mb-1">Chi tiết / Tóm tắt kết quả (`description`) <span
+                    <label class="block font-bold text-gray-700 mb-1">Chi tiết<span
                             class="text-red-500">*</span></label>
-                    <textarea id="cert-desc" rows="3" required
+                    <textarea id="cert-desc" wire:model="description" maxlength="10000" rows="3" required
                         placeholder="Ghi nhận tóm tắt chỉ số kiểm định, hàm lượng kim loại nặng..."
                         class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl sm:rounded-2xl p-3 outline-none focus:border-brand-500 text-xs font-medium resize-none"></textarea>
                 </div>
 
                 <div>
-                    <label class="block font-bold text-gray-700 mb-1">Bản scan JPG/PDF kết quả (`image`) <span
+                    <label class="block font-bold text-gray-700 mb-1">Bản scan JPG/PDF kết quả <span
                             class="text-red-500">*</span></label>
-                    <input type="file" id="cert-file" accept="image/*" onchange="previewUploadImage(this)"
+                    <input type="file" id="cert-file" wire:model="newFile"
+                        wire:key="certification-file-{{ $fileInputKey }}" accept=".jpg,.jpeg,.png,.webp,.pdf"
                         class="w-full text-xs text-gray-500 file:mr-3 file:py-1.5 sm:file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 cursor-pointer">
+
+                    <p wire:loading wire:target="newFile">
+                        Đang tải bản scan...
+                    </p>
+
+                    @if ($uploadFileName !== null)
+                    <div id="upload-preview-box" class="mt-2.5">
+                        @if ($uploadPreviewUrl !== null)
+                        <img id="upload-preview-img" src="{{ $uploadPreviewUrl }}" alt="Bản scan mới"
+                            class="w-full h-32 sm:h-40 object-cover rounded-xl border border-gray-200 shadow-xs">
+                        @else
+                        <p>
+                            <i class="fa-solid fa-file-pdf"></i>
+                            Tệp đã chọn: {{ $uploadFileName }}
+                        </p>
+                        @endif
+                    </div>
+                    @elseif ($currentFileUrl !== null)
+                    <div id="upload-preview-box" class="mt-2.5">
+                        @if ($currentIsPdf)
+                        <a href="{{ $currentFileUrl }}" target="_blank" rel="noopener noreferrer">
+                            <i class="fa-solid fa-file-pdf"></i>
+                            Xem bản PDF hiện tại
+                        </a>
+                        @else
+                        <img id="upload-preview-img" src="{{ $currentFileUrl }}" alt="Bản scan hiện tại"
+                            class="w-full h-32 sm:h-40 object-cover rounded-xl border border-gray-200 shadow-xs">
+                        @endif
+                    </div>
+                    @endif
                     <div id="upload-preview-box" class="mt-2.5 hidden">
                         <img id="upload-preview-img" src=""
                             class="w-full h-32 sm:h-40 object-cover rounded-xl border border-gray-200 shadow-xs">
@@ -155,321 +313,191 @@
                 </div>
 
                 <div class="pt-2">
-                    <button type="submit"
+                    <button type="submit" wire:loading.attr="disabled" wire:target="requestSave,save,newFile"
                         class="w-full bg-brand-700 hover:bg-brand-800 text-white font-bold py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl shadow-md transition active:scale-95 text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer">
+
                         <i class="fa-solid fa-cloud-arrow-up"></i>
-                        <span>Lưu & Công Bố Giấy Kiểm Định</span>
+
+                        <span wire:loading.remove wire:target="requestSave,save,newFile">
+                            Lưu & Công Bố Giấy Kiểm Định
+                        </span>
+
+                        <span wire:loading wire:target="requestSave,save,newFile">
+                            Đang xử lý...
+                        </span>
                     </button>
                 </div>
             </form>
         </div>
     </div>
+    @endif
 
     <!-- MODAL 2: XEM BẢN SCAN PHÓNG TO -->
-    <div id="modal-scan"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs hidden p-3 sm:p-4">
-        <div
-            class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-2xl shadow-2xl p-4 sm:p-6 border border-gray-100 max-h-[92vh] flex flex-col">
-            <div class="flex justify-between items-center border-b border-gray-100 pb-3 mb-3 sm:mb-4 shrink-0">
-                <div class="min-w-0">
-                    <h3 class="text-base sm:text-lg font-extrabold text-gray-900 truncate" id="scan-title">Tên Giấy Tờ
+    @if ($scanCertification)
+    <div id="modal-scan" wire:key="certification-scan-{{ $scanCertification->id }}"
+        class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/80 backdrop-blur-xs p-3 sm:p-4">
+
+        <div class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-2xl
+               max-h-[92dvh] overflow-hidden flex flex-col
+               shadow-2xl border border-gray-100">
+
+            {{-- Header modal --}}
+            <div class="shrink-0 flex items-start justify-between gap-3
+                   border-b border-gray-100 p-4 sm:p-6">
+
+                <div class="min-w-0 flex-1">
+                    <h3 id="scan-title" class="text-base sm:text-lg font-extrabold text-gray-900 break-words">
+
+                        {{ $scanCertification->name }}
                     </h3>
-                    <p class="text-xs text-brand-700 font-mono font-bold truncate" id="scan-code">MÃ QUẢN LÝ: ---</p>
+
+                    <p id="scan-code" class="text-xs text-brand-700 font-mono font-bold mt-1 break-all">
+
+                        MÃ QUẢN LÝ: {{ $scanCertification->code }}
+                    </p>
                 </div>
-                <button type="button" onclick="closeModal('modal-scan')"
-                    class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center justify-center transition-colors shrink-0 cursor-pointer">
+
+                <button type="button" wire:click="closeScan" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500
+                       hover:bg-gray-200 flex items-center justify-center
+                       transition-colors shrink-0 cursor-pointer" aria-label="Đóng bản scan">
+
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
-            <div
-                class="flex-1 overflow-y-auto rounded-xl sm:rounded-2xl border border-gray-200 bg-gray-50 p-2 text-center custom-scrollbar">
-                <img id="scan-img" src="" class="max-w-full h-auto mx-auto rounded-lg sm:rounded-xl shadow-xs">
+            {{-- Khu vực hiển thị bản scan --}}
+            <div class="flex-1 min-h-0 overflow-y-auto
+                   rounded-xl sm:rounded-2xl bg-gray-50
+                   p-3 sm:p-5 text-center custom-scrollbar">
+
+                @if ($scanCertification->image_url)
+                @if ($scanCertification->is_pdf)
+                <div class="flex flex-col items-center gap-3">
+                    <object data="{{ $scanCertification->image_url }}" type="application/pdf" class="w-full h-[55vh] sm:h-[60vh] min-h-[300px]
+                                   rounded-xl border border-gray-200 bg-white">
+
+                        <p class="text-xs sm:text-sm text-gray-500 p-4">
+                            Trình duyệt không thể hiển thị PDF trực tiếp.
+                        </p>
+                    </object>
+
+                    <a href="{{ $scanCertification->image_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2
+                                   px-4 py-2 rounded-xl bg-brand-50
+                                   text-brand-700 hover:bg-brand-100
+                                   text-xs font-bold">
+
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        Mở PDF trong tab mới
+                    </a>
+                </div>
+                @else
+                <div class="min-h-full flex items-center justify-center">
+                    <img id="scan-img" src="{{ $scanCertification->image_url }}" alt="{{ $scanCertification->name }}"
+                        class="max-w-full w-auto h-auto
+                                   max-h-[58vh] sm:max-h-[64vh]
+                                   object-contain rounded-xl shadow-md">
+                </div>
+                @endif
+                @else
+                <div class="min-h-[240px] flex items-center justify-center">
+                    <p class="text-xs sm:text-sm text-gray-500">
+                        Giấy kiểm định chưa có bản scan.
+                    </p>
+                </div>
+                @endif
             </div>
 
-            <div
-                class="pt-3 sm:pt-4 border-t border-gray-100 mt-3 sm:mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-gray-500 shrink-0">
-                <p id="scan-dates" class="font-mono">Ngày cấp: -- | Hết hạn: --</p>
-                <button onclick="closeModal('modal-scan')"
-                    class="w-full sm:w-auto px-5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold transition cursor-pointer">Đóng</button>
+            {{-- Footer modal --}}
+            <div class="shrink-0 border-t border-gray-100
+                   p-4 sm:p-5 flex flex-col items-stretch gap-3
+                   text-xs text-gray-500">
+
+                <p id="scan-dates" class="font-mono text-center leading-relaxed">
+
+                    Ngày cấp:
+                    {{ $scanCertification->issued_date?->format('d/m/Y') ?? '—' }}
+
+                    <span class="mx-1">|</span>
+
+                    Hết hạn:
+                    {{ $scanCertification->expiry_date?->format('d/m/Y') ?? 'Vô thời hạn' }}
+                </p>
+
+                <button type="button" wire:click="closeScan" class="w-full px-5 py-2.5 rounded-xl
+                       bg-gray-100 hover:bg-gray-200
+                       text-gray-700 font-bold transition cursor-pointer">
+
+                    Đóng
+                </button>
             </div>
         </div>
     </div>
+    @endif
+</div>
 
-    @push('scripts')
-    <script>
-    const DB = {
-        certifications: [{
-                id: 1,
-                name: 'Chứng Nhận VietGAP Trồng Trọt',
-                code: 'vietgap',
-                image: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=80&w=800',
-                description: 'Quy trình sản xuất nông nghiệp tốt kiểm soát an toàn từ đất, nước và phân bón. Không dư lượng thuốc bảo vệ thực vật.',
-                issued_date: '2026-01-15',
-                expiry_date: '2026-12-31',
-                status: 'active'
-            },
-            {
-                id: 2,
-                name: 'Kiểm Định Nguồn Nước Ngầm Quý 3',
-                code: 'water-test-q3',
-                image: 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&q=80&w=800',
-                description: 'Phân tích Eurofins: không tồn dư kim loại nặng (Chì, Asen, Cadmium), đạt chuẩn nước tưới nông nghiệp công nghệ cao.',
-                issued_date: '2026-07-20',
-                expiry_date: '2026-10-20',
-                status: 'active'
-            },
-            {
-                id: 3,
-                name: 'Test Mẫu Đất Canh Tác T10',
-                code: 'soil-test-2026',
-                image: 'https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?auto=format&fit=crop&q=80&w=800',
-                description: 'Độ pH 6.5, độ phì hữu cơ 4.2%, vi sinh vật cố định đạm phát triển mạnh. Không nhiễm clo hữu cơ.',
-                issued_date: '2026-03-10',
-                expiry_date: '2026-09-10',
-                status: 'expired'
-            },
-            {
-                id: 4,
-                name: 'Tiêu Chuẩn Organic 100% Hữu Cơ',
-                code: 'usda-organic',
-                image: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=800',
-                description: 'Chứng nhận tuyệt đối không phân bón hóa học tổng hợp, không sử dụng giống biến đổi gen (Non-GMO).',
-                issued_date: '2026-02-01',
-                expiry_date: null,
-                status: 'active'
-            }
-        ]
-    };
+@script
+<script>
+let confirming = false;
 
-    function renderCards() {
-        const container = document.getElementById('cert-cards-container');
-        const searchInput = document.getElementById('search-input');
-        if (!container || !searchInput) return;
+async function runConfirmation(options, action) {
+    if (confirming) return;
 
-        const search = searchInput.value.toLowerCase().trim();
-        const checkedFilter = document.querySelector('input[name="filter_status"]:checked');
-        const filterStatus = checkedFilter ? checkedFilter.value : 'all';
+    confirming = true;
 
-        let list = [...DB.certifications].sort((a, b) => b.id - a.id);
-
-        if (search) {
-            list = list.filter(c => c.name.toLowerCase().includes(search) || c.code.toLowerCase().includes(search));
-        }
-        if (filterStatus !== 'all') {
-            list = list.filter(c => c.status === filterStatus);
-        }
-
-        if (list.length === 0) {
-            container.innerHTML = `
-                    <div class="col-span-full py-12 sm:py-16 text-center bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft">
-                        <i class="fa-regular fa-folder-open text-3xl sm:text-4xl text-gray-300 mb-3"></i>
-                        <p class="text-sm sm:text-base font-bold text-gray-700">Không tìm thấy giấy tờ kiểm định nào</p>
-                        <p class="text-xs text-gray-400 mt-1">Vui lòng thay đổi bộ lọc hoặc bấm nút đăng tài liệu mới.</p>
-                    </div>
-                `;
-            return;
-        }
-
-        container.innerHTML = list.map(c => {
-            const isActive = c.status === 'active';
-            return `
-                    <div class="bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft hover:shadow-lg transition-all duration-300 flex flex-col justify-between overflow-hidden group">
-                        <div class="relative h-44 sm:h-52 bg-gray-100 overflow-hidden cursor-pointer" onclick="openScanPreview(${c.id})">
-                            <img src="${c.image}" alt="${c.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                            <div class="absolute inset-0 bg-black/25 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                                <span class="bg-white/95 text-gray-900 font-bold px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl text-xs shadow-md flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">
-                                    <i class="fa-solid fa-magnifying-glass-plus text-brand-700"></i> Phóng to bản scan
-                                </span>
-                            </div>
-                            <div class="absolute top-3 right-3">
-                                <span class="text-[10px] sm:text-xs font-bold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-sm border ${isActive ? 'bg-brand-100 text-brand-800 border-brand-200' : 'bg-red-100 text-red-700 border-red-200'}">
-                                    ${isActive ? '<i class="fa-solid fa-circle-check text-[10px] mr-1"></i>Còn hiệu lực' : '<i class="fa-solid fa-clock-rotate-left text-[10px] mr-1"></i>Hết hiệu lực'}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3">
-                            <div>
-                                <span class="font-mono text-xs font-bold text-brand-700 bg-brand-50 border border-brand-200 px-2 py-0.5 rounded-lg inline-block mb-1.5">
-                                    ${c.code}
-                                </span>
-                                <h3 class="font-extrabold text-sm sm:text-base text-gray-900 group-hover:text-brand-700 transition-colors leading-snug">
-                                    ${c.name}
-                                </h3>
-                                <p class="text-xs text-gray-600 leading-relaxed mt-2 line-clamp-3">
-                                    ${c.description}
-                                </p>
-                            </div>
-                            <div class="pt-3 border-t border-gray-100 text-xs font-mono text-gray-500 space-y-1">
-                                <div class="flex justify-between">
-                                    <span>Ngày cấp:</span>
-                                    <b class="text-gray-800">${c.issued_date}</b>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span>Hết hạn:</span>
-                                    <b class="${isActive ? 'text-gray-800' : 'text-red-600'}">${c.expiry_date || 'Vô thời hạn'}</b>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="px-4 pb-4 sm:px-5 sm:pb-5 pt-1 flex gap-2">
-                            <button onclick="openEditModal(${c.id})" class="flex-1 bg-brand-50 hover:bg-brand-100 text-brand-800 font-bold py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs transition flex items-center justify-center gap-1.5 border border-brand-200 active:scale-95 cursor-pointer">
-                                <i class="fa-regular fa-pen-to-square"></i> Cập nhật
-                            </button>
-                            <button onclick="deleteCert(${c.id})" class="p-2 sm:p-2.5 bg-gray-50 hover:bg-red-50 hover:text-red-600 text-gray-400 rounded-xl sm:rounded-2xl text-xs transition border border-gray-200 active:scale-95 cursor-pointer" title="Xóa">
-                                <i class="fa-regular fa-trash-can"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
-        }).join('');
-    }
-
-    function openModal(id) {
-        document.getElementById(id).classList.remove('hidden');
-    }
-
-    function closeModal(id) {
-        document.getElementById(id).classList.add('hidden');
-    }
-
-    function openCreateModal() {
-        document.getElementById('modal-form-title').textContent = 'Đăng Giấy Kiểm Định Mới';
-        document.getElementById('cert-id').value = '';
-        document.getElementById('cert-name').value = '';
-        document.getElementById('cert-code').value = '';
-        document.getElementById('cert-issued').value = new Date().toISOString().slice(0, 10);
-        document.getElementById('cert-expiry').value = '';
-        document.getElementById('cert-desc').value = '';
-        document.getElementById('cert-status').value = 'active';
-        document.getElementById('cert-file').value = '';
-        document.getElementById('cert-file').required = true;
-        document.getElementById('upload-preview-box').classList.add('hidden');
-        openModal('modal-form');
-    }
-
-    function openEditModal(id) {
-        const cert = DB.certifications.find(c => c.id === id);
-        if (!cert) return;
-
-        document.getElementById('modal-form-title').textContent = 'Cập Nhật Giấy Kiểm Định';
-        document.getElementById('cert-id').value = cert.id;
-        document.getElementById('cert-name').value = cert.name;
-        document.getElementById('cert-code').value = cert.code;
-        document.getElementById('cert-issued').value = cert.issued_date;
-        document.getElementById('cert-expiry').value = cert.expiry_date || '';
-        document.getElementById('cert-desc').value = cert.description;
-        document.getElementById('cert-status').value = cert.status;
-
-        document.getElementById('cert-file').required = false;
-        document.getElementById('upload-preview-img').src = cert.image;
-        document.getElementById('upload-preview-box').classList.remove('hidden');
-
-        openModal('modal-form');
-    }
-
-    function previewUploadImage(input) {
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById('upload-preview-img').src = e.target.result;
-                document.getElementById('upload-preview-box').classList.remove('hidden');
-            };
-            reader.readAsDataURL(input.files[0]);
-        }
-    }
-
-    function openScanPreview(id) {
-        const cert = DB.certifications.find(c => c.id === id);
-        if (!cert) return;
-
-        document.getElementById('scan-title').textContent = cert.name;
-        document.getElementById('scan-code').textContent = `MÃ QUẢN LÝ: ${cert.code}`;
-        document.getElementById('scan-img').src = cert.image;
-        document.getElementById('scan-dates').textContent =
-            `Ngày cấp: ${cert.issued_date} | Hạn hiệu lực: ${cert.expiry_date || 'Vô thời hạn'}`;
-        openModal('modal-scan');
-    }
-
-    function handleSaveCert(e) {
-        e.preventDefault();
-        const idVal = document.getElementById('cert-id').value;
-        const name = document.getElementById('cert-name').value.trim();
-        const code = document.getElementById('cert-code').value.trim();
-        const issued = document.getElementById('cert-issued').value;
-        const expiry = document.getElementById('cert-expiry').value || null;
-        const desc = document.getElementById('cert-desc').value.trim();
-        const status = document.getElementById('cert-status').value;
-        const previewImgEl = document.getElementById('upload-preview-img');
-
-        if (idVal) {
-            const cert = DB.certifications.find(c => c.id === parseInt(idVal));
-            cert.name = name;
-            cert.code = code;
-            cert.issued_date = issued;
-            cert.expiry_date = expiry;
-            cert.description = desc;
-            cert.status = status;
-            if (!document.getElementById('upload-preview-box').classList.contains('hidden')) {
-                cert.image = previewImgEl.src;
-            }
-        } else {
-            const newId = DB.certifications.length > 0 ? Math.max(...DB.certifications.map(c => c.id)) + 1 : 1;
-            DB.certifications.unshift({
-                id: newId,
-                name: name,
-                code: code,
-                image: previewImgEl.src ||
-                    'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=80&w=800',
-                description: desc,
-                issued_date: issued,
-                expiry_date: expiry,
-                status: status
-            });
-        }
-
-        closeModal('modal-form');
-        renderCards();
-        Swal.fire({
-            icon: 'success',
-            title: 'Đã lưu giấy kiểm định!',
-            confirmButtonColor: '#15803d',
-            timer: 1500,
-            showConfirmButton: false
-        });
-    }
-
-    function deleteCert(id) {
-        const cert = DB.certifications.find(c => c.id === id);
-        Swal.fire({
-            title: 'Gỡ bỏ giấy kiểm định?',
-            text: `Bạn có chắc muốn xóa bản ghi "${cert.code} - ${cert.name}" khỏi hệ thống?`,
-            icon: 'warning',
+    try {
+        const result = await Swal.fire({
             showCancelButton: true,
-            confirmButtonColor: '#dc2626',
+            cancelButtonText: 'Hủy',
             cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Đồng ý xóa',
-            cancelButtonText: 'Hủy'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                DB.certifications = DB.certifications.filter(c => c.id !== id);
-                renderCards();
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Đã xóa thành công!',
-                    confirmButtonColor: '#15803d',
-                    timer: 1500,
-                    showConfirmButton: false
-                });
-            }
+            reverseButtons: true,
+            allowOutsideClick: false,
+            ...options
         });
-    }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        renderCards();
-    });
-    document.addEventListener('livewire:navigated', () => {
-        renderCards();
-    });
-    </script>
-    @endpush
+        if (result.isConfirmed) {
+            await action();
+        }
+
+        // Hủy: không lưu, không đóng form, không reset file.
+    } catch (error) {
+        await Swal.fire({
+            icon: 'error',
+            title: 'Yêu cầu chưa hoàn tất',
+            text: 'Kiểm tra dữ liệu trên form hoặc kết nối rồi thử lại.',
+            confirmButtonColor: '#15803d'
+        });
+    } finally {
+        confirming = false;
+    }
+}
+
+$wire.on('confirm-certification-save', ({
+    editing
+}) => {
+    return runConfirmation({
+        icon: 'question',
+
+        title: editing ?
+            'Xác nhận cập nhật giấy kiểm định?' : 'Xác nhận thêm giấy kiểm định?',
+
+        text: 'Thông tin và bản scan sẽ được lưu sau khi xác nhận.',
+        confirmButtonText: 'Xác nhận',
+        confirmButtonColor: '#15803d'
+    }, () => $wire.save());
+});
+
+$wire.on('confirm-certification-delete', ({
+    id,
+    name
+}) => {
+    return runConfirmation({
+        icon: 'warning',
+        title: 'Gỡ bỏ giấy kiểm định?',
+        text: 'Bạn có chắc muốn xóa “' + name + '”?',
+        confirmButtonText: 'Đồng ý xóa',
+        confirmButtonColor: '#dc2626'
+    }, () => $wire.deleteCertification(id));
+});
+</script>
+@endscript
 </div>
