@@ -1,5 +1,5 @@
 <div x-data="{ confirmingProduct: false }" x-on:product-confirm-state="confirmingProduct = $event.detail.busy">
-    <!-- Header Topbar -->
+    <!-- Header-->
     <header
         class="min-h-[4.5rem] sm:h-20 bg-white/95 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-8 shrink-0 z-20 gap-3">
         <div class="flex items-center gap-3 min-w-0">
@@ -57,8 +57,8 @@
                 <select wire:model.live="selectedStatus"
                     class="w-full sm:w-auto bg-[#FAFAF8] border border-slate-200 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-semibold text-slate-700 outline-none focus:border-brand-600 transition cursor-pointer">
                     <option value="">-- Trạng thái bán trên web --</option>
-                    <option value="active">Đang bán (active)</option>
-                    <option value="hidden">Tạm ẩn (hidden)</option>
+                    <option value="active">Đang bán</option>
+                    <option value="hidden">Tạm ẩn</option>
                 </select>
 
                 <button type="button" wire:click="resetFilters"
@@ -582,12 +582,10 @@
                 icon: enabling ? 'question' : 'warning',
 
                 title: enabling ?
-                    'Bật hiển thị sản phẩm?' :
-                    'Tắt hiển thị sản phẩm?',
+                    'Bật hiển thị sản phẩm?' : 'Tắt hiển thị sản phẩm?',
 
                 text: enabling ?
-                    'Hiển thị “' + name + '” trên cửa hàng?' :
-                    'Ẩn “' + name + '” khỏi cửa hàng?',
+                    'Hiển thị “' + name + '” trên cửa hàng?' : 'Ẩn “' + name + '” khỏi cửa hàng?',
 
                 showCancelButton: true,
                 confirmButtonText: 'Xác nhận',
