@@ -100,13 +100,13 @@
                         @if(isset($products) && count($products) > 0)
                         @foreach($products as $product)
                         @php
-                        $totalStock = $product->total_stock;
+                        $totalStock = $productStocks[$product->id] ?? 0;
                         @endphp
 
                         <tr wire:key="product-{{ $product->id }}" class="hover:bg-slate-50 transition bg-white">
 
                             <td class="py-3.5 px-4 pl-5 flex items-center gap-3">
-                                <img src="{{ $product->cover_image_url ?? 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300' }}"
+                                <img src="{{ $productImageUrls[$product->id] ?? 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300' }}"
                                     class="w-10 h-10 rounded-xl object-cover border border-slate-200 shrink-0"
                                     alt="{{ $product->name }}">
 

@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
-
+use App\Livewire\FarmStaff\ProductManager as ProductData;
 #[Title('Giỏ Hàng Của Bạn | Nông Trại Đất Lành')]
 class CartPage extends Component
 {
@@ -17,8 +17,11 @@ class CartPage extends Component
 
     private function getAvailableStock(int $productId): int
     {
-        $product = Product::find($productId);
-        return (int) ($product?->total_stock ?? 0);
+        $product = ProductData::withTotalStock(
+            Product::query()
+        )->find($productId);
+
+        return ProductData::getTotalStock($product);
     }
 
     public function mount()
@@ -40,7 +43,7 @@ class CartPage extends Component
 
         $messages = [];
         foreach ($cart->items as $item) {
-            $stock = (int) ($item->product?->total_stock ?? 0);
+            $stock = ProductData::getTotalStock($item->product);
 
             if ($stock <= 0) {
                 // Hết sạch hàng: tự động loại khỏi danh sách tick chọn
@@ -71,7 +74,7 @@ class CartPage extends Component
         return Cart::with([
             'items.product.category',
             'items.product.productImages',
-            'items.product' => fn($q) => $q->withTotalStock(),
+            'items.product' => fn ($relation) => ProductData::withTotalStock($relation->getQuery()),
         ])
         ->where('user_id', Auth::id())
         ->first();
@@ -83,7 +86,7 @@ class CartPage extends Component
         $cart = $this->getCart();
         if ($cart) {
             $this->selectedItems = $cart->items
-                ->filter(fn($item) => (float) ($item->product?->total_stock ?? 0) > 0)
+                ->filter(fn ($item) => ProductData::getTotalStock($item->product) > 0)
                 ->pluck('id')
                 ->map(fn($id) => (string) $id)
                 ->toArray();
@@ -99,7 +102,7 @@ class CartPage extends Component
 
         if ($value) {
             $this->selectedItems = $cart->items
-                ->filter(fn($item) => (float) ($item->product?->total_stock ?? 0) > 0)
+                ->filter(fn ($item) => ProductData::getTotalStock($item->product) > 0)
                 ->pluck('id')
                 ->map(fn($id) => (string) $id)
                 ->toArray();

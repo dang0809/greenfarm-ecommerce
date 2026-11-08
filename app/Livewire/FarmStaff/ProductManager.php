@@ -7,6 +7,8 @@ use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -127,7 +129,7 @@ class ProductManager extends Component
     {
         $this->staff();
 
-        $product = Product::with('coverImage')->findOrFail($id);
+        $product = Product::with('productImages')->findOrFail($id);
 
         $this->resetForm();
         $this->editingId = $product->id;
@@ -147,7 +149,7 @@ class ProductManager extends Component
         }
 
         $this->category_id = (string) $product->category_id;
-        $this->currentImageUrl = $product->cover_image_url;
+        $this->currentImageUrl = self::getCoverImageUrl($product);
         $this->showModal = true;
     }
 
@@ -315,6 +317,92 @@ class ProductManager extends Component
         $this->resetValidation('newImage');
     }
 
+    public static function coverImage(Product $product): HasMany
+    {
+        return $product->productImages()
+            ->orderByDesc('is_primary')
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
+
+    public static function getCoverImageUrl(?Product $product): ?string
+    {
+        if ($product === null) {
+            return null;
+        }
+
+        $cover = $product->relationLoaded('productImages')
+            ? $product->productImages
+                ->sortBy([
+                    ['is_primary', 'desc'],
+                    ['sort_order', 'asc'],
+                    ['id', 'asc'],
+                ])
+                ->first()
+            : self::coverImage($product)->first();
+
+        $path = trim((string) ($cover?->image ?? ''));
+
+        if ($path === '') {
+            return null;
+        }
+
+        return Str::startsWith($path, ['http://', 'https://'])
+            ? $path
+            : Storage::disk('public')->url(ltrim($path, '/'));
+    }
+
+    public static function withTotalStock(Builder $query): Builder
+    {
+        return $query->withSum([
+            'batches as total_stock' => function (Builder $query) {
+                $query
+                    ->where('product_batches.status', 'active')
+                    ->whereRaw(
+                        'product_batches.current_quantity
+                        > COALESCE(product_batches.reserved_quantity, 0)'
+                    )
+                    ->whereDate(
+                        'product_batches.expiry_date',
+                        '>=',
+                        today()
+                    );
+            },
+        ], DB::raw(
+            'current_quantity - COALESCE(reserved_quantity, 0)'
+        ));
+    }
+
+    public static function getTotalStock(?Product $product): int
+    {
+        if ($product === null) {
+            return 0;
+        }
+
+        $attributes = $product->getAttributes();
+
+        // Đã có tổng tồn từ query: sử dụng ngay, không query thêm.
+        if (array_key_exists('total_stock', $attributes)) {
+            return (int) ($attributes['total_stock'] ?? 0);
+        }
+
+        // Sản phẩm được lấy riêng, chưa có tổng tồn.
+        return (int) $product->batches()
+            ->where('product_batches.status', 'active')
+            ->whereRaw(
+                'product_batches.current_quantity
+                > COALESCE(product_batches.reserved_quantity, 0)'
+            )
+            ->whereDate(
+                'product_batches.expiry_date',
+                '>=',
+                today()
+            )
+            ->sum(DB::raw(
+                'current_quantity - COALESCE(reserved_quantity, 0)'
+            ));
+    }
+
     private function validatedData(): array
     {
         $this->name = trim($this->name);
@@ -417,9 +505,9 @@ class ProductManager extends Component
                         );
                     }
 
-                    $cover = $product->coverImage()
-                        ->lockForUpdate()
-                        ->first();
+                    $cover = self::coverImage($product)
+                    ->lockForUpdate()
+                    ->first();
 
                     $oldPath = $cover?->image;
 
@@ -603,25 +691,23 @@ class ProductManager extends Component
     {
         $this->staff();
 
-        $products = Product::with([
-                'category',
-                'coverImage',
-            ])
-            ->withTotalStock()
+        $products = self::withTotalStock(
+            Product::with(['category', 'productImages'])
+        )
             ->when(
                 trim($this->search) !== '',
-                function ($q) {
+                function ($query) {
                     $term = '%'.trim($this->search).'%';
 
-                    $q->where(fn ($q) =>
-                        $q->where('name', 'like', $term)
+                    $query->where(fn ($query) =>
+                        $query->where('name', 'like', $term)
                             ->orWhere('sku', 'like', $term)
                     );
                 }
             )
             ->when(
                 $this->selectedCategory !== '',
-                fn ($q) => $q->where(
+                fn ($query) => $query->where(
                     'category_id',
                     $this->selectedCategory
                 )
@@ -632,7 +718,7 @@ class ProductManager extends Component
                     ['active', 'hidden'],
                     true
                 ),
-                fn ($q) => $q->where(
+                fn ($query) => $query->where(
                     'status',
                     $this->selectedStatus
                 )
@@ -640,9 +726,25 @@ class ProductManager extends Component
             ->latest('id')
             ->paginate(10);
 
+        $productImageUrls = $products
+            ->getCollection()
+            ->mapWithKeys(fn (Product $product) => [
+                $product->id => self::getCoverImageUrl($product),
+            ])
+            ->all();
+
+        $productStocks = $products
+            ->getCollection()
+            ->mapWithKeys(fn (Product $product) => [
+                $product->id => self::getTotalStock($product),
+            ])
+            ->all();
+
         return view('livewire.farm-staff.product-manager', [
             'products' => $products,
             'categories' => Category::orderBy('name')->get(),
+            'productImageUrls' => $productImageUrls,
+            'productStocks' => $productStocks,
         ]);
     }
 }
