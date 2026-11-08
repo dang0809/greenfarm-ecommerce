@@ -40,7 +40,6 @@ class CategoryManager extends Component
     // Dữ liệu form.
     public string $name = '';
     public string $slug = '';
-    public string $description = '';
     // Chỉ dùng trong form; khi lưu sẽ chuyển sang is_active.
     public string $status = 'active';
 
@@ -101,7 +100,6 @@ class CategoryManager extends Component
         $this->editingId = $category->id;
         $this->name = $category->name;
         $this->slug = $category->slug;
-        $this->description = (string) ($category->description ?? '');
         $this->status = $category->is_active
             ? 'active'
             : 'hidden';
@@ -111,71 +109,47 @@ class CategoryManager extends Component
     }
 
     private function validatedData(): array
-{
-    $this->resetValidation();
+    {
+        $this->resetValidation();
 
-    // Chuẩn hóa vào biến riêng để Hủy vẫn giữ nguyên dữ liệu nhập.
-    $name = trim($this->name);
-    $slug = trim($this->slug);
+        $name = trim($this->name);
+        $slug = trim($this->slug);
 
-    $description = str_replace(
-        ["\r\n", "\r"],
-        "\n",
-        trim($this->description)
-    );
+        if ($slug === '') {
+            $slug = Str::slug($name);
+        }
 
-    if ($slug === '') {
-        $slug = Str::slug($name);
+        // Kiểm tra thông tin trước bước yêu cầu ảnh.
+        $rules = $this->rules();
+        unset($rules['newImage']);
+
+        $validated = Validator::make([
+            'name' => $name,
+            'slug' => $slug,
+            'status' => $this->status,
+        ], $rules, $this->messages())->validate();
+
+        if ($this->newImage !== null) {
+            $this->validateOnly('newImage');
+        }
+
+        return [
+            'name' => $validated['name'],
+            'slug' => $validated['slug'],
+            'is_active' => $validated['status'] === 'active',
+        ];
     }
 
-    // Kiểm tra thông tin trước; yêu cầu ảnh sau bước so sánh thay đổi.
-    $rules = $this->rules();
-    unset($rules['newImage']);
+   private function hasCategoryChanges(Category $category,array $data): bool {
+        $current = [
+            'name' => trim((string) $category->name),
+            'slug' => trim((string) $category->slug),
+            'is_active' => (bool) $category->is_active,
+        ];
 
-    $validated = Validator::make([
-        'name' => $name,
-        'slug' => $slug,
-        'description' => $description,
-        'status' => $this->status,
-    ], $rules, $this->messages())->validate();
-
-    // Nếu có chọn file thì phải kiểm tra trước khi so sánh nội dung ảnh.
-    if ($this->newImage !== null) {
-        $this->validateOnly('newImage');
+        return $current !== $data
+            || $this->hasImageChanges($category);
     }
-
-    return [
-        'name' => $validated['name'],
-        'slug' => $validated['slug'],
-
-        'description' => $validated['description'] === ''
-            ? null
-            : $validated['description'],
-
-        'is_active' => $validated['status'] === 'active',
-    ];
-}
-
-private function hasCategoryChanges(
-    Category $category,
-    array $data
-): bool {
-    $description = str_replace(
-        ["\r\n", "\r"],
-        "\n",
-        trim((string) $category->description)
-    );
-
-    $current = [
-        'name' => trim((string) $category->name),
-        'slug' => trim((string) $category->slug),
-        'description' => $description === '' ? null : $description,
-        'is_active' => (bool) $category->is_active,
-    ];
-
-    return $current !== $data
-        || $this->hasImageChanges($category);
-}
 
     private function hasImageChanges(Category $category): bool
     {
@@ -224,23 +198,28 @@ private function hasCategoryChanges(
 
         $data = $this->validatedData();
 
-        if ($this->editingId !== null) {
-            $category = Category::findOrFail($this->editingId);
+        $category = $this->editingId !== null
+            ? Category::findOrFail($this->editingId)
+            : null;
 
-            if (! $this->hasCategoryChanges($category, $data)) {
-                $this->notify(
-                    'info',
-                    'Chưa có sự thay đổi nào.'
-                );
+        // Kiểm tra ảnh trong database.
+        // Nếu chưa có ảnh, validation required sẽ báo lỗi.
+        // Nếu đã có ảnh, không bắt buộc chọn ảnh mới.
+        $this->validateImageForSave($category);
 
-                return;
-            }
+        if (
+            $category !== null
+            && ! $this->hasCategoryChanges($category, $data)
+        ) {
+            $this->notify(
+                'info',
+                'Chưa có sự thay đổi nào.'
+            );
+
+            return;
         }
 
-        // Thêm mới hoặc cập nhật có thay đổi: bắt buộc chọn ảnh.
-        $this->validateOnly('newImage');
-
-        // Chưa lưu ảnh hoặc ghi database ở bước này.
+        // Chưa ghi database ở bước này.
         $this->dispatch(
             'confirm-category-save',
             editing: $this->editingId !== null
@@ -281,6 +260,33 @@ private function hasCategoryChanges(
         $this->resetValidation('slug');
     }
 
+    private function imageRules(bool $required): array
+    {
+        return [
+            'bail',
+            $required ? 'required' : 'nullable',
+            'file',
+            'image',
+            'mimes:jpg,jpeg,png,webp',
+            'max:2048',
+        ];
+    }
+
+    private function validateImageForSave(?Category $category): void {
+        $hasExistingImage = $category !== null
+            && trim((string) $category->image) !== '';
+
+        Validator::make(
+            ['newImage' => $this->newImage],
+            [
+                'newImage' => $this->imageRules(
+                    ! $hasExistingImage
+                ),
+            ],
+            $this->messages()
+        )->validate();
+    }
+
     protected function rules(): array
     {
         return [
@@ -305,14 +311,7 @@ private function hasCategoryChanges(
                 Rule::in(['active', 'hidden']),
             ],
 
-            'newImage' => [
-                'bail',
-                'required',
-                'file',
-                'image',
-                'mimes:jpg,jpeg,png,webp',
-                'max:2048',
-            ],
+            'newImage' => $this->imageRules(false),
         ];
     }
 
@@ -375,7 +374,15 @@ private function hasCategoryChanges(
                         ->lockForUpdate()
                         ->findOrFail($this->editingId);
 
-                // Kiểm tra lại bằng bản ghi mới nhất đã khóa.
+                // Lưu trạng thái cũ trước khi fill dữ liệu mới.
+                $wasHidden = $category->exists
+                    && ! $category->is_active;
+
+                // Kiểm tra ảnh theo bản ghi mới nhất đã khóa.
+                $this->validateImageForSave(
+                    $category->exists ? $category : null
+                );
+
                 if (
                     $category->exists
                     && ! $this->hasCategoryChanges($category, $data)
@@ -383,28 +390,29 @@ private function hasCategoryChanges(
                     return 'unchanged';
                 }
 
-                // Không dựa vào ảnh cũ để bỏ qua yêu cầu tải ảnh.
-                $this->validateOnly('newImage');
-
-                $newPath = $this->newImage->store(
-                    'categories',
-                    'public'
-                );
-
-                if (
-                    ! is_string($newPath)
-                    || $newPath === ''
-                    || ! Storage::disk('public')->exists($newPath)
-                ) {
-                    throw new RuntimeException(
-                        'Không lưu được ảnh danh mục.'
+                // Chỉ lưu file mới khi người dùng thực sự chọn file.
+                if ($this->newImage !== null) {
+                    $newPath = $this->newImage->store(
+                        'categories',
+                        'public'
                     );
+
+                    if (
+                        ! is_string($newPath)
+                        || $newPath === ''
+                        || ! Storage::disk('public')->exists($newPath)
+                    ) {
+                        throw new RuntimeException(
+                            'Không lưu được ảnh danh mục.'
+                        );
+                    }
+
+                    $oldPath = $category->image;
+                    $category->image = $newPath;
                 }
 
-                $oldPath = $category->image;
-
+                // Nếu không chọn ảnh mới, image cũ được giữ nguyên.
                 $category->fill($data);
-                $category->image = $newPath;
 
                 if (! $category->save()) {
                     throw new RuntimeException(
@@ -412,21 +420,29 @@ private function hasCategoryChanges(
                     );
                 }
 
-                // Giữ logic ẩn sản phẩm theo danh mục.
                 if (! $category->is_active) {
+                    // Danh mục bị ẩn: ẩn toàn bộ sản phẩm thuộc danh mục.
                     $category->products()
                         ->where('status', '<>', 'hidden')
                         ->update([
                             'status' => 'hidden',
+                        ]);
+                } elseif ($wasHidden) {
+                    // Danh mục vừa chuyển từ ẩn sang hiển thị:
+                    // hiển thị lại toàn bộ sản phẩm thuộc danh mục.
+                    $category->products()
+                        ->where('status', '<>', 'active')
+                        ->update([
+                            'status' => 'active',
                         ]);
                 }
 
                 return 'saved';
             });
         } catch (ValidationException $exception) {
+            // Lỗi validation ảnh không được chuyển thành lỗi chung.
             $this->deleteManagedImage($newPath);
 
-            // Để Livewire hiển thị đúng lỗi tại trường ảnh.
             throw $exception;
         } catch (UniqueConstraintViolationException $exception) {
             $this->deleteManagedImage($newPath);
@@ -458,7 +474,7 @@ private function hasCategoryChanges(
             return;
         }
 
-        // Database đã commit, lúc này mới dọn ảnh cũ.
+        // Chỉ xóa ảnh cũ sau khi transaction commit.
         $this->deleteManagedImage($oldPath);
 
         $this->closeModal();
@@ -570,7 +586,6 @@ private function hasCategoryChanges(
             'editingId',
             'name',
             'slug',
-            'description',
             'status',
             'newImage',
             'currentImageUrl',
