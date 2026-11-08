@@ -333,7 +333,106 @@
     @endif
 
     <!-- MODAL 2: XEM BẢN SCAN PHÓNG TO -->
+    @if ($scanCertification)
+    <div id="modal-scan" wire:key="certification-scan-{{ $scanCertification->id }}"
+        class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/80 backdrop-blur-xs p-3 sm:p-4">
 
+        <div class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-2xl
+               max-h-[92dvh] overflow-hidden flex flex-col
+               shadow-2xl border border-gray-100">
+
+            {{-- Header modal --}}
+            <div class="shrink-0 flex items-start justify-between gap-3
+                   border-b border-gray-100 p-4 sm:p-6">
+
+                <div class="min-w-0 flex-1">
+                    <h3 id="scan-title" class="text-base sm:text-lg font-extrabold text-gray-900 break-words">
+
+                        {{ $scanCertification->name }}
+                    </h3>
+
+                    <p id="scan-code" class="text-xs text-brand-700 font-mono font-bold mt-1 break-all">
+
+                        MÃ QUẢN LÝ: {{ $scanCertification->code }}
+                    </p>
+                </div>
+
+                <button type="button" wire:click="closeScan" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500
+                       hover:bg-gray-200 flex items-center justify-center
+                       transition-colors shrink-0 cursor-pointer" aria-label="Đóng bản scan">
+
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            {{-- Khu vực hiển thị bản scan --}}
+            <div class="flex-1 min-h-0 overflow-y-auto
+                   rounded-xl sm:rounded-2xl bg-gray-50
+                   p-3 sm:p-5 text-center custom-scrollbar">
+
+                @if ($scanCertification->image_url)
+                @if ($scanCertification->is_pdf)
+                <div class="flex flex-col items-center gap-3">
+                    <object data="{{ $scanCertification->image_url }}" type="application/pdf" class="w-full h-[55vh] sm:h-[60vh] min-h-[300px]
+                                   rounded-xl border border-gray-200 bg-white">
+
+                        <p class="text-xs sm:text-sm text-gray-500 p-4">
+                            Trình duyệt không thể hiển thị PDF trực tiếp.
+                        </p>
+                    </object>
+
+                    <a href="{{ $scanCertification->image_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2
+                                   px-4 py-2 rounded-xl bg-brand-50
+                                   text-brand-700 hover:bg-brand-100
+                                   text-xs font-bold">
+
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        Mở PDF trong tab mới
+                    </a>
+                </div>
+                @else
+                <div class="min-h-full flex items-center justify-center">
+                    <img id="scan-img" src="{{ $scanCertification->image_url }}" alt="{{ $scanCertification->name }}"
+                        class="max-w-full w-auto h-auto
+                                   max-h-[58vh] sm:max-h-[64vh]
+                                   object-contain rounded-xl shadow-md">
+                </div>
+                @endif
+                @else
+                <div class="min-h-[240px] flex items-center justify-center">
+                    <p class="text-xs sm:text-sm text-gray-500">
+                        Giấy kiểm định chưa có bản scan.
+                    </p>
+                </div>
+                @endif
+            </div>
+
+            {{-- Footer modal --}}
+            <div class="shrink-0 border-t border-gray-100
+                   p-4 sm:p-5 flex flex-col items-stretch gap-3
+                   text-xs text-gray-500">
+
+                <p id="scan-dates" class="font-mono text-center leading-relaxed">
+
+                    Ngày cấp:
+                    {{ $scanCertification->issued_date?->format('d/m/Y') ?? '—' }}
+
+                    <span class="mx-1">|</span>
+
+                    Hết hạn:
+                    {{ $scanCertification->expiry_date?->format('d/m/Y') ?? 'Vô thời hạn' }}
+                </p>
+
+                <button type="button" wire:click="closeScan" class="w-full px-5 py-2.5 rounded-xl
+                       bg-gray-100 hover:bg-gray-200
+                       text-gray-700 font-bold transition cursor-pointer">
+
+                    Đóng
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>
 
 @script
