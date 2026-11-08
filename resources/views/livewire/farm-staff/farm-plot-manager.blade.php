@@ -166,7 +166,7 @@
                 </button>
             </div>
 
-            {{-- Thông tin luống và vụ đang xem --}}
+            <!-- THÔNG TIN LUỐNG ĐẤT VÀ VỤ ĐANG TRỒNG -->
             <div class="bg-white rounded-3xl border border-gray-100 p-4 sm:p-6 shadow-sm space-y-4">
                 <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                     <div class="min-w-0">
@@ -240,7 +240,7 @@
                 @endif
             </div>
 
-            {{-- Danh sách tất cả vụ trồng của luống --}}
+            <!-- DANH SÁCH TẤT CẢ CÁC VỤ ĐÃ TRỒNG TRÊN LUỐNG ĐẤT -->
             <div class="bg-white border border-gray-100 rounded-3xl p-4 sm:p-6 space-y-3">
                 <div>
                     <h3 class="font-extrabold text-sm text-gray-900">
@@ -301,7 +301,7 @@
             @endif
 
             @if ($batch)
-            {{-- TABS --}}
+            <!-- TABS -->
             <div class="bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft overflow-hidden">
                 <div
                     class="flex overflow-x-auto border-b border-gray-100 px-4 sm:px-6 pt-3 sm:pt-4 gap-6 sm:gap-8 text-xs sm:text-sm no-scrollbar whitespace-nowrap">
@@ -316,7 +316,7 @@
                     </button>
                 </div>
 
-                {{-- TAB NHẬT KÝ --}}
+                <!-- TAB NHẬT KÝ -->
                 @if ($activeTab === 'timeline')
                 <div class="p-4 sm:p-6 lg:p-8 space-y-5">
                     <div
@@ -388,7 +388,7 @@
                 </div>
                 @endif
 
-                {{-- TAB LÔ HÀNG THU HOẠCH --}}
+                <!-- TAB LÔ HÀNG THU HOẠCH -->
                 @if ($activeTab === 'harvests')
                 <div class="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
                     <div

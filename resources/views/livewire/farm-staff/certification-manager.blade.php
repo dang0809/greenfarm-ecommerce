@@ -341,7 +341,7 @@
                max-h-[92dvh] overflow-hidden flex flex-col
                shadow-2xl border border-gray-100">
 
-            {{-- Header modal --}}
+            <!-- Header của modal -->
             <div class="shrink-0 flex items-start justify-between gap-3
                    border-b border-gray-100 p-4 sm:p-6">
 
@@ -365,7 +365,7 @@
                 </button>
             </div>
 
-            {{-- Khu vực hiển thị bản scan --}}
+            <!-- Hiển thị bản scan -->
             <div class="flex-1 min-h-0 overflow-y-auto
                    rounded-xl sm:rounded-2xl bg-gray-50
                    p-3 sm:p-5 text-center custom-scrollbar">
@@ -407,7 +407,7 @@
                 @endif
             </div>
 
-            {{-- Footer modal --}}
+            <!-- Footer của modal -->
             <div class="shrink-0 border-t border-gray-100
                    p-4 sm:p-5 flex flex-col items-stretch gap-3
                    text-xs text-gray-500">

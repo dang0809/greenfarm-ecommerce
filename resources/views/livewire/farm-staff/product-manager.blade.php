@@ -17,15 +17,15 @@
         </div>
 
         <div class="flex items-center gap-2 shrink-0">
-            <span
-                class="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-bold font-mono">
-                <span class="w-2 h-2 rounded-full bg-brand-600 animate-pulse"></span>
-                Tổng số: {{ isset($products) ? $products->total() : 0 }} sản phẩm
-            </span>
+            <div
+                class="inline-flex items-center gap-1.5 sm:gap-2 bg-brand-50 border border-brand-200 text-brand-800 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-2xl text-[11px] sm:text-xs font-bold font-mono">
+                <i class="fa-regular fa-calendar-check text-brand-700"></i>
+                <span class="hidden sm:inline">Hôm nay:</span>
+                <span>{{ now()->format('d/m/Y') }}</span>
+            </div>
         </div>
     </header>
 
-    <!-- Workspace Viewport -->
     <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 custom-scrollbar pb-28 sm:pb-12">
 
         <!-- Thanh Công Cụ & Bộ Lọc -->
@@ -74,6 +74,14 @@
                 <i class="fa-solid fa-plus"></i>
                 <span>Thêm Sản Phẩm Mới</span>
             </button>
+        </div>
+
+        <div class="flex items-center gap-2 shrink-0">
+            <span
+                class="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-bold font-mono">
+                <span class="w-2 h-2 rounded-full bg-brand-600 animate-pulse"></span>
+                Tổng số: {{ isset($products) ? $products->total() : 0 }} sản phẩm
+            </span>
         </div>
 
         <!-- Bảng Dữ Liệu Sản Phẩm -->
@@ -343,7 +351,7 @@
                         class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl p-2.5 outline-none focus:border-brand-600 resize-none"></textarea>
                 </div>
 
-                {{-- Ảnh chính của sản phẩm --}}
+                <!-- Ảnh sản phẩm -->
                 <div class="space-y-3">
                     <label for="p-image" class="block font-bold text-slate-700 mb-1">
                         Ảnh sản phẩm
@@ -372,7 +380,7 @@
                         </div>
                         @endif
 
-                        {{-- Preview ảnh vừa chọn --}}
+                        <!-- Xem trước ảnh mới -->
                         <div class="border border-slate-200 rounded-xl p-3">
                             <p class="font-bold text-slate-600 mb-2">
                                 {{ $editingId ? 'Ảnh mới đang chọn' : 'Xem trước ảnh' }}

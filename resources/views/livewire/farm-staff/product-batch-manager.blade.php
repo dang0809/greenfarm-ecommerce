@@ -807,14 +807,14 @@
                                         @endforeach
                                     </p>
 
-                                    {{-- ngày giờ và người thực hiện --}}
+                                    <!-- ngày giờ thực hiện -->
                                     <span class="text-[10px] text-slate-400 font-mono">
                                         {{ $log->created_at?->format('d/m/Y H:i') }}
                                         · {{ $log->creator?->name ?? '—' }}
                                     </span>
                                 </div>
 
-                                {{-- hiển thị số lượng --}}
+                                <!-- hiển thị số lượng -->
                                 <span class="font-mono font-black {{ $logColor }} text-xs sm:text-sm">
                                     @if ($log->quantity !== 0)
                                     {{ $sign }}{{ number_format($log->quantity) }}
