@@ -524,6 +524,9 @@ class SubscriptionSetup extends Component
         ])
         ->tap([ProductData::class, 'withTotalStock'])
         ->where('status', 'active')
+        ->whereHas('category', function ($query) {
+            $query->where('is_active', true);
+        })
         ->having('total_stock', '>', 0); // CHỈ HIỆN SẢN PHẨM CÒN HÀNG TRONG KHO
 
         if ($this->selectedCategory) {
@@ -647,7 +650,9 @@ class SubscriptionSetup extends Component
             }
         }
 
-        $categories = Category::all(['id', 'name']);
+        $categories = Category::query()
+        ->where('is_active', true)
+        ->get(['id', 'name']);
 
         return view('livewire.customer.subscription-setup', [
             'isLocked'                 => $this->isLocked,
