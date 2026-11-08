@@ -77,11 +77,16 @@ class OrderManager extends Component
             ? number_format($payload['orderData']['total'], 0, ',', '.') . 'đ'
             : '';
 
-        $message = "🔔 ĐƠN MỚI #{$orderCode} vừa thanh toán";
-        if ($totalFormatted) {
-            $message .= " {$totalFormatted}";
+        $orderType = $payload['orderData']['order_type'] ?? ($payload['order_type'] ?? '');
+        if ($orderType === 'subscription_delivery') {
+            $message = "👑 ĐỢT GIAO VIP MỚI #{$orderCode} từ {$customerName}!";
+        } else {
+            $message = "🔔 ĐƠN MỚI #{$orderCode} vừa thanh toán";
+            if ($totalFormatted) {
+                $message .= " {$totalFormatted}";
+            }
+            $message .= " từ {$customerName}!";
         }
-        $message .= " từ {$customerName}!";
 
         $this->dispatch('show-toast', type: 'success', message: $message);
     }
@@ -136,14 +141,10 @@ class OrderManager extends Component
             $query->where('status', $this->statusFilter);
         }
 
-        // Lọc theo từ khóa tìm kiếm (Mã đơn, Tên, Số điện thoại)
-        if (!empty(trim($this->search))) {
-            $keyword = trim($this->search);
-            $query->where(function ($q) use ($keyword) {
-                $q->where('order_code', 'like', "%{$keyword}%")
-                  ->orWhere('recipient_name', 'like', "%{$keyword}%")
-                  ->orWhere('recipient_phone', 'like', "%{$keyword}%");
-            });
+        // Lọc theo từ khóa tìm kiếm (Chỉ tìm theo mã đơn hàng)
+        $rawSearch = ltrim(trim($this->search), '#');
+        if ($rawSearch !== '') {
+            $query->where('order_code', 'like', "%{$rawSearch}%");
         }
 
         // Lọc theo Loại đơn (retail hoặc subscription_delivery)
@@ -268,6 +269,19 @@ class OrderManager extends Component
                 'new_status' => 'delivered',
                 'changed_by' => Auth::id() ?? $order->user_id ?? 1,
             ]);
+
+            // 3. Đồng bộ trạng thái cho lịch giao gói VIP (nếu là đơn giao định kỳ)
+            if ($order->deliverySchedule) {
+                $order->deliverySchedule->update(['status' => 'delivered']);
+
+                $subscription = $order->deliverySchedule->subscription;
+                if ($subscription) {
+                    $deliveredCount = (int) $subscription->deliverySchedules()->where('status', 'delivered')->count();
+                    if ($deliveredCount >= 8) {
+                        $subscription->update(['status' => 'completed']);
+                    }
+                }
+            }
         });
 
         // 3. Gửi thông báo quả chuông trên web & gửi Email xác nhận cho khách
@@ -354,6 +368,14 @@ class OrderManager extends Component
                 'new_status' => 'cancelled',
                 'changed_by' => Auth::id() ?? $order->user_id ?? 1,
             ]);
+
+            // 4. Đồng bộ hoàn lại lịch đợt giao cho gói VIP (nếu là đơn giao định kỳ)
+            if ($order->deliverySchedule) {
+                $order->deliverySchedule->update([
+                    'order_id' => null,
+                    'status'   => 'pending',
+                ]);
+            }
         });
 
         $this->closeCancelModal();

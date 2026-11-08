@@ -26,8 +26,9 @@
         .shadow-soft { box-shadow: 0 4px 20px -2px rgba(20, 83, 45, 0.05); }
         .shadow-modal { box-shadow: 0 25px 50px -12px rgba(20, 83, 45, 0.25); }
         .shadow-floating { box-shadow: 0 10px 35px -5px rgba(20, 83, 45, 0.2); }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 9999px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         .no-scrollbar::-webkit-scrollbar { display: none; }

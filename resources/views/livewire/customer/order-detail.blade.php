@@ -103,7 +103,7 @@
                         Chờ lấy hàng
                     </span>
                 @elseif ($order->status === 'pending')
-                    @if ($order->payment?->status === 'success')
+                    @if ($isVipDelivery || $order->payment?->status === 'success')
                         <span class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
                             <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
                             Chờ xác nhận
@@ -124,8 +124,8 @@
             <!-- Thông báo tóm tắt trạng thái hiện tại -->
             @php
                 $statusSummary = match(true) {
+                    $order->status === 'pending' && $isVipDelivery => "Đợt giao rau định kỳ{$batchInfo} đã được khởi tạo từ gói VIP trả trước. Hệ thống đang chờ nhân viên Nông trại Đất Lành kiểm tra và xác nhận đơn hàng.",
                     $order->status === 'pending' && $order->payment?->status === 'pending' => 'Đơn hàng của bạn đã được hệ thống ghi nhận. Vui lòng hoàn tất thanh toán để nông trại bắt đầu chuẩn bị hàng nhé!',
-                    $order->status === 'pending' && $order->payment?->status === 'success' && $isVipDelivery => "Đợt giao rau định kỳ{$batchInfo} đã được khởi tạo. Hệ thống đang chờ nhân viên Nông trại Đất Lành kiểm tra và xác nhận đơn hàng.",
                     $order->status === 'pending' && $order->payment?->status === 'success' => 'Bạn đã thanh toán thành công. Hệ thống đang chờ nhân viên Nông trại Đất Lành kiểm tra và xác nhận đơn hàng.',
                     $order->status === 'processing' && $isVipDelivery => "Nông trại đang thu hoạch & đóng gói thùng rau VIP{$batchInfo} theo chuẩn VietGAP, chờ shipper đến lấy hàng.",
                     $order->status === 'processing' => 'Đơn hàng đã được xác nhận & đang đóng gói, chờ shipper đến lấy hàng.',
@@ -146,8 +146,8 @@
 
         @php
             $targetStatus = match(true) {
+                $order->status === 'pending' && ($isVipDelivery || $order->payment?->status === 'success') => 'pending_confirmation',
                 $order->status === 'pending' && $order->payment?->status === 'pending' => 'pending_payment',
-                $order->status === 'pending' && $order->payment?->status === 'success' => 'pending_confirmation',
                 $order->status === 'processing' => 'processing',
                 $order->status === 'shipped' => 'shipped',
                 $order->status === 'delivered' => ($order->complaint ? 'refund' : 'delivered'),
@@ -259,12 +259,16 @@
                     @forelse ($order->items as $item)
                         @php
                             $product = $item->product;
-                            $thumb = $product?->productImages?->first()?->image_url ?? $product?->image_url ?? 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?auto=format&fit=crop&q=80&w=200';
+                            $rawThumb = $product?->productImages?->firstWhere('is_primary', true)?->image 
+                                ?? $product?->productImages?->first()?->image;
+                            $thumb = $rawThumb 
+                                ? (str_starts_with($rawThumb, 'http') ? $rawThumb : asset('storage/' . $rawThumb))
+                                : 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?auto=format&fit=crop&q=80&w=200';
                             $unit = $product?->unit ?? 'phần';
                         @endphp
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-50 last:border-0 last:pb-0">
                             <div class="flex items-start gap-3.5">
-                                <img src="{{ $thumb }}" alt="{{ $item->product_name }}" class="w-16 h-16 rounded-2xl object-cover border border-gray-100 shrink-0">
+                                <img src="{{ $thumb }}" alt="{{ $item->product_name }}" class="w-16 h-16 rounded-2xl object-cover border border-gray-100 shrink-0" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?auto=format&fit=crop&q=80&w=200'">
                                 <div>
                                     <h3 class="text-sm font-bold text-gray-900">
                                         @if ($product && !empty($product->slug))
@@ -494,10 +498,14 @@
                         </span>
                     </div>
 
+                    @php
+                        $pointDiscount = max(0, ($order->subtotal + $order->shipping_fee) - $order->total);
+                    @endphp
+
                     @if ($order->points_used > 0)
                         <div class="flex justify-between text-brand-700">
-                            <span>Khấu trừ điểm thưởng:</span>
-                            <span class="font-bold">-{{ number_format($order->points_used * 1000, 0, ',', '.') }}đ</span>
+                            <span>Khấu trừ điểm thưởng ({{ number_format($order->points_used) }} điểm):</span>
+                            <span class="font-bold">-{{ number_format($pointDiscount, 0, ',', '.') }}đ</span>
                         </div>
                     @endif
 
@@ -535,56 +543,74 @@
                     </span>
                 </div>
 
-                <!-- KHỐI BIÊN LAI THANH TOÁN PAYOS -->
-                @php
-                    $payRefCode = $order->payment?->transaction_code ?? ('POS-ORD-' . $order->order_code);
-                @endphp
-                <div class="p-4 bg-gray-50 border border-gray-200/80 rounded-2xl space-y-2.5 text-xs">
-                    <div class="flex items-center justify-between">
-                        <span class="text-gray-500">Cổng thanh toán:</span>
-                        <span class="font-bold text-gray-800 flex items-center gap-1.5 uppercase">
-                            <i class="fa-solid fa-qrcode text-brand-600"></i> {{ strtoupper($order->payment?->method ?? 'PAYOS') }} 
-                        </span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-gray-500">Trạng thái GD:</span>
-                        @if ($order->payment?->status === 'success')
-                            <span class="font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
-                                <i class="fa-solid fa-circle-check text-[10px]"></i> Đã thanh toán (PAID)
+                <!-- KHỐI BIÊN LAI THANH TOÁN HOẶC THÔNG TIN GÓI VIP -->
+                @if ($isVipDelivery)
+                    <div class="p-4 bg-purple-50/70 border border-purple-200/80 rounded-2xl space-y-2.5 text-xs">
+                        <div class="flex items-center justify-between">
+                            <span class="text-purple-900 font-semibold">Hình thức giao hàng:</span>
+                            <span class="font-bold text-purple-800 flex items-center gap-1.5">
+                                <i class="fa-solid fa-crown text-purple-600"></i> Gói Định Kỳ VIP Trả Trước
                             </span>
-                        @elseif ($order->payment?->status === 'failed')
-                            <span class="font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
-                                <i class="fa-solid fa-circle-xmark text-[10px]"></i> Thất bại / Đã hủy
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-purple-900 font-semibold">Thanh toán đợt này:</span>
+                            <span class="font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md inline-flex items-center gap-1 font-mono">
+                                <i class="fa-solid fa-circle-check text-[10px]"></i> Đã thanh toán trọn gói (0đ)
                             </span>
-                        @else
-                            <span class="font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
-                                <i class="fa-solid fa-clock text-[10px]"></i> Đang chờ quét mã
-                            </span>
-                        @endif
-                    </div>
-                    
-                    <!-- Mã đối chiếu ngân hàng kèm nút Copy -->
-                    <div class="flex items-center justify-between">
-                        <span class="text-gray-500">Mã đối chiếu GD:</span>
-                        <div class="flex items-center gap-1.5 bg-white border border-gray-200 px-2 py-0.5 rounded-lg shadow-2xs">
-                            <span class="font-mono text-gray-800 font-bold text-xs select-all">{{ $payRefCode }}</span>
-                            <button type="button" 
-                                    x-data 
-                                    @click="navigator.clipboard.writeText('{{ $payRefCode }}'); $dispatch('show-toast', {type: 'success', message: 'Đã sao chép mã GD: {{ $payRefCode }}'})" 
-                                    class="text-gray-400 hover:text-brand-600 transition cursor-pointer p-0.5" 
-                                    title="Sao chép mã đối chiếu ngân hàng">
-                                <i class="fa-regular fa-copy text-[11px]"></i>
-                            </button>
                         </div>
                     </div>
+                @elseif ($order->payment)
+                    <div class="p-4 bg-gray-50 border border-gray-200/80 rounded-2xl space-y-2.5 text-xs">
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-500">Cổng thanh toán:</span>
+                            <span class="font-bold text-gray-800 flex items-center gap-1.5 uppercase">
+                                <i class="fa-solid fa-qrcode text-brand-600"></i> {{ strtoupper($order->payment->method ?? 'PAYOS') }} 
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-500">Trạng thái GD:</span>
+                            @if ($order->payment->status === 'success')
+                                <span class="font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                                    <i class="fa-solid fa-circle-check text-[10px]"></i> Đã thanh toán (PAID)
+                                </span>
+                            @elseif ($order->payment->status === 'failed')
+                                <span class="font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                                    <i class="fa-solid fa-circle-xmark text-[10px]"></i> Thất bại / Đã hủy
+                                </span>
+                            @else
+                                <span class="font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                                    <i class="fa-solid fa-clock text-[10px]"></i> Đang chờ quét mã
+                                </span>
+                            @endif
+                        </div>
+                        
+                        <!-- Mã đối chiếu ngân hàng kèm nút Copy (chỉ hiện khi có transaction_code) -->
+                        @if (!empty($order->payment->transaction_code))
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-500">Mã đối chiếu GD:</span>
+                                <div class="flex items-center gap-1.5 bg-white border border-gray-200 px-2 py-0.5 rounded-lg shadow-2xs">
+                                    <span class="font-mono text-gray-800 font-bold text-xs select-all">{{ $order->payment->transaction_code }}</span>
+                                    <button type="button" 
+                                            x-data 
+                                            @click="navigator.clipboard.writeText('{{ $order->payment->transaction_code }}'); $dispatch('show-toast', {type: 'success', message: 'Đã sao chép mã GD: {{ $order->payment->transaction_code }}'})" 
+                                            class="text-gray-400 hover:text-brand-600 transition cursor-pointer p-0.5" 
+                                            title="Sao chép mã đối chiếu ngân hàng">
+                                        <i class="fa-regular fa-copy text-[11px]"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        @endif
 
-                    <div class="flex items-center justify-between text-[11px] text-gray-400 pt-1.5 border-t border-gray-200/60">
-                        <span>Thời gian ghi nhận:</span>
-                        <span class="font-mono">
-                            {{ $order->payment?->paid_at ? $order->payment->paid_at->format('H:i • d/m/Y') : 'Chưa ghi nhận' }}
-                        </span>
+                        @if ($order->payment->paid_at)
+                            <div class="flex items-center justify-between text-[11px] text-gray-400 pt-1.5 border-t border-gray-200/60">
+                                <span>Thời gian ghi nhận:</span>
+                                <span class="font-mono">
+                                    {{ $order->payment->paid_at->format('H:i • d/m/Y') }}
+                                </span>
+                            </div>
+                        @endif
                     </div>
-                </div>
+                @endif
 
                 <!-- Nhóm nút hành động tinh gọn -->
                 <div class="pt-1 space-y-2.5">

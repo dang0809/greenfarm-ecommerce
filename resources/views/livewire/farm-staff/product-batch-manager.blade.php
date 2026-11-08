@@ -644,11 +644,14 @@
             <!-- Modal chi tiết -->
             @if ($selectedBatch && $modal === 'detail')
             <div id="modal-detail" wire:key="batch-detail-{{ $selectedBatch->id }}"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
-                <div
-                    class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-3xl shadow-2xl p-5 sm:p-7 max-h-[90vh] overflow-y-auto custom-scrollbar space-y-4 sm:space-y-6 border border-slate-100">
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 overflow-hidden">
 
-                    <div class="flex justify-between items-center border-b border-slate-100 pb-3 sm:pb-4">
+                <div class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-3xl shadow-2xl
+               p-5 sm:p-7 border border-slate-100
+               h-[90dvh] max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)]
+               flex flex-col gap-4 sm:gap-6 overflow-hidden">
+
+                    <div class="flex shrink-0 justify-between items-center border-b border-slate-100 pb-3 sm:pb-4">
                         <div class="min-w-0">
                             <h3 class="text-base sm:text-xl font-extrabold text-slate-900 truncate">
                                 Chi Tiết Lô Hàng Thương Mại & Nhật Ký Gốc
@@ -669,7 +672,7 @@
                     </div>
 
                     <div
-                        class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-brand-50/50 border border-brand-100">
+                        class="flex shrink-0 flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-brand-50/50 border border-brand-100">
                         <div class="flex items-center gap-3 sm:gap-4 min-w-0">
                             @if ($qrUrl)
                             <div
@@ -729,14 +732,14 @@
                     </div>
 
                     <!-- Nhật ký kho -->
-                    <div class="space-y-2.5">
-                        <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                    <div class="flex flex-1 min-h-0 flex-col gap-2.5 overflow-hidden">
+                        <h4
+                            class="shrink-0 text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
                             <i class="fa-solid fa-trash-can text-red-500"></i>
                             Lịch sử biến động kho
                         </h4>
 
-                        <div
-                            class="space-y-2 max-h-[240px] sm:max-h-[320px] overflow-y-auto overscroll-contain custom-scrollbar pr-2">
+                        <div class="flex-1 min-h-0 space-y-2 overflow-y-auto overscroll-contain custom-scrollbar pr-2">
                             @forelse ($selectedBatch->inventoryLogs as $log)
                             @php
                             [$logLabel, $sign] = match ($log->type) {
@@ -830,15 +833,15 @@
                     </div>
 
                     <!-- Nhật ký canh tác -->
-                    <div class="space-y-2.5 pt-3 border-t border-slate-100">
-                        <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                    <div class="flex flex-1 min-h-0 flex-col gap-2.5 overflow-hidden pt-3 border-t border-slate-100">
+                        <h4
+                            class="shrink-0 text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
                             <i class="fa-solid fa-seedling text-brand-600"></i>
                             Nhật ký canh tác gốc
                         </h4>
 
                         <!-- Khối cuộn riêng -->
-                        <div
-                            class="max-h-[240px] sm:max-h-[320px] overflow-y-auto overscroll-contain custom-scrollbar px-2 py-1">
+                        <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain custom-scrollbar px-2 py-1">
 
                             <!-- Timeline nằm bên trong khối cuộn -->
                             <div
@@ -869,13 +872,6 @@
                                 @endforelse
                             </div>
                         </div>
-                    </div>
-
-                    <div class="pt-2 flex justify-end">
-                        <button type="button" wire:click="closeModal"
-                            class="w-full sm:w-auto px-6 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-50 transition-colors cursor-pointer">
-                            Đóng cửa sổ
-                        </button>
                     </div>
                 </div>
             </div>
