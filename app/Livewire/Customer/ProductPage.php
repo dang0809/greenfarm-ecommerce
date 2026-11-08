@@ -57,16 +57,8 @@ class ProductPage extends Component
                 $q->where('is_primary', true);
             }
         ])
-<<<<<<< HEAD
-        ->withTotalStock()
-        ->where('status', 'active')
-        ->whereHas('category', function ($query) {
-            $query->where('is_active', true);
-        });
-=======
         ->tap([ProductData::class, 'withTotalStock'])
         ->where('status', 'active');
->>>>>>> 903568b21a33506118ffffa22b6a692299a57a6e
 
         if (!empty($this->selectedCategory)) {
             $query->where('category_id', $this->selectedCategory);
