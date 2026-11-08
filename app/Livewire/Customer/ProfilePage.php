@@ -322,7 +322,7 @@ class ProfilePage extends Component
         $address = Address::where('user_id', Auth::id())->find($addressId);
         if ($address) {
             $address->delete();
-            $this->dispatch('show-toast', type: 'success', message: 'Đã xóa địa chỉ thành công.');
+            $this->dispatch('show-toast', type: 'info', message: 'Đã xóa địa chỉ thành công.');
         }
     }
     public function banks()

@@ -71,11 +71,22 @@
                         <div class="max-h-80 overflow-y-auto divide-y divide-gray-50">
                             @forelse($notifications as $notif)
                             @php
-                            $icon = $notif->data['icon'] ?? ($notif->type === 'order_delivered' ? 'fa-circle-check' :
-                            ($notif->type === 'order_paid' ? 'fa-receipt' : 'fa-bell'));
-                            $iconColor = $notif->type === 'order_delivered' ? 'text-emerald-700 bg-emerald-100' :
-                            ($notif->type === 'order_paid' ? 'text-brand-700 bg-brand-100' : 'text-amber-600
-                            bg-amber-100');
+                            $notifType = $notif->type;
+                            $icon = $notif->data['icon'] ?? match($notifType) {
+                                'order_delivered'    => 'fa-circle-check',
+                                'order_paid'         => 'fa-receipt',
+                                'vip_activated'      => 'fa-crown',
+                                'complaint_resolved' => 'fa-hand-holding-dollar',
+                                'complaint_rejected' => 'fa-circle-xmark',
+                                default              => 'fa-bell',
+                            };
+                            $iconColor = match($notifType) {
+                                'order_delivered', 'complaint_resolved', 'vip_activated' => 'text-emerald-700 bg-emerald-100',
+                                'order_paid'                                             => 'text-brand-700 bg-brand-100',
+                                'complaint_rejected'                                     => 'text-rose-700 bg-rose-100',
+                                'warning'                                                => 'text-amber-700 bg-amber-100',
+                                default                                                  => 'text-sky-700 bg-sky-100',
+                            };
                             @endphp
                             <div wire:click="markAsRead({{ $notif->id }})"
                                 class="p-3.5 hover:bg-brand-50/50 transition-colors cursor-pointer flex items-start gap-3 {{ is_null($notif->read_at) ? 'bg-brand-50/30' : '' }}">

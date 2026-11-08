@@ -3,6 +3,7 @@
 namespace App\Livewire\Sales;
 
 use App\Models\Order;
+use App\Models\Complaint;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -24,6 +25,16 @@ class Sidebar extends Component
     public function onOrderPaid(): void
     {
         // Livewire tự động re-render để cập nhật badge số lượng
+    }
+
+    /**
+     * Lắng nghe sự kiện khiếu nại mới từ WebSockets hoặc sự kiện duyệt/từ chối để cập nhật số đếm ở Sidebar
+     */
+    #[On('echo:sales-complaints,.ComplaintSubmitted')]
+    #[On('complaint-status-changed')]
+    public function onComplaintChanged(): void
+    {
+        // Livewire tự động re-render để cập nhật badge khiếu nại
     }
 
     /**
@@ -52,9 +63,13 @@ class Sidebar extends Component
             ->where('status', 'pending')
             ->count();
 
+        // Đếm số lượng khiếu nại đang ở trạng thái pending (Chờ xử lý)
+        $pendingComplaintCount = Complaint::where('status', 'pending')->count();
+
         return view('livewire.sales.sidebar', [
-            'user'         => Auth::user(),
-            'pendingCount' => $pendingCount,
+            'user'                  => Auth::user(),
+            'pendingCount'          => $pendingCount,
+            'pendingComplaintCount' => $pendingComplaintCount,
         ]);
     }
 }

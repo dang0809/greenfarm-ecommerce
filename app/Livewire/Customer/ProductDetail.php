@@ -13,7 +13,7 @@ use Livewire\Attributes\Title;
 use App\Livewire\Traits\HandlesCart;
 use App\Models\Cart;
 use App\Models\CartItem;
-
+use App\Livewire\FarmStaff\ProductManager as ProductData;
 #[Layout('layouts.customer.app')]
 #[Title('Chi tiết sản phẩm')]
 class ProductDetail extends Component
@@ -60,7 +60,7 @@ class ProductDetail extends Component
             $this->selectedImage = 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?auto=format&fit=crop&q=80&w=900';
         }
 
-        $this->totalStock = (int) $this->product->total_stock;
+        $this->totalStock = ProductData::getTotalStock($this->product);
         if ($this->totalStock == 0) {
             $this->quantity = 0;
         }
@@ -171,7 +171,7 @@ class ProductDetail extends Component
     public function render()
     {
         $relatedProducts = Product::with(['productImages', 'category', 'reviews'])
-            ->withTotalStock()
+            ->tap([ProductData::class, 'withTotalStock'])
             ->where('category_id', $this->product->category_id)
             ->where('id', '!=', $this->product->id)
             ->where('status', 'active')
