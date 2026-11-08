@@ -27,22 +27,4 @@ class FarmPlot extends Model
     {
         return $this->hasMany(PlantingBatch::class);
     }
-
-    public function activeBatch(): ?PlantingBatch
-    {
-        if ($this->relationLoaded('plantingBatches')) {
-            return $this->plantingBatches
-                ->sortByDesc('id')
-                ->first(fn (PlantingBatch $batch) => in_array(
-                    $batch->status,
-                    ['planting', 'harvesting'],
-                    true
-                ));
-        }
-
-        return $this->plantingBatches()
-            ->occupying()
-            ->latest('id')
-            ->first();
-    }
 }

@@ -196,6 +196,46 @@ class ProductBatchManager extends Component
         $this->resetValidation();
     }
 
+    public function availableQuantity(ProductBatch $batch): int
+    {
+        return max(
+            0,
+            (int) $batch->current_quantity
+                - (int) $batch->reserved_quantity
+        );
+    }
+
+    public function displayStatus(ProductBatch $batch): string
+    {
+        if ($batch->status === 'recalled') {
+            return 'recalled';
+        }
+
+        if ((int) $batch->current_quantity <= 0) {
+            return 'out_of_stock';
+        }
+
+        if (in_array(
+            $batch->status,
+            ['pending_recalled', 'suspended'],
+            true
+        )) {
+            return $batch->status;
+        }
+
+        if ($batch->expiry_date?->lt(today())) {
+            return 'expired';
+        }
+
+        if ($this->availableQuantity($batch) <= 0) {
+            return 'reserved';
+        }
+
+        return $batch->expiry_date?->lte(today()->addDays(3))
+            ? 'near_expiry'
+            : 'active';
+    }
+
     private function validatedInput(): array
     {
         abort_unless(

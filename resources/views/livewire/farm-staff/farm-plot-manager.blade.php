@@ -61,9 +61,10 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 pb-12">
                 @forelse ($this->plots as $plot)
                 @php
-                $batch = $plot->activeBatch();
+                $batch = $this->activeBatch($plot);
                 $isMaintenance = $plot->status === 'maintenance';
-                $canSow = ! $batch && ! $isMaintenance;
+                $canSow = ! $batch
+                && in_array($plot->status, ['available', 'active'], true);
                 @endphp
 
                 <div wire:key="plot-{{ $plot->id }}" class="bg-white rounded-3xl border p-4 sm:p-5 shadow-sm flex flex-col justify-between gap-4
@@ -187,8 +188,8 @@
                             Diện tích:
                             <b class="text-gray-800">
                                 {{ $plot->area !== null
-                        ? number_format((float) $plot->area, 2, ',', '.') . ' m²'
-                        : '—' }}
+    ? number_format((float) $plot->area, 2, ',', '.') . ' m²'
+    : '—' }}
                             </b>
                         </p>
 
@@ -202,7 +203,10 @@
                         </p>
                     </div>
 
-                    @if (! $this->currentBatch && $plot->status === 'active')
+                    @if (
+                    ! $this->currentBatch
+                    && in_array($plot->status, ['available', 'active'], true)
+                    )
                     <button type="button" wire:click="openSowFor({{ $plot->id }})"
                         class="bg-brand-700 hover:bg-brand-800 text-white font-bold py-2.5 px-4 rounded-xl text-xs shrink-0">
                         <i class="fa-solid fa-seedling mr-1"></i>
@@ -361,11 +365,6 @@
                                     {{ $event->recorded_at?->format('d/m/Y H:i') ?? '—' }} •
                                     {{ $event->recorded_by }}
                                 </p>
-                                <button type="button" wire:click="verifyLogHash({{ $event->id }})"
-                                    wire:loading.attr="disabled" wire:target="verifyLogHash"
-                                    class="text-[11px] font-bold text-brand-700 hover:underline disabled:opacity-50">
-                                    Kiểm Chứng Nội Dung & Ảnh
-                                </button>
                                 @if ($event->description)
                                 <p class="text-xs sm:text-sm text-gray-700 leading-relaxed">
                                     {{ $event->description }}
@@ -679,7 +678,8 @@
                 <div>
                     <label class="block font-bold text-gray-700 mb-1">Sản lượng nhập kho (Kg) <span
                             class="text-red-500">*</span></label>
-                    <input type="number" wire:model="harvestQty" step="0.01" min="0.01" placeholder="Nhập số kg..."
+                    <input type="number" wire:model="harvestQty" step="1" min="1" max="100000"
+                        placeholder="Nhập số kg nguyên..."
                         class="w-full bg-[#FAFAF8] border border-gray-200 rounded-2xl px-3.5 py-2.5 outline-none focus:border-blue-600 font-bold font-mono text-blue-700 text-base">
                     @error('harvestQty') <p class="text-[11px] text-red-600 font-bold mt-1">{{ $message }}</p>
                     @enderror

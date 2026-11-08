@@ -48,9 +48,6 @@ class FarmPlotManager extends Component
     public ?int $harvestBatchId = null;
 
     #[Locked]
-    public ?string $harvestToken = null;
-
-    #[Locked]
     public ?int $qrBatchId = null;
 
     public bool $showSowModal = false;
@@ -92,16 +89,16 @@ class FarmPlotManager extends Component
                 $this->filter === 'active',
                 fn ($query) => $query->whereHas(
                     'plantingBatches',
-                    fn ($batches) => $batches->occupying()
+                    fn ($batches) => $batches->whereIn('status', ['planting', 'harvesting'])
                 )
             )
             ->when(
                 $this->filter === 'empty',
                 fn ($query) => $query
-                    ->where('status', 'active')
+                    ->whereIn('status', ['available', 'active'])
                     ->whereDoesntHave(
                         'plantingBatches',
-                        fn ($batches) => $batches->occupying()
+                        fn ($batches) => $batches->whereIn('status', ['planting', 'harvesting'])
                     )
             )
             ->when(
@@ -110,7 +107,7 @@ class FarmPlotManager extends Component
             )
             ->with([
                 'plantingBatches' => fn ($query) => $query
-                    ->occupying()
+                    ->whereIn('status', ['planting', 'harvesting'])
                     ->with('product')
                     ->latest('id'),
             ])
@@ -135,7 +132,7 @@ class FarmPlotManager extends Component
 
         return FarmPlot::with([
             'plantingBatches' => fn ($query) => $query
-                ->occupying()
+                ->whereIn('status', ['planting', 'harvesting'])
                 ->with('product')
                 ->latest('id'),
         ])->find($this->selectedPlotId);
@@ -144,7 +141,11 @@ class FarmPlotManager extends Component
     #[Computed]
     public function currentBatch(): ?PlantingBatch
     {
-        return $this->selectedPlot?->activeBatch();
+        $plot = $this->selectedPlot;
+
+        return $plot !== null
+            ? $this->activeBatch($plot)
+            : null;
     }
 
     #[Computed]
@@ -281,6 +282,27 @@ class FarmPlotManager extends Component
         $this->refreshData();
     }
 
+    public function activeBatch(FarmPlot $plot): ?PlantingBatch
+    {
+        if ($plot->relationLoaded('plantingBatches')) {
+            return $plot->plantingBatches
+                ->sortByDesc('id')
+                ->first(
+                    fn (PlantingBatch $batch) => in_array(
+                        $batch->status,
+                        ['planting', 'harvesting'],
+                        true
+                    )
+                );
+        }
+
+        return $plot->plantingBatches()
+            ->whereIn('status', ['planting', 'harvesting'])
+            ->with('product')
+            ->latest('id')
+            ->first();
+    }
+
     public function backToList(): void
     {
         $this->closeModals();
@@ -294,14 +316,16 @@ class FarmPlotManager extends Component
         $this->closeModals();
 
         if (
-            $plot->status !== 'active'
-            || $plot->plantingBatches()->occupying()->exists()
+            ! in_array($plot->status, ['available', 'active'], true)
+            || $plot->plantingBatches()
+                ->whereIn('status', ['planting', 'harvesting'])
+                ->exists()
         ) {
             $this->dispatch(
                 'swal',
                 icon: 'warning',
                 title: 'Chưa thể xuống giống',
-                text: 'Luống phải đang hoạt động và chưa có cây trồng.'
+                text: 'Luống phải sẵn sàng và chưa có vụ đang canh tác.'
             );
 
             return;
@@ -313,12 +337,6 @@ class FarmPlotManager extends Component
         $this->showSowModal = true;
 
         unset($this->sowPlot);
-    }
-
-    public function openSowModal(): void
-    {
-        abort_unless($this->selectedPlotId, 404);
-        $this->openSowFor($this->selectedPlotId);
     }
 
     public function sow(FarmPlotService $service): void
@@ -397,7 +415,6 @@ class FarmPlotManager extends Component
         $this->closeModals();
 
         $this->harvestBatchId = $batchId;
-        $this->harvestToken = (string) Str::uuid();
         $this->harvestDate = now()->toDateString();
         $this->harvestExpiry = now()->addDays(15)->toDateString();
         $this->showHarvestModal = true;
@@ -416,7 +433,6 @@ class FarmPlotManager extends Component
                 'quantity' => $this->harvestQty,
                 'note' => $this->harvestNote,
                 'mode' => $this->harvestMode,
-                'token' => $this->harvestToken,
             ], $this->harvestPhoto, $this->staff());
 
             $this->closeModals();
@@ -446,38 +462,6 @@ class FarmPlotManager extends Component
         $this->qrBatchId = $batch->id;
 
         unset($this->qrBatch);
-    }
-
-    public function verifyLogHash(
-        int $eventId,
-        FarmPlotService $service
-    ): void {
-        abort_unless($this->selectedBatch, 404);
-
-        $event = $this->selectedBatch
-            ->traceabilityEvents()
-            ->findOrFail($eventId);
-
-        $this->attempt('logName', function () use ($event, $service) {
-            $valid = $service->verifyEvent($event, $this->staff());
-
-            $this->dispatch(
-                'swal',
-                icon: $valid === true
-                    ? 'success'
-                    : ($valid === null ? 'info' : 'error'),
-                title: match ($valid) {
-                    true => 'Dữ liệu khớp mã kiểm chứng',
-                    false => 'Dữ liệu hoặc ảnh không khớp',
-                    null => 'Nhật ký thuộc phiên bản cũ',
-                },
-                text: match ($valid) {
-                    true => 'Nội dung và ảnh hiện tại khớp dữ liệu đã băm.',
-                    false => 'Vui lòng kiểm tra nội dung, ảnh hoặc mã hash.',
-                    null => 'Nhật ký này chưa có dữ liệu kiểm chứng theo phiên bản mới.',
-                }
-            );
-        });
     }
 
     public function updatedLogPhoto(): void
@@ -532,8 +516,7 @@ class FarmPlotManager extends Component
     {
         $this->reset([
             'showSowModal', 'showLogModal', 'showHarvestModal',
-            'sowPlotId', 'logBatchId', 'harvestBatchId',
-            'harvestToken', 'qrBatchId',
+            'sowPlotId', 'logBatchId', 'harvestBatchId', 'qrBatchId',
             'sowProductId', 'sowDate',
             'logName', 'logDesc', 'logPhoto',
             'harvestDate', 'harvestExpiry', 'harvestQty',

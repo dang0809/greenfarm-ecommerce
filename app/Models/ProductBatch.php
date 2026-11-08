@@ -48,48 +48,6 @@ class ProductBatch extends Model
             'product_id'
         );
     }
-    
-    public function getAvailableQuantityAttribute(): int
-    {
-        return max(
-            0,
-            (int) $this->current_quantity
-                - (int) $this->reserved_quantity
-        );
-    }
-
-    public function getDisplayStatusAttribute(): string
-    {
-        // Giữ dấu hiệu đã hoàn tất tiêu hủy.
-        if ($this->status === 'recalled') {
-            return 'recalled';
-        }
-
-        // Active hoặc suspended nhưng hết tồn sẽ hiện Đã hết hàng.
-        if ($this->current_quantity <= 0) {
-            return 'out_of_stock';
-        }
-
-        if (in_array(
-            $this->status,
-            ['pending_recalled', 'suspended'],
-            true
-        )) {
-            return $this->status;
-        }
-
-        if ($this->expiry_date->lt(today())) {
-            return 'expired';
-        }
-
-        if ($this->available_quantity <= 0) {
-            return 'reserved';
-        }
-
-        return $this->expiry_date->lte(today()->addDays(3))
-            ? 'near_expiry'
-            : 'active';
-    }
 
     public function plantingBatch(): BelongsTo
     {

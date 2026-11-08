@@ -23,7 +23,7 @@
         || (
         $destroyAll
         ? $blockedForRecall
-        : $selectedBatch->available_quantity <= 0 ) ) ) ); @endphp <!-- Header -->
+        : $this->availableQuantity($selectedBatch) <= 0 ) ) ) ); @endphp <!-- Header -->
             <header
                 class="min-h-[4.5rem] sm:h-20 bg-white/95 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-4 sm:px-8 relative z-10 shrink-0 gap-3">
                 <div class="flex items-center gap-3 min-w-0">
@@ -246,7 +246,7 @@
                                 @forelse ($batches as $batch)
                                 @php
                                 $rowProduct = $batch->plantingBatch?->product;
-                                $state = $batch->display_status;
+                                $state = $this->displayStatus($batch);
 
                                 $hasStock = (int) $batch->current_quantity > 0;
                                 $isExpired = $batch->expiry_date->lt(today());
@@ -352,7 +352,7 @@
 
                                         <span class="text-[10px] text-gray-400 font-mono block">
                                             Giữ: {{ $batch->reserved_quantity }}
-                                            · Khả dụng: {{ $batch->available_quantity }}
+                                            · Khả dụng: {{ $this->availableQuantity($batch) }}
                                         </span>
                                     </td>
 
@@ -506,7 +506,7 @@
                                     Số lượng xuất hủy ({{ $selectedUnit }})
                                     <span class="text-red-500">*</span>
                                     <span>
-                                        (Tối đa: {{ $selectedBatch->available_quantity }}
+                                        (Tối đa: {{ $this->availableQuantity($selectedBatch) }}
                                         {{ $selectedUnit }})
                                     </span>
                                 </label>
@@ -529,9 +529,9 @@
                                     Sales cần xử lý các phân bổ liên quan trước.
                                 </p>
                                 @endif
-                                @elseif ($selectedBatch->available_quantity > 0)
+                                @elseif ($this->availableQuantity($selectedBatch) > 0)
                                 <input type="number" id="sp-qty" wire:model="quantity" step="1" min="1"
-                                    max="{{ $selectedBatch->available_quantity }}" required
+                                    max="{{ $this->availableQuantity($selectedBatch) }}" required
                                     class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold text-rose-600 text-sm outline-none focus:border-rose-500">
                                 @else
                                 <p role="alert">
@@ -726,7 +726,7 @@
 
                             <p class="text-[10px] sm:text-xs text-slate-500">
                                 Giữ chỗ: {{ $selectedBatch->reserved_quantity }}
-                                · Khả dụng: {{ $selectedBatch->available_quantity }}
+                                · Khả dụng: {{ $this->availableQuantity($selectedBatch) }}
                             </p>
                         </div>
                     </div>

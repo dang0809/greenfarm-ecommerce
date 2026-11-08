@@ -20,12 +20,7 @@ use Throwable;
 
 class FarmPlotService
 {
-    public function sow(
-        FarmPlot $plot,
-        ?int $productId,
-        string $plantedDate,
-        User $staff
-    ): PlantingBatch {
+    public function sow(FarmPlot $plot,?int $productId,string $plantedDate,User $staff): PlantingBatch {
         $staff = $this->requireStaff($staff);
 
         $validated = $this->validateData([
@@ -49,15 +44,19 @@ class FarmPlotService
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($lockedPlot->status !== 'active') {
+            if (! in_array(
+                $lockedPlot->status,
+                ['available', 'active'],
+                true
+            )) {
                 $this->reject(
                     'sowProductId',
-                    'Luống đang bảo trì, không thể xuống giống.'
+                    'Luống chưa sẵn sàng để xuống giống.'
                 );
             }
 
             $occupying = $lockedPlot->plantingBatches()
-                ->occupying()
+                ->whereIn('status', ['planting', 'harvesting'])
                 ->lockForUpdate()
                 ->get(['id']);
 
@@ -115,10 +114,12 @@ class FarmPlotService
                 "Xuống giống {$product->name} tại {$lockedPlot->name}. "
                     . "Ngày xuống giống: {$validated['sowDate']}.",
                 null,
-                null,
                 $staff
             );
 
+            $lockedPlot->update([
+                'status' => 'in-progress',
+            ]);
             return $batch;
         });
     }
@@ -159,14 +160,13 @@ class FarmPlotService
                 $lockedBatch = $this->lockBatch($batch->id);
                 $this->requireOpenBatch($lockedBatch, 'logName');
 
-                $imageHash = $this->savePhoto($photo, $imagePath);
+                $this->savePhoto($photo, $imagePath);
 
                 return $this->appendEvent(
                     $lockedBatch,
                     $validated['logName'],
                     $validated['logDesc'],
                     $imagePath,
-                    $imageHash,
                     $staff
                 );
             });
@@ -177,12 +177,7 @@ class FarmPlotService
         }
     }
 
-    public function harvest(
-        PlantingBatch $batch,
-        array $data,
-        ?UploadedFile $photo,
-        User $staff
-    ): ProductBatch {
+    public function harvest(PlantingBatch $batch,array $data,?UploadedFile $photo,User $staff): ProductBatch {
         $staff = $this->requireStaff($staff);
 
         $validated = $this->validateData([
@@ -191,7 +186,6 @@ class FarmPlotService
             'harvestQty' => $data['quantity'] ?? null,
             'harvestNote' => trim((string) ($data['note'] ?? '')),
             'harvestMode' => $data['mode'] ?? null,
-            'harvestToken' => $data['token'] ?? null,
             'harvestPhoto' => $photo,
         ], [
             'harvestDate' => [
@@ -206,15 +200,13 @@ class FarmPlotService
                 'after_or_equal:today',
             ],
             'harvestQty' => [
-                'required',
-                'numeric',
-                'decimal:0,2',
-                'min:0.01',
-                'max:100000',
+            'required',
+            'integer',
+            'min:1',
+            'max:100000',
             ],
             'harvestNote' => ['nullable', 'string', 'max:1000'],
             'harvestMode' => ['required', 'in:inherit,finish'],
-            'harvestToken' => ['required', 'uuid'],
             'harvestPhoto' => [
                 'nullable',
                 'image',
@@ -236,10 +228,9 @@ class FarmPlotService
                 $lockedBatch = $this->lockBatch($batch->id);
 
                 // Trả lại kết quả cũ khi gửi lại cùng một form.
-                $existing = ProductBatch::where(
-                    'harvest_token',
-                    $validated['harvestToken']
-                )->lockForUpdate()->first();
+                $existing = ProductBatch::where('batch_code', $batchCode)
+                    ->lockForUpdate()
+                    ->first();
 
                 if ($existing) {
                     if (
@@ -268,15 +259,12 @@ class FarmPlotService
                     );
                 }
 
-                $quantity = round((float) $validated['harvestQty'], 2);
-                $imageHash = $this->savePhoto($photo, $imagePath);
+                $quantity = (int) $validated['harvestQty'];
+                $this->savePhoto($photo, $imagePath);
 
                 $productBatch = ProductBatch::create([
                     'planting_batch_id' => $lockedBatch->id,
-                    'harvest_token' => $validated['harvestToken'],
-                    'batch_code' => 'TH-'
-                        . now()->format('Ymd') . '-'
-                        . strtoupper((string) Str::uuid()),
+                    'batch_code' => $batchCode,
                     'status' => 'active',
                     'manufactured_date' => $validated['harvestDate'],
                     'expiry_date' => $validated['harvestExpiry'],
@@ -311,7 +299,6 @@ class FarmPlotService
                     'Thu hoạch',
                     $description,
                     $imagePath,
-                    $imageHash,
                     $staff
                 );
 
@@ -321,6 +308,14 @@ class FarmPlotService
                         : 'harvesting',
                 ]);
 
+                FarmPlot::whereKey($lockedBatch->farm_plot_id)
+                ->whereIn('status', ['available', 'active', 'in-progress'])
+                ->update([
+                    'status' => $validated['harvestMode'] === 'finish'
+                        ? 'available'
+                        : 'in-progress',
+                ]);
+
                 return $productBatch;
             });
         } catch (Throwable $exception) {
@@ -328,35 +323,6 @@ class FarmPlotService
 
             throw $exception;
         }
-    }
-
-    public function verifyEvent(
-        TraceabilityEvent $event,
-        User $staff
-    ): ?bool {
-        $this->requireStaff($staff);
-
-        $dataValid = $event->hasValidHash();
-
-        if ($dataValid !== true) {
-            return $dataValid;
-        }
-
-        if (! $event->image) {
-            return true;
-        }
-
-        if (
-            ! $event->image_sha256
-            || ! Storage::disk('public')->exists($event->image)
-        ) {
-            return false;
-        }
-
-        return hash_equals(
-            $event->image_sha256,
-            $this->fileHash($event->image)
-        );
     }
 
     private function lockBatch(int $batchId): PlantingBatch
@@ -395,7 +361,7 @@ class FarmPlotService
         $occupying = PlantingBatch::where(
             'farm_plot_id',
             $batch->farm_plot_id
-        )->occupying()->lockForUpdate()->get(['id']);
+        )->whereIn('status', ['planting', 'harvesting'])->lockForUpdate()->get(['id']);
 
         if (
             $occupying->count() !== 1
@@ -413,58 +379,39 @@ class FarmPlotService
         string $name,
         string $description,
         ?string $imagePath,
-        ?string $imageHash,
         User $staff
     ): TraceabilityEvent {
-        $event = new TraceabilityEvent([
+        return TraceabilityEvent::create([
             'planting_batch_id' => $batch->id,
             'event_name' => $name,
             'description' => $description,
             'image' => $imagePath,
-            'image_sha256' => $imageHash,
             'recorded_by' => $staff->name,
             'recorded_at' => now()->startOfSecond(),
-            'hash_version' => 1,
         ]);
-
-        $event->data_hash = $event->calculateDataHash();
-        $event->save();
-
-        return $event;
     }
 
-    private function savePhoto(
-        ?UploadedFile $photo,
-        ?string &$imagePath
-    ): ?string {
-        if (! $photo) {
-            return null;
+    private function savePhoto(?UploadedFile $photo,?string &$imagePath): void {
+        if ($photo === null) {
+            return;
         }
 
         $storedPath = $photo->store('farm-logs', 'public');
 
         if (! is_string($storedPath) || $storedPath === '') {
-            throw new RuntimeException('Không thể lưu ảnh nhật ký.');
+            throw new RuntimeException(
+                'Không thể lưu ảnh nhật ký.'
+            );
         }
 
+        // Gán sớm để cleanupPhoto() có thể dọn file nếu bước sau lỗi.
         $imagePath = $storedPath;
 
         if (! Storage::disk('public')->exists($imagePath)) {
-            throw new RuntimeException('Ảnh nhật ký chưa được lưu thành công.');
+            throw new RuntimeException(
+                'Ảnh nhật ký chưa được lưu thành công.'
+            );
         }
-
-        return $this->fileHash($imagePath);
-    }
-
-    private function fileHash(string $path): string
-    {
-        $contents = Storage::disk('public')->get($path);
-
-        if (! is_string($contents)) {
-            throw new RuntimeException('Không thể đọc ảnh nhật ký.');
-        }
-
-        return hash('sha256', $contents);
     }
 
     private function cleanupPhoto(?string $path): void
@@ -505,12 +452,10 @@ class FarmPlotService
         return Validator::make($data, $rules, [
             'required' => ':attribute là bắt buộc.',
             'integer' => ':attribute không hợp lệ.',
-            'numeric' => ':attribute phải là số.',
             'date_format' => ':attribute không đúng định dạng ngày.',
             'before_or_equal' => ':attribute không được ở tương lai.',
             'after' => ':attribute phải sau ngày thu hoạch.',
             'after_or_equal' => ':attribute không được trước hôm nay.',
-            'decimal' => ':attribute chỉ nhận tối đa hai chữ số thập phân.',
             'min.numeric' => ':attribute phải từ :min trở lên.',
             'max.numeric' => ':attribute không được vượt quá :max.',
             'min.string' => ':attribute phải có ít nhất :min ký tự.',
@@ -519,7 +464,6 @@ class FarmPlotService
             'image' => ':attribute phải là hình ảnh.',
             'mimes' => ':attribute chỉ nhận JPG, PNG hoặc WEBP.',
             'in' => ':attribute không hợp lệ.',
-            'uuid' => 'Mã thao tác không hợp lệ. Vui lòng mở lại form.',
         ], [
             'sowProductId' => 'Giống trồng',
             'sowDate' => 'Ngày xuống giống',
@@ -531,7 +475,6 @@ class FarmPlotService
             'harvestQty' => 'Sản lượng',
             'harvestNote' => 'Ghi chú',
             'harvestMode' => 'Hình thức thu hoạch',
-            'harvestToken' => 'Mã thao tác',
             'harvestPhoto' => 'Ảnh thu hoạch',
         ])->validate();
     }

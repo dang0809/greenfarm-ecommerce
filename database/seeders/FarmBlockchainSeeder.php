@@ -15,12 +15,12 @@ class FarmBlockchainSeeder extends Seeder
 
         // 1. Khu đất canh tác (Tạo hoặc cập nhật)
         $plotsData = [
-            'A1' => ['name' => 'Nhà Màng A1 - Hữu Cơ', 'area' => '1000', 'status' => 'active'],
-            'A2' => ['name' => 'Nhà Màng A2 - Công Nghệ Cao', 'area' => '1200', 'status' => 'active'],
-            'A3' => ['name' => 'Nhà Màng A3 - Trồng Rau Ăn Lá', 'area' => '1500', 'status' => 'active'],
-            'B1' => ['name' => 'Luống B1 - Ngoài Trời', 'area' => '800', 'status' => 'active'],
-            'N1' => ['name' => 'Nhà Nấm Hữu Cơ N1', 'area' => '600', 'status' => 'active'],
-            'C1' => ['name' => 'Vườn Cây Ăn Trái C1', 'area' => '2500', 'status' => 'active'],
+            'A1' => ['name' => 'Nhà Màng A1 - Hữu Cơ', 'area' => '1000', 'status' => 'available'],
+            'A2' => ['name' => 'Nhà Màng A2 - Công Nghệ Cao', 'area' => '1200', 'status' => 'available'],
+            'A3' => ['name' => 'Nhà Màng A3 - Trồng Rau Ăn Lá', 'area' => '1500', 'status' => 'available'],
+            'B1' => ['name' => 'Luống B1 - Ngoài Trời', 'area' => '800', 'status' => 'available'],
+            'N1' => ['name' => 'Nhà Nấm Hữu Cơ N1', 'area' => '600', 'status' => 'available'],
+            'C1' => ['name' => 'Vườn Cây Ăn Trái C1', 'area' => '2500', 'status' => 'available'],
         ];
 
         $plotIds = [];

@@ -25,11 +25,6 @@ class PlantingBatch extends Model
         ];
     }
 
-    public function scopeOccupying($query)
-    {
-        return $query->whereIn('status', ['planting', 'harvesting']);
-    }
-
     public function farmPlot(): BelongsTo
     {
         return $this->belongsTo(FarmPlot::class);
