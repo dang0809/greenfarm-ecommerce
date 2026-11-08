@@ -160,7 +160,7 @@ class CartPage extends Component
             $this->updatedSelectedItems();
 
             $this->dispatch('cart-updated');
-            $this->dispatch('show-toast', type: 'success', message: 'Đã xóa sản phẩm khỏi giỏ hàng.');
+            $this->dispatch('show-toast', type: 'info', message: 'Đã xóa sản phẩm khỏi giỏ hàng.');
         }
     }
 
@@ -178,7 +178,7 @@ class CartPage extends Component
         $this->dispatch('cart-updated');
         $this->dispatch(
             'show-toast',
-            type: 'success',
+            type: 'info',
             message: 'Đã xóa các sản phẩm được chọn khỏi giỏ hàng.'
         );
     }

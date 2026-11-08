@@ -13,6 +13,7 @@ use App\Models\CartItem;
 use App\Models\Complaint;
 use App\Models\ComplaintImage;
 use App\Models\Payment;
+use App\Events\ComplaintSubmittedEvent;
 
 trait WithOrderActions
 {
@@ -269,21 +270,6 @@ trait WithOrderActions
      */
     public function submitComplaint(): void
     {
-        $this->validate([
-            'complaint_reason'        => 'required|string|max:500',
-            'complaint_refund_amount' => 'required|numeric|min:1000',
-            'bank_name'               => 'required|string',
-            'bank_account_number'     => 'required|string|max:30',
-            'bank_account_name'       => 'required|string|max:100',
-            'complaint_images.*'      => 'image|max:5120',
-        ], [
-            'complaint_reason.required'        => 'Vui lòng nhập lý do khiếu nại dập nát / hư hỏng.',
-            'complaint_refund_amount.required' => 'Vui lòng nhập số tiền đề xuất hoàn.',
-            'bank_name.required'               => 'Vui lòng chọn ngân hàng nhận lại tiền.',
-            'bank_account_number.required'     => 'Vui lòng nhập số tài khoản ngân hàng.',
-            'bank_account_name.required'       => 'Vui lòng nhập tên chủ tài khoản.',
-        ]);
-
         $targetId = $this->complainingOrderId ?? ($this->orderId ?? null);
         $order = Order::with('statusHistories')
             ->where('user_id', Auth::id())
@@ -304,14 +290,37 @@ trait WithOrderActions
             return;
         }
 
-        DB::transaction(function () use ($order) {
+        $this->validate([
+            'complaint_reason'        => 'required|string|min:10|max:500',
+            'bank_name'               => 'required|string',
+            'bank_account_number'     => 'required|string|max:30',
+            'bank_account_name'       => 'required|string|max:100',
+            'complaint_images'        => 'required|array|min:1|max:4',
+            'complaint_images.*'      => 'image|mimes:jpeg,png,jpg,webp|max:5120',
+        ], [
+            'complaint_reason.required'        => 'Vui lòng nhập lý do khiếu nại dập nát / hư hỏng.',
+            'complaint_reason.min'             => 'Lý do khiếu nại phải có ít nhất 10 ký tự để tiện thẩm định.',
+            'bank_name.required'               => 'Vui lòng chọn ngân hàng nhận lại tiền.',
+            'bank_account_number.required'     => 'Vui lòng nhập số tài khoản ngân hàng.',
+            'bank_account_name.required'       => 'Vui lòng nhập tên chủ tài khoản.',
+            'complaint_images.required'        => 'Vui lòng tải lên ít nhất 1 hình ảnh bằng chứng.',
+            'complaint_images.min'             => 'Vui lòng tải lên ít nhất 1 hình ảnh bằng chứng.',
+            'complaint_images.max'             => 'Chỉ được tải lên tối đa 4 hình ảnh bằng chứng.',
+            'complaint_images.*.image'         => 'Tập tin tải lên phải là hình ảnh.',
+            'complaint_images.*.mimes'         => 'Hình ảnh phải có định dạng: jpeg, png, jpg, webp.',
+            'complaint_images.*.max'           => 'Mỗi hình ảnh không được vượt quá 5MB.',
+        ]);
+
+        $complaint = null;
+
+        DB::transaction(function () use ($order, &$complaint) {
             $bankAccName = mb_strtoupper($this->bank_account_name);
 
             $complaint = Complaint::create([
                 'order_id'            => $order->id,
                 'user_id'             => Auth::id(),
                 'reason'              => $this->complaint_reason,
-                'refund_amount'       => min((float) $this->complaint_refund_amount, (float) $order->total),
+                'refund_amount'       => (float) $order->total,
                 'status'              => 'pending',
                 'bank_name'           => $this->bank_name,
                 'bank_account_number' => $this->bank_account_number,
@@ -322,7 +331,7 @@ trait WithOrderActions
                 foreach ($this->complaint_images as $img) {
                     ComplaintImage::create([
                         'complaint_id' => $complaint->id,
-                        'image'        => $img->store('complaints', 'public'),
+                        'image'        => $img->store('complaints', 'r2'),
                     ]);
                 }
             }
@@ -333,6 +342,11 @@ trait WithOrderActions
                 'default_bank_account_name'   => $bankAccName,
             ]);
         });
+
+        // Phát sóng sự kiện Realtime cho bộ phận Sales
+        if ($complaint) {
+            broadcast(new ComplaintSubmittedEvent($complaint));
+        }
 
         $this->resetComplaintModal();
         $this->dispatch('show-toast', type: 'success', message: 'Đã gửi yêu cầu khiếu nại hoàn tiền. Nông trại sẽ phản hồi trong 24h!');

@@ -668,5 +668,5 @@
     </div>
 
     <!-- MODAL KHIẾU NẠI HOÀN TIỀN DẬP NÁT (24H) -->
-    <x-customer.complaint-modal :show="$showComplaintModal" :max-refund="$order->total" />
+    <x-customer.complaint-modal :show="$showComplaintModal" />
 </div>

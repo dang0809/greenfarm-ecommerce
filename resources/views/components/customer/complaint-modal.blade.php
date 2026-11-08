@@ -1,4 +1,4 @@
-@props(['show' => false, 'maxRefund' => null])
+@props(['show' => false])
 
 @if ($show)
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
@@ -22,13 +22,17 @@
                     @error('complaint_reason') <span class="text-red-500 text-[11px] block mt-0.5">{{ $message }}</span> @enderror
                 </div>
 
-                <div>
-                    <label class="font-bold text-gray-700 block mb-1">Số tiền đề xuất hoàn (VNĐ) *</label>
-                    <input type="number" wire:model="complaint_refund_amount" class="w-full rounded-xl border-gray-200 text-xs font-mono font-bold focus:ring-brand-500 focus:border-brand-500" placeholder="VD: 50000">
-                    @if ($maxRefund)
-                        <span class="text-[10px] text-gray-400 mt-0.5 block">Tối đa: {{ number_format($maxRefund) }}đ (Tổng giá trị đơn hàng)</span>
-                    @endif
-                    @error('complaint_refund_amount') <span class="text-red-500 text-[11px] block mt-0.5">{{ $message }}</span> @enderror
+                <!-- Số tiền bồi hoàn cố định theo giá trị đơn hàng (100%) -->
+                <div class="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-3.5 flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-bold text-emerald-900 block flex items-center gap-1.5">
+                            <i class="fa-solid fa-hand-holding-dollar text-emerald-600"></i> Số tiền bồi hoàn:
+                        </span>
+                        <span class="text-[10px] text-emerald-700 font-medium">Chính sách bảo hành hoàn trả 100% giá trị đơn hàng</span>
+                    </div>
+                    <span class="text-base sm:text-lg font-black text-emerald-800 font-mono">
+                        {{ number_format($complaint_refund_amount ?? 0, 0, ',', '.') }}đ
+                    </span>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -62,9 +66,25 @@
                 </div>
 
                 <div>
-                    <label class="font-bold text-gray-700 block mb-1">Hình ảnh bằng chứng nông sản hư hại</label>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="font-bold text-gray-700 block">Hình ảnh bằng chứng nông sản hư hại *</label>
+                        <span class="text-[10px] text-gray-400 font-medium">(Tối thiểu 1 ảnh, tối đa 4 ảnh)</span>
+                    </div>
                     <input type="file" wire:model="complaint_images" multiple accept="image/*" class="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 cursor-pointer">
+                    @error('complaint_images') <span class="text-red-500 text-[11px] block mt-0.5">{{ $message }}</span> @enderror
                     @error('complaint_images.*') <span class="text-red-500 text-[11px] block mt-0.5">{{ $message }}</span> @enderror
+
+                    @if(!empty($complaint_images))
+                        <div class="flex flex-wrap gap-2 mt-2">
+                            @foreach($complaint_images as $cImg)
+                                @if(is_object($cImg) && method_exists($cImg, 'temporaryUrl'))
+                                    <div class="relative w-14 h-14 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 shadow-2xs">
+                                        <img src="{{ $cImg->temporaryUrl() }}" class="w-full h-full object-cover">
+                                    </div>
+                                @endif
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
 
                 <div class="flex justify-end gap-2 pt-3 border-t border-gray-100">
