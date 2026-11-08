@@ -1,4 +1,4 @@
-<div>
+<div x-data="{ confirmingProduct: false }" x-on:product-confirm-state="confirmingProduct = $event.detail.busy">
     <!-- Header Topbar -->
     <header
         class="min-h-[4.5rem] sm:h-20 bg-white/95 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-8 shrink-0 z-20 gap-3">
@@ -155,15 +155,32 @@
                             </td>
 
                             <td class="py-3.5 px-4 text-center">
-                                <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" wire:click.prevent="toggleStatus({{ $product->id }})"
-                                        wire:loading.attr="disabled" @checked($product->status === 'active')
-                                    class="sr-only peer">
+                                <div x-data="{ enabled: @js($product->status === 'active') }"
+                                    x-on:product-status-updated.window="if (Number($event.detail.id) === {{ $product->id }}) {enabled = $event.detail.status === 'active';}"
+                                    class="inline-flex items-center">
 
-                                    <div
-                                        class="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-600">
-                                    </div>
-                                </label>
+                                    <button type="button" role="switch"
+                                        wire:click="requestToggleStatus({{ $product->id }})"
+                                        wire:loading.attr="disabled" wire:target="requestToggleStatus,toggleStatus"
+                                        x-bind:disabled="confirmingProduct" x-bind:aria-checked="enabled.toString()"
+                                        x-bind:aria-label="enabled
+                                        ? 'Tắt hiển thị sản phẩm'
+                                        : 'Bật hiển thị sản phẩm'" x-bind:class="enabled
+                                        ? 'bg-brand-600'
+                                        : 'bg-slate-300'" class="relative inline-flex h-6 w-11 items-center rounded-full
+                                        transition-colors duration-300
+                                        focus:outline-none focus:ring-2 focus:ring-brand-500
+                                        focus:ring-offset-2 disabled:opacity-60
+                                        disabled:cursor-wait cursor-pointer">
+
+                                        <span x-bind:class="enabled
+                                            ? 'translate-x-5'
+                                            : 'translate-x-1'" class="inline-block h-5 w-5 rounded-full bg-white shadow
+                                            ring-1 ring-slate-200
+                                            transition-transform duration-300 ease-in-out">
+                                        </span>
+                                    </button>
+                                </div>
                             </td>
 
                             <td class="py-3.5 px-4 pr-6 text-right space-x-1.5">
@@ -237,6 +254,14 @@
                     $event.stopImmediatePropagation();
                 }
             " class="space-y-3.5 text-xs sm:text-sm">
+                @if ($errors->any())
+                <div role="alert" class="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+
+                    @foreach ($errors->all() as $message)
+                    <p>{{ $message }}</p>
+                    @endforeach
+                </div>
+                @endif
 
                 <input type="hidden" id="p-id" value="{{ $editingId }}">
 
@@ -277,14 +302,14 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-3 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5">
                     <div>
                         <label class="block font-bold text-slate-700 mb-1">
                             Đơn vị tính
                         </label>
 
                         <select id="p-unit" wire:model="unit" required
-                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600 cursor-pointer">
+                            class="w-full min-w-0 bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600 cursor-pointer">
 
                             <option value="kg">Kg</option>
                             <option value="bó">Bó</option>
@@ -305,17 +330,7 @@
 
                         <input type="number" id="p-price" wire:model="price" min="0.01" max="9999999999.99" step="0.01"
                             required
-                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono outline-none focus:border-brand-600">
-                    </div>
-
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">
-                            Giá khuyến mãi (đ)
-                        </label>
-
-                        <input type="number" id="p-sale-price" wire:model="sale_price" min="0.01" max="9999999999.99"
-                            step="0.01"
-                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono outline-none focus:border-brand-600">
+                            class="w-full min-w-0 bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono outline-none focus:border-brand-600">
                     </div>
                 </div>
 
@@ -332,10 +347,12 @@
                 <div class="space-y-3">
                     <label for="p-image" class="block font-bold text-slate-700 mb-1">
                         Ảnh sản phẩm
+                        @if ($editingId === null || ! $currentImageUrl)
+                        <span class="text-red-500">*</span>
+                        @endif
                     </label>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {{-- Khi chỉnh sửa: luôn hiển thị ảnh đang lưu --}}
                         @if ($editingId)
                         <div class="border border-slate-200 rounded-xl p-3">
                             <p class="font-bold text-slate-600 mb-2">
@@ -346,8 +363,10 @@
                             <img src="{{ $currentImageUrl }}" alt="Ảnh sản phẩm đang lưu"
                                 class="w-full h-36 object-contain rounded-lg bg-slate-50">
                             @else
-                            <p class="text-slate-400">
-                                Sản phẩm chưa có ảnh.
+                            <p class="text-[11px] text-slate-400">
+                                Sản phẩm chưa có ảnh phải tải ảnh lên trước khi lưu.
+                                Nếu đã có ảnh, có thể giữ ảnh hiện tại.
+                                JPG, JPEG, PNG hoặc WEBP; tối đa 2 MB.
                             </p>
                             @endif
                         </div>
@@ -458,6 +477,16 @@
     let submitting = false;
     let confirming = false;
 
+    function setConfirmationState(busy) {
+        $wire.$el.dispatchEvent(
+            new CustomEvent('product-confirm-state', {
+                detail: {
+                    busy
+                }
+            })
+        );
+    }
+
     async function showProductErrors(error = null) {
         const messages = error?.errors ?
             Object.values(error.errors).flat() :
@@ -503,12 +532,15 @@
         if (confirming) return;
 
         confirming = true;
+        setConfirmationState(true);
 
         try {
             const result = await Swal.fire({
                 icon: 'question',
-                title: $wire.editingId ?
+
+                title: $wire.editingId !== null ?
                     'Xác nhận cập nhật sản phẩm?' : 'Xác nhận thêm sản phẩm?',
+
                 text: 'Bạn có muốn lưu thông tin và ảnh sản phẩm?',
                 showCancelButton: true,
                 confirmButtonText: 'Xác nhận',
@@ -524,11 +556,62 @@
                     () => $wire.saveProduct()
                 );
             }
-
-            // Hủy: không gọi closeModal hoặc reset.
-            // Giữ thông tin và ảnh mới đang chọn.
+        } catch (error) {
+            await showProductErrors(error);
         } finally {
             confirming = false;
+            setConfirmationState(false);
+        }
+    });
+
+    $wire.on('confirm-product-status', async ({
+        id,
+        name,
+        expectedStatus,
+        targetStatus
+    }) => {
+        if (confirming) return;
+
+        confirming = true;
+        setConfirmationState(true);
+
+        try {
+            const enabling = targetStatus === 'active';
+
+            const result = await Swal.fire({
+                icon: enabling ? 'question' : 'warning',
+
+                title: enabling ?
+                    'Bật hiển thị sản phẩm?' :
+                    'Tắt hiển thị sản phẩm?',
+
+                text: enabling ?
+                    'Hiển thị “' + name + '” trên cửa hàng?' :
+                    'Ẩn “' + name + '” khỏi cửa hàng?',
+
+                showCancelButton: true,
+                confirmButtonText: 'Xác nhận',
+                cancelButtonText: 'Hủy',
+                confirmButtonColor: enabling ? '#15803d' : '#dc2626',
+                cancelButtonColor: '#6b7280',
+                reverseButtons: true,
+                allowOutsideClick: false
+            });
+
+            if (result.isConfirmed) {
+                await runProductAction(
+                    () => $wire.toggleStatus(
+                        id,
+                        expectedStatus,
+                        targetStatus
+                    )
+                );
+            }
+        } catch (error) {
+            await showProductErrors(error);
+        } finally {
+            confirming = false;
+            setConfirmationState(false);
         }
     });
     </script>
