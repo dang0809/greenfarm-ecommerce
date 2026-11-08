@@ -6,6 +6,7 @@ use App\Events\UserNotificationSent;
 use App\Mail\OrderNotificationMail;
 use App\Models\Notification;
 use App\Models\Order;
+use App\Models\Complaint;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -108,6 +109,83 @@ class OrderNotificationService
         } catch (\Exception $e) {
             Log::error('Order Notification (Delivered) Error: ' . $e->getMessage(), [
                 'order_id' => $order->id ?? null,
+            ]);
+        }
+    }
+
+    /**
+     * Thông báo Realtime khi Sales duyệt hoàn tiền khiếu nại (đã hoàn tất chuyển khoản)
+     */
+    public static function notifyComplaintResolved(Complaint $complaint): void
+    {
+        try {
+            $complaint->loadMissing(['order', 'user']);
+            $userId    = (int) $complaint->user_id;
+            $orderCode = $complaint->order->order_code;
+            $refundFormatted = number_format($complaint->refund_amount, 0, ',', '.') . 'đ';
+            $bankInfo = trim("{$complaint->bank_name} ({$complaint->bank_account_number})");
+
+            // 1. Ghi thông báo Web vào bảng notifications
+            $notification = Notification::create([
+                'user_id' => $userId,
+                'type'    => 'complaint_resolved',
+                'title'   => '💰 Đã hoàn tiền khiếu nại đơn #' . $orderCode,
+                'content' => 'Nông trại Đất Lành đã hoàn tất chuyển khoản ' . $refundFormatted . ' vào tài khoản ' . $bankInfo . ' của bạn. Vui lòng kiểm tra tài khoản ngân hàng.',
+                'data'    => [
+                    'order_id'      => $complaint->order_id,
+                    'order_code'    => $orderCode,
+                    'complaint_id'  => $complaint->id,
+                    'refund_amount' => $complaint->refund_amount,
+                    'icon'          => 'fa-hand-holding-dollar',
+                    'toast_type'    => 'success',
+                    'url'           => '/ho-so?tab=orders',
+                ],
+            ]);
+
+            // 2. Phát sóng Realtime tới Quả chuông trên Header của người dùng
+            broadcast(new UserNotificationSent($notification));
+
+        } catch (\Exception $e) {
+            Log::error('Complaint Notification (Resolved) Error: ' . $e->getMessage(), [
+                'complaint_id' => $complaint->id ?? null,
+            ]);
+        }
+    }
+
+    /**
+     * Thông báo Realtime khi Sales từ chối bồi hoàn khiếu nại
+     */
+    public static function notifyComplaintRejected(Complaint $complaint, string $reason = ''): void
+    {
+        try {
+            $complaint->loadMissing(['order', 'user']);
+            $userId     = (int) $complaint->user_id;
+            $orderCode  = $complaint->order->order_code;
+            $reasonText = !empty($reason) ? $reason : ($complaint->resolution_note ?? 'Không đáp ứng điều kiện bảo hành 24h');
+
+            // 1. Ghi thông báo Web vào bảng notifications
+            $notification = Notification::create([
+                'user_id' => $userId,
+                'type'    => 'complaint_rejected',
+                'title'   => '❌ Khiếu nại đơn #' . $orderCode . ' không được chấp thuận',
+                'content' => 'Yêu cầu bồi hoàn cho đơn #' . $orderCode . ' đã bị từ chối. Lý do: "' . $reasonText . '". Nếu cần hỗ trợ thêm, vui lòng liên hệ hotline nông trại.',
+                'data'    => [
+                    'order_id'      => $complaint->order_id,
+                    'order_code'    => $orderCode,
+                    'complaint_id'  => $complaint->id,
+                    'reject_reason' => $reasonText,
+                    'icon'          => 'fa-circle-xmark',
+                    'toast_type'    => 'error',
+                    'url'           => '/ho-so?tab=orders',
+                ],
+            ]);
+
+            // 2. Phát sóng Realtime tới Quả chuông trên Header của người dùng
+            broadcast(new UserNotificationSent($notification));
+
+        } catch (\Exception $e) {
+            Log::error('Complaint Notification (Rejected) Error: ' . $e->getMessage(), [
+                'complaint_id' => $complaint->id ?? null,
             ]);
         }
     }

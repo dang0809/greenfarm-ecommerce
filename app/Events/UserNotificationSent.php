@@ -26,6 +26,7 @@ class UserNotificationSent implements ShouldBroadcastNow
 
         $this->notificationData = [
             'id'           => $notification->id,
+            'type'         => $notification->type,
             'title'        => $notification->title,
             'content'      => $notification->content,
             'data'         => $notification->data,

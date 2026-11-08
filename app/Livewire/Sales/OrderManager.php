@@ -71,13 +71,14 @@ class OrderManager extends Component
         $this->resetPage();
 
         // 2. Lấy dữ liệu đơn vừa nổ và hiển thị Toast màu xanh góc màn hình
-        $orderCode = $payload['orderData']['order_code'] ?? ($payload['order_code'] ?? '');
-        $customerName = $payload['orderData']['recipient_name'] ?? ($payload['recipient_name'] ?? 'Khách hàng');
-        $totalFormatted = isset($payload['orderData']['total']) 
-            ? number_format($payload['orderData']['total'], 0, ',', '.') . 'đ'
+        $orderData      = $payload['orderData'] ?? [];
+        $orderCode      = $orderData['order_code'] ?? '';
+        $customerName   = $orderData['recipient_name'] ?? 'Khách hàng';
+        $totalFormatted = !empty($orderData['total']) 
+            ? number_format($orderData['total'], 0, ',', '.') . 'đ'
             : '';
 
-        $orderType = $payload['orderData']['order_type'] ?? ($payload['order_type'] ?? '');
+        $orderType = $orderData['order_type'] ?? '';
         if ($orderType === 'subscription_delivery') {
             $message = "👑 ĐỢT GIAO VIP MỚI #{$orderCode} từ {$customerName}!";
         } else {
