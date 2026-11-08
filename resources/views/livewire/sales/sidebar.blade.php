@@ -32,9 +32,16 @@
             </a>
 
             <!-- 2. Xử lý khiếu nại -->
-            <a href="{{ route('sales.complaints') }}" wire:navigate class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all {{ str_starts_with($activeRoute, 'sales.complaints') ? 'menu-active' : 'menu-inactive' }} text-left">
-                <i class="fa-solid fa-shield-heart w-5 text-center"></i>
-                <span>Xử Lý Khiếu Nại</span>
+            <a href="{{ route('sales.complaints') }}" wire:navigate class="w-full flex items-center justify-between px-4 py-3 rounded-2xl font-bold text-sm transition-all {{ str_starts_with($activeRoute, 'sales.complaints') ? 'menu-active' : 'menu-inactive' }} text-left">
+                <div class="flex items-center space-x-3">
+                    <i class="fa-solid fa-shield-heart w-5 text-center"></i>
+                    <span>Xử Lý Khiếu Nại</span>
+                </div>
+                @if (isset($pendingComplaintCount) && $pendingComplaintCount > 0)
+                    <span class="inline-flex items-center justify-center px-2 py-0.5 text-[11px] font-black rounded-full bg-rose-500 text-white shadow-xs">
+                        {{ $pendingComplaintCount > 99 ? '99+' : $pendingComplaintCount }}
+                    </span>
+                @endif
             </a>
 
             <!-- 3. Quản lý xả hàng -->

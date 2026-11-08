@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
-use App\Livewire\Traits\HandlesCart; 
+use App\Livewire\FarmStaff\ProductManager as ProductData;
+use App\Livewire\Traits\HandlesCart;
 #[Layout('layouts.customer.app')]
 #[Title('Nông Trại Đất Lành | Nông Sản Sạch Tự Trồng - Tự Bán')]
 class HomePage extends Component
@@ -32,7 +33,7 @@ class HomePage extends Component
                 $query->where('is_primary', true);
             }
         ])
-        ->withTotalStock()
+        ->tap([ProductData::class, 'withTotalStock'])
         ->where('status', 'active')
         ->whereHas('category', function ($query) {
             $query->where('is_active', true);

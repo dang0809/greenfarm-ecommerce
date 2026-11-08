@@ -7,6 +7,8 @@ use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -127,7 +129,7 @@ class ProductManager extends Component
     {
         $this->staff();
 
-        $product = Product::with('coverImage')->findOrFail($id);
+        $product = Product::with('productImages')->findOrFail($id);
 
         $this->resetForm();
         $this->editingId = $product->id;
@@ -147,7 +149,7 @@ class ProductManager extends Component
         }
 
         $this->category_id = (string) $product->category_id;
-        $this->currentImageUrl = $product->cover_image_url;
+        $this->currentImageUrl = self::getCoverImageUrl($product);
         $this->showModal = true;
     }
 
@@ -180,6 +182,32 @@ class ProductManager extends Component
         $this->slug = $name === trim((string) $product->name)
             ? (string) $product->slug
             : Str::slug($name);
+    }
+
+    private function productImageRules(bool $required): array
+    {
+        return [
+            'bail',
+            $required ? 'required' : 'nullable',
+            'file',
+            'image',
+            'mimes:jpg,jpeg,png,webp',
+            'max:2048',
+        ];
+    }
+
+    private function validateProductImage(?Product $product): void
+    {
+        // Kiểm tra ảnh đang lưu trong database.
+        $hasImage = $product !== null
+            && $product->exists
+            && $product->productImages()
+                ->whereRaw("TRIM(image) <> ''")
+                ->exists();
+
+        $this->validateOnly('newImage', [
+            'newImage' => $this->productImageRules(! $hasImage),
+        ]);
     }
 
     protected function rules(): array
@@ -256,13 +284,7 @@ class ProductManager extends Component
                 Rule::in(['active', 'hidden']),
             ],
 
-            'newImage' => [
-                'bail',
-                'nullable',
-                'image',
-                'mimes:jpg,jpeg,png,webp',
-                'max:2048',
-            ],
+            'newImage' => $this->productImageRules(false),
         ];
     }
 
@@ -289,6 +311,8 @@ class ProductManager extends Component
             'newImage.image' => 'Tệp được chọn không phải ảnh hợp lệ.',
             'newImage.mimes' => 'Chỉ chấp nhận JPG, JPEG, PNG hoặc WEBP.',
             'newImage.max' => 'Ảnh chính không được vượt quá 2 MB.',
+            'newImage.required' => 'Vui lòng tải ảnh sản phẩm lên trước khi lưu.',
+            'newImage.file' => 'Tệp tải lên không hợp lệ.',
         ];
     }
 
@@ -313,6 +337,92 @@ class ProductManager extends Component
         $this->reset('newImage');
         $this->imageInputKey++;
         $this->resetValidation('newImage');
+    }
+
+    public static function coverImage(Product $product): HasMany
+    {
+        return $product->productImages()
+            ->orderByDesc('is_primary')
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
+
+    public static function getCoverImageUrl(?Product $product): ?string
+    {
+        if ($product === null) {
+            return null;
+        }
+
+        $cover = $product->relationLoaded('productImages')
+            ? $product->productImages
+                ->sortBy([
+                    ['is_primary', 'desc'],
+                    ['sort_order', 'asc'],
+                    ['id', 'asc'],
+                ])
+                ->first()
+            : self::coverImage($product)->first();
+
+        $path = trim((string) ($cover?->image ?? ''));
+
+        if ($path === '') {
+            return null;
+        }
+
+        return Str::startsWith($path, ['http://', 'https://'])
+            ? $path
+            : Storage::disk('public')->url(ltrim($path, '/'));
+    }
+
+    public static function withTotalStock(Builder $query): Builder
+    {
+        return $query->withSum([
+            'batches as total_stock' => function (Builder $query) {
+                $query
+                    ->where('product_batches.status', 'active')
+                    ->whereRaw(
+                        'product_batches.current_quantity
+                        > COALESCE(product_batches.reserved_quantity, 0)'
+                    )
+                    ->whereDate(
+                        'product_batches.expiry_date',
+                        '>=',
+                        today()
+                    );
+            },
+        ], DB::raw(
+            'current_quantity - COALESCE(reserved_quantity, 0)'
+        ));
+    }
+
+    public static function getTotalStock(?Product $product): int
+    {
+        if ($product === null) {
+            return 0;
+        }
+
+        $attributes = $product->getAttributes();
+
+        // Đã có tổng tồn từ query: sử dụng ngay, không query thêm.
+        if (array_key_exists('total_stock', $attributes)) {
+            return (int) ($attributes['total_stock'] ?? 0);
+        }
+
+        // Sản phẩm được lấy riêng, chưa có tổng tồn.
+        return (int) $product->batches()
+            ->where('product_batches.status', 'active')
+            ->whereRaw(
+                'product_batches.current_quantity
+                > COALESCE(product_batches.reserved_quantity, 0)'
+            )
+            ->whereDate(
+                'product_batches.expiry_date',
+                '>=',
+                today()
+            )
+            ->sum(DB::raw(
+                'current_quantity - COALESCE(reserved_quantity, 0)'
+            ));
     }
 
     private function validatedData(): array
@@ -351,10 +461,21 @@ class ProductManager extends Component
     {
         $this->staff();
 
+        if (! $this->showModal) {
+            return;
+        }
+
+        $this->resetValidation('form');
         $data = $this->validatedData();
 
-        if ($this->editingId !== null) {
-            $product = Product::findOrFail($this->editingId);
+        $product = $this->editingId !== null
+            ? Product::findOrFail($this->editingId)
+            : null;
+
+        // Kiểm tra ảnh trước khi kiểm tra dữ liệu "không thay đổi".
+        $this->validateProductImage($product);
+
+        if ($product !== null) {
             $product->fill($data);
 
             if (! $product->isDirty() && $this->newImage === null) {
@@ -366,7 +487,7 @@ class ProductManager extends Component
 
         $this->dispatch('confirm-product-save');
     }
-
+    
     public function saveProduct(): void
     {
         $this->staff();
@@ -384,69 +505,64 @@ class ProductManager extends Component
                 &$newPath,
                 &$oldPath
             ) {
-
-            $category = Category::query()
-                ->lockForUpdate()
-                ->findOrFail($data['category_id']);
-
-            if (! $category->is_active && $data['status'] === 'active') {
-                throw ValidationException::withMessages([
-                    'status' => 'Danh mục đang ẩn. Sản phẩm phải ở trạng thái ẩn.',
-                ]);
-            }
-            
-            $product = $this->editingId === null
+                $product = $this->editingId === null
                     ? new Product()
                     : Product::lockForUpdate()
                         ->findOrFail($this->editingId);
 
-            $product->fill($data);
+                $this->validateProductImage($product->exists ? $product : null);
 
-            if (
-                $product->exists
-            && ! $product->isDirty()
-                 && $this->newImage === null
-            ) {
-                return false;
-            }
+                $product->fill($data);
 
-            if (! $product->save()) {
-                throw new RuntimeException(
-                    'Không lưu được sản phẩm.'
-                );
-            }
+                if (
+                    $product->exists
+                    && ! $product->isDirty()
+                    && $this->newImage === null
+                ) {
+                    return false;
+                }
 
-            if ($this->newImage !== null) {
-                $newPath = $this->newImage->store(
-                    "products/{$product->id}",
-                    'public'
-                );
-
-                if (! is_string($newPath) || $newPath === '') {
+                if (! $product->save()) {
                     throw new RuntimeException(
-                        'Không lưu được ảnh.'
+                        'Không lưu được sản phẩm.'
                     );
                 }
 
-                $cover = $product->coverImage()
+                if ($this->newImage !== null) {
+                    $newPath = $this->newImage->store(
+                        "products/{$product->id}",
+                        'public'
+                    );
+
+                if (
+                    ! is_string($newPath)
+                    || $newPath === ''
+                    || ! Storage::disk('public')->exists($newPath)
+                ) {
+                    throw new RuntimeException(
+                        'Không lưu được ảnh sản phẩm.'
+                    );
+                }
+
+                    $cover = self::coverImage($product)
                     ->lockForUpdate()
                     ->first();
 
-                $oldPath = $cover?->image;
+                    $oldPath = $cover?->image;
 
-                $cover ??= $product->productImages()->make();
+                    $cover ??= $product->productImages()->make();
 
-                $cover->fill([
-                    'image' => $newPath,
-                    'is_primary' => true,
-                    'sort_order' => 0,
-                ]);
+                    $cover->fill([
+                        'image' => $newPath,
+                        'is_primary' => true,
+                        'sort_order' => 0,
+                    ]);
 
-                if (! $cover->save()) {
-                    throw new RuntimeException(
-                        'Không lưu được dữ liệu ảnh.'
-                    );
-                }
+                    if (! $cover->save()) {
+                        throw new RuntimeException(
+                            'Không lưu được dữ liệu ảnh.'
+                        );
+                    }
 
                     // Đảm bảo các ảnh khác không còn là ảnh chính.
                     $product->productImages()
@@ -502,15 +618,61 @@ class ProductManager extends Component
         );
     }
 
-    public function toggleStatus(int $id): void
+    public function requestToggleStatus(int $id): void
     {
         $this->staff();
+        $this->resetValidation();
+
+        $product = Product::with('category')->findOrFail($id);
+
+        $from = (string) $product->status;
+        $to = $from === 'active' ? 'hidden' : 'active';
+
+        if (
+            $to === 'active'
+            && ! $product->category?->is_active
+        ) {
+            $this->notify(
+                'info',
+                'Hãy hiển thị danh mục trước khi bật sản phẩm.'
+            );
+
+            return;
+        }
+
+        // Chưa cập nhật database.
+        $this->dispatch(
+        'confirm-product-status',
+        id: $product->id,
+        name: $product->name,
+        expectedStatus: $from,
+        targetStatus: $to
+        )->self();
+    }
+
+    public function toggleStatus(
+        int $id,
+        string $expectedStatus,
+        string $targetStatus
+    ): void {
+        $this->staff();
+
+        abort_unless(
+            in_array($expectedStatus, ['active', 'hidden'], true)
+                && in_array($targetStatus, ['active', 'hidden'], true)
+                && $expectedStatus !== $targetStatus,
+            422
+        );
 
         try {
-            $changed = DB::transaction(function () use ($id) {
+            $result = DB::transaction(function () use (
+                $id,
+                $expectedStatus,
+                $targetStatus
+            ) {
                 $snapshot = Product::findOrFail($id);
 
-                // Khóa danh mục trước sản phẩm, cùng thứ tự với saveCategory().
+                // Khóa danh mục trước sản phẩm.
                 $category = Category::query()
                     ->lockForUpdate()
                     ->findOrFail($snapshot->category_id);
@@ -519,27 +681,30 @@ class ProductManager extends Component
                     ->lockForUpdate()
                     ->findOrFail($id);
 
-                // Kiểm tra nếu sản phẩm vừa được chuyển danh mục.
                 if (
                     (int) $product->category_id
                     !== (int) $category->id
                 ) {
-                    throw new RuntimeException(
-                        'Sản phẩm vừa được chuyển danh mục. Vui lòng tải lại.'
-                    );
+                    return 'stale';
                 }
 
-                // Không bật sản phẩm trong danh mục đang ẩn.
                 if (
-                    $product->status !== 'active'
+                    $targetStatus === 'active'
                     && ! $category->is_active
                 ) {
-                    return false;
+                    return 'category_hidden';
                 }
 
-                $product->status = $product->status === 'active'
-                    ? 'hidden'
-                    : 'active';
+                // Request lặp không đảo trạng thái lần nữa.
+                if ($product->status === $targetStatus) {
+                    return 'unchanged';
+                }
+
+                if ($product->status !== $expectedStatus) {
+                    return 'stale';
+                }
+
+                $product->status = $targetStatus;
 
                 if (! $product->save()) {
                     throw new RuntimeException(
@@ -547,7 +712,7 @@ class ProductManager extends Component
                     );
                 }
 
-                return true;
+                return 'saved';
             });
         } catch (Throwable $exception) {
             report($exception);
@@ -560,20 +725,40 @@ class ProductManager extends Component
             return;
         }
 
-        if (! $changed) {
+        if ($result === 'category_hidden') {
             $this->notify(
                 'info',
-                'Danh mục đang ẩn. Hãy mở danh mục trước khi hiển thị sản phẩm.'
+                'Hãy hiển thị danh mục trước khi bật sản phẩm.'
             );
 
             return;
         }
 
-        $this->resetPage();
+        if ($result === 'stale') {
+            $this->notify(
+                'info',
+                'Sản phẩm đã thay đổi. Vui lòng tải lại rồi thử lại.'
+            );
+
+            return;
+        }
+
+        // cập nhật hiệu ứng toggle.
+        $this->dispatch(
+            'product-status-updated',
+            id: $id,
+            status: $targetStatus
+        );
 
         $this->notify(
-            'success',
-            'Đã cập nhật trạng thái sản phẩm!'
+            $result === 'saved' ? 'success' : 'info',
+            $result === 'saved'
+                ? (
+                    $targetStatus === 'active'
+                        ? 'Đã bật hiển thị sản phẩm!'
+                        : 'Đã tắt hiển thị sản phẩm!'
+                )
+                : 'Sản phẩm đã ở trạng thái này.'
         );
     }
 
@@ -654,25 +839,23 @@ class ProductManager extends Component
     {
         $this->staff();
 
-        $products = Product::with([
-                'category',
-                'coverImage',
-            ])
-            ->withTotalStock()
+        $products = self::withTotalStock(
+            Product::with(['category', 'productImages'])
+        )
             ->when(
                 trim($this->search) !== '',
-                function ($q) {
+                function ($query) {
                     $term = '%'.trim($this->search).'%';
 
-                    $q->where(fn ($q) =>
-                        $q->where('name', 'like', $term)
+                    $query->where(fn ($query) =>
+                        $query->where('name', 'like', $term)
                             ->orWhere('sku', 'like', $term)
                     );
                 }
             )
             ->when(
                 $this->selectedCategory !== '',
-                fn ($q) => $q->where(
+                fn ($query) => $query->where(
                     'category_id',
                     $this->selectedCategory
                 )
@@ -683,7 +866,7 @@ class ProductManager extends Component
                     ['active', 'hidden'],
                     true
                 ),
-                fn ($q) => $q->where(
+                fn ($query) => $query->where(
                     'status',
                     $this->selectedStatus
                 )
@@ -691,9 +874,25 @@ class ProductManager extends Component
             ->latest('id')
             ->paginate(10);
 
+        $productImageUrls = $products
+            ->getCollection()
+            ->mapWithKeys(fn (Product $product) => [
+                $product->id => self::getCoverImageUrl($product),
+            ])
+            ->all();
+
+        $productStocks = $products
+            ->getCollection()
+            ->mapWithKeys(fn (Product $product) => [
+                $product->id => self::getTotalStock($product),
+            ])
+            ->all();
+
         return view('livewire.farm-staff.product-manager', [
             'products' => $products,
             'categories' => Category::orderBy('name')->get(),
+            'productImageUrls' => $productImageUrls,
+            'productStocks' => $productStocks,
         ]);
     }
 }
