@@ -45,6 +45,9 @@ class ProductDetail extends Component
             'reviews.user'
         ])->where('slug', $slug)
           ->where('status', 'active')
+            ->whereHas('category', function ($query) {
+                $query->where('is_active', true);
+            })
           ->firstOrFail();
 
         $primaryImgObj = $this->product->productImages->firstWhere('is_primary', true) 

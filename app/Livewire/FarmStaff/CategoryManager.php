@@ -71,6 +71,19 @@ class CategoryManager extends Component
         $this->resetPage();
     }
 
+    private function categoryImageUrl(?string $path): ?string
+    {
+        $path = trim((string) $path);
+
+        if ($path === '') {
+            return null;
+        }
+
+        return Str::startsWith($path, ['http://', 'https://'])
+            ? $path
+            : Storage::disk('public')->url(ltrim($path, '/'));
+    }
+
     public function createCategory(): void
     {
         $this->resetForm();
@@ -91,7 +104,7 @@ class CategoryManager extends Component
             ? 'active'
             : 'hidden';
 
-        $this->currentImageUrl = $category->image_url;
+        $this->currentImageUrl = $this->categoryImageUrl($category->image);
         $this->showModal = true;
     }
 
@@ -287,6 +300,15 @@ class CategoryManager extends Component
                         'Không lưu được danh mục.'
                     );
                 }
+
+                // Khi danh mục ẩn thì sản phẩm cũng ẩn theo
+                if (! $category->is_active) {
+                    $category->products()
+                        ->where('status', '<>', 'hidden')
+                        ->update([
+                            'status' => 'hidden',
+                        ]);
+                }
             });
         } catch (UniqueConstraintViolationException $exception) {
             $this->deleteManagedImage($newPath);
@@ -464,9 +486,17 @@ class CategoryManager extends Component
             ->orderByDesc('id')
             ->paginate(10);
 
+        // Chuẩn bị URL riêng, giữ nguyên đối tượng phân trang.
+        $categoryImageUrls = $categories
+            ->getCollection()
+            ->mapWithKeys(fn (Category $category) => [
+                $category->id => $this->categoryImageUrl($category->image),
+            ])
+            ->all();
+
         return view(
             'livewire.farm-staff.category-manager',
-            compact('categories')
+            compact('categories', 'categoryImageUrls')
         );
     }
 }

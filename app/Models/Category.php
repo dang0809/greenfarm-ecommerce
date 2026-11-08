@@ -31,18 +31,4 @@ class Category extends Model
     {
         return $this->hasMany(Product::class);
     }
-
-    public function getImageUrlAttribute(): ?string
-    {
-        $path = $this->image;
-
-        if (! $path) {
-            return null;
-        }
-
-        // Hỗ trợ URL ảnh từ seeder và đường dẫn ảnh upload.
-        return Str::startsWith($path, ['http://', 'https://'])
-            ? $path
-            : Storage::disk('public')->url(ltrim($path, '/'));
-    }
 }

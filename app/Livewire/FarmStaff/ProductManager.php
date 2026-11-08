@@ -384,58 +384,69 @@ class ProductManager extends Component
                 &$newPath,
                 &$oldPath
             ) {
-                $product = $this->editingId === null
+
+            $category = Category::query()
+                ->lockForUpdate()
+                ->findOrFail($data['category_id']);
+
+            if (! $category->is_active && $data['status'] === 'active') {
+                throw ValidationException::withMessages([
+                    'status' => 'Danh mục đang ẩn. Sản phẩm phải ở trạng thái ẩn.',
+                ]);
+            }
+            
+            $product = $this->editingId === null
                     ? new Product()
                     : Product::lockForUpdate()
                         ->findOrFail($this->editingId);
 
-                $product->fill($data);
+            $product->fill($data);
 
-                if (
-                    $product->exists
-                    && ! $product->isDirty()
-                    && $this->newImage === null
-                ) {
-                    return false;
-                }
+            if (
+                $product->exists
+            && ! $product->isDirty()
+                 && $this->newImage === null
+            ) {
+                return false;
+            }
 
-                if (! $product->save()) {
+            if (! $product->save()) {
+                throw new RuntimeException(
+                    'Không lưu được sản phẩm.'
+                );
+            }
+
+            if ($this->newImage !== null) {
+                $newPath = $this->newImage->store(
+                    "products/{$product->id}",
+                    'public'
+                );
+
+                if (! is_string($newPath) || $newPath === '') {
                     throw new RuntimeException(
-                        'Không lưu được sản phẩm.'
+                        'Không lưu được ảnh.'
                     );
                 }
 
-                if ($this->newImage !== null) {
-                    $newPath = $this->newImage->store(
-                        "products/{$product->id}",
-                        'public'
+                $cover = $product->coverImage()
+                    ->lockForUpdate()
+                    ->first();
+
+                $oldPath = $cover?->image;
+
+                $cover ??= $product->productImages()->make();
+
+                $cover->fill([
+                    'image' => $newPath,
+                    'is_primary' => true,
+                    'sort_order' => 0,
+                ]);
+
+                if (! $cover->save()) {
+                    throw new RuntimeException(
+                        'Không lưu được dữ liệu ảnh.'
                     );
-
-                    if (! is_string($newPath) || $newPath === '') {
-                        throw new RuntimeException(
-                            'Không lưu được ảnh.'
-                        );
-                    }
-
-                    $cover = $product->coverImage()
-                        ->lockForUpdate()
-                        ->first();
-
-                    $oldPath = $cover?->image;
-
-                    $cover ??= $product->productImages()->make();
-
-                    $cover->fill([
-                        'image' => $newPath,
-                        'is_primary' => true,
-                        'sort_order' => 0,
-                    ]);
-
-                    if (! $cover->save()) {
-                        throw new RuntimeException(
-                            'Không lưu được dữ liệu ảnh.'
-                        );
-                    }
+                }
 
                     // Đảm bảo các ảnh khác không còn là ảnh chính.
                     $product->productImages()
@@ -446,6 +457,9 @@ class ProductManager extends Component
 
                 return true;
             });
+            } catch (ValidationException $exception) {
+                $this->deleteManagedImage($newPath);
+                throw $exception;
         } catch (UniqueConstraintViolationException $exception) {
             $this->deleteManagedImage($newPath);
 
@@ -493,9 +507,35 @@ class ProductManager extends Component
         $this->staff();
 
         try {
-            DB::transaction(function () use ($id) {
-                $product = Product::lockForUpdate()
+            $changed = DB::transaction(function () use ($id) {
+                $snapshot = Product::findOrFail($id);
+
+                // Khóa danh mục trước sản phẩm, cùng thứ tự với saveCategory().
+                $category = Category::query()
+                    ->lockForUpdate()
+                    ->findOrFail($snapshot->category_id);
+
+                $product = Product::query()
+                    ->lockForUpdate()
                     ->findOrFail($id);
+
+                // Kiểm tra nếu sản phẩm vừa được chuyển danh mục.
+                if (
+                    (int) $product->category_id
+                    !== (int) $category->id
+                ) {
+                    throw new RuntimeException(
+                        'Sản phẩm vừa được chuyển danh mục. Vui lòng tải lại.'
+                    );
+                }
+
+                // Không bật sản phẩm trong danh mục đang ẩn.
+                if (
+                    $product->status !== 'active'
+                    && ! $category->is_active
+                ) {
+                    return false;
+                }
 
                 $product->status = $product->status === 'active'
                     ? 'hidden'
@@ -506,13 +546,24 @@ class ProductManager extends Component
                         'Không lưu được trạng thái.'
                     );
                 }
+
+                return true;
             });
         } catch (Throwable $exception) {
             report($exception);
 
             $this->notify(
                 'error',
-                'Không thể cập nhật trạng thái.'
+                'Không thể cập nhật trạng thái. Vui lòng tải lại trang.'
+            );
+
+            return;
+        }
+
+        if (! $changed) {
+            $this->notify(
+                'info',
+                'Danh mục đang ẩn. Hãy mở danh mục trước khi hiển thị sản phẩm.'
             );
 
             return;

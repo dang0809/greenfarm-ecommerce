@@ -58,7 +58,7 @@
                         @foreach($categories as $category)
                         <tr wire:key="category-{{ $category->id }}" class="hover:bg-slate-50 transition bg-white">
                             <td class="py-3.5 px-5 flex items-center gap-3">
-                                <img src="{{ $category->image_url ?? 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300' }}"
+                                <img src="{{ $categoryImageUrls[$category->id] ?? 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300' }}"
                                     class="w-9 h-9 rounded-xl object-cover border border-slate-200 shrink-0"
                                     alt="{{ $category->name }}">
                                 <b class="text-slate-900 text-xs sm:text-sm">{{ $category->name }}</b>
@@ -285,8 +285,7 @@ $wire.on('confirm-category-save', async ({
         const result = await Swal.fire({
             icon: 'question',
             title: editing ?
-                'Xác nhận cập nhật danh mục?' :
-                'Xác nhận thêm danh mục?',
+                'Xác nhận cập nhật danh mục?' : 'Xác nhận thêm danh mục?',
             text: 'Bạn có muốn lưu thông tin và ảnh danh mục?',
             showCancelButton: true,
             confirmButtonText: 'Xác nhận',

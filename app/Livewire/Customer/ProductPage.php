@@ -57,7 +57,10 @@ class ProductPage extends Component
             }
         ])
         ->withTotalStock()
-        ->where('status', 'active');
+        ->where('status', 'active')
+        ->whereHas('category', function ($query) {
+            $query->where('is_active', true);
+        });
 
         if (!empty($this->selectedCategory)) {
             $query->where('category_id', $this->selectedCategory);

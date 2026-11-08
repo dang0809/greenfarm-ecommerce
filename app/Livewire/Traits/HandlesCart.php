@@ -21,7 +21,12 @@ trait HandlesCart
         if (!$targetProductId) return false;
 
         // 2. Lấy thông tin sản phẩm & tính tổng tồn kho các lô còn hạn
-        $product = Product::withTotalStock()->find($targetProductId);
+        $product = Product::withTotalStock()
+        ->where('status', 'active')
+        ->whereHas('category', function ($query) {
+            $query->where('is_active', true);
+        })
+        ->find($targetProductId);
 
         $availableStock = (int) ($product?->total_stock ?? 0);
 

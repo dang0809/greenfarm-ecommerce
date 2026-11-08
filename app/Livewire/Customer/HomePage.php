@@ -34,6 +34,9 @@ class HomePage extends Component
         ])
         ->withTotalStock()
         ->where('status', 'active')
+        ->whereHas('category', function ($query) {
+            $query->where('is_active', true);
+        })
         ->orderByRaw('CASE WHEN total_stock > 0 THEN 0 ELSE 1 END') // Ưu tiên sản phẩm CÒN HÀNG xếp trước
         ->orderBy('sold_count', 'desc')
         ->take(8)
