@@ -45,10 +45,21 @@ class Header extends Component
     {
         // 1. Livewire tự động re-render quả chuông và dropdown thông báo
         
-        // 2. Bắn thông báo Toast màu xanh lá chuẩn thành công ở góc màn hình
-        $title = $payload['notificationData']['title'] ?? ($payload['title'] ?? 'Bạn có thông báo mới!');
+        // 2. Xác định loại Toast chuẩn (success, error, warning, info) theo từng loại thông báo
+        $notifData       = $payload['notificationData'] ?? [];
+        $title           = $notifData['title'] ?? 'Bạn có thông báo mới!';
+        $notifType       = $notifData['type'] ?? '';
+        $customToastType = $notifData['data']['toast_type'] ?? null;
+
+        $toastType = $customToastType ?? match ($notifType) {
+            'complaint_rejected', 'order_cancelled'  => 'error',
+            'delivery_reminder', 'low_stock'         => 'warning',
+            'order_shipping', 'schedule_updated'     => 'info',
+            default                                  => 'success',
+        };
+
         $this->dispatch('show-toast', [
-            'type'    => 'success',
+            'type'    => $toastType,
             'message' => $title,
         ]);
     }

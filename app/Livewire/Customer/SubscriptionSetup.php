@@ -362,7 +362,7 @@ class SubscriptionSetup extends Component
             $plan['items'] = $itemsToCopy;
         }
 
-        $this->dispatch('show-toast', type: 'success', message: "Đã sao chép thực đơn Đợt {$currentPlan['delivery_order']} cho toàn bộ 8 đợt giao!");
+        $this->dispatch('show-toast', type: 'info', message: "Đã sao chép thực đơn Đợt {$currentPlan['delivery_order']} cho toàn bộ 8 đợt giao!");
     }
 
     /**
