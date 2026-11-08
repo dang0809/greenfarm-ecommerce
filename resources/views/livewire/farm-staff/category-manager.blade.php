@@ -107,7 +107,7 @@
         </div>
     </div>
 
-    <!-- MODAL THÊM / SỬA CÂY DANH MỤC -->
+    <!-- MODAL THÊM / SỬA DANH MỤC -->
     <div id="modal-category" wire:key="category-modal-{{ $editingId ?? 'new' }}-{{ $imageInputKey }}"
         x-data="{ uploadingImage: false }" x-on:livewire-upload-start="
         if ($event.detail.property === 'newImage') uploadingImage = true" x-on:livewire-upload-finish="
@@ -141,7 +141,6 @@
             $event.preventDefault();
             $event.stopImmediatePropagation();
         }" class="space-y-3.5 text-xs">
-                {{-- Chỉ hiển thị ID; không bind vào editingId vì đây là Locked property. --}}
                 <input type="hidden" id="c-id" value="{{ $editingId }}">
 
                 @error('form')
@@ -178,28 +177,20 @@
                 </div>
 
                 <div>
-                    <label for="c-description" class="block font-bold text-slate-700 mb-1">
-                        Mô tả danh mục
-                    </label>
-
-                    <textarea id="c-description" wire:model="description" rows="4" maxlength="10000"
-                        placeholder="Nhập mô tả danh mục..."
-                        class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2 text-sm outline-none focus:border-brand-600 focus:bg-white font-semibold"></textarea>
-
-                    @error('description')
-                    <p role="alert">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">
+                    <label for="c-file" class="block font-bold text-slate-700 mb-1">
                         Ảnh đại diện danh mục
+                        <span class="text-red-500">*</span>
                     </label>
 
                     <input type="file" id="c-file" wire:key="category-image-{{ $imageInputKey }}" wire:model="newImage"
                         accept="image/jpeg,image/png,image/webp" x-bind:disabled="uploadingImage"
                         wire:loading.attr="disabled" wire:target="requestSaveCategory,saveCategory,closeModal"
                         class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-amber-50 file:text-amber-800 cursor-pointer">
+
+                    <p class="text-[10px] text-slate-400 mt-1">
+                        Khi thêm mới hoặc cập nhật có thay đổi, vui lòng chọn ảnh.
+                        Chấp nhận JPG, JPEG, PNG, WEBP; tối đa 2 MB.
+                    </p>
 
                     <template x-if="uploadingImage">
                         <p>Đang tải ảnh lên…</p>
@@ -233,8 +224,8 @@
 
                     <select id="c-status" wire:model="status"
                         class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold outline-none cursor-pointer">
-                        <option value="active">Hiển thị trên Web (active)</option>
-                        <option value="hidden">Tạm ẩn (hidden)</option>
+                        <option value="active">Hiển thị trên Web</option>
+                        <option value="hidden">Tạm ẩn</option>
                     </select>
 
                     @error('status')
