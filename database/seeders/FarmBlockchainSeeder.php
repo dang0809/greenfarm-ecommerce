@@ -47,10 +47,26 @@ class FarmBlockchainSeeder extends Seeder
                 'batches' => [
                     [
                         'batch_code'    => 'DL-20261015-K1',
-                        'mfg_days_ago'  => 2,
-                        'exp_days_next' => 10,
-                        'initial_qty'   => 120,
-                        'current_qty'   => 65,
+                        'mfg_days_ago'  => 4,
+                        'exp_days_next' => 1, // Còn 1 ngày (dưới 24h) -> Flash Sale 50%
+                        'initial_qty'   => 10,
+                        'current_qty'   => 10,
+                        'discount'      => 50,
+                    ],
+                    [
+                        'batch_code'    => 'DL-BOXOI-NEAR-K2',
+                        'mfg_days_ago'  => 3,
+                        'exp_days_next' => 2, // Còn 2 ngày (24h - 48h) -> Flash Sale 30%
+                        'initial_qty'   => 10,
+                        'current_qty'   => 10,
+                        'discount'      => 30,
+                    ],
+                    [
+                        'batch_code'    => 'DL-BOXOI-FRESH-K3',
+                        'mfg_days_ago'  => 1,
+                        'exp_days_next' => 7, // Còn 7 ngày -> Hàng mới hạn dài (Giá gốc)
+                        'initial_qty'   => 10,
+                        'current_qty'   => 10,
                         'discount'      => 0,
                     ],
                 ],
@@ -296,16 +312,24 @@ class FarmBlockchainSeeder extends Seeder
                 ]);
             }
 
+            // Đảm bảo các lô cũ không nằm trong danh sách seeder được reset current_quantity = 0 để tổng tồn kho chuẩn xác
+            $configuredCodes = array_column($item['batches'], 'batch_code');
+            DB::table('product_batches')->where('planting_batch_id', $pbId)
+                ->whereNotIn('batch_code', $configuredCodes)
+                ->update(['current_quantity' => 0, 'reserved_quantity' => 0, 'discount_percent' => 0]);
+
             // C. Tạo hoặc cập nhật Lô thu hoạch kho (Product Batches)
             foreach ($item['batches'] as $bData) {
                 $existingBatch = DB::table('product_batches')->where('batch_code', $bData['batch_code'])->first();
                 if ($existingBatch) {
                     // Nếu lô đã tồn tại, đảm bảo status active và cập nhật số lượng tồn khả dụng
                     DB::table('product_batches')->where('id', $existingBatch->id)->update([
-                        'status'           => 'active',
-                        'expiry_date'      => now()->addDays($bData['exp_days_next'])->format('Y-m-d'),
-                        'current_quantity' => max($existingBatch->current_quantity, $bData['current_qty']),
-                        'updated_at'       => now(),
+                        'status'            => 'active',
+                        'expiry_date'       => now()->addDays($bData['exp_days_next'])->format('Y-m-d'),
+                        'current_quantity'  => $bData['current_qty'],
+                        'reserved_quantity' => 0,
+                        'discount_percent'  => $bData['discount'],
+                        'updated_at'        => now(),
                     ]);
                     $batchId = $existingBatch->id;
                 } else {
@@ -338,6 +362,9 @@ class FarmBlockchainSeeder extends Seeder
                     ]);
                 }
             }
+
+            // Đồng bộ lại giá sale_price của sản phẩm theo lô đang giảm giá sớm nhất (FEFO)
+            \App\Models\ProductBatch::syncProductSalePrice($product->id);
         }
     }
 }

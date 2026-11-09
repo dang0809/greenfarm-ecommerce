@@ -75,6 +75,10 @@ class ProductPage extends Component
             default    => null, // Người dùng chọn "Tất cả mức giá" thì không thêm điều kiện
         };
 
+        // 1. Ưu tiên: Sản phẩm đang có Flash Sale (sale_price < price) luôn được đẩy lên đầu trang
+        $query->orderByRaw('CASE WHEN sale_price IS NOT NULL AND sale_price < price THEN 0 ELSE 1 END');
+
+        // 2. Tiếp theo: Sắp xếp theo tiêu chí người dùng chọn
         match ($this->sortBy) {
             'price_asc'  => $query->orderBy('price', 'asc'),
             'price_desc' => $query->orderBy('price', 'desc'),

@@ -105,4 +105,33 @@ class ProductBatch extends Model
     {
         return $this->hasMany(OrderItem::class, 'batch_id');
     }
+
+    /**
+     * Tự động đồng bộ giá sale_price của sản phẩm theo lô đang chạy Flash Sale còn hạn & còn hàng (FEFO).
+     * Nếu không còn lô nào đang sale hoặc lô sale đã hết hàng, tự động trả sale_price về NULL (về giá gốc).
+     */
+    public static function syncProductSalePrice(int $productId): void
+    {
+        $product = Product::find($productId);
+        if (!$product) {
+            return;
+        }
+
+        $activeSaleBatch = static::whereHas('plantingBatch', function ($q) use ($productId) {
+                $q->where('product_id', $productId);
+            })
+            ->where('status', 'active')
+            ->whereRaw('current_quantity > COALESCE(reserved_quantity, 0)')
+            ->whereDate('expiry_date', '>=', today())
+            ->where('discount_percent', '>', 0)
+            ->orderBy('expiry_date', 'asc')
+            ->first();
+
+        if ($activeSaleBatch) {
+            $newSalePrice = round($product->price * (100 - $activeSaleBatch->discount_percent) / 100);
+            $product->update(['sale_price' => $newSalePrice]);
+        } else {
+            $product->update(['sale_price' => null]);
+        }
+    }
 }

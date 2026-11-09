@@ -45,9 +45,16 @@
             </a>
 
             <!-- 3. Quản lý xả hàng -->
-            <a href="{{ route('sales.clearance') }}" wire:navigate class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all {{ str_starts_with($activeRoute, 'sales.clearance') ? 'menu-active' : 'menu-inactive' }} text-left">
-                <i class="fa-solid fa-tags w-5 text-center"></i>
-                <span>Quản Lý Xả Hàng</span>
+            <a href="{{ route('sales.clearance') }}" wire:navigate class="w-full flex items-center justify-between px-4 py-3 rounded-2xl font-bold text-sm transition-all {{ str_starts_with($activeRoute, 'sales.clearance') ? 'menu-active' : 'menu-inactive' }} text-left">
+                <div class="flex items-center space-x-3">
+                    <i class="fa-solid fa-tags w-5 text-center"></i>
+                    <span>Quản Lý Xả Hàng</span>
+                </div>
+                @if (isset($nearExpiryCount) && $nearExpiryCount > 0)
+                    <span class="inline-flex items-center justify-center px-2 py-0.5 text-[11px] font-black rounded-full bg-rose-500 text-white shadow-xs">
+                        {{ $nearExpiryCount > 99 ? '99+' : $nearExpiryCount }}
+                    </span>
+                @endif
             </a>
 
             <!-- 4. Gói rau định kỳ VIP -->

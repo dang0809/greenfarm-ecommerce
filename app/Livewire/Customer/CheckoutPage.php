@@ -236,9 +236,8 @@ class CheckoutPage extends Component
                     throw new \Exception("Sản phẩm {$product->name} không đủ số lượng (Chỉ còn {$availableUnits} {$product->unit}).");
                 }
 
-                // 3. Tính tạm tính tiền hàng theo giá mới nhất từ DB
-                $price = $product->sale_price ?? $product->price;
-                $subtotal += $price * $item->quantity;
+                // 3. Tính tạm tính tiền hàng theo giá FEFO từng lô (lô cận date tính giá sale, phần bù tính giá gốc)
+                $subtotal += $product->getPriceBreakdownForQuantity((int) $item->quantity)['total'];
             }
 
             $loyaltyConfig      = $this->getLoyaltySettings();
@@ -319,7 +318,6 @@ class CheckoutPage extends Component
             }
 
             foreach ($items as $item) {
-                $price = $item->product->sale_price ?? $item->product->price;
                 $remainingNeeded = (int) $item->quantity;
 
                 // Lấy các lô hàng còn hạn và còn hàng khả dụng, sắp xếp hạn sử dụng gần nhất lên đầu (FEFO)
@@ -338,14 +336,19 @@ class CheckoutPage extends Component
                     $take = min($availableInBatch, $remainingNeeded);
                     if ($take <= 0) continue;
 
+                    // Giá tính chuẩn theo từng lô: Lô có discount_percent > 0 tính giá sale, lô mới tính giá gốc
+                    $batchPrice = $batch->discount_percent > 0 
+                        ? round($item->product->price * (100 - $batch->discount_percent) / 100) 
+                        : (float) $item->product->price;
+
                     OrderItem::create([
                         'order_id'     => $order->id,
                         'product_id'   => $item->product_id,
                         'batch_id'     => $batch->id,
                         'product_name' => $item->product->name,
-                        'price'        => $price,
+                        'price'        => $batchPrice,
                         'quantity'     => $take,
-                        'subtotal'     => $price * $take,
+                        'subtotal'     => $batchPrice * $take,
                     ]);
 
                     // Tạm giữ kho trong 5 phút (Tăng reserved_quantity, KHÔNG trừ current_quantity, KHÔNG ghi InventoryLog)
@@ -360,6 +363,9 @@ class CheckoutPage extends Component
                         "Lô hàng của sản phẩm {$item->product->name} không đủ số lượng. Vui lòng tải lại trang và thử lại."
                     );
                 }
+
+                // Cập nhật lại giá sale ngoài storefront nếu lô sale vừa bị giữ chỗ hết
+                \App\Models\ProductBatch::syncProductSalePrice($item->product_id);
             }
 
             // Gọi PayOS tạo link thanh toán (Description <= 25 ký tự)
@@ -405,8 +411,7 @@ class CheckoutPage extends Component
 
         $subtotal = 0;
         foreach ($items as $item) {
-            $price = $item->product->sale_price ?? $item->product->price;
-            $subtotal += $price * $item->quantity;
+            $subtotal += $item->product->getPriceBreakdownForQuantity((int) $item->quantity)['total'];
         }
 
         $loyaltyConfig      = $this->getLoyaltySettings();
