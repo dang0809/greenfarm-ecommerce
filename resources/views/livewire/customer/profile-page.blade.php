@@ -379,13 +379,15 @@
                             <p class="text-xs text-gray-400 mt-0.5">Để bảo mật, vui lòng không chia sẻ mật khẩu cho người khác</p>
                         </div>
 
-                        <form wire:submit.prevent="updatePassword" class="space-y-4 max-w-md">
+                        <form wire:submit.prevent="updatePassword" autocomplete="off" class="space-y-4 max-w-md">
                             <!-- 1. Mật khẩu hiện tại -->
                             <div>
                                 <label class="block text-xs font-bold text-gray-700 mb-1.5">Mật khẩu hiện tại</label>
                                 <div x-data="{ show: false }" class="relative">
                                     <input :type="show ? 'text' : 'password'" 
                                         wire:model="current_password" 
+                                        autocomplete="off"
+                                        data-lpignore="true"
                                         placeholder="••••••••" 
                                         class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-3.5 pr-10 py-2.5 text-sm outline-none focus:border-brand-500">
                                     <button type="button" 
@@ -403,6 +405,8 @@
                                 <div x-data="{ show: false }" class="relative">
                                     <input :type="show ? 'text' : 'password'" 
                                         wire:model="new_password" 
+                                        autocomplete="off"
+                                        data-lpignore="true"
                                         placeholder="Tối thiểu 8 ký tự" 
                                         class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-3.5 pr-10 py-2.5 text-sm outline-none focus:border-brand-500">
                                     <button type="button" 
@@ -420,6 +424,8 @@
                                 <div x-data="{ show: false }" class="relative">
                                     <input :type="show ? 'text' : 'password'" 
                                         wire:model="new_password_confirmation" 
+                                        autocomplete="off"
+                                        data-lpignore="true"
                                         placeholder="Nhập lại mật khẩu mới" 
                                         class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-3.5 pr-10 py-2.5 text-sm outline-none focus:border-brand-500">
                                     <button type="button" 

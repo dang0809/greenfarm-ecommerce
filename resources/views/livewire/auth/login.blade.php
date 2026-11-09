@@ -25,7 +25,7 @@
         @endif
 
         <!-- Form Đăng nhập -->
-        <form wire:submit.prevent="handleLogin" class="space-y-4">
+        <form wire:submit.prevent="handleLogin" autocomplete="off" class="space-y-4">
             <!-- Email -->
             <div>
                 <label class="block text-xs font-bold text-gray-700 mb-1.5">Email tài khoản</label>
@@ -54,8 +54,9 @@
                     <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
                     <input type="{{ $showPassword ? 'text' : 'password' }}" 
                            wire:model="password" 
-                           autocomplete="current-password"
-                           placeholder="••••••••" 
+                           autocomplete="off"
+                           data-lpignore="true"
+                           placeholder="••••••••"  
                            class="w-full bg-gray-50 border @error('password') border-rose-400 bg-rose-50/10 focus:border-rose-500 @else border-gray-200 focus:border-brand-500 @enderror rounded-2xl pl-11 pr-11 py-3 text-xs sm:text-sm font-medium outline-none focus:bg-white focus:ring-2 focus:ring-brand-100 transition-all">
                     <button type="button" wire:click="$toggle('showPassword')" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition p-1">
                         <i class="fa-regular {{ $showPassword ? 'fa-eye-slash' : 'fa-eye' }} text-sm"></i>
@@ -75,17 +76,11 @@
                     <input type="checkbox" wire:model="remember" class="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 accent-brand-600">
                     <span class="font-medium text-gray-600">Ghi nhớ đăng nhập</span>
                 </label>
-                <button type="button" 
-                        onclick="Swal.fire({
-                            icon: 'info',
-                            title: 'Quên Mật Khẩu?',
-                            text: 'Vui lòng liên hệ Quản trị viên hệ thống hoặc Bộ phận IT Nội bộ để được hỗ trợ cấp lại mật khẩu.',
-                            confirmButtonColor: '#15803d',
-                            confirmButtonText: 'Đã hiểu'
-                        })"
-                        class="font-semibold text-brand-700 hover:text-brand-800 hover:underline transition">
+                <a href="{{ route('home', ['open_forgot' => 1]) }}" 
+                   wire:navigate
+                   class="font-semibold text-brand-700 hover:text-brand-800 hover:underline transition">
                     Quên mật khẩu?
-                </button>
+                </a>
             </div>
 
             <!-- Nút Đăng nhập -->

@@ -39,6 +39,12 @@ use App\Livewire\Sales\ClearanceManager;
 */
 Route::get('/', HomePage::class)->name('home');
 Route::get('/quan-tri/dang-nhap', Login::class)->name('login');
+Route::get('/dat-lai-mat-khau/{token}', function (Request $request, $token) {
+    return redirect()->route('home', [
+        'reset_token' => $token,
+        'email' => $request->query('email'),
+    ]);
+})->name('password.reset');
 Route::get('/san-pham', ProductPage::class)->name('products.index');
 Route::get('/ve-nong-trai', AboutPage::class)->name('about');
 Route::get('/san-pham/{slug}', ProductDetail::class)->name('customer.product.detail');

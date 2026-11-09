@@ -2,11 +2,12 @@
 
 namespace App\Services;
 
+use App\Mail\ResetPasswordMail;
 use App\Mail\VerifyEmailMail;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\ResetPasswordOtpMail;
+
 class VerificationEmailService
 {
     public function send(User $user): bool
@@ -21,14 +22,14 @@ class VerificationEmailService
         }
     }
 
-    public function sendResetOtp(string $email, string $otp): bool
+    public function sendResetLink(string $email, string $token): bool
     {
         try {
-            // Tự động đẩy vào Queue nhờ ResetPasswordOtpMail implements ShouldQueue
-            Mail::to($email)->send(new ResetPasswordOtpMail($otp));
+            // Tự động đẩy vào Queue nhờ ResetPasswordMail implements ShouldQueue
+            Mail::to($email)->send(new ResetPasswordMail($token, $email));
             return true;
         } catch (\Exception $e) {
-            Log::error('Reset OTP Mail Error: ' . $e->getMessage());
+            Log::error('Reset Password Mail Error: ' . $e->getMessage());
             return false;
         }
     }
