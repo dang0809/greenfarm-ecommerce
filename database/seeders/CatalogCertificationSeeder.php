@@ -23,12 +23,12 @@ class CatalogCertificationSeeder extends Seeder
 
         // 2. Danh mục sản phẩm
         $categories = [
-            ['name' => 'Rau Lá Xanh', 'slug' => 'rau-la-xanh', 'image' => 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?w=300', 'description' => 'Các loại rau ăn lá tươi giòn', 'is_active' => true],
-            ['name' => 'Củ Quả Tươi', 'slug' => 'cu-qua-tuoi', 'image' => 'https://images.unsplash.com/photo-1592282139728-28040d96a922?w=300', 'description' => 'Củ quả canh tác tự nhiên', 'is_active' => true],
-            ['name' => 'Trái Cây', 'slug' => 'trai-cay-theo-mua', 'image' => 'https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?w=300', 'description' => 'Trái cây ngọt mát theo mùa', 'is_active' => true],
-            ['name' => 'Nấm Tươi', 'slug' => 'nam-organic', 'image' => 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=300', 'description' => 'Nấm hữu cơ các loại', 'is_active' => true],
-            ['name' => 'Rau Gia Vị', 'slug' => 'rau-gia-vi', 'image' => 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300', 'description' => 'Hành, ngò, tía tô, húng lủi', 'is_active' => true],
-            ['name' => 'Hạt Dinh Dưỡng', 'slug' => 'hat-dinh-duong', 'image' => 'https://images.unsplash.com/photo-1536922246289-88c42f957773?w=300', 'description' => 'Các loại hạt bổ dưỡng', 'is_active' => true],
+            ['name' => 'Rau Lá Xanh', 'slug' => 'rau-la-xanh', 'image' => 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?w=300', 'is_active' => true],
+            ['name' => 'Củ Quả Tươi', 'slug' => 'cu-qua-tuoi', 'image' => 'https://images.unsplash.com/photo-1592282139728-28040d96a922?w=300', 'is_active' => true],
+            ['name' => 'Trái Cây', 'slug' => 'trai-cay-theo-mua', 'image' => 'https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?w=300', 'is_active' => true],
+            ['name' => 'Nấm Tươi', 'slug' => 'nam-organic', 'image' => 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=300', 'is_active' => true],
+            ['name' => 'Rau Gia Vị', 'slug' => 'rau-gia-vi', 'image' => 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300', 'is_active' => true],
+            ['name' => 'Hạt Dinh Dưỡng', 'slug' => 'hat-dinh-duong', 'image' => 'https://images.unsplash.com/photo-1536922246289-88c42f957773?w=300', 'is_active' => true],
         ];
         foreach ($categories as $cat) {
             Category::updateOrCreate(['slug' => $cat['slug']], $cat);

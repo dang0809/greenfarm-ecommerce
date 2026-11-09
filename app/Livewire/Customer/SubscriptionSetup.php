@@ -14,7 +14,7 @@ use App\Models\Category;
 use App\Models\DeliverySchedule;
 use App\Models\SystemSetting;
 use App\Livewire\Traits\WithShippingAddress;
-
+use App\Livewire\FarmStaff\ProductManager as ProductData;
 #[Title('Thiết Lập Lịch & Theo Dõi Gói VIP | Nông Trại Đất Lành')]
 class SubscriptionSetup extends Component
 {
@@ -308,14 +308,14 @@ class SubscriptionSetup extends Component
         // Kiểm tra tồn kho và khống chế cân nặng khi khách bấm TĂNG (+)
         if ($delta > 0) {
             // 1. Kiểm tra tồn kho FEFO thực tế của sản phẩm
-            $product = Product::withTotalStock()->find($veggieId);
+            $product = ProductData::withTotalStock(Product::query())->find($veggieId);
 
             if (!$product) {
                 $this->dispatch('show-toast', type: 'error', message: 'Sản phẩm không tồn tại hoặc đã ngừng kinh doanh!');
                 return;
             }
 
-            $availableStock = (int) ($product->total_stock ?? 0);
+            $availableStock = ProductData::getTotalStock($product);
             if ($newQty > $availableStock) {
                 $this->dispatch('show-toast', type: 'warning', message: "Món {$product->name} trong kho hiện chỉ còn {$availableStock} đơn vị khả dụng!");
                 return;
@@ -522,8 +522,11 @@ class SubscriptionSetup extends Component
                 $q->where('is_primary', true);
             }
         ])
-        ->withTotalStock()
+        ->tap([ProductData::class, 'withTotalStock'])
         ->where('status', 'active')
+        ->whereHas('category', function ($query) {
+            $query->where('is_active', true);
+        })
         ->having('total_stock', '>', 0); // CHỈ HIỆN SẢN PHẨM CÒN HÀNG TRONG KHO
 
         if ($this->selectedCategory) {
@@ -549,7 +552,7 @@ class SubscriptionSetup extends Component
                 'name'       => $p->name,
                 'slug'       => $p->slug,
                 'image'      => $imgUrl,
-                'stock'      => (int) ($p->total_stock ?? 0),
+                'stock' => ProductData::getTotalStock($p),
                 'unit'       => $p->unit ?? 'kg',
                 'unit_label' => $p->unit ?? 'kg',
                 'weight'     => $p->weight_kg,
@@ -647,7 +650,9 @@ class SubscriptionSetup extends Component
             }
         }
 
-        $categories = Category::all(['id', 'name']);
+        $categories = Category::query()
+        ->where('is_active', true)
+        ->get(['id', 'name']);
 
         return view('livewire.customer.subscription-setup', [
             'isLocked'                 => $this->isLocked,

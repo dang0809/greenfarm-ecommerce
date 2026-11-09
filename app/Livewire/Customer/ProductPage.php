@@ -10,6 +10,7 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Livewire\Traits\HandlesCart;
+use App\Livewire\FarmStaff\ProductManager as ProductData;
 #[Layout('layouts.customer.app')]
 #[Title('Cửa Hàng Nông Sản Sạch | Nông Trại Đất Lành')]
 class ProductPage extends Component
@@ -56,7 +57,7 @@ class ProductPage extends Component
                 $q->where('is_primary', true);
             }
         ])
-        ->withTotalStock()
+        ->tap([ProductData::class, 'withTotalStock'])
         ->where('status', 'active');
 
         if (!empty($this->selectedCategory)) {
