@@ -28,6 +28,7 @@ class Product extends Model
         'weight_kg',
         'sold_count',
         'avg_rating',
+        'min_growth_days',
         'status',
     ];
 
@@ -38,6 +39,7 @@ class Product extends Model
             'sale_price' => 'decimal:2',
             'weight_kg' => 'float',
             'sold_count' => 'integer',
+            'min_growth_days' => 'integer',
             'avg_rating' => 'decimal:2',
         ];
     }

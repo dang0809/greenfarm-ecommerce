@@ -393,7 +393,8 @@
                                                     {{ $event->recorded_by }}
                                                 </p>
                                                 @if ($event->description)
-                                                    <p class="whitespace-pre-line text-xs sm:text-sm text-gray-700 leading-relaxed" >
+                                                    <p
+                                                        class="whitespace-pre-line text-xs sm:text-sm text-gray-700 leading-relaxed">
                                                         {{ $event->description }}
                                                     </p>
                                                 @endif
@@ -447,7 +448,6 @@
                                                 <th class="p-3 sm:p-3.5 text-center">Sản Lượng Nhập</th>
                                                 <th class="p-3 sm:p-3.5 text-center">Tồn Kho</th>
                                                 <th class="p-3 sm:p-3.5">Hạn Dùng (FEFO)</th>
-                                                <th class="p-3 sm:p-3.5 text-right">In Tem QR</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-gray-100 font-medium">
@@ -481,12 +481,6 @@
                                                                 class="ml-1 text-[10px] bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded">Hết
                                                                 hạn</span>
                                                         @endif
-                                                    </td>
-                                                    <td class="p-3 sm:p-4 text-right">
-                                                        <button wire:click="printQr({{ $hb->id }})"
-                                                            class="bg-white border border-gray-200 text-gray-700 hover:text-brand-700 hover:border-brand-300 font-bold px-3 py-1.5 rounded-xl text-xs transition cursor-pointer">
-                                                            <i class="fa-solid fa-qrcode mr-1"></i> In Tem 70x80
-                                                        </button>
                                                     </td>
                                                 </tr>
                                             @empty
@@ -621,7 +615,7 @@
                         <div>
                             <label class="block font-bold text-gray-700 mb-1">Chọn giống cây trồng <span
                                     class="text-red-500">*</span></label>
-                            <select wire:model="sowProductId"
+                            <select wire:model.live="sowProductId"
                                 class="w-full bg-[#FAFAF8] border border-gray-200 rounded-2xl px-3.5 py-2.5 outline-none focus:border-brand-500 font-medium cursor-pointer">
                                 <option value="">-- Chọn giống --</option>
                                 @foreach ($this->products as $product)
@@ -637,12 +631,30 @@
                         <div>
                             <label class="block font-bold text-gray-700 mb-1">Ngày xuống giống <span
                                     class="text-red-500">*</span></label>
-                            <input type="date" wire:model="sowDate" max="{{ now()->toDateString() }}"
+                            <input type="date" wire:model.live="sowDate" max="{{ now()->toDateString() }}"
                                 class="w-full bg-[#FAFAF8] border border-gray-200 rounded-2xl px-3.5 py-2.5 outline-none focus:border-brand-500 font-mono text-xs">
                             @error('sowDate')
                                 <p class="text-[11px] text-red-600 font-bold mt-1">{{ $message }}</p>
                             @enderror
                         </div>
+
+                        @if ($sowProductId !== null && $sowDate !== '')
+                            <div class="rounded-2xl border border-brand-200 bg-brand-50 p-3">
+                                <p class="text-xs font-bold text-brand-800">
+                                    Số ngày thu hoạch tối thiểu
+                                </p>
+
+                                @if ($this->sowMinGrowthDays !== null)
+                                    <p class="mt-1 text-lg font-extrabold text-brand-900">
+                                        {{ $this->sowMinGrowthDays }} ngày
+                                    </p>
+                                @else
+                                    <p class="mt-1 text-xs text-amber-700">
+                                        Giống cây này chưa có số ngày thu hoạch tối thiểu hợp lệ.
+                                    </p>
+                                @endif
+                            </div>
+                        @endif
 
                         <button type="submit" x-bind:disabled="confirmingFarm" wire:loading.attr="disabled"
                             wire:target="requestSow,sow"
@@ -1013,70 +1025,6 @@
                     'data' => $traceUrl,
                 ]);
         @endphp
-
-        @teleport('body')
-            <div id="farm-print-root" wire:key="qr-modal-{{ $qrBatch->id }}" x-data="{ qrReady: false }"
-                x-init="$nextTick(() => {
-                    qrReady = $refs.qr.complete && $refs.qr.naturalWidth > 0;
-                })" x-on:keydown.escape.window="$wire.closeQr()"
-                class="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4">
-                <div class="farm-print-card bg-white rounded-3xl p-5 w-full max-w-sm shadow-xl">
-                    <div class="farm-no-print flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-sm text-gray-900">
-                            In Tem 70 × 80 mm
-                        </h3>
-
-                        <button type="button" wire:click="closeQr"
-                            class="text-gray-500 hover:text-red-600 text-xs font-bold">
-                            Đóng
-                        </button>
-                    </div>
-
-                    <div id="farm-thermal-label" class="border border-dashed rounded-xl p-4 text-center space-y-3">
-                        <p class="font-extrabold text-sm">
-                            NÔNG TRẠI ĐẤT LÀNH
-                        </p>
-
-                        <p class="farm-label-name font-bold text-sm leading-tight">
-                            {{ $qrBatch->plantingBatch?->product?->name ?? 'Nông sản' }}
-                        </p>
-
-                        <img x-ref="qr" src="{{ $qrImageUrl }}" x-on:load="qrReady = true"
-                            x-on:error="qrReady = false" class="w-36 h-36 mx-auto" alt="QR truy xuất nguồn gốc">
-
-                        <p class="font-mono text-[9px] break-all">
-                            {{ $qrBatch->batch_code }}
-                        </p>
-
-                        <div class="text-[10px] leading-relaxed">
-                            <p>
-                                Thu hoạch:
-                                {{ $qrBatch->manufactured_date?->format('d/m/Y') ?? '—' }}
-                            </p>
-
-                            <p>
-                                Hạn dùng:
-                                {{ $qrBatch->expiry_date?->format('d/m/Y') ?? '—' }}
-                            </p>
-                        </div>
-
-                        <p class="text-[9px]">
-                            Quét QR để xem nguồn gốc nông sản
-                        </p>
-                    </div>
-
-                    <p x-show="!qrReady" class="farm-no-print text-xs text-amber-700 mt-3">
-                        Đang tải QR. Nếu chưa hiện mã, hãy kiểm tra kết nối mạng.
-                    </p>
-
-                    <button type="button" x-bind:disabled="!qrReady" x-on:click="window.print()"
-                        class="farm-no-print w-full mt-4 rounded-xl bg-brand-700 hover:bg-brand-800 text-white py-3 text-sm font-bold disabled:opacity-50">
-                        <i class="fa-solid fa-print mr-1"></i>
-                        In Tem
-                    </button>
-                </div>
-            </div>
-        @endteleport
     @endif
 
     @script

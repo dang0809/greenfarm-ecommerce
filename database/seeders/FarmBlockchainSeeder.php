@@ -43,7 +43,7 @@ class FarmBlockchainSeeder extends Seeder
                 'plot_key'       => 'A1',
                 'planting_code'  => 'TRONG-BOXOI-L1',
                 'planted_days'   => 60,
-                'planting_status'=> 'harvesting',
+                'planting_status'=> 'completed',
                 'batches' => [
                     [
                         'batch_code'    => 'DL-20261015-K1',
@@ -60,7 +60,7 @@ class FarmBlockchainSeeder extends Seeder
                 'plot_key'       => 'A2',
                 'planting_code'  => 'TRONG-CACHUA-L2',
                 'planted_days'   => 45,
-                'planting_status'=> 'harvesting',
+                'planting_status'=> 'completed',
                 'batches' => [
                     [
                         'batch_code'    => 'DL-20261016-K2',
@@ -77,7 +77,7 @@ class FarmBlockchainSeeder extends Seeder
                 'plot_key'       => 'A3',
                 'planting_code'  => 'TRONG-XALACH-L1',
                 'planted_days'   => 35,
-                'planting_status'=> 'harvesting',
+                'planting_status'=> 'completed',
                 'batches' => [
                     [
                         'batch_code'    => 'DL-XALACH-K1',
@@ -94,7 +94,7 @@ class FarmBlockchainSeeder extends Seeder
                 'plot_key'       => 'B1',
                 'planting_code'  => 'TRONG-CAROT-L1',
                 'planted_days'   => 75,
-                'planting_status'=> 'harvesting',
+                'planting_status'=> 'completed',
                 'batches' => [
                     [
                         'batch_code'    => 'DL-CAROT-K1',
@@ -111,7 +111,7 @@ class FarmBlockchainSeeder extends Seeder
                 'plot_key'       => 'A2',
                 'planting_code'  => 'TRONG-DUALUOI-L3',
                 'planted_days'   => 50,
-                'planting_status'=> 'harvesting',
+                'planting_status'=> 'completed',
                 'batches' => [
                     [
                         'batch_code'    => 'DL-DUALUOI-K1',
@@ -128,7 +128,7 @@ class FarmBlockchainSeeder extends Seeder
                 'plot_key'       => 'B1',
                 'planting_code'  => 'TRONG-BAPCAI-L1',
                 'planted_days'   => 55,
-                'planting_status'=> 'harvesting',
+                'planting_status'=> 'completed',
                 'batches' => [
                     [
                         'batch_code'    => 'DL-BAPCAI-K1',
@@ -145,7 +145,7 @@ class FarmBlockchainSeeder extends Seeder
                 'plot_key'       => 'A3',
                 'planting_code'  => 'TRONG-CANTAY-L1',
                 'planted_days'   => 40,
-                'planting_status'=> 'harvesting',
+                'planting_status'=> 'completed',
                 'batches' => [
                     [
                         'batch_code'    => 'DL-CANTAY-K1',
@@ -179,7 +179,7 @@ class FarmBlockchainSeeder extends Seeder
                 'plot_key'       => 'N1',
                 'planting_code'  => 'TRONG-NAMDUIGA-L1',
                 'planted_days'   => 25,
-                'planting_status'=> 'harvesting',
+                'planting_status'=> 'completed',
                 'batches' => [
                     [
                         'batch_code'    => 'DL-NAMDUIGA-K1',
@@ -196,7 +196,7 @@ class FarmBlockchainSeeder extends Seeder
                 'plot_key'       => 'N1',
                 'planting_code'  => 'TRONG-NAMBAONGU-L1',
                 'planted_days'   => 20,
-                'planting_status'=> 'harvesting',
+                'planting_status'=> 'completed',
                 'batches' => [
                     [
                         'batch_code'    => 'DL-NAMBAONGU-K1',
@@ -213,7 +213,7 @@ class FarmBlockchainSeeder extends Seeder
                 'plot_key'       => 'C1',
                 'planting_code'  => 'TRONG-CAMSANH-L1',
                 'planted_days'   => 180,
-                'planting_status'=> 'harvesting',
+                'planting_status'=> 'completed',
                 'batches' => [
                     [
                         'batch_code'    => 'DL-CAMSANH-K1',
@@ -230,7 +230,7 @@ class FarmBlockchainSeeder extends Seeder
                 'plot_key'       => 'A2',
                 'planting_code'  => 'TRONG-DAUTAY-L1',
                 'planted_days'   => 60,
-                'planting_status'=> 'harvesting',
+                'planting_status'=> 'completed',
                 'batches' => [
                     [
                         'batch_code'    => 'DL-DAUTAY-K1',

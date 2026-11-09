@@ -95,6 +95,7 @@
                             <th class="py-3.5 sm:py-4 px-4 sm:px-5">Sản Phẩm & SKU</th>
                             <th class="py-3.5 sm:py-4 px-4 sm:px-5">Slug</th>
                             <th class="py-3.5 sm:py-4 px-4">Danh Mục</th>
+                            <th class="py-3.5 sm:py-4 px-4">Ngày thu hoạch tối thiểu</th>
                             <th class="py-3.5 sm:py-4 px-4 text-right">Giá Bán Niêm Yết</th>
                             <th class="py-3.5 sm:py-4 px-4 text-center">Đơn Vị</th>
                             <th class="py-3.5 sm:py-4 px-4 text-center">Tồn Kho (Lô FEFO)</th>
@@ -139,6 +140,10 @@
 
                                     <td class="py-3.5 px-4 text-slate-700">
                                         {{ $product->category->name ?? 'Chưa phân nhóm' }}
+                                    </td>
+
+                                    <td class="py-3.5 px-4 text-slate-700">
+                                        {{ $product->min_growth_days }}
                                     </td>
 
                                     <td class="py-3.5 px-4 text-right font-mono font-extrabold text-slate-900">
@@ -357,6 +362,20 @@
                         <input type="number" id="p-price" wire:model="price" min="0.01" max="9999999999.99"
                             step="0.01" required
                             class="w-full min-w-0 bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono outline-none focus:border-brand-600">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">
+                            Số ngày thu hoạch tối thiểu <span class="text-red-500">*</span>
+                        </label>
+
+                        <input type="number" id="p-min-growth-days" wire:model="min_growth_days" min="1"
+                            max="10000" step="1" required inputmode="numeric"
+                            class="w-full min-w-0 bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono outline-none focus:border-brand-600">
+                        @error('min_growth_days')
+                            <p class="text-xs text-red-600 mt-1">
+                                {{ $message }}
+                            </p>
+                        @enderror
                     </div>
                 </div>
 

@@ -26,6 +26,7 @@ return new class extends Migration
     $table->decimal('weight_kg', 8, 2)->default(1.0);
     $table->integer('sold_count')->default(0);
     $table->decimal('avg_rating', 3, 2)->default(0);
+    $table->integer('min_growth_days');
     $table->string('status', 50)->default('active')->index();                 // active|hidden
     $table->timestamps();
 });

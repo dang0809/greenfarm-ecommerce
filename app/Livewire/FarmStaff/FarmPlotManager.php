@@ -286,7 +286,31 @@ class FarmPlotManager extends Component
     {
         return Product::where('status', 'active')
             ->orderBy('name')
-            ->get(['id', 'name', 'unit']);
+            ->get([
+                'id',
+                'name',
+                'unit',
+                'min_growth_days',
+            ]);
+    }
+
+    #[Computed]
+    public function sowMinGrowthDays(): ?int
+    {
+        if ($this->sowProductId === null) {
+            return null;
+        }
+
+        $product = $this->products->firstWhere(
+            'id',
+            $this->sowProductId
+        );
+
+        $days = $product?->min_growth_days;
+
+        return $days !== null && (int) $days >= 1
+            ? (int) $days
+            : null;
     }
 
     #[Computed]
@@ -408,7 +432,7 @@ class FarmPlotManager extends Component
         if (
             !in_array(
                 $value,
-                ['all', 'available', 'in-progress',  'empty', 'maintenance'],
+                ['all', 'available', 'in-progress', 'empty', 'maintenance'],
                 true
             )
         ) {

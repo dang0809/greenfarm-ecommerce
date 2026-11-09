@@ -51,6 +51,8 @@ class ProductManager extends Component
     public string $unit = 'kg';
     public string $weight_kg = '1';
     public string $description = '';
+
+    public string $min_growth_days = '';
     public string $status = 'active';
 
     // Ảnh chính.
@@ -70,6 +72,7 @@ class ProductManager extends Component
         'description' => 'mô tả',
         'status' => 'trạng thái',
         'newImage' => 'ảnh chính',
+        'min_growth_days' => 'số ngày thu hoạch',
     ];
 
     public function mount(): void
@@ -143,6 +146,7 @@ class ProductManager extends Component
             'unit',
             'weight_kg',
             'description',
+            'min_growth_days',
             'status',
         ] as $field) {
             $this->{$field} = (string) ($product->{$field} ?? '');
@@ -279,6 +283,14 @@ class ProductManager extends Component
                 'max:10000',
             ],
 
+            'min_growth_days' => [
+                'bail',
+                'required',
+                'integer',
+                'min:1',
+                'max:10000',
+            ],
+
             'status' => [
                 'required',
                 Rule::in(['active', 'hidden']),
@@ -307,6 +319,18 @@ class ProductManager extends Component
 
             'sale_price.lt' => 'Giá khuyến mãi phải nhỏ hơn giá gốc.',
             'status.in' => 'Trạng thái không hợp lệ.',
+
+            'min_growth_days.required' =>
+                'Vui lòng nhập số ngày thu hoạch tối thiểu.',
+
+            'min_growth_days.integer' =>
+                'Số ngày thu hoạch phải là số nguyên.',
+
+            'min_growth_days.min' =>
+                'Số ngày thu hoạch tối thiểu là 1 ngày.',
+
+            'min_growth_days.max' =>
+                'Số ngày thu hoạch tối đa là 10.000 ngày.',
 
             'newImage.image' => 'Tệp được chọn không phải ảnh hợp lệ.',
             'newImage.mimes' => 'Chỉ chấp nhận JPG, JPEG, PNG hoặc WEBP.',
@@ -433,7 +457,7 @@ class ProductManager extends Component
         $this->unit = trim($this->unit);
         $this->description = trim($this->description);
         $this->sale_price = trim($this->sale_price);
-
+        $this->min_growth_days = trim($this->min_growth_days);
         $this->syncSlugWithName();
 
         $v = $this->validate();
@@ -453,6 +477,7 @@ class ProductManager extends Component
             'description' => $v['description'] === ''
                 ? null
                 : $v['description'],
+            'min_growth_days' => (int) $v['min_growth_days'],
             'status' => $v['status'],
         ];
     }
@@ -792,6 +817,7 @@ class ProductManager extends Component
             'unit',
             'weight_kg',
             'description',
+            'min_growth_days',
             'status',
             'newImage',
             'currentImageUrl',
