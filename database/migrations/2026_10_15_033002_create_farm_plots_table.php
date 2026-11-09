@@ -14,8 +14,8 @@ return new class extends Migration
        Schema::create('farm_plots', function (Blueprint $table) {
         $table->id();                                                             // PK
         $table->string('name', 255);
-        $table->decimal('area', 12, 2)->nullable();
-        $table->string('status', 50)->default('available')->index();                 // available: Sẵn sàng xuống giống|in-progress: Đang canh tác|maintenance: Đang cải tạo
+        $table->decimal('area', 12, 2);
+        $table->string('status', 50)->default('available')->index();              // empty: Đất trống (Vừa tạo luống)|available: Sẵn sàng xuống giống|in-progress: Đang canh tác|maintenance: Đang cải tạo
         $table->timestamps();
         });
     }

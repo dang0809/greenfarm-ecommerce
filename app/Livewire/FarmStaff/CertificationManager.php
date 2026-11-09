@@ -60,8 +60,8 @@ class CertificationManager extends Component
 
         abort_unless(
             $user
-                && $user->role === 'farm_staff'
-                && $user->status === 'active',
+            && $user->role === 'farm_staff'
+            && $user->status === 'active',
             403
         );
     }
@@ -233,8 +233,8 @@ class CertificationManager extends Component
 
             'status' => $expiry !== null
                 && $expiry < today()->toDateString()
-                    ? 'expired'
-                    : $data['status'],
+                ? 'expired'
+                : $data['status'],
         ];
     }
 
@@ -272,22 +272,24 @@ class CertificationManager extends Component
         $path = (string) $cert->image;
 
         // Với URL bên ngoài, chọn file upload là thay bản scan.
-        if (! preg_match(
-            '#\Acertifications/[A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp|pdf)\z#i',
-            $path
-        )) {
+        if (
+            !preg_match(
+                '#\Acertifications/[A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp|pdf)\z#i',
+                $path
+            )
+        ) {
             return true;
         }
 
         try {
             $disk = Storage::disk('public');
 
-            if (! $disk->exists($path)) {
+            if (!$disk->exists($path)) {
                 return true;
             }
 
             // Chọn lại file cùng nội dung không tính là thay đổi.
-            return ! hash_equals(
+            return !hash_equals(
                 hash('sha256', $disk->get($path)),
                 hash('sha256', $this->newFile->get())
             );
@@ -300,7 +302,7 @@ class CertificationManager extends Component
 
     public function requestSave(): void
     {
-        if (! $this->showForm) {
+        if (!$this->showForm) {
             return;
         }
 
@@ -309,7 +311,7 @@ class CertificationManager extends Component
         if ($this->editingId !== null) {
             $cert = Certification::findOrFail($this->editingId);
 
-            if (! $this->hasChanges($cert, $data)) {
+            if (!$this->hasChanges($cert, $data)) {
                 $this->notify(
                     'info',
                     'Chưa có sự thay đổi nào.'
@@ -327,109 +329,105 @@ class CertificationManager extends Component
     }
 
     public function save(): void
-{
-    if (! $this->showForm) {
-        return;
-    }
+    {
+        if (!$this->showForm) {
+            return;
+        }
 
-    // Kiểm tra lại khi người dùng đã xác nhận.
-    $data = $this->validatedPayload();
+        // Kiểm tra lại khi người dùng đã xác nhận.
+        $data = $this->validatedPayload();
 
-    $wasEditing = $this->editingId !== null;
-    $newPath = null;
-    $oldPath = null;
+        $wasEditing = $this->editingId !== null;
+        $newPath = null;
+        $oldPath = null;
 
-    try {
-        $result = DB::transaction(function () use (
-            $data,
-            &$newPath,
-            &$oldPath
-        ) {
-            $cert = $this->editingId === null
-                ? new Certification()
-                : Certification::query()
-                    ->lockForUpdate()
-                    ->findOrFail($this->editingId);
+        try {
+            $result = DB::transaction(function () use ($data, &$newPath, &$oldPath) {
+                $cert = $this->editingId === null
+                    ? new Certification()
+                    : Certification::query()
+                        ->lockForUpdate()
+                        ->findOrFail($this->editingId);
 
-            // Kiểm tra lại bằng bản ghi mới nhất đã khóa.
-            if (
-                $cert->exists
-                && ! $this->hasChanges($cert, $data)
-            ) {
-                return 'unchanged';
-            }
-
-            $cert->fill($data);
-
-            if ($this->newFile !== null) {
-                $newPath = $this->newFile->store(
-                    'certifications',
-                    'public'
-                );
-
+                // Kiểm tra lại bằng bản ghi mới nhất đã khóa.
                 if (
-                    ! is_string($newPath)
-                    || $newPath === ''
-                    || ! Storage::disk('public')->exists($newPath)
+                    $cert->exists
+                    && !$this->hasChanges($cert, $data)
                 ) {
+                    return 'unchanged';
+                }
+
+                $cert->fill($data);
+
+                if ($this->newFile !== null) {
+                    $newPath = $this->newFile->store(
+                        'certifications',
+                        'public'
+                    );
+
+                    if (
+                        !is_string($newPath)
+                        || $newPath === ''
+                        || !Storage::disk('public')->exists($newPath)
+                    ) {
+                        throw new RuntimeException(
+                            'Không lưu được bản scan.'
+                        );
+                    }
+
+                    $oldPath = $cert->image;
+                    $cert->image = $newPath;
+                }
+
+                if (!$cert->save()) {
                     throw new RuntimeException(
-                        'Không lưu được bản scan.'
+                        'Không lưu được giấy kiểm định.'
                     );
                 }
 
-                $oldPath = $cert->image;
-                $cert->image = $newPath;
-            }
+                return 'saved';
+            });
+        } catch (UniqueConstraintViolationException $exception) {
+            $this->deleteManagedFile($newPath);
 
-            if (! $cert->save()) {
-                throw new RuntimeException(
-                    'Không lưu được giấy kiểm định.'
-                );
-            }
+            $this->addError(
+                'code',
+                'Mã vừa được sử dụng. Vui lòng chọn mã khác.'
+            );
 
-            return 'saved';
-        });
-    } catch (UniqueConstraintViolationException $exception) {
-        $this->deleteManagedFile($newPath);
+            return;
+        } catch (Throwable $exception) {
+            $this->deleteManagedFile($newPath);
+            report($exception);
 
-        $this->addError(
-            'code',
-            'Mã vừa được sử dụng. Vui lòng chọn mã khác.'
-        );
+            $this->addError(
+                'form',
+                'Không thể lưu giấy kiểm định. Vui lòng thử lại.'
+            );
 
-        return;
-    } catch (Throwable $exception) {
-        $this->deleteManagedFile($newPath);
-        report($exception);
+            return;
+        }
 
-        $this->addError(
-            'form',
-            'Không thể lưu giấy kiểm định. Vui lòng thử lại.'
-        );
+        if ($result === 'unchanged') {
+            $this->notify(
+                'info',
+                'Chưa có sự thay đổi nào.'
+            );
 
-        return;
-    }
+            return;
+        }
 
-    if ($result === 'unchanged') {
+        // Database đã commit, lúc này mới dọn file cũ.
+        $this->deleteManagedFile($oldPath);
+        $this->closeForm();
+
         $this->notify(
-            'info',
-            'Chưa có sự thay đổi nào.'
-        );
-
-        return;
-    }
-
-    // Database đã commit, lúc này mới dọn file cũ.
-    $this->deleteManagedFile($oldPath);
-    $this->closeForm();
-
-    $this->notify(
-        'success',
-        $wasEditing
+            'success',
+            $wasEditing
             ? 'Đã cập nhật giấy kiểm định!'
             : 'Đã thêm giấy kiểm định!'
-    );
-}
+        );
+    }
 
     public function requestDelete(int $id): void
     {
@@ -439,7 +437,7 @@ class CertificationManager extends Component
         $this->dispatch(
             'confirm-certification-delete',
             id: $cert->id,
-            name: $cert->code.' - '.$cert->name
+            name: $cert->code . ' - ' . $cert->name
         )->self();
     }
 
@@ -453,13 +451,13 @@ class CertificationManager extends Component
                     ->lockForUpdate()
                     ->find($id);
 
-                if (! $cert) {
+                if (!$cert) {
                     return;
                 }
 
                 $oldPath = $cert->image;
 
-                if (! $cert->delete()) {
+                if (!$cert->delete()) {
                     throw new RuntimeException(
                         'Không xóa được giấy kiểm định.'
                     );
@@ -497,8 +495,8 @@ class CertificationManager extends Component
         // Chỉ xóa file trong thư mục do chức năng này quản lý.
         // Bỏ qua URL ngoài và đường dẫn thư mục khác.
         if (
-            ! $path
-            || ! preg_match(
+            !$path
+            || !preg_match(
                 '#\Acertifications/[A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp|pdf)\z#i',
                 $path
             )
@@ -508,8 +506,8 @@ class CertificationManager extends Component
 
         try {
             if (
-                ! Certification::where('image', $path)->exists()
-                && ! Storage::disk('public')->delete($path)
+                !Certification::where('image', $path)->exists()
+                && !Storage::disk('public')->delete($path)
             ) {
                 throw new RuntimeException(
                     'Không dọn được bản scan cũ.'
@@ -649,12 +647,12 @@ class CertificationManager extends Component
                             $query->where(
                                 'name',
                                 'like',
-                                '%'.$search.'%'
+                                '%' . $search . '%'
                             )->orWhere(
-                                'code',
-                                'like',
-                                '%'.$search.'%'
-                            );
+                                    'code',
+                                    'like',
+                                    '%' . $search . '%'
+                                );
                         }
                     );
                 }
@@ -668,7 +666,7 @@ class CertificationManager extends Component
             ->orderByDesc('id')
             ->get()
             ->map(
-                fn (Certification $cert) => $this->prepareForView($cert)
+                fn(Certification $cert) => $this->prepareForView($cert)
             )
             ->values();
 
@@ -686,7 +684,7 @@ class CertificationManager extends Component
 
         if (
             $this->newFile instanceof TemporaryUploadedFile
-            && ! $this->getErrorBag()->has('newFile')
+            && !$this->getErrorBag()->has('newFile')
         ) {
             $uploadFileName = $this->newFile->getClientOriginalName();
 
@@ -714,7 +712,7 @@ class CertificationManager extends Component
                 'scanCertification',
                 'uploadPreviewUrl',
                 'uploadFileName'
-            )
+            )            
         );
     }
 }

@@ -61,13 +61,13 @@
     <div class="p-4 border-t border-gray-100">
         <div class="flex items-center space-x-3 bg-brand-50/70 p-3 rounded-2xl border border-brand-100 mb-3">
             @if ($user->avatar_url)
-            <img src="{{ $user->avatar_url }}" alt="Ảnh đại diện"
-                class="w-9 h-9 rounded-full object-cover border border-brand-200">
+                <img src="{{ $user->avatar_url }}" alt="Ảnh đại diện"
+                    class="w-9 h-9 rounded-full object-cover border border-brand-200">
             @else
-            <div
-                class="w-9 h-9 shrink-0 rounded-full bg-brand-100 text-brand-800 flex items-center justify-center font-bold">
-                {{ mb_strtoupper(mb_substr($user->name, 0, 1)) }}
-            </div>
+                <div
+                    class="w-9 h-9 shrink-0 rounded-full bg-brand-100 text-brand-800 flex items-center justify-center font-bold">
+                    {{ mb_strtoupper(mb_substr($user->name, 0, 1)) }}
+                </div>
             @endif
 
             <div class="min-w-0 flex-1">

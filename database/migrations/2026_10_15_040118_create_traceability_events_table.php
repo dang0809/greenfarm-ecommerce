@@ -19,7 +19,7 @@ return new class extends Migration
           ->index();                                                           // FK
     $table->string('event_name', 100)->index();
     $table->text('description')->nullable();
-    $table->string('image', 255)->nullable();
+    $table->string('image', 255);
     $table->string('recorded_by', 255);
     $table->timestamp('recorded_at')->nullable()->index();
     $table->timestamps();

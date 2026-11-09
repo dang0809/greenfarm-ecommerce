@@ -19,6 +19,10 @@ class PlantingBatch extends Model
         'status',
     ];
 
+    // 'planting': Đang gieo trồng / Chăm sóc.
+    // 'harvesting': Đang trong giai đoạn thu hoạch.
+    // 'completed': Vụ mùa đã kết thúc.
+
     protected function casts(): array{
         return [
             'planted_date' => 'date',

@@ -1,7 +1,8 @@
 <?php
 
 namespace App\Services;
-
+use Carbon\CarbonImmutable;
+use Illuminate\Validation\Rule;
 use App\Models\FarmPlot;
 use App\Models\InventoryLog;
 use App\Models\PlantingBatch;
@@ -20,7 +21,39 @@ use Throwable;
 
 class FarmPlotService
 {
-    public function sow(FarmPlot $plot,?int $productId,string $plantedDate,User $staff): PlantingBatch {
+    public function createPlot(array $data, User $staff): FarmPlot
+    {
+        $this->requireStaff($staff);
+
+        $area = $data['area'] ?? null;
+
+        $validated = $this->validateData([
+            'newPlotName' => trim((string) ($data['name'] ?? '')),
+            'newPlotArea' => $area === '' ? null : $area,
+        ], [
+            'newPlotName' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+            'newPlotArea' => [
+                'required',
+                'numeric',
+                'decimal:0,2',
+                'gt:0',
+                'max:9999999999.99',
+            ],
+        ]);
+
+        return FarmPlot::create([
+            'name' => $validated['newPlotName'],
+            'area' => $validated['newPlotArea'] ?? null,
+            'status' => 'available',
+        ]);
+    }
+
+    public function sow(FarmPlot $plot, ?int $productId, string $plantedDate, User $staff): PlantingBatch
+    {
         $staff = $this->requireStaff($staff);
 
         $validated = $this->validateData([
@@ -35,20 +68,18 @@ class FarmPlotService
             ],
         ]);
 
-        return DB::transaction(function () use (
-            $plot,
-            $validated,
-            $staff
-        ) {
+        return DB::transaction(function () use ($plot, $validated, $staff) {
             $lockedPlot = FarmPlot::whereKey($plot->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (! in_array(
-                $lockedPlot->status,
-                ['available', 'active'],
-                true
-            )) {
+            if (
+                !in_array(
+                    $lockedPlot->status,
+                    ['available', 'active'],
+                    true
+                )
+            ) {
                 $this->reject(
                     'sowProductId',
                     'Luống chưa sẵn sàng để xuống giống.'
@@ -72,7 +103,7 @@ class FarmPlotService
                 ->lockForUpdate()
                 ->first();
 
-            if (! $product) {
+            if (!$product) {
                 $this->reject(
                     'sowProductId',
                     'Giống trồng không tồn tại hoặc đã ngừng sử dụng.'
@@ -81,7 +112,7 @@ class FarmPlotService
 
             $lastHarvestDate = ProductBatch::whereHas(
                 'plantingBatch',
-                fn ($query) => $query->where(
+                fn($query) => $query->where(
                     'farm_plot_id',
                     $lockedPlot->id
                 )
@@ -112,7 +143,7 @@ class FarmPlotService
                 $batch,
                 'Xuống giống',
                 "Xuống giống {$product->name} tại {$lockedPlot->name}. "
-                    . "Ngày xuống giống: {$validated['sowDate']}.",
+                . "Ngày xuống giống: {$validated['sowDate']}.",
                 null,
                 $staff
             );
@@ -124,62 +155,150 @@ class FarmPlotService
         });
     }
 
-    public function recordEvent(
-        PlantingBatch $batch,
+    public function validateLogData(
         array $data,
         ?UploadedFile $photo,
-        User $staff
-    ): TraceabilityEvent {
-        $staff = $this->requireStaff($staff);
+        PlantingBatch $batch
+    ): array {
+        $types = config('farm-log.activities', []);
+        $fertilizers = config('farm-log.fertilizers', []);
+        $pesticides = config('farm-log.pesticides', []);
+        $methods = config('farm-log.fertilizer_methods', []);
+        $sources = config('farm-log.water_sources', []);
 
-        $validated = $this->validateData([
-            'logName' => trim((string) ($data['event_name'] ?? '')),
-            'logDesc' => trim((string) ($data['description'] ?? '')),
-            'logPhoto' => $photo,
-        ], [
-            'logName' => ['required', 'string', 'min:3', 'max:100'],
-            'logDesc' => ['required', 'string', 'min:5', 'max:10000'],
-            'logPhoto' => [
-                'nullable',
-                'image',
-                'mimes:jpg,jpeg,png,webp',
-                'max:2048',
-            ],
-        ]);
+        $type = $data['type'] ?? '';
+        $details = $data['details'] ?? [];
 
-        $imagePath = null;
-
-        try {
-            return DB::transaction(function () use (
-                $batch,
-                $validated,
-                $photo,
-                $staff,
-                &$imagePath
-            ) {
-                $lockedBatch = $this->lockBatch($batch->id);
-                $this->requireOpenBatch($lockedBatch, 'logName');
-
-                $this->savePhoto($photo, $imagePath);
-
-                return $this->appendEvent(
-                    $lockedBatch,
-                    $validated['logName'],
-                    $validated['logDesc'],
-                    $imagePath,
-                    $staff
-                );
-            });
-        } catch (Throwable $exception) {
-            $this->cleanupPhoto($imagePath);
-
-            throw $exception;
+        if (is_array($details)) {
+            $details = array_map(
+                fn($value) => is_string($value) ? trim($value) : $value,
+                $details
+            );
         }
+
+        $description = $data['description'] ?? '';
+
+        $rules = [
+            'logType' => ['bail', 'required', 'string', Rule::in(array_keys($types))],
+            'logDetails' => ['array'],
+            'logPhoto' => ['bail', 'required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ];
+
+        $specificRules = match ($type) {
+            'fertilizing' => [
+                'logDetails.fertilizer_name' => ['required', 'string', Rule::in(array_keys($fertilizers))],
+                'logDetails.fertilizer_dose' => ['required', 'string', 'max:100'],
+                'logDetails.fertilizer_method' => ['required', 'string', Rule::in(array_keys($methods))],
+            ],
+            'spraying' => [
+                'logDetails.pesticide_name' => ['required', 'string', Rule::in(array_keys($pesticides))],
+                'logDetails.concentration' => ['required', 'string', 'max:100'],
+                'logDetails.pest' => ['required', 'string', 'max:255'],
+                'logDetails.sprayed_on' => ['bail', 'required', 'date_format:Y-m-d', 'before_or_equal:today'],
+                'logDetails.isolation_days' => ['required', 'integer', 'min:0', 'max:365'],
+            ],
+            'watering' => [
+                'logDetails.watering_minutes' => ['required', 'integer', 'min:1', 'max:1440'],
+                'logDetails.water_source' => ['required', 'string', Rule::in(array_keys($sources))],
+            ],
+            'pruning' => [
+                'logDesc' => ['required', 'string', 'min:5', 'max:10000'],
+            ],
+            default => [],
+        };
+
+        $validated = Validator::make([
+            'logType' => $type,
+            'logDetails' => $details,
+            'logDesc' => is_string($description) ? trim($description) : $description,
+            'logPhoto' => $photo,
+        ], array_merge($rules, $specificRules), [
+            'required' => ':attribute là bắt buộc.',
+            'in' => ':attribute không hợp lệ.',
+            'string' => ':attribute phải là văn bản.',
+            'integer' => ':attribute phải là số nguyên.',
+            'array' => 'Dữ liệu hoạt động không hợp lệ.',
+            'min.string' => ':attribute phải có ít nhất :min ký tự.',
+            'max.string' => ':attribute tối đa :max ký tự.',
+            'min.numeric' => ':attribute phải từ :min trở lên.',
+            'max.numeric' => ':attribute không được vượt quá :max.',
+            'date_format' => ':attribute không đúng định dạng ngày.',
+            'before_or_equal' => ':attribute không được ở tương lai.',
+            'image' => 'Tệp tải lên phải là ảnh.',
+            'mimes' => 'Chỉ nhận ảnh JPG, JPEG, PNG hoặc WEBP.',
+            'logPhoto.required' => 'Vui lòng tải ảnh minh chứng.',
+            'logPhoto.max' => 'Ảnh nhật ký tối đa 2 MB.',
+        ], [
+            'logType' => 'Loại hoạt động',
+            'logDesc' => 'Mô tả cắt tỉa',
+            'logDetails.fertilizer_name' => 'Tên phân bón',
+            'logDetails.fertilizer_dose' => 'Liều lượng',
+            'logDetails.fertilizer_method' => 'Phương pháp bón',
+            'logDetails.pesticide_name' => 'Tên thuốc',
+            'logDetails.concentration' => 'Nồng độ pha',
+            'logDetails.pest' => 'Đối tượng sâu bệnh',
+            'logDetails.sprayed_on' => 'Ngày phun',
+            'logDetails.isolation_days' => 'Thời gian cách ly',
+            'logDetails.watering_minutes' => 'Thời lượng tưới',
+            'logDetails.water_source' => 'Nguồn nước',
+        ])->validate();
+
+        $d = $validated['logDetails'] ?? [];
+
+        if ($type === 'spraying') {
+            if (
+                $batch->planted_date
+                && $d['sprayed_on'] < $batch->planted_date->toDateString()
+            ) {
+                $this->reject(
+                    'logDetails.sprayed_on',
+                    'Ngày phun không được trước ngày xuống giống.'
+                );
+            }
+
+            $sprayedOn = CarbonImmutable::createFromFormat(
+                '!Y-m-d',
+                $d['sprayed_on'],
+                config('app.timezone')
+            );
+
+            $isolationEnd = $sprayedOn
+                ->addDays((int) $d['isolation_days'])
+                ->format('d/m/Y');
+        }
+
+        $summary = match ($type) {
+            'fertilizing' => implode("\n", [
+                'Tên phân bón: ' . $fertilizers[$d['fertilizer_name']],
+                'Liều lượng: ' . $d['fertilizer_dose'],
+                'Phương pháp bón: ' . $methods[$d['fertilizer_method']],
+            ]),
+            'spraying' => implode("\n", [
+                'Tên thuốc: ' . $pesticides[$d['pesticide_name']],
+                'Nồng độ pha: ' . $d['concentration'],
+                'Đối tượng sâu bệnh: ' . $d['pest'],
+                'Ngày phun: ' . $sprayedOn->format('d/m/Y'),
+                'Thời gian cách ly: ' . $d['isolation_days'] . ' ngày',
+                'Ngày kết thúc cách ly: ' . $isolationEnd,
+            ]),
+            'watering' => implode("\n", [
+                'Thời lượng tưới: ' . $d['watering_minutes'] . ' phút',
+                'Nguồn nước: ' . $sources[$d['water_source']],
+            ]),
+            'pruning' => $validated['logDesc'],
+        };
+
+        return [
+            'logName' => $types[$type],
+            'logDesc' => $summary,
+        ];
     }
 
-    public function harvest(PlantingBatch $batch,array $data,?UploadedFile $photo,User $staff): ProductBatch {
-        $staff = $this->requireStaff($staff);
-
+    public function validateHarvestData(
+        array $data,
+        ?UploadedFile $photo,
+        PlantingBatch $batch
+    ): array {
         $validated = $this->validateData([
             'harvestDate' => $data['harvest_date'] ?? null,
             'harvestExpiry' => $data['expiry_date'] ?? null,
@@ -200,58 +319,94 @@ class FarmPlotService
                 'after_or_equal:today',
             ],
             'harvestQty' => [
-            'required',
-            'integer',
-            'min:1',
-            'max:100000',
+                'required',
+                'integer',
+                'min:1',
+                'max:100000',
             ],
             'harvestNote' => ['nullable', 'string', 'max:1000'],
             'harvestMode' => ['required', 'in:inherit,finish'],
             'harvestPhoto' => [
-                'nullable',
+                'bail',
+                'required',
                 'image',
                 'mimes:jpg,jpeg,png,webp',
-                'max:4096',
+                'max:2048',
             ],
         ]);
+
+        if (
+            $batch->planted_date
+            && $validated['harvestDate']
+            < $batch->planted_date->toDateString()
+        ) {
+            $this->reject(
+                'harvestDate',
+                'Ngày thu hoạch không được trước ngày xuống giống.'
+            );
+        }
+
+        return $validated;
+    }
+
+    public function recordEvent(
+        PlantingBatch $batch,
+        array $data,
+        ?UploadedFile $photo,
+        User $staff
+    ): TraceabilityEvent {
+        $staff = $this->requireStaff($staff);
+
+        
 
         $imagePath = null;
 
         try {
-            return DB::transaction(function () use (
-                $batch,
-                $validated,
-                $photo,
-                $staff,
-                &$imagePath
-            ) {
+            return DB::transaction(function () use ($batch, $data, $photo, $staff, &$imagePath) {
                 $lockedBatch = $this->lockBatch($batch->id);
+                $this->requireOpenBatch($lockedBatch, 'logType');
 
-                // Trả lại kết quả cũ khi gửi lại cùng một form.
-                $existing = ProductBatch::where('batch_code', $batchCode)
-                    ->lockForUpdate()
-                    ->first();
+                $validated = $this->validateLogData($data, $photo, $lockedBatch);
 
-                if ($existing) {
-                    if (
-                        (int) $existing->planting_batch_id
-                        !== (int) $lockedBatch->id
-                    ) {
-                        $this->reject(
-                            'harvestQty',
-                            'Mã thao tác thu hoạch không hợp lệ.'
-                        );
-                    }
+                $this->savePhoto($photo, $imagePath);
 
-                    return $existing;
-                }
+                return $this->appendEvent(
+                    $lockedBatch,
+                    $validated['logName'],
+                    $validated['logDesc'],
+                    $imagePath,
+                    $staff
+                );
+            });
+        } catch (Throwable $exception) {
+            $this->cleanupPhoto($imagePath);
+
+            throw $exception;
+        }
+    }
+
+    public function harvest(PlantingBatch $batch, array $data, ?UploadedFile $photo, User $staff): ProductBatch
+    {
+        $staff = $this->requireStaff($staff);
+
+        $validated = $this->validateHarvestData(
+            $data,
+            $photo,
+            $batch
+        );
+
+        $imagePath = null;
+
+        try {
+            return DB::transaction(function () use ($batch, $validated, $photo, $staff, &$imagePath) {
+                $lockedBatch = $this->lockBatch($batch->id);
 
                 $this->requireOpenBatch($lockedBatch, 'harvestQty');
 
                 if (
                     $lockedBatch->planted_date
                     && $validated['harvestDate']
-                        < $lockedBatch->planted_date->toDateString()
+                    < $lockedBatch->planted_date->toDateString()
                 ) {
                     $this->reject(
                         'harvestDate',
@@ -260,7 +415,13 @@ class FarmPlotService
                 }
 
                 $quantity = (int) $validated['harvestQty'];
+
                 $this->savePhoto($photo, $imagePath);
+
+                // Sinh mã lô thu hoạch
+                $batchCode = 'TH-'
+                    . now()->format('Ymd') . '-'
+                    . strtoupper((string) Str::uuid());
 
                 $productBatch = ProductBatch::create([
                     'planting_batch_id' => $lockedBatch->id,
@@ -309,12 +470,12 @@ class FarmPlotService
                 ]);
 
                 FarmPlot::whereKey($lockedBatch->farm_plot_id)
-                ->whereIn('status', ['available', 'active', 'in-progress'])
-                ->update([
-                    'status' => $validated['harvestMode'] === 'finish'
-                        ? 'available'
-                        : 'in-progress',
-                ]);
+                    ->whereIn('status', ['available', 'active', 'in-progress'])
+                    ->update([
+                        'status' => $validated['harvestMode'] === 'finish'
+                            ? 'available'
+                            : 'in-progress',
+                    ]);
 
                 return $productBatch;
             });
@@ -347,11 +508,13 @@ class FarmPlotService
         PlantingBatch $batch,
         string $field
     ): void {
-        if (! in_array(
-            $batch->status,
-            ['planting', 'harvesting'],
-            true
-        )) {
+        if (
+            !in_array(
+                $batch->status,
+                ['planting', 'harvesting'],
+                true
+            )
+        ) {
             $this->reject(
                 $field,
                 'Vụ trồng đã kết thúc. Vui lòng tải lại thông tin luống.'
@@ -391,14 +554,15 @@ class FarmPlotService
         ]);
     }
 
-    private function savePhoto(?UploadedFile $photo,?string &$imagePath): void {
+    private function savePhoto(?UploadedFile $photo, ?string &$imagePath): void
+    {
         if ($photo === null) {
             return;
         }
 
         $storedPath = $photo->store('farm-logs', 'public');
 
-        if (! is_string($storedPath) || $storedPath === '') {
+        if (!is_string($storedPath) || $storedPath === '') {
             throw new RuntimeException(
                 'Không thể lưu ảnh nhật ký.'
             );
@@ -407,7 +571,7 @@ class FarmPlotService
         // Gán sớm để cleanupPhoto() có thể dọn file nếu bước sau lỗi.
         $imagePath = $storedPath;
 
-        if (! Storage::disk('public')->exists($imagePath)) {
+        if (!Storage::disk('public')->exists($imagePath)) {
             throw new RuntimeException(
                 'Ảnh nhật ký chưa được lưu thành công.'
             );
@@ -416,7 +580,7 @@ class FarmPlotService
 
     private function cleanupPhoto(?string $path): void
     {
-        if (! $path) {
+        if (!$path) {
             return;
         }
 
@@ -438,8 +602,8 @@ class FarmPlotService
 
         abort_unless(
             $freshUser
-                && $freshUser->status === 'active'
-                && $role === 'farm_staff',
+            && $freshUser->status === 'active'
+            && $role === 'farm_staff',
             403,
             'Bạn không có quyền thao tác tại nông trại.'
         );
@@ -464,18 +628,29 @@ class FarmPlotService
             'image' => ':attribute phải là hình ảnh.',
             'mimes' => ':attribute chỉ nhận JPG, PNG hoặc WEBP.',
             'in' => ':attribute không hợp lệ.',
+            'newPlotName.string' => 'Tên luống không hợp lệ.',
+            'newPlotArea.numeric' => 'Diện tích phải là số.',
+            'newPlotArea.decimal' => 'Diện tích chỉ nhận tối đa hai chữ số thập phân.',
+            'newPlotArea.gt' => 'Diện tích phải lớn hơn 0.',
+            'newPlotArea.max' => 'Diện tích vượt quá giới hạn cho phép.',
         ], [
             'sowProductId' => 'Giống trồng',
             'sowDate' => 'Ngày xuống giống',
             'logName' => 'Tên hoạt động',
             'logDesc' => 'Mô tả nhật ký',
             'logPhoto' => 'Ảnh nhật ký',
+            'logPhoto.required' => 'Vui lòng tải ảnh minh chứng nhật ký.',
+            'logPhoto.max' => 'Ảnh nhật ký tối đa 2 MB.',
+            'harvestPhoto.required' => 'Vui lòng tải ảnh thu hoạch thực tế.',
+            'harvestPhoto.max' => 'Ảnh thu hoạch tối đa 4 MB.',
             'harvestDate' => 'Ngày thu hoạch',
             'harvestExpiry' => 'Hạn sử dụng',
             'harvestQty' => 'Sản lượng',
             'harvestNote' => 'Ghi chú',
             'harvestMode' => 'Hình thức thu hoạch',
             'harvestPhoto' => 'Ảnh thu hoạch',
+            'newPlotName' => 'Tên luống',
+            'newPlotArea' => 'Diện tích',
         ])->validate();
     }
 

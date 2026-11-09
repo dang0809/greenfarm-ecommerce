@@ -60,8 +60,8 @@ class CategoryManager extends Component
 
         abort_unless(
             $user
-                && $user->role === 'farm_staff'
-                && $user->status === 'active',
+            && $user->role === 'farm_staff'
+            && $user->status === 'active',
             403,
             'Bạn không có quyền truy cập chức năng này.'
         );
@@ -140,7 +140,8 @@ class CategoryManager extends Component
         ];
     }
 
-   private function hasCategoryChanges(Category $category,array $data): bool {
+    private function hasCategoryChanges(Category $category, array $data): bool
+    {
         $current = [
             'name' => trim((string) $category->name),
             'slug' => trim((string) $category->slug),
@@ -157,29 +158,31 @@ class CategoryManager extends Component
             return false;
         }
 
-        if (! $this->newImage instanceof TemporaryUploadedFile) {
+        if (!$this->newImage instanceof TemporaryUploadedFile) {
             return true;
         }
 
         $path = (string) $category->image;
 
         // Chỉ so sánh ảnh đã lưu trong thư mục quản lý của chức năng.
-        if (! preg_match(
-            '#\Acategories/[A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp)\z#i',
-            $path
-        )) {
+        if (
+            !preg_match(
+                '#\Acategories/[A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp)\z#i',
+                $path
+            )
+        ) {
             return true;
         }
 
         try {
             $disk = Storage::disk('public');
 
-            if (! $disk->exists($path)) {
+            if (!$disk->exists($path)) {
                 return true;
             }
 
             // Chọn lại ảnh có cùng nội dung không tính là thay đổi.
-            return ! hash_equals(
+            return !hash_equals(
                 hash('sha256', $disk->get($path)),
                 hash('sha256', $this->newImage->get())
             );
@@ -192,7 +195,7 @@ class CategoryManager extends Component
 
     public function requestSaveCategory(): void
     {
-        if (! $this->showModal) {
+        if (!$this->showModal) {
             return;
         }
 
@@ -209,7 +212,7 @@ class CategoryManager extends Component
 
         if (
             $category !== null
-            && ! $this->hasCategoryChanges($category, $data)
+            && !$this->hasCategoryChanges($category, $data)
         ) {
             $this->notify(
                 'info',
@@ -230,7 +233,7 @@ class CategoryManager extends Component
     {
         $category = Category::find($id);
 
-        if (! $category) {
+        if (!$category) {
             $this->resetPage();
             $this->notify('error', 'Danh mục không còn tồn tại.');
 
@@ -244,7 +247,7 @@ class CategoryManager extends Component
             name: $category->name
         )->self();
     }
-    
+
     public function closeModal(): void
     {
         $this->showModal = false;
@@ -272,7 +275,8 @@ class CategoryManager extends Component
         ];
     }
 
-    private function validateImageForSave(?Category $category): void {
+    private function validateImageForSave(?Category $category): void
+    {
         $hasExistingImage = $category !== null
             && trim((string) $category->image) !== '';
 
@@ -280,7 +284,7 @@ class CategoryManager extends Component
             ['newImage' => $this->newImage],
             [
                 'newImage' => $this->imageRules(
-                    ! $hasExistingImage
+                    !$hasExistingImage
                 ),
             ],
             $this->messages()
@@ -352,7 +356,7 @@ class CategoryManager extends Component
 
     public function saveCategory(): void
     {
-        if (! $this->showModal) {
+        if (!$this->showModal) {
             return;
         }
 
@@ -363,11 +367,7 @@ class CategoryManager extends Component
         $oldPath = null;
 
         try {
-            $result = DB::transaction(function () use (
-                $data,
-                &$newPath,
-                &$oldPath
-            ) {
+            $result = DB::transaction(function () use ($data, &$newPath, &$oldPath) {
                 $category = $this->editingId === null
                     ? new Category()
                     : Category::query()
@@ -376,7 +376,7 @@ class CategoryManager extends Component
 
                 // Lưu trạng thái cũ trước khi fill dữ liệu mới.
                 $wasHidden = $category->exists
-                    && ! $category->is_active;
+                    && !$category->is_active;
 
                 // Kiểm tra ảnh theo bản ghi mới nhất đã khóa.
                 $this->validateImageForSave(
@@ -385,7 +385,7 @@ class CategoryManager extends Component
 
                 if (
                     $category->exists
-                    && ! $this->hasCategoryChanges($category, $data)
+                    && !$this->hasCategoryChanges($category, $data)
                 ) {
                     return 'unchanged';
                 }
@@ -398,9 +398,9 @@ class CategoryManager extends Component
                     );
 
                     if (
-                        ! is_string($newPath)
+                        !is_string($newPath)
                         || $newPath === ''
-                        || ! Storage::disk('public')->exists($newPath)
+                        || !Storage::disk('public')->exists($newPath)
                     ) {
                         throw new RuntimeException(
                             'Không lưu được ảnh danh mục.'
@@ -414,13 +414,13 @@ class CategoryManager extends Component
                 // Nếu không chọn ảnh mới, image cũ được giữ nguyên.
                 $category->fill($data);
 
-                if (! $category->save()) {
+                if (!$category->save()) {
                     throw new RuntimeException(
                         'Không lưu được danh mục.'
                     );
                 }
 
-                if (! $category->is_active) {
+                if (!$category->is_active) {
                     // Danh mục bị ẩn: ẩn toàn bộ sản phẩm thuộc danh mục.
                     $category->products()
                         ->where('status', '<>', 'hidden')
@@ -483,8 +483,8 @@ class CategoryManager extends Component
         $this->notify(
             'success',
             $wasEditing
-                ? 'Đã cập nhật danh mục!'
-                : 'Đã thêm danh mục!'
+            ? 'Đã cập nhật danh mục!'
+            : 'Đã thêm danh mục!'
         );
     }
 
@@ -493,10 +493,7 @@ class CategoryManager extends Component
         $oldPath = null;
 
         try {
-            $deleted = DB::transaction(function () use (
-                $id,
-                &$oldPath
-            ) {
+            $deleted = DB::transaction(function () use ($id, &$oldPath) {
                 $category = Category::query()
                     ->lockForUpdate()
                     ->findOrFail($id);
@@ -508,7 +505,7 @@ class CategoryManager extends Component
 
                 $oldPath = $category->image;
 
-                if (! $category->delete()) {
+                if (!$category->delete()) {
                     throw new RuntimeException(
                         'Không xóa được danh mục.'
                     );
@@ -528,7 +525,7 @@ class CategoryManager extends Component
             return;
         }
 
-        if (! $deleted) {
+        if (!$deleted) {
             $this->notify(
                 'error',
                 'Không thể xóa danh mục đang chứa sản phẩm, kể cả sản phẩm đang ẩn.'
@@ -554,8 +551,8 @@ class CategoryManager extends Component
         // Chỉ dọn ảnh thuộc định dạng đường dẫn do chức năng này tạo.
         // URL ngoài và đường dẫn thư mục khác sẽ được bỏ qua.
         if (
-            ! $path
-            || ! preg_match(
+            !$path
+            || !preg_match(
                 '#\Acategories/[A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp)\z#i',
                 $path
             )
@@ -569,7 +566,7 @@ class CategoryManager extends Component
                 return;
             }
 
-            if (! Storage::disk('public')->delete($path)) {
+            if (!Storage::disk('public')->delete($path)) {
                 throw new RuntimeException(
                     'Không dọn được ảnh danh mục.'
                 );
@@ -616,12 +613,12 @@ class CategoryManager extends Component
                     $query->where(
                         'name',
                         'like',
-                        '%'.$search.'%'
+                        '%' . $search . '%'
                     )->orWhere(
-                        'slug',
-                        'like',
-                        '%'.$search.'%'
-                    );
+                            'slug',
+                            'like',
+                            '%' . $search . '%'
+                        );
                 });
             })
             ->orderByDesc('id')
@@ -630,7 +627,7 @@ class CategoryManager extends Component
         // Chuẩn bị URL riêng, giữ nguyên đối tượng phân trang.
         $categoryImageUrls = $categories
             ->getCollection()
-            ->mapWithKeys(fn (Category $category) => [
+            ->mapWithKeys(fn(Category $category) => [
                 $category->id => $this->categoryImageUrl($category->image),
             ])
             ->all();

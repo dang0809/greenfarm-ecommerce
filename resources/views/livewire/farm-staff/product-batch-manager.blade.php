@@ -1,250 +1,237 @@
 <div x-data="{ confirmingBatch: false }" x-on:batch-confirm-state="confirmingBatch = $event.detail.busy">
 
     @php
-    $selectedProduct = $selectedBatch?->plantingBatch?->product;
-    $selectedUnit = $selectedProduct?->unit ?? 'đơn vị';
+        $selectedProduct = $selectedBatch?->plantingBatch?->product;
+        $selectedUnit = $selectedProduct?->unit ?? 'đơn vị';
 
-    $blockedForRecall = $selectedBatch
-    && (
-    (int) $selectedBatch->reserved_quantity > 0
-    || $hasUnfinishedOrders
-    );
+        $blockedForRecall = $selectedBatch && ((int) $selectedBatch->reserved_quantity > 0 || $hasUnfinishedOrders);
 
-    $cannotSubmit = $selectedBatch && (
-    (
-    $modal === 'status'
-    && $newStatus === 'pending_recalled'
-    && $blockedForRecall
-    )
-    || (
-    $modal === 'spoilage'
-    && (
-    $selectedBatch->current_quantity <= 0 || $selectedBatch->status === 'recalled'
-        || (
-        $destroyAll
-        ? $blockedForRecall
-        : $this->availableQuantity($selectedBatch) <= 0 ) ) ) ); @endphp <!-- Header -->
-            <header
-                class="min-h-[4.5rem] sm:h-20 bg-white/95 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-4 sm:px-8 relative z-10 shrink-0 gap-3">
-                <div class="flex items-center gap-3 min-w-0">
-                    <button type="button" onclick="toggleSidebar()"
-                        class="lg:hidden p-2 rounded-xl text-gray-600 hover:bg-brand-50 hover:text-brand-700 transition shrink-0"
-                        aria-label="Mở menu">
-                        <i class="fa-solid fa-bars text-lg"></i>
-                    </button>
+        $cannotSubmit =
+            $selectedBatch &&
+            (($modal === 'status' && $newStatus === 'pending_recalled' && $blockedForRecall) ||
+                ($modal === 'spoilage' &&
+                    ($selectedBatch->current_quantity <= 0 ||
+                        $selectedBatch->status === 'recalled' ||
+                        ($destroyAll ? $blockedForRecall : $this->availableQuantity($selectedBatch) <= 0))));
+    @endphp <!-- Header -->
+    <header
+        class="min-h-[4.5rem] sm:h-20 bg-white/95 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-4 sm:px-8 relative z-10 shrink-0 gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+            <button type="button" onclick="toggleSidebar()"
+                class="lg:hidden p-2 rounded-xl text-gray-600 hover:bg-brand-50 hover:text-brand-700 transition shrink-0"
+                aria-label="Mở menu">
+                <i class="fa-solid fa-bars text-lg"></i>
+            </button>
 
-                    <div class="min-w-0">
-                        <h1
-                            class="text-base sm:text-2xl font-extrabold text-gray-900 tracking-tight truncate leading-tight">
-                            Quản Lý Lô Nông Sản
-                        </h1>
-                    </div>
-                </div>
+            <div class="min-w-0">
+                <h1 class="text-base sm:text-2xl font-extrabold text-gray-900 tracking-tight truncate leading-tight">
+                    Quản Lý Lô Nông Sản
+                </h1>
+            </div>
+        </div>
 
-                <div class="flex items-center gap-2 shrink-0">
-                    <div
-                        class="inline-flex items-center gap-1.5 sm:gap-2 bg-brand-50 border border-brand-200 text-brand-800 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-2xl text-[11px] sm:text-xs font-bold font-mono">
-                        <i class="fa-regular fa-calendar-check text-brand-600"></i>
-                        <span class="hidden sm:inline">Hôm nay:</span>
-                        <span>{{ today()->format('d/m/Y') }}</span>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Main -->
+        <div class="flex items-center gap-2 shrink-0">
             <div
-                class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 relative z-10 space-y-5 sm:space-y-6 custom-scrollbar pb-28 sm:pb-12 h-[calc(100dvh-5rem)]">
+                class="inline-flex items-center gap-1.5 sm:gap-2 bg-brand-50 border border-brand-200 text-brand-800 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-2xl text-[11px] sm:text-xs font-bold font-mono">
+                <i class="fa-regular fa-calendar-check text-brand-600"></i>
+                <span class="hidden sm:inline">Hôm nay:</span>
+                <span>{{ today()->format('d/m/Y') }}</span>
+            </div>
+        </div>
+    </header>
 
-                <!-- Thống kê -->
-                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-                    <div class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft">
-                        <div class="flex items-center justify-between mb-1.5 sm:mb-2">
-                            <span class="text-[11px] sm:text-xs font-bold text-gray-500">
-                                Tổng số lô hàng
-                            </span>
+    <!-- Main -->
+    <div
+        class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 relative z-10 space-y-5 sm:space-y-6 custom-scrollbar pb-28 sm:pb-12 h-[calc(100dvh-5rem)]">
 
-                            <div
-                                class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gray-50 text-gray-700 flex items-center justify-center text-xs sm:text-sm">
-                                <i class="fa-solid fa-boxes-stacked"></i>
-                            </div>
-                        </div>
-
-                        <div class="text-xl sm:text-2xl font-black text-gray-900">
-                            {{ number_format($stats['total']) }}
-                        </div>
-
-                        <p class="text-[10px] sm:text-[11px] text-gray-400 mt-1">
-                            Lô đã nhập kho
-                        </p>
-                    </div>
-
-                    <div class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft">
-                        <div class="flex items-center justify-between mb-1.5 sm:mb-2">
-                            <span class="text-[11px] sm:text-xs font-bold text-brand-700">
-                                Lô đang bán (Tồn)
-                            </span>
-
-                            <div
-                                class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center text-xs sm:text-sm">
-                                <i class="fa-solid fa-circle-check"></i>
-                            </div>
-                        </div>
-
-                        <div class="text-xl sm:text-2xl font-black text-brand-700">
-                            {{ number_format($stats['active']) }}
-                        </div>
-
-                        <p class="text-[10px] sm:text-[11px] text-brand-600 font-medium mt-1">
-                            Sẵn sàng xuất bán
-                        </p>
-                    </div>
-
-                    <div class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft">
-                        <div class="flex items-center justify-between mb-1.5 sm:mb-2">
-                            <span class="text-[11px] sm:text-xs font-bold text-amber-600">
-                                Lô cận hạn (&le; 3N)
-                            </span>
-
-                            <div
-                                class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xs sm:text-sm">
-                                <i class="fa-solid fa-triangle-exclamation"></i>
-                            </div>
-                        </div>
-
-                        <div class="text-xl sm:text-2xl font-black text-amber-700">
-                            {{ number_format($stats['near']) }}
-                        </div>
-
-                        <p class="text-[10px] sm:text-[11px] text-amber-700 font-medium mt-1">
-                            Ưu tiên đẩy bán FEFO
-                        </p>
-                    </div>
-
-                    <div class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-rose-100 shadow-soft">
-                        <div class="flex items-center justify-between mb-1.5 sm:mb-2">
-                            <span class="text-[11px] sm:text-xs font-bold text-rose-600">
-                                Lô đã hết hạn
-                            </span>
-
-                            <div
-                                class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-xs sm:text-sm">
-                                <i class="fa-solid fa-calendar-xmark"></i>
-                            </div>
-                        </div>
-
-                        <div class="text-xl sm:text-2xl font-black text-rose-600">
-                            {{ number_format($stats['expired']) }}
-                        </div>
-
-                        <p class="text-[10px] sm:text-[11px] text-rose-500 font-medium mt-1">
-                            Cần lập phiếu hủy kho
-                        </p>
-                    </div>
+        <!-- Thống kê -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+            <div class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft">
+                <div class="flex items-center justify-between mb-1.5 sm:mb-2">
+                    <span class="text-[11px] sm:text-xs font-bold text-gray-500">
+                        Tổng số lô hàng
+                    </span>
 
                     <div
-                        class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft col-span-2 sm:col-span-1">
-                        <div class="flex items-center justify-between mb-1.5 sm:mb-2">
-                            <span class="text-[11px] sm:text-xs font-bold text-rose-700">
-                                Hao hụt xuất hủy
-                            </span>
-
-                            <div
-                                class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-xs sm:text-sm">
-                                <i class="fa-solid fa-trash-can"></i>
-                            </div>
-                        </div>
-
-                        <div class="text-xl sm:text-2xl font-black text-rose-700">
-                            @forelse ($spoiledByUnit as $group)
-                            <span>
-                                {{ number_format($group->quantity) }}
-                                {{ $group->unit }}
-                            </span>
-
-                            @unless ($loop->last)
-                            <span> · </span>
-                            @endunless
-                            @empty
-                            0
-                            @endforelse
-                        </div>
-
-                        <p class="text-[10px] sm:text-[11px] text-rose-500 font-medium mt-1">
-                            Ghi nhật ký xuất hủy
-                        </p>
+                        class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gray-50 text-gray-700 flex items-center justify-center text-xs sm:text-sm">
+                        <i class="fa-solid fa-boxes-stacked"></i>
                     </div>
                 </div>
 
-                <!-- Bảng và bộ lọc -->
-                <div
-                    class="bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft overflow-hidden space-y-4">
+                <div class="text-xl sm:text-2xl font-black text-gray-900">
+                    {{ number_format($stats['total']) }}
+                </div>
+
+                <p class="text-[10px] sm:text-[11px] text-gray-400 mt-1">
+                    Lô đã nhập kho
+                </p>
+            </div>
+
+            <div class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft">
+                <div class="flex items-center justify-between mb-1.5 sm:mb-2">
+                    <span class="text-[11px] sm:text-xs font-bold text-brand-700">
+                        Lô đang bán (Tồn)
+                    </span>
 
                     <div
-                        class="p-3.5 sm:p-5 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 bg-gray-50/60">
-                        <div
-                            class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-3 flex-1">
-                            <div class="relative w-full sm:w-72 md:w-80">
-                                <i
-                                    class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs sm:text-sm"></i>
+                        class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center text-xs sm:text-sm">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                </div>
 
-                                <input type="text" wire:model.live.debounce.300ms="search"
-                                    placeholder="Tìm mã lô, tên nông sản, luống..."
-                                    class="w-full pl-10 pr-4 py-2 sm:py-2.5 border border-gray-200 rounded-xl sm:rounded-2xl text-xs sm:text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 bg-white font-medium transition-all">
-                            </div>
+                <div class="text-xl sm:text-2xl font-black text-brand-700">
+                    {{ number_format($stats['active']) }}
+                </div>
 
-                            <select wire:model.live="productFilter"
-                                class="bg-white border border-gray-200 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-gray-700 outline-none focus:border-brand-500 transition-all cursor-pointer">
-                                <option value="">-- Tất cả nông sản --</option>
+                <p class="text-[10px] sm:text-[11px] text-brand-600 font-medium mt-1">
+                    Sẵn sàng xuất bán
+                </p>
+            </div>
 
-                                @foreach ($products as $product)
-                                <option value="{{ $product->id }}">
-                                    {{ $product->name }}
-                                </option>
-                                @endforeach
-                            </select>
+            <div class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft">
+                <div class="flex items-center justify-between mb-1.5 sm:mb-2">
+                    <span class="text-[11px] sm:text-xs font-bold text-amber-600">
+                        Lô cận hạn (&le; 3N)
+                    </span>
 
-                            <select wire:model.live="statusFilter"
-                                class="bg-white border border-gray-200 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-gray-700 outline-none focus:border-brand-500 transition-all cursor-pointer">
-                                <option value="">-- Tất cả trạng thái --</option>
-                                <option value="active">Đang mở bán, còn khả dụng</option>
-                                <option value="near_expiry">Cận hạn FEFO (&le; 3 ngày)</option>
-                                <option value="expired">Quá HSD, còn tồn</option>
-                                <option value="out_of_stock">Đã hết tồn</option>
-                                <option value="suspended">Tạm dừng</option>
-                                <option value="pending_recalled">Chờ tiêu hủy</option>
-                                <option value="recalled">Đã tiêu hủy</option>
-                            </select>
-                        </div>
+                    <div
+                        class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xs sm:text-sm">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                </div>
 
-                        <button type="button" wire:click="resetFilters"
-                            class="self-end md:self-auto p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 transition-colors shadow-xs cursor-pointer"
-                            title="Đặt lại bộ lọc">
-                            <i class="fa-solid fa-rotate-right"></i>
-                        </button>
+                <div class="text-xl sm:text-2xl font-black text-amber-700">
+                    {{ number_format($stats['near']) }}
+                </div>
+
+                <p class="text-[10px] sm:text-[11px] text-amber-700 font-medium mt-1">
+                    Ưu tiên đẩy bán FEFO
+                </p>
+            </div>
+
+            <div class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-rose-100 shadow-soft">
+                <div class="flex items-center justify-between mb-1.5 sm:mb-2">
+                    <span class="text-[11px] sm:text-xs font-bold text-rose-600">
+                        Lô đã hết hạn
+                    </span>
+
+                    <div
+                        class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-xs sm:text-sm">
+                        <i class="fa-solid fa-calendar-xmark"></i>
+                    </div>
+                </div>
+
+                <div class="text-xl sm:text-2xl font-black text-rose-600">
+                    {{ number_format($stats['expired']) }}
+                </div>
+
+                <p class="text-[10px] sm:text-[11px] text-rose-500 font-medium mt-1">
+                    Cần lập phiếu hủy kho
+                </p>
+            </div>
+
+            <div
+                class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft col-span-2 sm:col-span-1">
+                <div class="flex items-center justify-between mb-1.5 sm:mb-2">
+                    <span class="text-[11px] sm:text-xs font-bold text-rose-700">
+                        Hao hụt xuất hủy
+                    </span>
+
+                    <div
+                        class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-xs sm:text-sm">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </div>
+                </div>
+
+                <div class="text-xl sm:text-2xl font-black text-rose-700">
+                    @forelse ($spoiledByUnit as $group)
+                        <span>
+                            {{ number_format($group->quantity) }}
+                            {{ $group->unit }}
+                        </span>
+
+                        @unless ($loop->last)
+                            <span> · </span>
+                        @endunless
+                    @empty
+                        0
+                    @endforelse
+                </div>
+
+                <p class="text-[10px] sm:text-[11px] text-rose-500 font-medium mt-1">
+                    Ghi nhật ký xuất hủy
+                </p>
+            </div>
+        </div>
+
+        <!-- Bảng và bộ lọc -->
+        <div class="bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft overflow-hidden space-y-4">
+
+            <div
+                class="p-3.5 sm:p-5 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 bg-gray-50/60">
+                <div class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-3 flex-1">
+                    <div class="relative w-full sm:w-72 md:w-80">
+                        <i
+                            class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs sm:text-sm"></i>
+
+                        <input type="text" wire:model.live.debounce.300ms="search"
+                            placeholder="Tìm mã lô, tên nông sản, luống..."
+                            class="w-full pl-10 pr-4 py-2 sm:py-2.5 border border-gray-200 rounded-xl sm:rounded-2xl text-xs sm:text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 bg-white font-medium transition-all">
                     </div>
 
-                    <div class="w-full overflow-x-auto custom-scrollbar">
-                        <table class="w-full text-left border-collapse text-xs whitespace-nowrap">
-                            <thead>
-                                <tr
-                                    class="bg-gray-50/80 text-gray-500 uppercase font-bold text-[10px] tracking-wider border-b border-gray-100 whitespace-nowrap">
-                                    <th class="py-3.5 px-4 pl-5">Mã Lô Hàng</th>
-                                    <th class="py-3.5 px-4">Sản Phẩm</th>
-                                    <th class="py-3.5 px-4">Vị Trí Trồng</th>
-                                    <th class="py-3.5 px-4">Ngày Thu Hái</th>
-                                    <th class="py-3.5 px-4">Hạn Sử Dụng (FEFO)</th>
-                                    <th class="py-3.5 px-4 text-center">Tồn Kho</th>
-                                    <th class="py-3.5 px-4 text-center">Trạng Thái</th>
-                                    <th class="py-3.5 px-4 pr-5 text-right min-w-[340px]">
-                                        Tác Vụ Quản Trị
-                                    </th>
-                                </tr>
-                            </thead>
+                    <select wire:model.live="productFilter"
+                        class="bg-white border border-gray-200 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-gray-700 outline-none focus:border-brand-500 transition-all cursor-pointer">
+                        <option value="">-- Tất cả nông sản --</option>
 
-                            <tbody class="divide-y divide-gray-100 font-medium whitespace-nowrap">
+                        @foreach ($products as $product)
+                            <option value="{{ $product->id }}">
+                                {{ $product->name }}
+                            </option>
+                        @endforeach
+                    </select>
 
-                                @forelse ($batches as $batch)
-                                @php
+                    <select wire:model.live="statusFilter"
+                        class="bg-white border border-gray-200 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-gray-700 outline-none focus:border-brand-500 transition-all cursor-pointer">
+                        <option value="">-- Tất cả trạng thái --</option>
+                        <option value="active">Đang mở bán, còn khả dụng</option>
+                        <option value="near_expiry">Cận hạn FEFO (&le; 3 ngày)</option>
+                        <option value="expired">Quá HSD, còn tồn</option>
+                        <option value="out_of_stock">Đã hết tồn</option>
+                        <option value="suspended">Tạm dừng</option>
+                        <option value="pending_recalled">Chờ tiêu hủy</option>
+                        <option value="recalled">Đã tiêu hủy</option>
+                    </select>
+                </div>
+
+                <button type="button" wire:click="resetFilters"
+                    class="self-end md:self-auto p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 transition-colors shadow-xs cursor-pointer"
+                    title="Đặt lại bộ lọc">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+
+            <div class="w-full overflow-x-auto custom-scrollbar">
+                <table class="w-full text-left border-collapse text-xs whitespace-nowrap">
+                    <thead>
+                        <tr
+                            class="bg-gray-50/80 text-gray-500 uppercase font-bold text-[10px] tracking-wider border-b border-gray-100 whitespace-nowrap">
+                            <th class="py-3.5 px-4 pl-5">Mã Lô Hàng</th>
+                            <th class="py-3.5 px-4">Sản Phẩm</th>
+                            <th class="py-3.5 px-4">Vị Trí Trồng</th>
+                            <th class="py-3.5 px-4">Ngày Thu Hái</th>
+                            <th class="py-3.5 px-4">Hạn Sử Dụng (FEFO)</th>
+                            <th class="py-3.5 px-4 text-center">Tồn Kho</th>
+                            <th class="py-3.5 px-4 text-center">Trạng Thái</th>
+                            <th class="py-3.5 px-4 pr-5 text-right min-w-[340px]">
+                                Tác Vụ Quản Trị
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody class="divide-y divide-gray-100 font-medium whitespace-nowrap">
+
+                        @forelse ($batches as $batch)
+                            @php
                                 $rowProduct = $batch->plantingBatch?->product;
                                 $state = $this->displayStatus($batch);
 
@@ -252,255 +239,233 @@
                                 $isExpired = $batch->expiry_date->lt(today());
                                 $isDestroyed = $batch->status === 'recalled';
 
-                                $canEdit = $hasStock
-                                && ! $isExpired
-                                && in_array(
-                                $batch->status,
-                                ['active', 'suspended'],
-                                true
-                                );
+                                $canEdit =
+                                    $hasStock && !$isExpired && in_array($batch->status, ['active', 'suspended'], true);
 
                                 [$label, $badge] = match ($state) {
-                                'pending_recalled' => [
-                                'Chờ tiêu hủy',
-                                'bg-red-100 text-red-700 border-red-200',
-                                ],
-                                'recalled' => [
-                                'Đã tiêu hủy',
-                                'bg-red-100 text-red-700 border-red-200',
-                                ],
-                                'suspended' => [
-                                'Tạm dừng',
-                                'bg-slate-100 text-slate-600 border-slate-300',
-                                ],
-                                'expired' => [
-                                'Đã hết hạn',
-                                'bg-red-100 text-red-700 border-red-200',
-                                ],
-                                'out_of_stock' => [
-                                'Đã hết hàng',
-                                'bg-gray-100 text-gray-600 border-gray-200',
-                                ],
-                                'reserved' => [
-                                'Đã giữ chỗ hết',
-                                'bg-gray-100 text-gray-600 border-gray-200',
-                                ],
-                                'near_expiry' => [
-                                'Cận hạn · FEFO',
-                                'bg-amber-100 text-amber-800 border-amber-300 font-bold',
-                                ],
-                                default => [
-                                'Đang mở bán',
-                                'bg-brand-100 text-brand-800 border-brand-200',
-                                ],
+                                    'pending_recalled' => ['Chờ tiêu hủy', 'bg-red-100 text-red-700 border-red-200'],
+                                    'recalled' => ['Đã tiêu hủy', 'bg-red-100 text-red-700 border-red-200'],
+                                    'suspended' => ['Tạm dừng', 'bg-slate-100 text-slate-600 border-slate-300'],
+                                    'expired' => ['Đã hết hạn', 'bg-red-100 text-red-700 border-red-200'],
+                                    'out_of_stock' => ['Đã hết hàng', 'bg-gray-100 text-gray-600 border-gray-200'],
+                                    'reserved' => ['Đã giữ chỗ hết', 'bg-gray-100 text-gray-600 border-gray-200'],
+                                    'near_expiry' => [
+                                        'Cận hạn · FEFO',
+                                        'bg-amber-100 text-amber-800 border-amber-300 font-bold',
+                                    ],
+                                    default => ['Đang mở bán', 'bg-brand-100 text-brand-800 border-brand-200'],
                                 };
-                                @endphp
+                            @endphp
 
-                                <tr wire:key="batch-{{ $batch->id }}"
-                                    class="hover:bg-brand-50/40 transition-colors bg-white border-b border-gray-100 whitespace-nowrap">
+                            <tr wire:key="batch-{{ $batch->id }}"
+                                class="hover:bg-brand-50/40 transition-colors bg-white border-b border-gray-100 whitespace-nowrap">
 
-                                    <td class="py-3 px-4 pl-5">
-                                        <span wire:click="openModal('detail', {{ $batch->id }})"
-                                            class="font-mono font-bold text-brand-800 hover:underline cursor-pointer text-xs block">
-                                            {{ $batch->batch_code }}
-                                        </span>
+                                <td class="py-3 px-4 pl-5">
+                                    <span wire:click="openModal('detail', {{ $batch->id }})"
+                                        class="font-mono font-bold text-brand-800 hover:underline cursor-pointer text-xs block">
+                                        {{ $batch->batch_code }}
+                                    </span>
 
-                                        <span class="text-[10px] text-gray-400 font-mono">
-                                            ID: {{ $batch->id }}
-                                        </span>
-                                    </td>
+                                    <span class="text-[10px] text-gray-400 font-mono">
+                                        ID: {{ $batch->id }}
+                                    </span>
+                                </td>
 
-                                    <td class="py-3 px-4">
-                                        <span class="font-bold text-gray-900 text-xs">
-                                            {{ $rowProduct?->name ?? '—' }}
-                                        </span>
+                                <td class="py-3 px-4">
+                                    <span class="font-bold text-gray-900 text-xs">
+                                        {{ $rowProduct?->name ?? '—' }}
+                                    </span>
 
-                                        <span class="text-[10px] text-gray-400 font-mono block">
-                                            {{ $rowProduct?->sku ?? '—' }}
-                                        </span>
-                                    </td>
+                                    <span class="text-[10px] text-gray-400 font-mono block">
+                                        {{ $rowProduct?->sku ?? '—' }}
+                                    </span>
+                                </td>
 
-                                    <td class="py-3 px-4">
-                                        <span
-                                            class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-gray-700 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-lg">
-                                            <i class="fa-solid fa-map-pin text-brand-600 text-[10px]"></i>
-                                            {{ $batch->plantingBatch?->farmPlot?->name ?? '—' }}
-                                        </span>
-                                    </td>
+                                <td class="py-3 px-4">
+                                    <span
+                                        class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-gray-700 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-lg">
+                                        <i class="fa-solid fa-map-pin text-brand-600 text-[10px]"></i>
+                                        {{ $batch->plantingBatch?->farmPlot?->name ?? '—' }}
+                                    </span>
+                                </td>
 
-                                    <td class="py-3 px-4 font-mono text-gray-600 text-xs">
-                                        {{ $batch->manufactured_date?->format('d/m/Y') ?? '—' }}
-                                    </td>
+                                <td class="py-3 px-4 font-mono text-gray-600 text-xs">
+                                    {{ $batch->manufactured_date?->format('d/m/Y') ?? '—' }}
+                                </td>
 
-                                    <td class="py-3 px-4 font-mono text-xs">
-                                        <span
-                                            class="{{ $isExpired ? 'text-red-600 font-bold' : ($state === 'near_expiry' ? 'text-amber-800 font-bold' : 'text-gray-700') }}">
-                                            {{ $batch->expiry_date->format('d/m/Y') }}
-                                        </span>
-                                    </td>
+                                <td class="py-3 px-4 font-mono text-xs">
+                                    <span
+                                        class="{{ $isExpired ? 'text-red-600 font-bold' : ($state === 'near_expiry' ? 'text-amber-800 font-bold' : 'text-gray-700') }}">
+                                        {{ $batch->expiry_date->format('d/m/Y') }}
+                                    </span>
+                                </td>
 
-                                    <td class="py-3 px-4 text-center font-mono">
-                                        <span
-                                            class="font-extrabold {{ $batch->current_quantity > 0 ? 'text-brand-700 text-sm' : 'text-gray-400 text-xs' }}">
-                                            {{ $batch->current_quantity }}
-                                        </span>
+                                <td class="py-3 px-4 text-center font-mono">
+                                    <span
+                                        class="font-extrabold {{ $batch->current_quantity > 0 ? 'text-brand-700 text-sm' : 'text-gray-400 text-xs' }}">
+                                        {{ $batch->current_quantity }}
+                                    </span>
 
-                                        <span class="text-[11px] text-gray-400">
-                                            /{{ $batch->initial_quantity }}
-                                            {{ $rowProduct?->unit }}
-                                        </span>
+                                    <span class="text-[11px] text-gray-400">
+                                        /{{ $batch->initial_quantity }}
+                                        {{ $rowProduct?->unit }}
+                                    </span>
 
-                                        <span class="text-[10px] text-gray-400 font-mono block">
-                                            Giữ: {{ $batch->reserved_quantity }}
-                                            · Khả dụng: {{ $this->availableQuantity($batch) }}
-                                        </span>
-                                    </td>
+                                    <span class="text-[10px] text-gray-400 font-mono block">
+                                        Giữ: {{ $batch->reserved_quantity }}
+                                        · Khả dụng: {{ $this->availableQuantity($batch) }}
+                                    </span>
+                                </td>
 
-                                    <td class="py-3 px-4 text-center">
-                                        <span
-                                            class="text-[10px] font-bold px-2.5 py-0.5 rounded-full border {{ $badge }}">
-                                            {{ $label }}
-                                        </span>
-                                    </td>
+                                <td class="py-3 px-4 text-center">
+                                    <span
+                                        class="text-[10px] font-bold px-2.5 py-0.5 rounded-full border {{ $badge }}">
+                                        {{ $label }}
+                                    </span>
+                                </td>
 
-                                    <td class="py-3 px-4 pr-5 text-right space-x-1">
-                                        @if ($hasStock && ! $isDestroyed)
-                                        <button type="button" wire:click="openModal('spoilage', {{ $batch->id }})"
+                                <td class="py-3 px-4 pr-5 text-right space-x-1">
+                                    @if ($hasStock && !$isDestroyed)
+                                        <button type="button"
+                                            wire:click="openModal('spoilage', {{ $batch->id }})"
                                             wire:loading.attr="disabled" wire:target="openModal"
                                             class="px-2 py-1.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition font-bold text-[11px] cursor-pointer">
                                             <i class="fa-solid fa-trash-can mr-1"></i>Xuất hủy
                                         </button>
 
                                         @if ($canEdit)
-                                        <button type="button" wire:click="openModal('expiry', {{ $batch->id }})"
-                                            wire:loading.attr="disabled" wire:target="openModal"
-                                            class="px-2 py-1.5 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 transition font-bold text-[11px] cursor-pointer">
-                                            <i class="fa-solid fa-calendar-day mr-1"></i>Sửa HSD
-                                        </button>
+                                            <button type="button"
+                                                wire:click="openModal('expiry', {{ $batch->id }})"
+                                                wire:loading.attr="disabled" wire:target="openModal"
+                                                class="px-2 py-1.5 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 transition font-bold text-[11px] cursor-pointer">
+                                                <i class="fa-solid fa-calendar-day mr-1"></i>Sửa HSD
+                                            </button>
 
-                                        <button type="button" wire:click="openModal('stock', {{ $batch->id }})"
-                                            wire:loading.attr="disabled" wire:target="openModal"
-                                            class="px-2 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition font-bold text-[11px] cursor-pointer">
-                                            <i class="fa-solid fa-scale-balanced mr-1"></i>Cân chỉnh
-                                        </button>
+                                            <button type="button"
+                                                wire:click="openModal('stock', {{ $batch->id }})"
+                                                wire:loading.attr="disabled" wire:target="openModal"
+                                                class="px-2 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition font-bold text-[11px] cursor-pointer">
+                                                <i class="fa-solid fa-scale-balanced mr-1"></i>Cân chỉnh
+                                            </button>
 
-                                        <button type="button" wire:click="openModal('status', {{ $batch->id }})"
-                                            wire:loading.attr="disabled" wire:target="openModal"
-                                            class="px-2 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition font-bold text-[11px] cursor-pointer">
-                                            Trạng thái
-                                        </button>
+                                            <button type="button"
+                                                wire:click="openModal('status', {{ $batch->id }})"
+                                                wire:loading.attr="disabled" wire:target="openModal"
+                                                class="px-2 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition font-bold text-[11px] cursor-pointer">
+                                                Trạng thái
+                                            </button>
                                         @endif
 
                                         @if ($batch->status !== 'pending_recalled')
-                                        <button type="button" wire:click="openModal('qr', {{ $batch->id }})"
-                                            wire:loading.attr="disabled" wire:target="openModal"
-                                            class="px-2 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition font-bold text-[11px] cursor-pointer">
-                                            <i class="fa-solid fa-qrcode mr-1"></i>QR
-                                        </button>
+                                            <button type="button" wire:click="openModal('qr', {{ $batch->id }})"
+                                                wire:loading.attr="disabled" wire:target="openModal"
+                                                class="px-2 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition font-bold text-[11px] cursor-pointer">
+                                                <i class="fa-solid fa-qrcode mr-1"></i>QR
+                                            </button>
                                         @endif
-                                        @endif
+                                    @endif
 
-                                        <button type="button" wire:click="openModal('detail', {{ $batch->id }})"
-                                            wire:loading.attr="disabled" wire:target="openModal" title="Xem chi tiết"
-                                            class="p-1.5 rounded-lg bg-emerald-50 text-brand-800 hover:bg-brand-100 border border-emerald-200 transition cursor-pointer">
-                                            <i class="fa-solid fa-fingerprint"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="8" class="py-10 text-center text-xs text-gray-400">
-                                        Không tìm thấy lô hàng phù hợp.
-                                    </td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-
-                    @if ($batches->hasPages())
-                    <div class="p-4 border-t border-gray-100">
-                        {{ $batches->links() }}
-                    </div>
-                    @endif
-                </div>
+                                    <button type="button" wire:click="openModal('detail', {{ $batch->id }})"
+                                        wire:loading.attr="disabled" wire:target="openModal" title="Xem chi tiết"
+                                        class="p-1.5 rounded-lg bg-emerald-50 text-brand-800 hover:bg-brand-100 border border-emerald-200 transition cursor-pointer">
+                                        <i class="fa-solid fa-fingerprint"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="8" class="py-10 text-center text-xs text-gray-400">
+                                    Không tìm thấy lô hàng phù hợp.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
 
-            <!-- Modal xuất hủy / kiểm kê / HSD / trạng thái -->
-            @if ($selectedBatch && in_array($modal, ['spoilage', 'stock', 'expiry', 'status'], true))
-            @php
+            @if ($batches->hasPages())
+                <div class="p-4 border-t border-gray-100">
+                    {{ $batches->links() }}
+                </div>
+            @endif
+        </div>
+    </div>
+
+    <!-- Modal xuất hủy / kiểm kê / HSD / trạng thái -->
+    @if ($selectedBatch && in_array($modal, ['spoilage', 'stock', 'expiry', 'status'], true))
+        @php
             [$modalId, $modalTitle, $modalIcon, $submitLabel, $submitClass] = match ($modal) {
-            'spoilage' => [
-            'modal-spoilage',
-            'Lập Phiếu Báo Hỏng / Xuất Hủy',
-            'fa-trash-can',
-            'Xác Nhận Xuất Hủy',
-            'bg-rose-600 hover:bg-rose-700',
-            ],
-            'stock' => [
-            'modal-adjust-stock',
-            'Cân Chỉnh Tồn Kho Thực Tế',
-            'fa-scale-balanced',
-            'Lưu Tồn Kho Mới',
-            'bg-blue-600 hover:bg-blue-700',
-            ],
-            'expiry' => [
-            'modal-adjust-expiry',
-            'Sửa Hạn Sử Dụng (HSD)',
-            'fa-calendar-day',
-            'Lưu Hạn Dùng Mới',
-            'bg-purple-600 hover:bg-purple-700',
-            ],
-            default => [
-            'modal-status',
-            'Thay Đổi Trạng Thái Lô Hàng',
-            'fa-toggle-on',
-            'Lưu Trạng Thái',
-            'bg-brand-700 hover:bg-brand-800',
-            ],
+                'spoilage' => [
+                    'modal-spoilage',
+                    'Lập Phiếu Báo Hỏng / Xuất Hủy',
+                    'fa-trash-can',
+                    'Xác Nhận Xuất Hủy',
+                    'bg-rose-600 hover:bg-rose-700',
+                ],
+                'stock' => [
+                    'modal-adjust-stock',
+                    'Cân Chỉnh Tồn Kho Thực Tế',
+                    'fa-scale-balanced',
+                    'Lưu Tồn Kho Mới',
+                    'bg-blue-600 hover:bg-blue-700',
+                ],
+                'expiry' => [
+                    'modal-adjust-expiry',
+                    'Sửa Hạn Sử Dụng (HSD)',
+                    'fa-calendar-day',
+                    'Lưu Hạn Dùng Mới',
+                    'bg-purple-600 hover:bg-purple-700',
+                ],
+                default => [
+                    'modal-status',
+                    'Thay Đổi Trạng Thái Lô Hàng',
+                    'fa-toggle-on',
+                    'Lưu Trạng Thái',
+                    'bg-brand-700 hover:bg-brand-800',
+                ],
             };
-            @endphp
+        @endphp
 
-            <div id="{{ $modalId }}" wire:key="batch-edit-{{ $modal }}-{{ $batchId }}"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
-                <div
-                    class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-md shadow-2xl p-5 sm:p-6 border border-slate-100 space-y-4">
-                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                        <h4
-                            class="font-extrabold {{ $modal === 'spoilage' ? 'text-rose-600' : 'text-slate-900' }} text-sm flex items-center gap-1.5">
-                            <i class="fa-solid {{ $modalIcon }}"></i>
-                            {{ $modalTitle }}
-                        </h4>
+        <div id="{{ $modalId }}" wire:key="batch-edit-{{ $modal }}-{{ $batchId }}"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
+            <div
+                class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-md shadow-2xl p-5 sm:p-6 border border-slate-100 space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h4
+                        class="font-extrabold {{ $modal === 'spoilage' ? 'text-rose-600' : 'text-slate-900' }} text-sm flex items-center gap-1.5">
+                        <i class="fa-solid {{ $modalIcon }}"></i>
+                        {{ $modalTitle }}
+                    </h4>
 
-                        <button type="button" wire:click="closeModal" x-bind:disabled="confirmingBatch"
-                            wire:loading.attr="disabled" wire:target="requestSave,saveChange,closeModal"
-                            class="text-slate-400 hover:text-slate-600 cursor-pointer">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
-                    </div>
+                    <button type="button" wire:click="closeModal" x-bind:disabled="confirmingBatch"
+                        wire:loading.attr="disabled" wire:target="requestSave,saveChange,closeModal"
+                        class="text-slate-400 hover:text-slate-600 cursor-pointer">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
 
-                    <form wire:submit="requestSave" class="space-y-3 text-xs">
-                        @if ($errors->any())
+                <form wire:submit="requestSave" class="space-y-3 text-xs">
+                    @if ($errors->any())
                         <div role="alert">
                             @foreach ($errors->all() as $message)
-                            <p>{{ $message }}</p>
+                                <p>{{ $message }}</p>
                             @endforeach
                         </div>
-                        @endif
+                    @endif
 
-                        <fieldset x-bind:disabled="confirmingBatch" wire:loading.attr="disabled"
-                            wire:target="requestSave,saveChange,closeModal" class="space-y-3">
+                    <fieldset x-bind:disabled="confirmingBatch" wire:loading.attr="disabled"
+                        wire:target="requestSave,saveChange,closeModal" class="space-y-3">
 
-                            <div>
-                                <label class="block font-bold text-slate-700 mb-1">
-                                    Mã lô hàng:
-                                </label>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">
+                                Mã lô hàng:
+                            </label>
 
-                                <input type="text" value="{{ $selectedBatch->batch_code }}" readonly
-                                    class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold text-slate-700 outline-none">
-                            </div>
+                            <input type="text" value="{{ $selectedBatch->batch_code }}" readonly
+                                class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold text-slate-700 outline-none">
+                        </div>
 
-                            @if ($modal === 'spoilage')
+                        @if ($modal === 'spoilage')
                             <div>
                                 <label for="sp-qty" class="block font-bold text-slate-700 mb-1">
                                     Số lượng xuất hủy ({{ $selectedUnit }})
@@ -512,34 +477,34 @@
                                 </label>
 
                                 @if ($destroyAll)
-                                <input type="number" id="sp-qty" value="{{ $destroyQuantity }}" disabled
-                                    class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold text-rose-600 text-sm outline-none focus:border-rose-500">
+                                    <input type="number" id="sp-qty" value="{{ $destroyQuantity }}" disabled
+                                        class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold text-rose-600 text-sm outline-none focus:border-rose-500">
 
-                                <p>
-                                    <br>
-                                    Lô hàng đang Chờ tiêu hủy. Toàn bộ {{ $destroyQuantity }} {{ $selectedUnit }}
-                                    sẽ được xuất hủy sau khi xác nhận.
-                                </p>
+                                    <p>
+                                        <br>
+                                        Lô hàng đang Chờ tiêu hủy. Toàn bộ {{ $destroyQuantity }} {{ $selectedUnit }}
+                                        sẽ được xuất hủy sau khi xác nhận.
+                                    </p>
 
-                                @if ($blockedForRecall)
-                                <p role="alert">
-                                    Chưa thể tiêu hủy toàn bộ.
-                                    Lô còn {{ $selectedBatch->reserved_quantity }}
-                                    {{ $selectedUnit }} giữ chỗ hoặc còn đơn chưa kết thúc.
-                                    Sales cần xử lý các phân bổ liên quan trước.
-                                </p>
-                                @endif
+                                    @if ($blockedForRecall)
+                                        <p role="alert">
+                                            Chưa thể tiêu hủy toàn bộ.
+                                            Lô còn {{ $selectedBatch->reserved_quantity }}
+                                            {{ $selectedUnit }} giữ chỗ hoặc còn đơn chưa kết thúc.
+                                            Sales cần xử lý các phân bổ liên quan trước.
+                                        </p>
+                                    @endif
                                 @elseif ($this->availableQuantity($selectedBatch) > 0)
-                                <input type="number" id="sp-qty" wire:model="quantity" step="1" min="1"
-                                    max="{{ $this->availableQuantity($selectedBatch) }}" required
-                                    class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold text-rose-600 text-sm outline-none focus:border-rose-500">
+                                    <input type="number" id="sp-qty" wire:model="quantity" step="1"
+                                        min="1" max="{{ $this->availableQuantity($selectedBatch) }}" required
+                                        class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold text-rose-600 text-sm outline-none focus:border-rose-500">
                                 @else
-                                <p role="alert">
-                                    Không còn số lượng chưa giữ chỗ để xuất hủy.
-                                </p>
+                                    <p role="alert">
+                                        Không còn số lượng chưa giữ chỗ để xuất hủy.
+                                    </p>
                                 @endif
                             </div>
-                            @elseif ($modal === 'stock')
+                        @elseif ($modal === 'stock')
                             <div>
                                 <label for="as-quantity" class="block font-bold text-slate-700 mb-1">
                                     Số lượng tồn mới ({{ $selectedUnit }})
@@ -554,7 +519,7 @@
                                     Đang giữ chỗ: {{ $selectedBatch->reserved_quantity }} {{ $selectedUnit }}. Tồn mới
                                     không được thấp hơn số này. </p>
                             </div>
-                            @elseif ($modal === 'expiry')
+                        @elseif ($modal === 'expiry')
                             <div>
                                 <label for="ae-expiry" class="block font-bold text-slate-700 mb-1">
                                     Hạn sử dụng mới
@@ -568,7 +533,7 @@
                                     HSD hiện tại: {{ $selectedBatch->expiry_date->format('d/m/Y') }}. HSD mới phải
                                     sau ngày thu hoạch/ngày xuống giống. </p>
                             </div>
-                            @else
+                        @else
                             <div>
                                 <label for="batch-status" class="block font-bold text-slate-700 mb-1">
                                     Trạng thái mới
@@ -583,182 +548,182 @@
                                 </select>
 
                                 @if ($newStatus === 'suspended')
-                                <p><br>
-                                    Tạm dừng cấp cho đơn mới.
-                                    Các đơn đã đặt vẫn tiếp tục được xử lý.
-                                </p>
+                                    <p><br>
+                                        Tạm dừng cấp cho đơn mới.
+                                        Các đơn đã đặt vẫn tiếp tục được xử lý.
+                                    </p>
                                 @elseif ($newStatus === 'pending_recalled')
-                                <p><br>
-                                    Chuyển sang Chờ tiêu hủy
-                                </p>
+                                    <p><br>
+                                        Chuyển sang Chờ tiêu hủy
+                                    </p>
 
-                                @if ($blockedForRecall)
-                                <p role="alert">
-                                    Chưa thể thu hồi toàn bộ: còn giữ chỗ hoặc đơn chưa kết thúc.
-                                    Hãy Tạm dừng lô và phối hợp Sales xử lý trước.
-                                </p>
-                                @endif
+                                    @if ($blockedForRecall)
+                                        <p role="alert">
+                                            Chưa thể thu hồi toàn bộ: còn giữ chỗ hoặc đơn chưa kết thúc.
+                                            Hãy Tạm dừng lô và phối hợp Sales xử lý trước.
+                                        </p>
+                                    @endif
                                 @else
-                                <p><br>
-                                    Mở lại nguồn cấp nếu lô còn hạn và còn tồn.
-                                </p>
+                                    <p><br>
+                                        Mở lại nguồn cấp nếu lô còn hạn và còn tồn.
+                                    </p>
                                 @endif
                             </div>
-                            @endif
+                        @endif
 
-                            <div>
-                                <label for="batch-note" class="block font-bold text-slate-700 mb-1">
-                                    Lý do thực hiện
-                                    <span class="text-red-500">*</span>
-                                </label>
+                        <div>
+                            <label for="batch-note" class="block font-bold text-slate-700 mb-1">
+                                Lý do thực hiện
+                                <span class="text-red-500">*</span>
+                            </label>
 
-                                <textarea id="batch-note" wire:model="note" rows="2" maxlength="1000" required
-                                    placeholder="Nhập lý do chi tiết..."
-                                    class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl p-2.5 outline-none {{ $modal === 'spoilage' ? 'focus:border-rose-500' : 'focus:border-brand-600' }} resize-none"></textarea>
-                            </div>
+                            <textarea id="batch-note" wire:model="note" rows="2" maxlength="1000" required
+                                placeholder="Nhập lý do chi tiết..."
+                                class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl p-2.5 outline-none {{ $modal === 'spoilage' ? 'focus:border-rose-500' : 'focus:border-brand-600' }} resize-none"></textarea>
+                        </div>
 
-                            <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
-                                <button type="button" wire:click="closeModal"
-                                    class="px-4 py-2 rounded-xl border text-slate-600 font-bold hover:bg-slate-50 cursor-pointer">
-                                    Hủy
-                                </button>
+                        <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
+                            <button type="button" wire:click="closeModal"
+                                class="px-4 py-2 rounded-xl border text-slate-600 font-bold hover:bg-slate-50 cursor-pointer">
+                                Hủy
+                            </button>
 
-                                <button type="submit" @disabled($cannotSubmit)
-                                    class="{{ $submitClass }} text-white font-bold px-5 py-2 rounded-xl shadow-sm transition active:scale-95 cursor-pointer">
+                            <button type="submit" @disabled($cannotSubmit)
+                                class="{{ $submitClass }} text-white font-bold px-5 py-2 rounded-xl shadow-sm transition active:scale-95 cursor-pointer">
 
-                                    <span wire:loading.remove wire:target="requestSave,saveChange">
-                                        {{ $submitLabel }}
-                                    </span>
+                                <span wire:loading.remove wire:target="requestSave,saveChange">
+                                    {{ $submitLabel }}
+                                </span>
 
-                                    <span wire:loading wire:target="requestSave,saveChange">
-                                        Đang xử lý...
-                                    </span>
-                                </button>
-                            </div>
-                        </fieldset>
-                    </form>
-                </div>
+                                <span wire:loading wire:target="requestSave,saveChange">
+                                    Đang xử lý...
+                                </span>
+                            </button>
+                        </div>
+                    </fieldset>
+                </form>
             </div>
-            @endif
+        </div>
+    @endif
 
-            <!-- Modal chi tiết -->
-            @if ($selectedBatch && $modal === 'detail')
-            <div id="modal-detail" wire:key="batch-detail-{{ $selectedBatch->id }}"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 overflow-hidden">
+    <!-- Modal chi tiết -->
+    @if ($selectedBatch && $modal === 'detail')
+        <div id="modal-detail" wire:key="batch-detail-{{ $selectedBatch->id }}"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 overflow-hidden">
 
-                <div class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-3xl shadow-2xl
+            <div
+                class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-3xl shadow-2xl
                p-5 sm:p-7 border border-slate-100
                h-[90dvh] max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)]
                flex flex-col gap-4 sm:gap-6 overflow-hidden">
 
-                    <div class="flex shrink-0 justify-between items-center border-b border-slate-100 pb-3 sm:pb-4">
-                        <div class="min-w-0">
-                            <h3 class="text-base sm:text-xl font-extrabold text-slate-900 truncate">
-                                Chi Tiết Lô Hàng Thương Mại & Nhật Ký Gốc
-                            </h3>
+                <div class="flex shrink-0 justify-between items-center border-b border-slate-100 pb-3 sm:pb-4">
+                    <div class="min-w-0">
+                        <h3 class="text-base sm:text-xl font-extrabold text-slate-900 truncate">
+                            Chi Tiết Lô Hàng Thương Mại & Nhật Ký Gốc
+                        </h3>
 
-                            <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5 truncate">
-                                Mã truy xuất:
-                                <b class="text-brand-700 font-mono text-xs sm:text-sm">
-                                    {{ $selectedBatch->batch_code }}
-                                </b>
-                            </p>
-                        </div>
-
-                        <button type="button" wire:click="closeModal"
-                            class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition-colors shrink-0 cursor-pointer">
-                            <i class="fa-solid fa-xmark text-base"></i>
-                        </button>
+                        <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5 truncate">
+                            Mã truy xuất:
+                            <b class="text-brand-700 font-mono text-xs sm:text-sm">
+                                {{ $selectedBatch->batch_code }}
+                            </b>
+                        </p>
                     </div>
 
-                    <div
-                        class="flex shrink-0 flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-brand-50/50 border border-brand-100">
-                        <div class="flex items-center gap-3 sm:gap-4 min-w-0">
-                            @if ($qrUrl)
+                    <button type="button" wire:click="closeModal"
+                        class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition-colors shrink-0 cursor-pointer">
+                        <i class="fa-solid fa-xmark text-base"></i>
+                    </button>
+                </div>
+
+                <div
+                    class="flex shrink-0 flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-brand-50/50 border border-brand-100">
+                    <div class="flex items-center gap-3 sm:gap-4 min-w-0">
+                        @if ($qrUrl)
                             <div
                                 class="w-14 h-14 rounded-xl bg-white border border-brand-200 p-1 flex items-center justify-center shrink-0 shadow-sm">
-                                <img src="{{ $qrUrl }}" class="w-full h-full object-contain" alt="QR lô hàng">
+                                <img src="{{ $qrUrl }}" class="w-full h-full object-contain"
+                                    alt="QR lô hàng">
                             </div>
-                            @endif
+                        @endif
 
-                            <div class="min-w-0">
-                                <h4 class="text-base sm:text-lg font-extrabold text-slate-900 truncate">
-                                    {{ $selectedProduct?->name ?? '—' }}
-                                </h4>
+                        <div class="min-w-0">
+                            <h4 class="text-base sm:text-lg font-extrabold text-slate-900 truncate">
+                                {{ $selectedProduct?->name ?? '—' }}
+                            </h4>
 
-                                <p id="dt-planting-info"
-                                    class="text-[11px] sm:text-xs text-brand-700 font-mono font-bold mt-0.5 truncate">
-                                    Lô canh tác:
-                                    {{ $selectedBatch->plantingBatch?->planting_code ?? '—' }}
-                                    ({{ $selectedBatch->plantingBatch?->farmPlot?->name ?? '—' }})
-                                </p>
-
-                                <div
-                                    class="flex flex-wrap items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-slate-500 font-mono mt-1">
-                                    <span>
-                                        Thu:
-                                        <b id="dt-mfg" class="text-slate-800">
-                                            {{ $selectedBatch->manufactured_date?->format('d/m/Y') ?? '—' }}
-                                        </b>
-                                    </span>
-
-                                    <span>•</span>
-
-                                    <span>
-                                        HSD:
-                                        <b id="dt-exp" class="text-slate-800">
-                                            {{ $selectedBatch->expiry_date->format('d/m/Y') }}
-                                        </b>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="text-left sm:text-right border-t sm:border-t-0 pt-2 sm:pt-0 border-brand-100">
-                            <span class="text-[10px] sm:text-xs text-slate-500 block">
-                                Tồn kho hiện tại
-                            </span>
-
-                            <span id="dt-current-qty" class="text-lg sm:text-xl font-black text-brand-700">
-                                {{ $selectedBatch->current_quantity }}
-                                {{ $selectedUnit }}
-                            </span>
-
-                            <p class="text-[10px] sm:text-xs text-slate-500">
-                                Giữ chỗ: {{ $selectedBatch->reserved_quantity }}
-                                · Khả dụng: {{ $this->availableQuantity($selectedBatch) }}
+                            <p id="dt-planting-info"
+                                class="text-[11px] sm:text-xs text-brand-700 font-mono font-bold mt-0.5 truncate">
+                                Lô canh tác:
+                                {{ $selectedBatch->plantingBatch?->planting_code ?? '—' }}
+                                ({{ $selectedBatch->plantingBatch?->farmPlot?->name ?? '—' }})
                             </p>
+
+                            <div
+                                class="flex flex-wrap items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-slate-500 font-mono mt-1">
+                                <span>
+                                    Thu:
+                                    <b id="dt-mfg" class="text-slate-800">
+                                        {{ $selectedBatch->manufactured_date?->format('d/m/Y') ?? '—' }}
+                                    </b>
+                                </span>
+
+                                <span>•</span>
+
+                                <span>
+                                    HSD:
+                                    <b id="dt-exp" class="text-slate-800">
+                                        {{ $selectedBatch->expiry_date->format('d/m/Y') }}
+                                    </b>
+                                </span>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Nhật ký kho -->
-                    <div class="flex flex-1 min-h-0 flex-col gap-2.5 overflow-hidden">
-                        <h4
-                            class="shrink-0 text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                            <i class="fa-solid fa-trash-can text-red-500"></i>
-                            Lịch sử biến động kho
-                        </h4>
+                    <div class="text-left sm:text-right border-t sm:border-t-0 pt-2 sm:pt-0 border-brand-100">
+                        <span class="text-[10px] sm:text-xs text-slate-500 block">
+                            Tồn kho hiện tại
+                        </span>
 
-                        <div class="flex-1 min-h-0 space-y-2 overflow-y-auto overscroll-contain custom-scrollbar pr-2">
-                            @forelse ($selectedBatch->inventoryLogs as $log)
+                        <span id="dt-current-qty" class="text-lg sm:text-xl font-black text-brand-700">
+                            {{ $selectedBatch->current_quantity }}
+                            {{ $selectedUnit }}
+                        </span>
+
+                        <p class="text-[10px] sm:text-xs text-slate-500">
+                            Giữ chỗ: {{ $selectedBatch->reserved_quantity }}
+                            · Khả dụng: {{ $this->availableQuantity($selectedBatch) }}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Nhật ký kho -->
+                <div class="flex flex-1 min-h-0 flex-col gap-2.5 overflow-hidden">
+                    <h4
+                        class="shrink-0 text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-trash-can text-red-500"></i>
+                        Lịch sử biến động kho
+                    </h4>
+
+                    <div class="flex-1 min-h-0 space-y-2 overflow-y-auto overscroll-contain custom-scrollbar pr-2">
+                        @forelse ($selectedBatch->inventoryLogs as $log)
                             @php
-                            [$logLabel, $sign] = match ($log->type) {
-                            'import' => ['Nhập kho thu hoạch', '+'],
-                            'export_sale' => ['Xuất bán', '-'],
-                            'export_spoilage' => ['Xuất hủy', '-'],
-                            'return_cancel' => ['Hoàn kho do hủy đơn', '+'],
-                            'adjustment_in' => ['Kiểm kê tăng', '+'],
-                            'adjustment_out' => ['Kiểm kê giảm', '-'],
-                            'expiry_change' => ['Sửa hạn sử dụng', ''],
-                            'status_change' => ['Đổi trạng thái', ''],
-                            default => [$log->type, ''],
-                            };
+                                [$logLabel, $sign] = match ($log->type) {
+                                    'import' => ['Nhập kho thu hoạch', '+'],
+                                    'export_sale' => ['Xuất bán', '-'],
+                                    'export_spoilage' => ['Xuất hủy', '-'],
+                                    'return_cancel' => ['Hoàn kho do hủy đơn', '+'],
+                                    'adjustment_in' => ['Kiểm kê tăng', '+'],
+                                    'adjustment_out' => ['Kiểm kê giảm', '-'],
+                                    'expiry_change' => ['Sửa hạn sử dụng', ''],
+                                    'status_change' => ['Đổi trạng thái', ''],
+                                    default => [$log->type, ''],
+                                };
 
-                            $logColor = $sign === '-'
-                            ? 'text-rose-600'
-                            : 'text-brand-700';
+                                $logColor = $sign === '-' ? 'text-rose-600' : 'text-brand-700';
 
-                            $display = $inventoryLogDisplays[$log->id];
+                                $display = $inventoryLogDisplays[$log->id];
                             @endphp
 
                             <div wire:key="batch-log-{{ $log->id }}"
@@ -769,41 +734,41 @@
                                     </span>
 
                                     @if ($display['transition'])
-                                    <p class="text-xs text-slate-700 mt-0.5 font-medium">
-                                        Trạng thái: {{ $display['transition'] }}
-                                    </p>
+                                        <p class="text-xs text-slate-700 mt-0.5 font-medium">
+                                            Trạng thái: {{ $display['transition'] }}
+                                        </p>
                                     @endif
 
                                     @if ($display['stockChange'])
-                                    <p class="text-xs text-slate-700 mt-0.5 font-medium">
-                                        Tồn kho:
-                                        {{ $display['stockChange'] }}
-                                        {{ $selectedUnit }}
-                                    </p>
+                                        <p class="text-xs text-slate-700 mt-0.5 font-medium">
+                                            Tồn kho:
+                                            {{ $display['stockChange'] }}
+                                            {{ $selectedUnit }}
+                                        </p>
                                     @endif
 
                                     @if ($display['expiryChange'])
-                                    <p class="text-xs text-slate-700 mt-0.5 font-medium">
-                                        HSD: {{ $display['expiryChange'] }}
-                                    </p>
+                                        <p class="text-xs text-slate-700 mt-0.5 font-medium">
+                                            HSD: {{ $display['expiryChange'] }}
+                                        </p>
                                     @endif
 
                                     @php
-                                    $reason = (string) ($display['reason'] ?? '');
+                                        $reason = (string) ($display['reason'] ?? '');
 
-                                    // Chuẩn bị mảng trước, tránh biểu thức dài trong @foreach.
-                                    $reasonLines = preg_split('/\R/u', $reason) ?: [$reason];
+                                        // Chuẩn bị mảng trước, tránh biểu thức dài trong @foreach.
+                                        $reasonLines = preg_split('/\R/u', $reason) ?: [$reason];
                                     @endphp
 
                                     <p class="text-xs text-slate-700 mt-0.5 font-medium">
                                         Lý do:
 
                                         @foreach ($reasonLines as $reasonLine)
-                                        {{ $reasonLine }}
+                                            {{ $reasonLine }}
 
-                                        @unless ($loop->last)
-                                        <br>
-                                        @endunless
+                                            @unless ($loop->last)
+                                                <br>
+                                            @endunless
                                         @endforeach
                                     </p>
 
@@ -817,36 +782,36 @@
                                 <!-- hiển thị số lượng -->
                                 <span class="font-mono font-black {{ $logColor }} text-xs sm:text-sm">
                                     @if ($log->quantity !== 0)
-                                    {{ $sign }}{{ number_format($log->quantity) }}
-                                    {{ $selectedUnit }}
+                                        {{ $sign }}{{ number_format($log->quantity) }}
+                                        {{ $selectedUnit }}
                                     @else
-                                    -
+                                        -
                                     @endif
                                 </span>
                             </div>
-                            @empty
+                        @empty
                             <p class="text-xs text-slate-400 italic">
                                 Chưa có biến động kho.
                             </p>
-                            @endforelse
-                        </div>
+                        @endforelse
                     </div>
+                </div>
 
-                    <!-- Nhật ký canh tác -->
-                    <div class="flex flex-1 min-h-0 flex-col gap-2.5 overflow-hidden pt-3 border-t border-slate-100">
-                        <h4
-                            class="shrink-0 text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                            <i class="fa-solid fa-seedling text-brand-600"></i>
-                            Nhật ký canh tác gốc
-                        </h4>
+                <!-- Nhật ký canh tác -->
+                <div class="flex flex-1 min-h-0 flex-col gap-2.5 overflow-hidden pt-3 border-t border-slate-100">
+                    <h4
+                        class="shrink-0 text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-seedling text-brand-600"></i>
+                        Nhật ký canh tác gốc
+                    </h4>
 
-                        <!-- Khối cuộn riêng -->
-                        <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain custom-scrollbar px-2 py-1">
+                    <!-- Khối cuộn riêng -->
+                    <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain custom-scrollbar px-2 py-1">
 
-                            <!-- Timeline nằm bên trong khối cuộn -->
-                            <div
-                                class="space-y-3 relative before:absolute before:inset-0 before:left-3 before:w-0.5 before:bg-slate-100">
-                                @forelse ($selectedBatch->plantingBatch?->traceabilityEvents ?? collect() as $event)
+                        <!-- Timeline nằm bên trong khối cuộn -->
+                        <div
+                            class="space-y-3 relative before:absolute before:inset-0 before:left-3 before:w-0.5 before:bg-slate-100">
+                            @forelse ($selectedBatch->plantingBatch?->traceabilityEvents ?? collect() as $event)
                                 <div wire:key="batch-event-{{ $event->id }}" class="relative pl-6 text-xs">
                                     <div
                                         class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-brand-600 border-2 border-white shadow-xs">
@@ -865,23 +830,23 @@
                                         · {{ $event->recorded_by }}
                                     </span>
                                 </div>
-                                @empty
+                            @empty
                                 <p class="text-xs text-slate-400 italic pl-5">
                                     Chưa có nhật ký canh tác.
                                 </p>
-                                @endforelse
-                            </div>
+                            @endforelse
                         </div>
                     </div>
                 </div>
             </div>
-            @endif
+        </div>
+    @endif
 
-            <!-- Modal QR và in tem -->
-            @if ($selectedBatch && $modal === 'qr' && $qrUrl)
-            @teleport('body')
-            <div id="farm-print-root" wire:key="batch-qr-{{ $selectedBatch->id }}"
-                x-data="{ qrReady: false, qrFailed: false }" x-init="$nextTick(() => {
+    <!-- Modal QR và in tem -->
+    @if ($selectedBatch && $modal === 'qr' && $qrUrl)
+        @teleport('body')
+            <div id="farm-print-root" wire:key="batch-qr-{{ $selectedBatch->id }}" x-data="{ qrReady: false, qrFailed: false }"
+                x-init="$nextTick(() => {
                     qrReady = $refs.qr.complete && $refs.qr.naturalWidth > 0;
                 })"
                 class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
@@ -940,9 +905,11 @@
                     </div>
 
                     <template x-if="!qrReady">
-                        <p class="farm-no-print text-xs" x-text="qrFailed
+                        <p class="farm-no-print text-xs"
+                            x-text="qrFailed
             ? 'Không hiển thị được ảnh QR. Đóng và mở lại modal.'
-            : 'Đang chuẩn bị mã QR...'"></p>
+            : 'Đang chuẩn bị mã QR...'">
+                        </p>
                     </template>
 
                     <button type="button" x-bind:disabled="!qrReady" x-on:click="if (qrReady) window.print()"
@@ -952,11 +919,11 @@
                     </button>
                 </div>
             </div>
-            @endteleport
-            @endif
+        @endteleport
+    @endif
 
-            @script
-            <script>
+    @script
+        <script>
             let confirming = false;
 
             function setConfirmationState(busy) {
@@ -1025,6 +992,6 @@
                     setConfirmationState(false);
                 }
             });
-            </script>
-            @endscript
+        </script>
+    @endscript
 </div>
