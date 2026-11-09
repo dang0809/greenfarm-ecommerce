@@ -11,7 +11,7 @@
             </button>
 
             <h1 class="text-base sm:text-2xl font-extrabold text-gray-900 truncate">
-                Hồ Sơ Nhân Viên Nông Trại
+                Hồ Sơ {{ $roleTitle ?? 'Nhân Viên' }}
             </h1>
         </div>
 
@@ -151,7 +151,7 @@
                     <div class="flex justify-between gap-3">
                         <span class="text-gray-500">Vai trò:</span>
                         <span class="font-bold text-gray-800">
-                            {{ $user->role === 'farm_staff' ? 'Nhân viên Nông trại' : $user->role }}
+                            {{ $user->role === 'sales' ? 'Nhân viên Bán hàng' : ($user->role === 'farm_staff' ? 'Nhân viên Nông trại' : $user->role) }}
                         </span>
                     </div>
 
@@ -372,3 +372,4 @@
     </script>
     @endscript
 </div>
+
