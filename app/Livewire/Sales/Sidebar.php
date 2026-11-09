@@ -47,6 +47,15 @@ class Sidebar extends Component
     }
 
     /**
+     * Lắng nghe sự kiện cập nhật hồ sơ để đồng bộ tên và ảnh đại diện
+     */
+    #[On('profile-updated')]
+    public function onProfileUpdated(): void
+    {
+        // Livewire tự động re-render cập nhật avatar & tên
+    }
+
+    /**
      * Xử lý đăng xuất tài khoản an toàn
      */
     public function logout()

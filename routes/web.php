@@ -22,7 +22,7 @@ use App\Http\Controllers\Api\PayOSWebhookController;
 // Import đầy đủ các Livewire Farm Staff Components
 use App\Livewire\FarmStaff\ProductBatchManager;
 use App\Livewire\FarmStaff\FarmPlotManager;
-use App\Livewire\FarmStaff\ProfileManager;
+use App\Livewire\ProfileManager;
 use App\Livewire\FarmStaff\CertificationManager;
 use App\Livewire\FarmStaff\ProductManager;
 use App\Livewire\FarmStaff\CategoryManager;
@@ -126,4 +126,5 @@ Route::middleware(['role:sales'])->prefix('nhan-vien-ban-hang')->name('sales.')-
     Route::get('/khieu-nai', ComplaintManager::class)->name('complaints');
     Route::get('/xa-hang', ClearanceManager::class)->name('clearance');
     Route::get('/goi-dinh-ky', SubscriptionManager::class)->name('subscriptions');
+    Route::get('/ho-so', ProfileManager::class)->name('profile');
 });

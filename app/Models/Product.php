@@ -52,15 +52,7 @@ class Product extends Model
 
     public function getCoverImageUrlAttribute(): ?string
     {
-        $path = $this->coverImage?->image;
-
-        if (! $path) {
-            return null;
-        }
-
-        return Str::startsWith($path, ['http://', 'https://'])
-            ? $path
-            : Storage::disk('public')->url(ltrim($path, '/'));
+        return $this->coverImage?->url;
     }
 
     public function category(): BelongsTo
