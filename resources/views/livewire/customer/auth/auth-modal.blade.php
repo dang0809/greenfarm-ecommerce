@@ -17,14 +17,22 @@
 
                 <!-- Header Logo Mầm Cây -->
                 <div class="text-center mb-6">
-                    <div class="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center text-xl mx-auto mb-3 shadow-inner">
-                        <i class="fa-solid {{ $tab === 'forgot' ? 'fa-key' : 'fa-seedling' }}"></i>
+                    <div class="w-12 h-12 rounded-2xl {{ $tab === 'reset_password' && $tokenInvalid ? 'bg-rose-50 text-rose-500' : 'bg-brand-50 text-brand-600' }} flex items-center justify-center text-xl mx-auto mb-3 shadow-inner">
+                        @if ($tab === 'reset_password' && $tokenInvalid)
+                            <i class="fa-solid fa-hourglass-end"></i>
+                        @elseif (in_array($tab, ['forgot', 'reset_password']))
+                            <i class="fa-solid fa-key"></i>
+                        @else
+                            <i class="fa-solid fa-seedling"></i>
+                        @endif
                     </div>
                     <h1 class="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">
                         @if ($tab === 'login')
                             Chào Mừng Bạn Đến Đất Lành
                         @elseif ($tab === 'register')
                             Tạo Tài Khoản Khách Hàng
+                        @elseif ($tab === 'reset_password')
+                            {{ $tokenInvalid ? 'Liên Kết Đã Hết Hạn' : 'Đặt Lại Mật Khẩu Mới' }}
                         @else
                             Khôi Phục Mật Khẩu
                         @endif
@@ -34,14 +42,16 @@
                             Cùng chăm sóc sức khỏe gia đình bằng nông sản sạch
                         @elseif ($tab === 'register')
                             Đăng ký tài khoản để mua sắm và nhận thông báo ưu đãi
+                        @elseif ($tab === 'reset_password')
+                            {{ $tokenInvalid ? 'Liên kết đặt lại mật khẩu không còn hiệu lực hoặc đã được sử dụng' : 'Nhập mật khẩu mới an toàn cho tài khoản của bạn' }}
                         @else
-                            Nhập thông tin, Đất Lành sẽ gửi mã xác thực khôi phục tài khoản
+                            Nhập email tài khoản để nhận liên kết đặt lại mật khẩu
                         @endif
                     </p>
                 </div>
 
                 <!-- Tab Chuyển đổi ĐĂNG NHẬP / ĐĂNG KÝ -->
-                @if ($tab !== 'forgot')
+                @if (!in_array($tab, ['forgot', 'reset_password']))
                     <div class="flex p-1 bg-gray-100 rounded-2xl mb-6 text-xs font-bold">
                         <button type="button" 
                                 wire:click="switchTab('login')" 
@@ -64,7 +74,7 @@
                             <span>{{ session('success') }}</span>
                         </div>
                     @endif
-                    <form wire:submit.prevent="handleLogin" class="space-y-4">
+                    <form wire:submit.prevent="handleLogin" autocomplete="off" class="space-y-4">
                         <div>
                             <label class="block text-xs font-bold text-gray-700 mb-1.5"> Email</label>
                             <div class="relative">
@@ -86,7 +96,8 @@
                                 <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
                                 <input type="{{ $showLoginPassword ? 'text' : 'password' }}" 
                                        wire:model="loginPassword" 
-                                       autocomplete="new-password"
+                                       autocomplete="off"
+                                       data-lpignore="true"
                                        placeholder="Nhập mật khẩu" 
                                        class="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-11 pr-11 py-3 text-xs sm:text-sm font-medium outline-none focus:bg-white focus:border-brand-500 transition-all">
                                 <button type="button" wire:click="$toggle('showLoginPassword')" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -115,7 +126,7 @@
 
                 <!-- ================= FORM 2: ĐĂNG KÝ (RESEND MAIL INTEGRATED) ================= -->
                 @if ($tab === 'register')
-                    <form wire:submit.prevent="handleRegister" class="space-y-4">
+                    <form wire:submit.prevent="handleRegister" autocomplete="off" class="space-y-4">
                         <div>
                             <label class="block text-xs font-bold text-gray-700 mb-1.5">Họ và tên của bạn <span class="text-red-500">*</span></label>
                             <div class="relative">
@@ -158,6 +169,8 @@
                                 <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
                                 <input type="{{ $showRegisterPassword ? 'text' : 'password' }}" 
                                        wire:model="registerPassword" 
+                                       autocomplete="off"
+                                       data-lpignore="true"
                                        placeholder="Chữ hoa, chữ thường & chữ số (Min 8)" 
                                        class="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-11 pr-11 py-3 text-xs sm:text-sm font-medium outline-none focus:bg-white focus:border-brand-500 transition-all">
                                 <button type="button" wire:click="$toggle('showRegisterPassword')" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -173,7 +186,8 @@
                                 <i class="fa-solid fa-shield-halved absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
                                 <input type="{{ $showConfirmPassword ? 'text' : 'password' }}" 
                                        wire:model="registerPasswordConfirmation" 
-                                       autocomplete="new-password"
+                                       autocomplete="off"
+                                       data-lpignore="true"
                                        placeholder="Nhập lại mật khẩu" 
                                        class="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-11 pr-11 py-3 text-xs sm:text-sm font-medium outline-none focus:bg-white focus:border-brand-500 transition-all">
                                 <button type="button" wire:click="$toggle('showConfirmPassword')" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -193,135 +207,174 @@
                     </form>
                 @endif
 
-                <!-- ================= FORM 3: QUÊN MẬT KHẨU ================= -->
+                <!-- ================= FORM 3: QUÊN MẬT KHẨU (PASSWORD RESET TOKEN) ================= -->
                @if ($tab === 'forgot')
-                <!-- BƯỚC 1: NHẬP EMAIL -->
-                @if ($forgotStep === 1)
-                    <form wire:submit.prevent="handleSendResetCode" class="space-y-4">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 mb-1">Email tài khoản</label>
-                            <input type="email" wire:model.blur="forgotAccount" placeholder="nguyenvana@gmail.com"
-                                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-brand-500 focus:ring-0">
-                            @error('forgotAccount') <span class="text-red-500 text-xs font-semibold mt-1 block">{{ $message }}</span> @enderror
-                        </div>
+                    @if ($forgotLinkSent)
+                        <!-- Màn hình ĐÃ GỬI LIÊN KẾT THÀNH CÔNG -->
+                        <div class="text-center py-4 space-y-4 animate-in fade-in duration-300">
+                            <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-2xl shadow-inner">
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </div>
 
-                        <button type="submit" wire:loading.attr="disabled"
-                                class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-xl text-sm transition flex items-center justify-center gap-2 disabled:opacity-50">
-                            <span wire:loading.remove wire:target="handleSendResetCode">Gửi mã OTP</span>
-                            <span wire:loading wire:target="handleSendResetCode"><i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...</span>
-                        </button>
+                            <div>
+                                <h3 class="text-base font-extrabold text-gray-900">Đã gửi liên kết thành công!</h3>
+                                <p class="text-xs text-gray-600 mt-2 leading-relaxed">
+                                    Chúng tôi đã gửi đường dẫn đặt lại mật khẩu đến email:
+                                    <br>
+                                    <strong class="text-gray-900 font-bold">{{ $forgotAccount }}</strong>
+                                </p>
+                                <p class="text-[11px] text-gray-400 mt-2">
+                                    Vui lòng kiểm tra hộp thư đến (kể cả mục Spam) và nhấn vào liên kết để tạo mật khẩu mới. Liên kết có hiệu lực trong 60 phút.
+                                </p>
+                            </div>
 
-                        <div class="text-center pt-2">
-                            <button type="button" wire:click="switchTab('login')" class="text-xs font-bold text-gray-500 hover:text-brand-600 transition">
-                                Nhớ mật khẩu rồi? <span class="text-brand-600 underline">Đăng nhập ngay</span>
-                            </button>
-                        </div>
-                    </form>
-
-                <!-- BƯỚC 2: NHẬP MÃ OTP + ĐẾM NGƯỢC (CÓ NÚT LÙI VỀ BƯỚC 1) -->
-                    @elseif ($forgotStep === 2)
-                        <div x-data="{ 
-                            cooldown: @entangle('resendCooldown'),
-                            timer: null,
-                            startTimer() {
-                                if (this.timer) clearInterval(this.timer);
-                                if (this.cooldown <= 0) return;
-
-                                this.timer = setInterval(() => {
-                                    if (this.cooldown > 0) {
-                                        this.cooldown--;
-                                    } else {
-                                        clearInterval(this.timer);
-                                        this.timer = null;
-                                    }
-                                }, 1000);
-                            }
-                        }" 
-                        x-init="
-                            startTimer();
-                            $watch('cooldown', (value) => {
-                                if (value > 0 && !timer) {
-                                    startTimer();
-                                }
-                            });
-                        ">
-                            <form wire:submit.prevent="handleVerifyOtp" class="space-y-4">
-                                <p class="text-xs text-gray-500">Mã OTP đã được gửi tới <strong class="text-gray-800">{{ $forgotAccount }}</strong></p>
-
+                            <div class="pt-2 space-y-2">
+                                <button type="button" 
+                                        wire:click="$set('forgotLinkSent', false)" 
+                                        class="text-xs font-bold text-brand-600 hover:underline">
+                                    Gửi lại hoặc nhập email khác
+                                </button>
                                 <div>
-                                    <label class="block text-xs font-bold text-gray-700 mb-1">Mã xác thực OTP (6 chữ số)</label>
-                                    <input type="text" maxlength="6" wire:model.blur="forgotOtp" placeholder="123456" autocomplete="one-time-code"
-                                        class="w-full px-4 py-2.5 text-center tracking-[8px] font-extrabold text-lg rounded-xl border border-gray-200 focus:border-brand-500 focus:ring-0">
-                                    @error('forgotOtp') <span class="text-red-500 text-xs font-semibold mt-1 block">{{ $message }}</span> @enderror
+                                    <button type="button" 
+                                            wire:click="switchTab('login')" 
+                                            class="w-full inline-flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-xl text-xs transition">
+                                        <i class="fa-solid fa-arrow-left text-[10px]"></i>
+                                        <span>Quay lại Đăng nhập</span>
+                                    </button>
                                 </div>
+                            </div>
+                        </div>
+                    @else
+                        <!-- FORM NHẬP EMAIL ĐỂ GỬI LINK -->
+                        <form wire:submit.prevent="handleSendResetLink" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">Email tài khoản</label>
+                                <input type="email" wire:model.blur="forgotAccount" placeholder="nguyenvana@gmail.com"
+                                    class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-brand-500 focus:ring-0">
+                                @error('forgotAccount') <span class="text-red-500 text-xs font-semibold mt-1 block">{{ $message }}</span> @enderror
+                            </div>
 
-                                <button type="submit" wire:loading.attr="disabled"
-                                        class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-xl text-sm transition disabled:opacity-50">
-                                    Xác nhận OTP
+                            <button type="submit" wire:loading.attr="disabled"
+                                    class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-xl text-sm transition flex items-center justify-center gap-2 disabled:opacity-50">
+                                <span wire:loading.remove wire:target="handleSendResetLink">Gửi liên kết đặt lại mật khẩu</span>
+                                <span wire:loading wire:target="handleSendResetLink"><i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...</span>
+                            </button>
+
+                            <div class="text-center pt-2">
+                                <button type="button" wire:click="switchTab('login')" class="text-xs font-bold text-gray-500 hover:text-brand-600 transition">
+                                    Nhớ mật khẩu rồi? <span class="text-brand-600 underline">Đăng nhập ngay</span>
+                                </button>
+                            </div>
+                        </form>
+                    @endif
+               @endif
+
+                <!-- ================= FORM 4: ĐẶT LẠI MẬT KHẨU (TỪ TOKEN EMAIL) ================= -->
+                @if ($tab === 'reset_password')
+                    @if ($tokenInvalid)
+                        <!-- MÀN HÌNH BÁO LỖI TOKEN HẾT HẠN / ĐÃ DÙNG NGAY KHI MỞ -->
+                        <div class="text-center py-2 space-y-4 animate-in fade-in duration-300">
+                            <div class="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-left">
+                                <div class="flex items-start gap-2.5">
+                                    <i class="fa-solid fa-circle-exclamation text-rose-500 text-sm shrink-0 mt-0.5"></i>
+                                    <div class="text-xs text-rose-800 space-y-1">
+                                        <p class="font-bold">Liên kết đã hết hạn hoặc đã được sử dụng</p>
+                                        <p class="text-rose-700 leading-relaxed">
+                                            Vì lý do an toàn, mỗi liên kết đặt lại mật khẩu chỉ có hiệu lực trong <strong>60 phút</strong> và chỉ dùng được <strong>1 lần duy nhất</strong>.
+                                        </p>
+                                        @if ($resetEmail)
+                                            <p class="text-gray-600 text-[11px] pt-1.5 border-t border-rose-200/60 mt-1.5">
+                                                Tài khoản: <strong class="text-gray-900">{{ $resetEmail }}</strong>
+                                            </p>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="pt-2 space-y-2.5">
+                                <button type="button" 
+                                        wire:click="retryForgotPassword" 
+                                        class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-2xl text-xs sm:text-sm shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer">
+                                    <i class="fa-solid fa-arrow-rotate-right text-xs"></i>
+                                    <span>Gửi Lại Liên Kết Mới</span>
                                 </button>
 
-                                <!-- HÀNG NÚT: ĐỔI EMAIL (LÙI) & GỬI LẠI OTP -->
-                                <div class="flex items-center justify-between pt-2">
-                                    <!-- NÚT LÙI LẠI BƯỚC 1 -->
-                                    <button type="button" wire:click="prevForgotStep" class="text-xs font-semibold text-gray-500 hover:text-gray-800 transition flex items-center gap-1">
-                                        <i class="fa-solid fa-arrow-left text-[10px]"></i> Đổi Email
-                                    </button>
+                                <button type="button" 
+                                        wire:click="switchTab('login')" 
+                                        class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-2xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer">
+                                    <i class="fa-solid fa-arrow-left text-[10px]"></i>
+                                    <span>Quay lại Đăng nhập</span>
+                                </button>
+                            </div>
+                        </div>
+                    @else
+                        <!-- FORM NHẬP MẬT KHẨU MỚI (Khi token còn hạn và hợp lệ) -->
+                        <form wire:submit.prevent="handleResetPassword" autocomplete="off" class="space-y-4">
+                            <!-- Email (readonly) -->
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1.5">Email tài khoản</label>
+                                <div class="relative">
+                                    <i class="fa-regular fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                                    <input type="email" 
+                                           wire:model="resetEmail" 
+                                           readonly
+                                           class="w-full bg-gray-100 border border-gray-200 rounded-2xl pl-11 pr-4 py-3 text-xs sm:text-sm font-semibold text-gray-600 outline-none cursor-not-allowed">
+                                </div>
+                                @error('resetEmail') <span class="text-xs text-red-500 font-semibold mt-1 block">{{ $message }}</span> @enderror
+                            </div>
 
-                                    <!-- NÚT GỬI LẠI OTP -->
-                                    <button type="button" 
-                                            @click="if(cooldown === 0) { $wire.handleSendResetCode(); }" 
-                                            :disabled="cooldown > 0"
-                                            wire:loading.attr="disabled" 
-                                            class="text-xs font-semibold text-brand-600 hover:underline disabled:text-gray-400 disabled:no-underline disabled:cursor-not-allowed transition">
-                                        <span wire:loading.remove wire:target="handleSendResetCode">
-                                            <template x-if="cooldown > 0">
-                                                <span>Gửi lại sau (<strong x-text="cooldown"></strong>s)</span>
-                                            </template>
-                                            <template x-if="cooldown === 0">
-                                                <span>Gửi lại OTP</span>
-                                            </template>
-                                        </span>
-                                        <span wire:loading wire:target="handleSendResetCode">
-                                            <i class="fa-solid fa-spinner fa-spin"></i> Đang gửi lại...
-                                        </span>
+                            <!-- Mật khẩu mới -->
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1.5">Mật khẩu mới</label>
+                                <div class="relative">
+                                    <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                                    <input type="{{ $showNewPassword ? 'text' : 'password' }}" 
+                                           wire:model="newPassword" 
+                                           autocomplete="off"
+                                           data-lpignore="true"
+                                           placeholder="Tối thiểu 8 ký tự (hoa, thường, số)" 
+                                           class="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-11 pr-11 py-3 text-xs sm:text-sm font-medium outline-none focus:bg-white focus:border-brand-500 transition-all">
+                                    <button type="button" wire:click="$toggle('showNewPassword')" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                        <i class="fa-regular {{ $showNewPassword ? 'fa-eye-slash' : 'fa-eye' }} text-sm"></i>
                                     </button>
                                 </div>
-                                @error('forgotAccount') <span class="text-red-500 text-xs font-semibold mt-1 block text-center">{{ $message }}</span> @enderror
-                            </form>
-                        </div>
+                                @error('newPassword') <span class="text-xs text-red-500 font-semibold mt-1 block">{{ $message }}</span> @enderror
+                            </div>
 
-                <!-- BƯỚC 3: ĐẶT MẬT KHẨU MỚI (CÓ NÚT LÙI VỀ BƯỚC 2) -->
-                @elseif ($forgotStep === 3)
-                    <form wire:submit.prevent="handleResetPassword" class="space-y-4">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 mb-1">Mật khẩu mới</label>
-                            <input type="password" wire:model.blur="forgotNewPassword" placeholder="••••••••" autocomplete="new-password"
-                                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-brand-500 focus:ring-0">
-                            @error('forgotNewPassword') <span class="text-red-500 text-xs font-semibold mt-1 block">{{ $message }}</span> @enderror
-                        </div>
+                            <!-- Xác nhận mật khẩu mới -->
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1.5">Xác nhận mật khẩu mới</label>
+                                <div class="relative">
+                                    <i class="fa-solid fa-shield-halved absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                                    <input type="{{ $showNewPasswordConfirmation ? 'text' : 'password' }}" 
+                                           wire:model="newPasswordConfirmation" 
+                                           autocomplete="off"
+                                           data-lpignore="true"
+                                           placeholder="Nhập lại mật khẩu mới" 
+                                           class="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-11 pr-11 py-3 text-xs sm:text-sm font-medium outline-none focus:bg-white focus:border-brand-500 transition-all">
+                                    <button type="button" wire:click="$toggle('showNewPasswordConfirmation')" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                        <i class="fa-regular {{ $showNewPasswordConfirmation ? 'fa-eye-slash' : 'fa-eye' }} text-sm"></i>
+                                    </button>
+                                </div>
+                                @error('newPasswordConfirmation') <span class="text-xs text-red-500 font-semibold mt-1 block">{{ $message }}</span> @enderror
+                            </div>
 
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 mb-1">Xác nhận mật khẩu mới</label>
-                            <input type="password" wire:model.blur="forgotNewPasswordConfirmation" placeholder="••••••••" autocomplete="new-password"
-                                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-brand-500 focus:ring-0">
-                            @error('forgotNewPasswordConfirmation') <span class="text-red-500 text-xs font-semibold mt-1 block">{{ $message }}</span> @enderror
-                        </div>
-
-                        <button type="submit" wire:loading.attr="disabled"
-                                class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-xl text-sm transition flex items-center justify-center gap-2 disabled:opacity-50">
-                            <span wire:loading.remove wire:target="handleResetPassword">Lưu mật khẩu mới</span>
-                            <span wire:loading wire:target="handleResetPassword"><i class="fa-solid fa-spinner fa-spin"></i> Đang lưu...</span>
-                        </button>
-
-                        <!-- NÚT LÙI LẠI BƯỚC 2 -->
-                        <div class="text-center pt-1">
-                            <button type="button" wire:click="prevForgotStep" class="text-xs font-semibold text-gray-400 hover:text-gray-600 transition flex items-center justify-center gap-1 mx-auto">
-                                <i class="fa-solid fa-arrow-left text-[10px]"></i> Quay lại nhập OTP
+                            <!-- Nút Lưu mật khẩu -->
+                            <button type="submit" 
+                                    wire:loading.attr="disabled"
+                                    class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3.5 rounded-2xl text-xs sm:text-sm shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer mt-2">
+                                <span wire:loading.remove wire:target="handleResetPassword">Lưu Mật Khẩu Mới</span>
+                                <span wire:loading wire:target="handleResetPassword"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang lưu mật khẩu...</span>
                             </button>
-                        </div>
-                    </form>
+
+                            <div class="text-center pt-2">
+                                <button type="button" wire:click="switchTab('login')" class="text-xs font-bold text-gray-500 hover:text-brand-600 transition">
+                                    <i class="fa-solid fa-arrow-left text-[10px] mr-1"></i> Quay lại Đăng nhập
+                                </button>
+                            </div>
+                        </form>
+                    @endif
                 @endif
-            @endif
                 <!-- Chân Card -->
                 <div class="mt-8 pt-4 border-t border-gray-100 text-center text-[11px] text-gray-400">
                     <i class="fa-solid fa-shield-halved text-brand-600 mr-1"></i> Hệ thống mã hóa bảo mật chuẩn Nông Trại Đất Lành
