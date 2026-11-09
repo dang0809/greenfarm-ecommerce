@@ -218,8 +218,7 @@ class CartPage extends Component
 
         foreach ($items as $item) {
             if (in_array((string) $item->id, $this->selectedItems)) {
-                $price = $item->product->sale_price ?? $item->product->price;
-                $subtotal += $price * $item->quantity;
+                $subtotal += $item->product->getPriceBreakdownForQuantity((int) $item->quantity)['total'];
                 $selectedCount++;
             }
         }

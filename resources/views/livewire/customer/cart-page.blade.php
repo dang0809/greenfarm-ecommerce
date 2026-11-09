@@ -46,7 +46,9 @@
                                     : 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?w=300';
 
                                 $unitPrice = $product->sale_price ?? $product->price;
-                                $itemSubtotal = $unitPrice * $item->quantity;
+                                $priceData = $product->getPriceBreakdownForQuantity((int) $item->quantity);
+                                $itemSubtotal = $priceData['total'];
+                                $hasSplit = count($priceData['breakdown']) > 1;
                                 $availableStock = (int) $product->total_stock;
                             @endphp
 
@@ -88,6 +90,20 @@
                                                 </span>
                                             @endif
                                             <span class="text-[11px] text-gray-500 font-medium">/ {{ $product->unit }}</span>
+
+                                            @if($hasSplit)
+                                                <div class="inline-flex items-center gap-1 flex-wrap text-[10px] text-amber-900 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full font-bold">
+                                                    <span>Gồm:</span>
+                                                    @foreach($priceData['breakdown'] as $b)
+                                                        <span class="{{ $b['is_sale'] ? 'text-rose-600' : 'text-gray-700' }}">
+                                                            {{ $b['quantity'] + 0 }}{{ $product->unit ?? 'kg' }} {{ $b['is_sale'] ? '(-' . $b['discount_percent'] . '%)' : '(Gốc)' }}
+                                                        </span>
+                                                        @if(!$loop->last)
+                                                            <span class="text-gray-400">+</span>
+                                                        @endif
+                                                    @endforeach
+                                                </div>
+                                            @endif
 
                                             @if ($availableStock <= 0)
                                                 <span class="text-[10px] font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full inline-flex items-center gap-1">

@@ -139,6 +139,8 @@ class PayOSWebhookController extends Controller
                             ProductBatch::where('id', $item->batch_id)->decrement('reserved_quantity', $item->quantity);
                             // 2. Chính thức xuất kho thực tế
                             ProductBatch::where('id', $item->batch_id)->decrement('current_quantity', $item->quantity);
+                            // Đồng bộ lại giá sale_price nếu lô cận date này vừa bán hết
+                            ProductBatch::syncProductSalePrice($item->product_id);
                             // 3. Ghi sổ nhật ký xuất bán (type: export_sale)
                             InventoryLog::create([
                                 'batch_id'   => $item->batch_id,

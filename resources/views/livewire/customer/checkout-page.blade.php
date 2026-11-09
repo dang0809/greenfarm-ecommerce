@@ -151,7 +151,9 @@
                                         : 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?w=300';
 
                                     $unitPrice = $product->sale_price ?? $product->price;
-                                    $itemSubtotal = $unitPrice * $item->quantity;
+                                    $priceData = $product->getPriceBreakdownForQuantity((int) $item->quantity);
+                                    $itemSubtotal = $priceData['total'];
+                                    $hasSplit = count($priceData['breakdown']) > 1;
                                 @endphp
 
                                 <div class="flex items-center justify-between gap-3">
@@ -161,9 +163,22 @@
                                              class="w-12 h-12 rounded-xl object-cover border border-gray-100 shrink-0">
                                         <div class="min-w-0 flex-1">
                                             <p class="text-xs font-bold text-gray-900 truncate">{{ $product->name }}</p>
-                                            <p class="text-[11px] text-gray-400">
-                                                {{ number_format($unitPrice) }}đ × {{ $item->quantity + 0 }}
-                                            </p>
+                                            @if($hasSplit)
+                                                <div class="text-[11px] text-gray-500 font-medium space-y-0.5 mt-0.5">
+                                                    @foreach($priceData['breakdown'] as $b)
+                                                        <div class="flex items-center gap-1">
+                                                            <span class="{{ $b['is_sale'] ? 'text-rose-600 font-bold' : 'text-gray-600' }}">
+                                                                {{ $b['quantity'] + 0 }}{{ $product->unit ?? 'kg' }} {{ $b['is_sale'] ? '(-' . $b['discount_percent'] . '%)' : '(Gốc)' }}
+                                                            </span>
+                                                            <span class="text-gray-400">× {{ number_format($b['unit_price']) }}đ</span>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            @else
+                                                <p class="text-[11px] text-gray-400">
+                                                    {{ number_format($priceData['breakdown'][0]['unit_price'] ?? $unitPrice) }}đ × {{ $item->quantity + 0 }}
+                                                </p>
+                                            @endif
                                         </div>
                                     </div>
                                     <span class="text-xs font-bold text-gray-800 shrink-0">
