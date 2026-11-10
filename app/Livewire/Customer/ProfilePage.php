@@ -9,14 +9,13 @@ use Livewire\Attributes\Url;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use App\Livewire\Traits\WithVietnamBanks;
 use App\Models\Address;
 use App\Models\SystemSetting;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Cache;
 #[Title('Tài Khoản Của Tôi | Nông Trại Đất Lành')]
 class ProfilePage extends Component
 {
-    use WithFileUploads;
+    use WithFileUploads, WithVietnamBanks;
 
     #[Url(as: 'tab')]
     public string $activeTab = 'info';
@@ -325,21 +324,7 @@ class ProfilePage extends Component
             $this->dispatch('show-toast', type: 'info', message: 'Đã xóa địa chỉ thành công.');
         }
     }
-    public function banks()
-    {
-    return Cache::remember('vietnam_banks_list', 86400, function () {
-        try {
-            $response = Http::timeout(3)->get('https://api.vietqr.io/v2/banks');
-            if ($response->successful()) {
-                return $response->json()['data'] ?? [];
-            }
-        } catch (\Exception $e) {
-            \Log::warning('Không thể lấy danh sách ngân hàng VietQR: ' . $e->getMessage());
-        }
 
-        return [];
-    });
-    }
     public function render()
     {
         $user = Auth::user();

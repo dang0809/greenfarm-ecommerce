@@ -325,6 +325,10 @@
 
 
     <!-- MODAL KHIẾU NẠI HOÀN TIỀN DẬP NÁT (24H) -->
-    <x-customer.complaint-modal :show="$showComplaintModal" />
+    <x-customer.complaint-modal
+        :show="$showComplaintModal"
+        :refund-amount="$complaint_refund_amount"
+        :images="$complaint_images"
+        :banks="$showComplaintModal ? $this->banks() : []" />
 
 </div>
