@@ -218,54 +218,86 @@
             </div>
 
             @auth
-            @if ($this->hasPurchased)
+            @if ($this->unreviewedOrderItem)
             <div class="bg-gray-50/70 border border-gray-200/80 rounded-2xl p-5 sm:p-6 mb-8">
-                <h4 class="text-sm sm:text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
-                    <i class="fa-regular fa-pen-to-square text-brand-600"></i> Viết Đánh Giá Của Bạn
-                </h4>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-gray-200/60">
+                    <h4 class="text-sm sm:text-base font-bold text-gray-900 flex items-center gap-2">
+                        <i class="fa-regular fa-pen-to-square text-brand-600"></i> Viết Đánh Giá Của Bạn
+                    </h4>
+                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-xl self-start sm:self-auto">
+                        <i class="fa-solid fa-badge-check text-emerald-600"></i> Đã nhận hàng từ Nông trại
+                    </span>
+                </div>
 
                 <form wire:submit.prevent="submitReview" class="space-y-4">
                     <div class="flex flex-wrap items-center gap-3">
                         <span class="text-xs font-bold text-gray-700">Mức độ hài lòng:</span>
-                        <div class="flex items-center gap-1.5 text-lg text-amber-400 cursor-pointer">
-                            @for ($i = 1; $i <= 5; $i++) <button type="button" wire:click="$set('rating', {{ $i }})"
-                                class="transition-colors">
-                                <i
-                                    class="fa-solid fa-star {{ $i <= $rating ? 'text-amber-400' : 'text-gray-300' }}"></i>
+                        <div class="flex items-center gap-1.5 text-lg text-amber-400 cursor-pointer select-none">
+                            @for ($i = 1; $i <= 5; $i++)
+                                <button type="button" wire:click="$set('rating', {{ $i }})"
+                                    class="transition-transform hover:scale-110 p-0.5">
+                                    <i class="fa-solid fa-star {{ $i <= $rating ? 'text-amber-400' : 'text-gray-300' }}"></i>
                                 </button>
-                                @endfor
+                            @endfor
                         </div>
-                        <span class="text-xs font-bold text-amber-600">{{ $rating }} sao</span>
+                        <span class="text-xs font-bold text-amber-600">
+                            {{ $rating }} sao - 
+                            @if($rating == 5) Tuyệt vời!
+                            @elseif($rating == 4) Rất tốt
+                            @elseif($rating == 3) Bình thường
+                            @elseif($rating == 2) Chưa hài lòng
+                            @else Rất thất vọng
+                            @endif
+                        </span>
                     </div>
 
                     <div>
-                        <textarea wire:model="comment" rows="3"
+                        <textarea wire:model="content" rows="3"
                             placeholder="Chia sẻ cảm nhận về độ tươi giòn, quy cách đóng gói và thời gian giao nhận..."
                             class="w-full bg-white border border-gray-200 rounded-2xl p-3.5 text-xs sm:text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all resize-none shadow-xs"></textarea>
-                        @error('comment') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
+                        @error('content') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
                     </div>
 
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-                        <label
-                            class="inline-flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-600 hover:text-brand-600 transition-colors">
-                            <i class="fa-solid fa-camera text-brand-600 text-sm"></i>
-                            <span>Thêm ảnh thực tế nhận hàng</span>
-                            <input type="file" wire:model="reviewPhoto" accept="image/*" class="hidden">
-                        </label>
+                    <!-- Upload ảnh thực tế lên Cloudflare R2 -->
+                    <div class="space-y-2">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                            <label class="inline-flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-600 hover:text-brand-600 transition-colors">
+                                <i class="fa-solid fa-camera text-brand-600 text-sm"></i>
+                                <span>Thêm ảnh thực tế nhận hàng (Tối đa 5 ảnh)</span>
+                                <input type="file" wire:model="reviewPhotos" multiple accept="image/*" class="hidden">
+                            </label>
 
-                        <button type="submit"
-                            class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs sm:text-sm shadow-sm transition-all flex items-center justify-center gap-1.5 active:scale-95">
-                            <i class="fa-regular fa-paper-plane text-xs"></i>
-                            <span>Gửi đánh giá</span>
-                        </button>
+                            <button type="submit" wire:loading.attr="disabled"
+                                class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs sm:text-sm shadow-sm transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50 cursor-pointer">
+                                <span wire:loading.remove wire:target="submitReview">
+                                    <i class="fa-regular fa-paper-plane text-xs mr-1"></i> Gửi đánh giá
+                                </span>
+                                <span wire:loading wire:target="submitReview">
+                                    <i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang tải lên...
+                                </span>
+                            </button>
+                        </div>
+
+                        <!-- Khung Preview ảnh đã chọn trước khi gửi -->
+                        @if (!empty($reviewPhotos))
+                            <div class="flex flex-wrap gap-2.5 pt-2">
+                                @foreach ($reviewPhotos as $index => $photo)
+                                    <div class="relative group">
+                                        <img src="{{ $photo->temporaryUrl() }}" class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover border border-brand-200 shadow-2xs">
+                                        <button type="button" wire:click="removePhoto({{ $index }})"
+                                            title="Xóa ảnh này"
+                                            class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 hover:bg-rose-600 text-white rounded-full flex items-center justify-center text-[10px] shadow-sm transition">
+                                            <i class="fa-solid fa-xmark"></i>
+                                        </button>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        @error('reviewPhotos') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
+                        @error('reviewPhotos.*') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
                     </div>
                 </form>
-            </div>
-            @else
-            <div class="bg-amber-50/80 border border-amber-200 rounded-2xl p-5 mb-8 text-center">
-                <i class="fa-solid fa-bag-shopping text-amber-600 text-2xl mb-2"></i>
-                <p class="text-xs sm:text-sm font-bold text-amber-900">Chỉ khách hàng đã mua sản phẩm này mới có thể
-                    viết đánh giá.</p>
             </div>
             @endif
             @endauth
@@ -302,27 +334,26 @@
                     </p>
 
                     @if ($review->images && $review->images->count() > 0)
-                    <div class="flex flex-wrap gap-2">
+                    <div class="flex flex-wrap gap-2.5">
                         @foreach ($review->images as $revImg)
                         @php
-                        $revImgUrl = str_starts_with($revImg->image, 'http')
-                        ? $revImg->image
-                        : asset('storage/' . $revImg->image);
+                            $revImgUrl = $revImg->url;
                         @endphp
-                        <img src="{{ $revImgUrl }}" @click="previewImage = '{{ $revImgUrl }}'"
-                            title="Nhấn để xem ảnh phóng to"
-                            class="w-16 h-16 rounded-xl object-cover border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity hover:scale-105 transform duration-200 shadow-xs">
+                        @if ($revImgUrl)
+                            <img src="{{ $revImgUrl }}" @click="previewImage = '{{ $revImgUrl }}'"
+                                title="Nhấn để xem ảnh phóng to"
+                                class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover border border-gray-200 cursor-pointer hover:opacity-85 transition-all hover:scale-105 transform duration-200 shadow-2xs">
+                        @endif
                         @endforeach
                     </div>
                     @elseif ($review->image)
                     @php
-                    $singleRevImgUrl = str_starts_with($review->image, 'http') ? $review->image : asset('storage/' .
-                    $review->image);
+                        $singleRevImgUrl = str_starts_with($review->image, 'http') ? $review->image : asset('storage/' . $review->image);
                     @endphp
                     <div class="flex gap-2">
                         <img src="{{ $singleRevImgUrl }}" @click="previewImage = '{{ $singleRevImgUrl }}'"
                             title="Nhấn để xem ảnh phóng to"
-                            class="w-16 h-16 rounded-xl object-cover border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity hover:scale-105 transform duration-200 shadow-xs">
+                            class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover border border-gray-200 cursor-pointer hover:opacity-85 transition-all hover:scale-105 transform duration-200 shadow-2xs">
                     </div>
                     @endif
                 </div>

@@ -27,4 +27,20 @@ class ReviewImage extends Model
     {
         return $this->belongsTo(Review::class);
     }
+
+    public function getUrlAttribute(): ?string
+    {
+        $path = trim((string) $this->image);
+
+        if ($path === '') {
+            return null;
+        }
+
+        $r2Url = config('filesystems.disks.r2.url');
+        if (!empty($r2Url)) {
+            return rtrim($r2Url, '/') . '/' . ltrim($path, '/');
+        }
+
+        return null;
+    }
 }
