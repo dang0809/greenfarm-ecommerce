@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Livewire\WithPagination;
 use Livewire\Attributes\Layout; 
 use Livewire\Attributes\Title;
 use App\Livewire\Traits\HandlesCart;
@@ -21,7 +22,7 @@ use App\Livewire\FarmStaff\ProductManager as ProductData;
 #[Title('Chi tiết sản phẩm')]
 class ProductDetail extends Component
 {
-    use WithFileUploads, HandlesCart;
+    use WithFileUploads, WithPagination, HandlesCart;
 
     public Product $product;
     public string $selectedImage = '';
@@ -45,7 +46,6 @@ class ProductDetail extends Component
                                     ->whereRaw('product_batches.current_quantity > COALESCE(product_batches.reserved_quantity, 0)')
                                     ->whereDate('product_batches.expiry_date', '>=', now())
                                     ->orderBy('product_batches.expiry_date', 'asc'),
-            'reviews' => fn($q) => $q->where('status', 'approved')->with(['user', 'images'])->latest(),
         ])->where('slug', $slug)
           ->where('status', 'active')
             ->whereHas('category', function ($query) {
@@ -53,7 +53,7 @@ class ProductDetail extends Component
             })
           ->firstOrFail();
 
-        if (request()->query('tab') === 'reviews') {
+        if (request()->query('tab') === 'reviews' || request()->has('reviewsPage')) {
             $this->activeTab = 'reviews';
         }
 
@@ -225,14 +225,15 @@ class ProductDetail extends Component
         unset($this->hasPurchased);
         unset($this->hasReviewedAllPurchases);
 
-        $this->product->load(['reviews' => fn($q) => $q->where('status', 'approved')->with(['user', 'images'])->latest()]);
+        $this->resetPage('reviewsPage');
 
         $this->dispatch('show-toast', type: 'success', message: 'Cảm ơn bạn đã gửi đánh giá thực tế cho sản phẩm!');
     }
 
     public function render()
     {
-        $relatedProducts = Product::with(['productImages', 'category', 'reviews'])
+        $relatedProducts = Product::with(['productImages', 'category'])
+            ->withAvg(['reviews as approved_avg_rating' => fn($q) => $q->where('status', 'approved')], 'rating')
             ->tap([ProductData::class, 'withTotalStock'])
             ->where('category_id', $this->product->category_id)
             ->where('id', '!=', $this->product->id)
@@ -240,11 +241,28 @@ class ProductDetail extends Component
             ->take(4)
             ->get();
 
+        $reviewStats = Review::where('product_id', $this->product->id)
+            ->where('status', 'approved')
+            ->selectRaw('COUNT(*) as total_count, AVG(rating) as avg_rating')
+            ->first();
+
+        $reviewCount = (int) ($reviewStats->total_count ?? 0);
+        $avgRating = $reviewCount > 0 ? round((float) $reviewStats->avg_rating, 1) : 5.0;
+
+        $reviews = Review::with(['user', 'images'])
+            ->where('product_id', $this->product->id)
+            ->where('status', 'approved')
+            ->latest()
+            ->paginate(10, ['*'], 'reviewsPage');
+
         $currentBatch = $this->product->batches->first();
 
         return view('livewire.customer.product-detail', [
             'relatedProducts' => $relatedProducts,
-            'currentBatch' => $currentBatch,
+            'currentBatch'    => $currentBatch,
+            'reviews'         => $reviews,
+            'reviewCount'     => $reviewCount,
+            'avgRating'       => $avgRating,
         ]);
     }
 }

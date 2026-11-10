@@ -55,14 +55,15 @@
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
             
             <!-- CỘT TRÁI: SIDEBAR BỘ LỌC (DESKTOP) -->
-            <aside class="hidden lg:block lg:col-span-1 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm sticky top-28 space-y-6">
-                <div class="flex items-center justify-between pb-4 border-b border-gray-100">
+            <aside class="hidden lg:flex lg:flex-col lg:col-span-1 bg-white rounded-3xl border border-gray-100 shadow-sm sticky top-24 max-h-[calc(100vh-7.5rem)] overflow-hidden">
+                <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 shrink-0">
                     <h2 class="font-extrabold text-gray-900 text-base flex items-center gap-2">
                         <i class="fa-solid fa-sliders text-brand-600"></i> Bộ Lọc Tìm Kiếm
                     </h2>
-                    <button wire:click="resetFilters" class="text-xs font-semibold text-brand-600 hover:underline">Xóa lọc</button>
+                    <button wire:click="resetFilters" class="text-xs font-semibold text-brand-600 hover:underline cursor-pointer">Xóa lọc</button>
                 </div>
 
+                <div class="flex-1 min-h-0 overflow-y-auto custom-scrollbar overscroll-contain px-6 py-5 space-y-6">
                 <!-- Lọc theo Danh mục -->
                 <div>
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Danh Mục</h3>
@@ -108,6 +109,24 @@
                         </label>
                     </div>
                 </div>
+
+                <!-- Lọc theo Khuyến mãi / Giảm giá -->
+                <div class="pt-4 border-t border-gray-100">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Ưu Đãi</h3>
+                    <label class="flex items-center justify-between text-sm cursor-pointer p-2.5 rounded-2xl border {{ $onlySale ? 'bg-rose-50/70 border-rose-200 text-rose-700 font-bold' : 'border-gray-100 text-gray-700 hover:border-rose-200 hover:text-rose-600' }} transition-all">
+                        <span class="flex items-center gap-2.5">
+                            <input type="checkbox" wire:model.live="onlySale" class="w-4 h-4 rounded text-rose-600 border-gray-300 focus:ring-rose-500 cursor-pointer">
+                            <span class="inline-flex items-center gap-1.5">
+                                <i class="fa-solid fa-bolt text-rose-500 text-xs"></i>
+                                <span>Đang giảm giá</span>
+                            </span>
+                        </span>
+                        <span class="text-xs font-semibold px-2 py-0.5 rounded-full {{ $onlySale ? 'bg-rose-100 text-rose-700' : 'bg-gray-100 text-gray-500' }}">
+                            {{ $saleCount }}
+                        </span>
+                    </label>
+                </div>
+                </div>
             </aside>
 
             <!-- CỘT PHẢI: LƯỚI SẢN PHẨM -->
@@ -138,7 +157,7 @@
 
     <!-- DRAWER BỘ LỌC CHO MOBILE -->
     <div id="filter-backdrop" class="fixed inset-0 bg-black/50 z-50 hidden transition-opacity"></div>
-    <div id="filter-drawer" class="fixed inset-y-0 right-0 max-w-xs w-full bg-white z-50 shadow-2xl p-6 transform translate-x-full transition-transform duration-300 overflow-y-auto flex flex-col justify-between">
+    <div id="filter-drawer" class="fixed inset-y-0 right-0 max-w-xs w-full bg-white z-50 shadow-2xl p-6 transform translate-x-full transition-transform duration-300 overflow-y-auto custom-scrollbar flex flex-col justify-between">
         <div>
             <div class="flex items-center justify-between pb-4 border-b border-gray-100 mb-5">
                 <h3 class="font-bold text-gray-900 text-lg flex items-center gap-2">
@@ -172,6 +191,22 @@
                         <label class="flex items-center gap-2.5 cursor-pointer"><input type="radio" wire:model.live="priceRange" value="50_100" name="m_price" class="text-brand-600"> 50.000đ - 100.000đ</label>
                         <label class="flex items-center gap-2.5 cursor-pointer"><input type="radio" wire:model.live="priceRange" value="over_100" name="m_price" class="text-brand-600"> Trên 100.000đ</label>
                     </div>
+                </div>
+
+                <div class="pt-4 border-t border-gray-100">
+                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5">Ưu Đãi</h4>
+                    <label class="flex items-center justify-between text-sm cursor-pointer p-2.5 rounded-2xl border {{ $onlySale ? 'bg-rose-50/70 border-rose-200 text-rose-700 font-bold' : 'border-gray-100 text-gray-700' }} transition-all">
+                        <span class="flex items-center gap-2.5">
+                            <input type="checkbox" wire:model.live="onlySale" class="w-4 h-4 rounded text-rose-600 border-gray-300 focus:ring-rose-500">
+                            <span class="inline-flex items-center gap-1.5">
+                                <i class="fa-solid fa-bolt text-rose-500 text-xs"></i>
+                                <span>Đang giảm giá</span>
+                            </span>
+                        </span>
+                        <span class="text-xs font-semibold px-2 py-0.5 rounded-full {{ $onlySale ? 'bg-rose-100 text-rose-700' : 'bg-gray-100 text-gray-500' }}">
+                            {{ $saleCount }}
+                        </span>
+                    </label>
                 </div>
             </div>
         </div>

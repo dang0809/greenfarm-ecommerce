@@ -233,31 +233,4 @@
         @endif
 
     </main>
-
-    <!-- STICKY BAR THANH TOÁN DÀNH CHO MOBILE (< lg) -->
-    @if($items->count() > 0)
-        <div class="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-gray-200 p-4 shadow-xl">
-            <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
-                <div>
-                    <span class="block text-[10px] text-gray-400">Tổng thanh toán ({{ $selectedCount }} món):</span>
-                    <span class="text-lg font-black text-brand-700 leading-none">
-                        {{ number_format($total, 0, ',', '.') }}đ
-                    </span>
-                </div>
-                
-                @if($selectedCount > 0)
-                    <button type="button" 
-                            wire:click="proceedToCheckout" 
-                            class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-3 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shadow-md cursor-pointer">
-                        <span>Đặt hàng</span>
-                        <i class="fa-solid fa-arrow-right text-[10px]"></i>
-                    </button>
-                @else
-                    <button type="button" disabled class="bg-gray-200 text-gray-400 px-6 py-3 rounded-xl font-bold text-xs cursor-not-allowed">
-                        <span>Chưa chọn món</span>
-                    </button>
-                @endif
-            </div>
-        </div>
-    @endif
 </div>
