@@ -4,8 +4,11 @@ namespace App\Livewire\Customer;
 
 use App\Models\Product;
 use App\Models\Review;
+use App\Models\ReviewImage;
 use App\Models\Order;
+use App\Models\OrderItem;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\Attributes\Layout; 
@@ -30,8 +33,8 @@ class ProductDetail extends Component
 
     // Form Đánh giá
     public int $rating = 5;
-    public string $comment = '';
-    public $reviewPhoto = null;
+    public string $content = '';
+    public $reviewPhotos = [];
 
     public function mount(string $slug)
     {
@@ -42,13 +45,17 @@ class ProductDetail extends Component
                                     ->whereRaw('product_batches.current_quantity > COALESCE(product_batches.reserved_quantity, 0)')
                                     ->whereDate('product_batches.expiry_date', '>=', now())
                                     ->orderBy('product_batches.expiry_date', 'asc'),
-            'reviews.user'
+            'reviews' => fn($q) => $q->where('status', 'approved')->with(['user', 'images'])->latest(),
         ])->where('slug', $slug)
           ->where('status', 'active')
             ->whereHas('category', function ($query) {
                 $query->where('is_active', true);
             })
           ->firstOrFail();
+
+        if (request()->query('tab') === 'reviews') {
+            $this->activeTab = 'reviews';
+        }
 
         $primaryImgObj = $this->product->productImages->firstWhere('is_primary', true) 
             ?? $this->product->productImages->first();
@@ -105,6 +112,39 @@ class ProductDetail extends Component
             ->exists();
     }
 
+    public function getUnreviewedOrderItemProperty(): ?OrderItem
+    {
+        if (!Auth::check()) {
+            return null;
+        }
+
+        // Tìm một món hàng của sản phẩm này trong các đơn đã giao (delivered)
+        // mà TRONG ĐƠN HÀNG ĐÓ chưa có bất kỳ đánh giá nào cho sản phẩm này (1 sản phẩm / 1 đơn = 1 đánh giá)
+        return OrderItem::where('product_id', $this->product->id)
+            ->whereHas('order', function ($query) {
+                $query->where('user_id', Auth::id())
+                      ->where('status', 'delivered')
+                      ->whereDoesntHave('items', function ($itemQuery) {
+                          $itemQuery->where('product_id', $this->product->id)
+                                    ->whereHas('review');
+                      });
+            })
+            ->first();
+    }
+
+    public function getHasReviewedAllPurchasesProperty(): bool
+    {
+        return $this->hasPurchased && ($this->unreviewedOrderItem === null);
+    }
+
+    public function removePhoto(int $index): void
+    {
+        if (isset($this->reviewPhotos[$index])) {
+            unset($this->reviewPhotos[$index]);
+            $this->reviewPhotos = array_values($this->reviewPhotos);
+        }
+    }
+
     public function buyNow()
     {
         $user = Auth::user();
@@ -132,43 +172,62 @@ class ProductDetail extends Component
             return;
         }
 
-        if (!$this->hasPurchased) {
-            session()->flash('error', 'Bạn cần mua sản phẩm này để có thể gửi đánh giá!');
-            $this->dispatch('show-toast', type: 'error', message: 'Bạn cần mua sản phẩm này để có thể gửi đánh giá!');
+        $orderItem = $this->unreviewedOrderItem;
+        if (!$orderItem) {
+            $msg = $this->hasPurchased
+                ? 'Bạn đã hoàn tất đánh giá cho tất cả các đơn hàng đã mua của sản phẩm này!'
+                : 'Bạn cần mua và nhận hàng thành công sản phẩm này để có thể gửi đánh giá!';
+            $this->dispatch('show-toast', type: 'error', message: $msg);
             return;
         }
 
         $this->validate([
             'rating' => 'required|integer|min:1|max:5',
-            'comment' => 'required|string|min:10|max:1000',
-            'reviewPhoto' => 'nullable|image|max:2048',
+            'content' => 'required|string|min:10|max:1000',
+            'reviewPhotos' => 'nullable|array|max:5',
+            'reviewPhotos.*' => 'image|max:3072',
         ], [
-            'comment.required' => 'Vui lòng nhập nội dung đánh giá.',
-            'comment.min' => 'Nội dung đánh giá phải từ 10 ký tự trở lên.',
-            'reviewPhoto.image' => 'File đính kèm phải là hình ảnh.',
-            'reviewPhoto.max' => 'Ảnh tải lên không được vượt quá 2MB.',
+            'content.required' => 'Vui lòng nhập nội dung đánh giá.',
+            'content.min' => 'Nội dung đánh giá phải từ 10 ký tự trở lên.',
+            'content.max' => 'Nội dung đánh giá không được vượt quá 1000 ký tự.',
+            'reviewPhotos.max' => 'Chỉ được tải lên tối đa 5 hình ảnh thực tế.',
+            'reviewPhotos.*.image' => 'File đính kèm phải là hình ảnh (jpg, png, webp, jpeg).',
+            'reviewPhotos.*.max' => 'Mỗi ảnh tải lên không được vượt quá 3MB.',
         ]);
 
-        $imagePath = null;
-        if ($this->reviewPhoto) {
-            $imagePath = $this->reviewPhoto->store('reviews', 'public');
-        }
+        DB::transaction(function () use ($orderItem) {
+            $review = Review::create([
+                'user_id' => Auth::id(),
+                'product_id' => $this->product->id,
+                'order_item_id' => $orderItem->id,
+                'rating' => $this->rating,
+                'content' => trim($this->content),
+                'status' => 'approved',
+            ]);
 
-        Review::create([
-            'product_id' => $this->product->id,
-            'user_id' => Auth::id(),
-            'rating' => $this->rating,
-            'comment' => $this->comment,
-            'image' => $imagePath,
-            'is_verified' => true,
-        ]);
+            if (!empty($this->reviewPhotos)) {
+                foreach ($this->reviewPhotos as $index => $photo) {
+                    $path = $photo->store('reviews', 'r2');
+                    ReviewImage::create([
+                        'review_id' => $review->id,
+                        'image' => $path,
+                        'sort_order' => $index,
+                    ]);
+                }
+            }
+        });
 
-        $this->reset(['comment', 'reviewPhoto']);
+        $this->reset(['content', 'reviewPhotos']);
         $this->rating = 5;
-        $this->product->load('reviews.user');
 
-        session()->flash('success', 'Cảm ơn bạn đã gửi đánh giá cho sản phẩm!');
-        $this->dispatch('show-toast', type: 'success', message: 'Cảm ơn bạn đã gửi đánh giá cho sản phẩm!');
+        // Xóa cache computed property để Livewire re-render ngay lập tức và ẩn form mà không cần F5
+        unset($this->unreviewedOrderItem);
+        unset($this->hasPurchased);
+        unset($this->hasReviewedAllPurchases);
+
+        $this->product->load(['reviews' => fn($q) => $q->where('status', 'approved')->with(['user', 'images'])->latest()]);
+
+        $this->dispatch('show-toast', type: 'success', message: 'Cảm ơn bạn đã gửi đánh giá thực tế cho sản phẩm!');
     }
 
     public function render()

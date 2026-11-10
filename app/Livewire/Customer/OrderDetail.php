@@ -31,6 +31,7 @@ class OrderDetail extends Component
         $order = Order::with([
             'items.product.productImages',
             'items.batch',
+            'items.review',
             'statusHistories.changer',
             'payment',
             'complaint',

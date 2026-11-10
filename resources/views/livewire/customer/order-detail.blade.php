@@ -288,12 +288,44 @@
                                     </p>
                                     
                                     <!-- Nút truy xuất nguồn gốc lô hàng -->
-                                    @if ($item->batch && !empty($item->batch->batch_code))
-                                        <a href="{{ route('customer.traceability.detail', $item->batch->batch_code) }}" class="inline-flex items-center gap-1.5 text-[11px] font-bold text-brand-700 hover:text-brand-800 bg-brand-50 hover:bg-brand-100 border border-brand-200 px-2.5 py-1 rounded-lg mt-2 transition-colors">
-                                            <i class="fa-solid fa-qrcode text-[10px]"></i>
-                                            <span>Lô: {{ $item->batch->batch_code }} (Xem nhật ký)</span>
-                                        </a>
-                                    @endif
+                                    <div class="flex flex-wrap items-center gap-2 mt-2">
+                                        @if ($item->batch && !empty($item->batch->batch_code))
+                                            <a href="{{ route('customer.traceability.detail', $item->batch->batch_code) }}" class="inline-flex items-center gap-1.5 text-[11px] font-bold text-brand-700 hover:text-brand-800 bg-brand-50 hover:bg-brand-100 border border-brand-200 px-2.5 py-1 rounded-lg transition-colors">
+                                                <i class="fa-solid fa-qrcode text-[10px]"></i>
+                                                <span>Lô: {{ $item->batch->batch_code }} (Xem nhật ký)</span>
+                                            </a>
+                                        @endif
+
+                                        <!-- Nút Đánh giá sản phẩm nếu đơn đã giao thành công (1 sản phẩm / 1 đơn = 1 đánh giá) -->
+                                        @if ($order->status === 'delivered' && $product && !empty($product->slug))
+                                            @php
+                                                // Tìm xem trong đơn hàng này, sản phẩm này đã có đánh giá nào chưa (dù bị chia nhiều lô)
+                                                $productReview = $order->items
+                                                    ->where('product_id', $item->product_id)
+                                                    ->pluck('review')
+                                                    ->filter()
+                                                    ->first();
+                                                
+                                                // Chỉ hiển thị nút đánh giá ở dòng đầu tiên của sản phẩm trong đơn để tránh bị lặp nút
+                                                $isFirstItemOfProduct = $order->items
+                                                    ->where('product_id', $item->product_id)
+                                                    ->first()?->id === $item->id;
+                                            @endphp
+
+                                            @if ($productReview)
+                                                <span class="inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg">
+                                                    <i class="fa-solid fa-star text-amber-500 text-[10px]"></i>
+                                                    <span>Đã đánh giá ({{ $productReview->rating }} sao)</span>
+                                                </span>
+                                            @elseif ($isFirstItemOfProduct)
+                                                <a href="{{ route('customer.product.detail', $product->slug) }}?tab=reviews#reviews" 
+                                                   class="inline-flex items-center gap-1.5 text-[11px] font-bold text-white bg-brand-600 hover:bg-brand-700 shadow-2xs px-3 py-1 rounded-lg transition-all active:scale-95">
+                                                    <i class="fa-regular fa-star text-[10px]"></i>
+                                                    <span>Đánh giá sản phẩm</span>
+                                                </a>
+                                            @endif
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
                             <span class="text-sm font-extrabold {{ $isVipDelivery ? 'text-purple-700' : 'text-gray-900' }} self-end sm:self-auto">

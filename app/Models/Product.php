@@ -188,9 +188,21 @@ class Product extends Model
             ];
         }
 
+        // Gộp các phần có cùng đơn giá và cùng mức giảm giá để hiển thị gọn gàng trên Giỏ hàng & Thanh toán
+        $mergedBreakdown = [];
+        foreach ($breakdown as $item) {
+            $key = $item['unit_price'] . '_' . ($item['discount_percent'] ?? 0);
+            if (isset($mergedBreakdown[$key])) {
+                $mergedBreakdown[$key]['quantity'] += $item['quantity'];
+                $mergedBreakdown[$key]['subtotal'] += $item['subtotal'];
+            } else {
+                $mergedBreakdown[$key] = $item;
+            }
+        }
+
         return [
             'total'     => $total,
-            'breakdown' => $breakdown,
+            'breakdown' => array_values($mergedBreakdown),
         ];
     }
 }
