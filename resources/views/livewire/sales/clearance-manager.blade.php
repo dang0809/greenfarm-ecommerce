@@ -93,8 +93,8 @@
                 @if($notSaleCount > 0)
                     <button type="button" 
                             wire:click="enableAllNearExpiry"
+                            wire:confirm="Bạn có chắc muốn kích hoạt Flash Sale cho tất cả các lô cận date chưa áp dụng?"
                             wire:loading.attr="disabled"
-                            onclick="return confirm('Bạn có chắc muốn kích hoạt Flash Sale cho tất cả các lô cận date chưa áp dụng?')"
                             class="inline-flex items-center justify-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition shadow-sm active:scale-95 shrink-0 cursor-pointer disabled:opacity-50">
                         <i class="fa-solid fa-bolt" wire:loading.remove wire:target="enableAllNearExpiry"></i>
                         <i class="fa-solid fa-spinner fa-spin" wire:loading wire:target="enableAllNearExpiry"></i>
