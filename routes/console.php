@@ -65,3 +65,39 @@ Schedule::call(function () {
 Schedule::command('vip:generate-orders')
     ->dailyAt('06:00')
     ->withoutOverlapping();
+
+// Tự động nâng mức giảm Flash Sale từ 30% lên 50% khi lô sang ngưỡng <= 1 ngày, hoặc tắt sale nếu hết hạn / ngừng bán
+Schedule::call(function () {
+    $saleBatches = ProductBatch::with('plantingBatch')
+        ->where('discount_percent', '>', 0)
+        ->get();
+
+    $affectedProductIds = [];
+
+    foreach ($saleBatches as $batch) {
+        if (!$batch->expiry_date) {
+            continue;
+        }
+
+        $daysLeft = today()->diffInDays($batch->expiry_date, false);
+        $newDiscount = $batch->discount_percent;
+
+        if ($batch->status !== 'active' || $daysLeft < 0) {
+            $newDiscount = 0;
+        } elseif ($daysLeft <= 1 && $batch->discount_percent < 50) {
+            $newDiscount = 50;
+        }
+
+        if ($newDiscount !== $batch->discount_percent) {
+            $batch->update(['discount_percent' => $newDiscount]);
+
+            if ($batch->plantingBatch?->product_id) {
+                $affectedProductIds[$batch->plantingBatch->product_id] = true;
+            }
+        }
+    }
+
+    foreach (array_keys($affectedProductIds) as $productId) {
+        ProductBatch::syncProductSalePrice($productId);
+    }
+})->name('sync-flash-sale-batches')->everyMinute();
