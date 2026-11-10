@@ -6,9 +6,6 @@
                 <i class="fa-solid fa-bars text-lg"></i>
             </button>
             <div class="min-w-0">
-                <div class="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5 truncate">
-                    <span class="text-brand-700">Nông Trại Đất Lành</span>
-                </div>
                 <h1 class="text-base sm:text-2xl font-extrabold text-gray-900 tracking-tight truncate leading-tight">
                     Xả Hàng Cận Date & Flash Sale
                 </h1>
@@ -139,24 +136,137 @@
                 </div>
             </div>
 
-            <!-- ================= BẢNG 5 CỘT TINH GỌN (VỪA VẶN MÀN HÌNH, KHÔNG CUỘN NGANG) ================= -->
-            <div class="w-full overflow-hidden">
-                <table class="w-full text-left border-collapse text-xs sm:text-sm table-fixed">
+            <!-- ================= DANH SÁCH LÔ CẬN DATE: CARD CHO MOBILE (< md) ================= -->
+            <div class="md:hidden divide-y divide-gray-100">
+                @forelse($batches as $batch)
+                    @php
+                        $product = $batch->plantingBatch?->product;
+                        $rawImg = $product?->productImages?->firstWhere('is_primary', true)?->image
+                            ?? $product?->productImages?->first()?->image;
+                        $imgUrl = $rawImg
+                            ? (str_starts_with($rawImg, 'http') ? $rawImg : ($product?->cover_image_url ?? asset('storage/' . $rawImg)))
+                            : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=200';
+
+                        $daysLeft = today()->diffInDays($batch->expiry_date, false);
+                        $suggestedPercent = ($daysLeft <= 1) ? 50 : 30;
+                        $isOnSale = $batch->discount_percent > 0;
+                        $originalPrice = (float) ($product?->price ?? 0);
+                        $salePrice = $isOnSale ? round($originalPrice * (100 - $batch->discount_percent) / 100) : $originalPrice;
+                        $availQty = $batch->available_quantity;
+                        $resQty = (int) ($batch->reserved_quantity ?? 0);
+                    @endphp
+                    <div wire:key="mobile-batch-{{ $batch->id }}" class="p-4 space-y-3 {{ $isOnSale ? 'bg-amber-50/15' : '' }}">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex items-start gap-2.5 min-w-0">
+                                <img src="{{ $imgUrl }}" alt="{{ $product?->name ?? 'Nông sản' }}" class="w-12 h-12 rounded-xl object-cover border border-gray-100 shrink-0 shadow-2xs">
+                                <div class="min-w-0">
+                                    <p class="font-extrabold text-gray-900 text-xs sm:text-sm leading-snug line-clamp-2">
+                                        {{ $product?->name ?? 'Nông sản chưa rõ' }}
+                                    </p>
+                                    <span class="inline-flex items-center font-mono text-[10px] font-semibold text-gray-600 bg-gray-100 px-2 py-0.5 rounded border border-gray-200 mt-1">
+                                        {{ $batch->batch_code }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="text-right shrink-0">
+                                <span class="text-[10px] text-gray-400 font-semibold block uppercase">Tồn kho</span>
+                                <span class="font-black text-sm {{ $availQty <= 0 ? 'text-rose-600' : 'text-gray-900' }} font-mono">
+                                    {{ number_format($availQty) }} <span class="text-[11px] font-medium text-gray-500">kg</span>
+                                </span>
+                                @if($resQty > 0)
+                                    <span class="block text-[10px] text-amber-700 font-bold font-mono">(Giữ {{ number_format($resQty) }}kg)</span>
+                                @endif
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                            <span class="text-gray-500 font-medium">
+                                HSD: <b class="text-gray-800 font-mono">{{ $batch->expiry_date->format('d/m/Y') }}</b>
+                            </span>
+                            @if($daysLeft <= 0)
+                                <span class="inline-flex items-center gap-1 font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full text-[10px] font-mono">
+                                    <i class="fa-solid fa-triangle-exclamation text-[9px]"></i> Hết hạn hôm nay (Sale 50%)
+                                </span>
+                            @elseif($daysLeft == 1)
+                                <span class="inline-flex items-center gap-1 font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full text-[10px] font-mono">
+                                    <i class="fa-solid fa-clock text-[9px]"></i> Còn 1 ngày (Sale 50%)
+                                </span>
+                            @else
+                                <span class="inline-flex items-center gap-1 font-bold text-amber-800 bg-amber-50 border border-amber-300 px-2.5 py-0.5 rounded-full text-[10px] font-mono">
+                                    <i class="fa-regular fa-clock text-[9px]"></i> Còn 2 ngày (Sale 30%)
+                                </span>
+                            @endif
+                        </div>
+
+                        <div class="flex items-center justify-between gap-3 pt-2 border-t border-gray-100">
+                            <div>
+                                @if($isOnSale)
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <span class="font-black text-sm text-rose-600 font-mono">{{ number_format($salePrice, 0, ',', '.') }}đ</span>
+                                        <span class="text-[10px] font-extrabold text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded font-mono">-{{ $batch->discount_percent }}%</span>
+                                        <span class="text-[11px] text-gray-400 line-through font-mono">{{ number_format($originalPrice, 0, ',', '.') }}đ</span>
+                                    </div>
+                                @else
+                                    <span class="font-bold text-sm text-gray-900 font-mono">{{ number_format($originalPrice, 0, ',', '.') }}đ <span class="text-[10px] text-gray-400 font-normal">/kg</span></span>
+                                @endif
+                            </div>
+
+                            <div class="shrink-0">
+                                @if(!$isOnSale)
+                                    <button type="button"
+                                            wire:click="enableFlashSale({{ $batch->id }})"
+                                            wire:loading.attr="disabled"
+                                            class="inline-flex items-center justify-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition shadow-2xs active:scale-95 cursor-pointer whitespace-nowrap disabled:opacity-50">
+                                        <i class="fa-solid fa-bolt text-[10px]" wire:loading.remove wire:target="enableFlashSale({{ $batch->id }})"></i>
+                                        <i class="fa-solid fa-spinner fa-spin text-[10px]" wire:loading wire:target="enableFlashSale({{ $batch->id }})"></i>
+                                        <span>Bật Sale -{{ $suggestedPercent }}%</span>
+                                    </button>
+                                @else
+                                    <button type="button"
+                                            wire:click="disableFlashSale({{ $batch->id }})"
+                                            wire:loading.attr="disabled"
+                                            class="inline-flex items-center justify-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs px-3.5 py-2 rounded-xl transition active:scale-95 cursor-pointer whitespace-nowrap disabled:opacity-50">
+                                        <i class="fa-solid fa-power-off text-[10px]" wire:loading.remove wire:target="disableFlashSale({{ $batch->id }})"></i>
+                                        <i class="fa-solid fa-spinner fa-spin text-[10px]" wire:loading wire:target="disableFlashSale({{ $batch->id }})"></i>
+                                        <span>Tắt Sale</span>
+                                    </button>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <div class="py-12 px-4 text-center">
+                        <div class="w-14 h-14 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center mx-auto mb-2.5 text-2xl">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </div>
+                        <p class="text-sm font-bold text-gray-800">Kho hàng an toàn! Không có lô nào cận date &le; 2 ngày</p>
+                        <p class="text-xs text-gray-400 mt-0.5">Tất cả nông sản trong kho đều còn hạn sử dụng an toàn và tươi mới.</p>
+                    </div>
+                @endforelse
+            </div>
+
+            <!-- ================= BẢNG 5 CỘT TINH GỌN CHO TABLET & DESKTOP (>= md) ================= -->
+            <div class="hidden md:block w-full overflow-x-auto custom-scrollbar">
+                <table class="w-full min-w-[760px] text-left border-collapse text-xs sm:text-sm">
                     <thead>
                         <tr class="bg-gray-50/80 text-gray-500 uppercase font-bold text-[10px] sm:text-xs tracking-wider border-b border-gray-100">
-                            <th class="py-3 px-4 w-[36%]">Nông Sản & Mã Lô</th>
-                            <th class="py-3 px-3 w-[20%]">Hạn Dùng & Cảnh Báo</th>
-                            <th class="py-3 px-3 w-[12%] text-center">Tồn Kho</th>
-                            <th class="py-3 px-3 w-[18%] text-right">Giá Bán</th>
-                            <th class="py-3 px-4 w-[14%] text-center">Thao Tác</th>
+                            <th class="py-3 px-4 whitespace-nowrap">Nông Sản & Mã Lô</th>
+                            <th class="py-3 px-3 whitespace-nowrap">Hạn Dùng & Cảnh Báo</th>
+                            <th class="py-3 px-3 text-center whitespace-nowrap">Tồn Kho</th>
+                            <th class="py-3 px-3 text-right whitespace-nowrap">Giá Bán</th>
+                            <th class="py-3 px-4 text-center whitespace-nowrap">Thao Tác</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 font-medium">
                         @forelse($batches as $batch)
                             @php
                                 $product = $batch->plantingBatch?->product;
-                                $rawImg = $product?->cover_image_url ?? $product?->productImages?->first()?->image;
-                                $imgUrl = $rawImg ? (str_starts_with($rawImg, 'http') ? $rawImg : asset('storage/' . $rawImg)) : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=200';
+                                $rawImg = $product?->productImages?->firstWhere('is_primary', true)?->image
+                                    ?? $product?->productImages?->first()?->image;
+                                $imgUrl = $rawImg
+                                    ? (str_starts_with($rawImg, 'http') ? $rawImg : ($product?->cover_image_url ?? asset('storage/' . $rawImg)))
+                                    : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=200';
                                 
                                 $daysLeft = today()->diffInDays($batch->expiry_date, false);
                                 $isUrgent = $daysLeft <= 1;
@@ -166,18 +276,18 @@
                                 $originalPrice = (float) ($product?->price ?? 0);
                                 $salePrice = $isOnSale ? round($originalPrice * (100 - $batch->discount_percent) / 100) : $originalPrice;
                             @endphp
-                            <tr class="hover:bg-amber-50/30 transition-colors {{ $isOnSale ? 'bg-amber-50/15' : '' }}">
+                            <tr wire:key="desktop-batch-{{ $batch->id }}" class="hover:bg-amber-50/30 transition-colors {{ $isOnSale ? 'bg-amber-50/15' : '' }}">
                                 
                                 <!-- Cột 1: Nông Sản & Mã Lô -->
                                 <td class="py-3 px-4 align-middle">
                                     <div class="flex items-center gap-2.5 min-w-0">
                                         <img src="{{ $imgUrl }}" alt="{{ $product?->name ?? 'Nông sản' }}" class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl object-cover border border-gray-100 shrink-0 shadow-2xs">
                                         <div class="min-w-0">
-                                            <p class="font-extrabold text-gray-900 text-xs sm:text-sm truncate leading-snug" title="{{ $product?->name }}">
+                                            <p class="font-extrabold text-gray-900 text-xs sm:text-sm truncate max-w-[240px] leading-snug" title="{{ $product?->name }}">
                                                 {{ $product?->name ?? 'Nông sản chưa rõ' }}
                                             </p>
                                             <div class="flex items-center gap-1.5 mt-0.5">
-                                                <span class="inline-flex items-center font-mono text-[10px] sm:text-[11px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.2 rounded border border-gray-200">
+                                                <span class="inline-flex items-center font-mono text-[10px] sm:text-[11px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.2 rounded border border-gray-200 whitespace-nowrap">
                                                     {{ $batch->batch_code }}
                                                 </span>
                                             </div>
@@ -186,7 +296,7 @@
                                 </td>
 
                                 <!-- Cột 2: Hạn Dùng & Cảnh Báo -->
-                                <td class="py-3 px-3 align-middle">
+                                <td class="py-3 px-3 align-middle whitespace-nowrap">
                                     <div class="leading-tight">
                                         <span class="text-xs text-gray-700 font-semibold block">
                                             {{ $batch->expiry_date->format('d/m/Y') }}
@@ -208,7 +318,7 @@
                                 </td>
 
                                 <!-- Cột 3: Tồn Kho Khả Dụng -->
-                                <td class="py-3 px-3 text-center align-middle">
+                                <td class="py-3 px-3 text-center align-middle whitespace-nowrap">
                                     @php
                                         $availQty = $batch->available_quantity;
                                         $resQty = (int) ($batch->reserved_quantity ?? 0);
@@ -227,7 +337,7 @@
                                 </td>
 
                                 <!-- Cột 4: Giá Bán -->
-                                <td class="py-3 px-3 text-right align-middle">
+                                <td class="py-3 px-3 text-right align-middle whitespace-nowrap">
                                     @if($isOnSale)
                                         <div class="leading-tight">
                                             <span class="text-[10px] sm:text-xs text-gray-400 line-through block font-mono">
@@ -253,12 +363,12 @@
                                 </td>
 
                                 <!-- Cột 5: Thao Tác (Nút Bật / Tắt Flash Sale) -->
-                                <td class="py-3 px-4 text-center align-middle">
+                                <td class="py-3 px-4 text-center align-middle whitespace-nowrap">
                                     @if(!$isOnSale)
                                         <button type="button" 
                                                 wire:click="enableFlashSale({{ $batch->id }})" 
                                                 wire:loading.attr="disabled"
-                                                class="w-full inline-flex items-center justify-center gap-1 bg-amber-500 hover:bg-amber-600 text-white font-bold text-[11px] sm:text-xs px-2.5 py-1.5 rounded-xl transition shadow-2xs active:scale-95 cursor-pointer disabled:opacity-50">
+                                                class="inline-flex items-center justify-center gap-1 bg-amber-500 hover:bg-amber-600 text-white font-bold text-[11px] sm:text-xs px-3 py-1.5 rounded-xl transition shadow-2xs active:scale-95 cursor-pointer disabled:opacity-50">
                                             <i class="fa-solid fa-bolt text-[10px]" wire:loading.remove wire:target="enableFlashSale({{ $batch->id }})"></i>
                                             <i class="fa-solid fa-spinner fa-spin text-[10px]" wire:loading wire:target="enableFlashSale({{ $batch->id }})"></i>
                                             <span>Bật Sale -{{ $suggestedPercent }}%</span>
@@ -267,7 +377,7 @@
                                         <button type="button" 
                                                 wire:click="disableFlashSale({{ $batch->id }})" 
                                                 wire:loading.attr="disabled"
-                                                class="w-full inline-flex items-center justify-center gap-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-[11px] sm:text-xs px-2 py-1.5 rounded-xl transition active:scale-95 cursor-pointer disabled:opacity-50" 
+                                                class="inline-flex items-center justify-center gap-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-[11px] sm:text-xs px-3 py-1.5 rounded-xl transition active:scale-95 cursor-pointer disabled:opacity-50" 
                                                 title="Tắt Flash Sale, quay về giá gốc">
                                             <i class="fa-solid fa-power-off text-[10px]" wire:loading.remove wire:target="disableFlashSale({{ $batch->id }})"></i>
                                             <i class="fa-solid fa-spinner fa-spin text-[10px]" wire:loading wire:target="disableFlashSale({{ $batch->id }})"></i>

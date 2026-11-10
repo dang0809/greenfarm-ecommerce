@@ -26,12 +26,12 @@
                 </a>
             </nav>
 
-            <!-- Desktop Action Icons -->
-            <div class="hidden lg:flex items-center space-x-5">
+            <!-- Action Icons (Dùng chung Giỏ hàng & Thông báo cho cả Desktop và Mobile) -->
+            <div class="flex items-center gap-1.5 sm:gap-3 lg:gap-5">
                 @auth
-                <!-- 1. NÚT GIỎ HÀNG (DESKTOP - CHỈ HIỆN KHI ĐĂNG NHẬP) -->
+                <!-- 1. NÚT GIỎ HÀNG -->
                 <a href="{{ route('customer.cart') }}"
-                    class="text-gray-500 hover:text-brand-600 transition relative p-2" title="Giỏ hàng của bạn">
+                    class="text-gray-600 lg:text-gray-500 hover:text-brand-600 transition relative p-2" title="Giỏ hàng của bạn">
                     <i class="fa-solid fa-cart-shopping text-xl"></i>
                     @if($cartCount > 0)
                     <span
@@ -41,10 +41,10 @@
                     @endif
                 </a>
 
-                <!-- 2. DROPDOWN THÔNG BÁO (DESKTOP) -->
+                <!-- 2. DROPDOWN THÔNG BÁO (CẢ DESKTOP & MOBILE) -->
                 <div class="relative" @click.outside="notifMenuOpen = false">
-                    <button @click="notifMenuOpen = !notifMenuOpen; userMenuOpen = false"
-                        class="text-gray-500 hover:text-brand-600 transition relative p-2 focus:outline-none flex items-center justify-center"
+                    <button type="button" @click="notifMenuOpen = !notifMenuOpen; userMenuOpen = false; mobileMenuOpen = false"
+                        class="text-gray-600 lg:text-gray-500 hover:text-brand-600 transition relative p-2 focus:outline-none flex items-center justify-center cursor-pointer"
                         title="Thông báo">
                         <i class="fa-regular fa-bell text-xl"></i>
                         @if($unreadNotifCount > 0)
@@ -57,18 +57,18 @@
 
                     <!-- Sổ danh sách Thông báo -->
                     <div x-show="notifMenuOpen" x-transition style="display: none;"
-                        class="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-gray-100 py-3 z-50">
-                        <div class="px-4 pb-2.5 border-b border-gray-100 flex items-center justify-between">
+                        class="fixed inset-x-3 top-20 mt-2 lg:inset-x-auto lg:top-auto lg:absolute lg:right-0 lg:mt-3 lg:w-96 bg-white rounded-2xl shadow-xl border border-gray-100 py-3 z-50">
+                        <div class="px-4 pb-2.5 border-b border-gray-100 flex items-center justify-between gap-2">
                             <h4 class="text-xs font-extrabold text-gray-900 uppercase tracking-wider">Thông Báo Mới</h4>
                             @if($unreadNotifCount > 0)
                             <button type="button" @click.stop wire:click="markAsRead"
-                                class="text-[11px] font-semibold text-brand-600 hover:underline">
+                                class="text-[11px] font-semibold text-brand-600 hover:underline cursor-pointer">
                                 Đánh dấu đã đọc tất cả
                             </button>
                             @endif
                         </div>
 
-                        <div class="max-h-80 overflow-y-auto divide-y divide-gray-50">
+                        <div class="max-h-80 overflow-y-auto custom-scrollbar divide-y divide-gray-50">
                             @forelse($notifications as $notif)
                             @php
                             $notifType = $notif->type;
@@ -88,7 +88,7 @@
                                 default                                                  => 'text-sky-700 bg-sky-100',
                             };
                             @endphp
-                            <div wire:click="markAsRead({{ $notif->id }})"
+                            <div wire:key="notif-item-{{ $notif->id }}" wire:click="markAsRead({{ $notif->id }})"
                                 class="p-3.5 hover:bg-brand-50/50 transition-colors cursor-pointer flex items-start gap-3 {{ is_null($notif->read_at) ? 'bg-brand-50/30' : '' }}">
                                 <div
                                     class="w-8 h-8 rounded-full {{ $iconColor }} flex items-center justify-center shrink-0 mt-0.5">
@@ -126,10 +126,10 @@
                 </div>
 
                 <!-- 3. DROPDOWN TÀI KHOẢN THÀNH VIÊN (DESKTOP) -->
-                <div class="relative" @click.outside="userMenuOpen = false">
+                <div class="relative hidden lg:block" @click.outside="userMenuOpen = false">
                     <button @click="userMenuOpen = !userMenuOpen; notifMenuOpen = false"
                         class="flex items-center gap-2.5 p-1 rounded-full hover:bg-gray-50 transition-colors focus:outline-none">
-                        <img src="{{ Auth::user()->avatar ?? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150' }}"
+                        <img src="{{ Auth::user()->avatar_url ?? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150' }}"
                             alt="Avatar" class="w-9 h-9 rounded-full object-cover border border-brand-200">
                         <div class="text-left hidden xl:block">
                             <div class="flex items-center gap-1.5 leading-tight">
@@ -180,7 +180,7 @@
                     </div>
                 </div>
                 @else
-                <div class="flex items-center gap-3">
+                <div class="hidden lg:flex items-center gap-3">
                     <button type="button"
                         wire:click="$dispatchTo('customer.auth.auth-modal', 'open-auth-modal', { tab: 'login' })"
                         class="text-sm font-bold text-gray-700 hover:text-brand-600 px-3 py-2 transition-colors">
@@ -193,27 +193,10 @@
                     </button>
                 </div>
                 @endauth
-            </div>
-
-            <!-- Mobile Action Icons -->
-            <div class="lg:hidden flex items-center gap-3">
-                @auth
-                <!-- Nút Giỏ Hàng Mobile (Chỉ hiện khi đăng nhập) -->
-                <a href="{{ route('customer.cart') }}" class="text-gray-600 hover:text-brand-600 p-2 relative"
-                    title="Giỏ hàng của bạn">
-                    <i class="fa-solid fa-cart-shopping text-xl"></i>
-                    @if($cartCount > 0)
-                    <span
-                        class="absolute top-0 right-0 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center border-2 border-white">
-                        {{ $cartCount > 99 ? '99+' : $cartCount }}
-                    </span>
-                    @endif
-                </a>
-                @endauth
 
                 <!-- Nút Toggle Menu Mobile -->
-                <button @click="mobileMenuOpen = !mobileMenuOpen"
-                    class="text-gray-600 hover:text-brand-600 focus:outline-none p-2">
+                <button @click="mobileMenuOpen = !mobileMenuOpen; notifMenuOpen = false"
+                    class="lg:hidden text-gray-600 hover:text-brand-600 focus:outline-none p-2">
                     <i class="fa-solid text-2xl" :class="mobileMenuOpen ? 'fa-xmark' : 'fa-bars'"></i>
                 </button>
             </div>
@@ -226,7 +209,7 @@
         <div class="px-4 pt-3 pb-6 space-y-3">
             @auth
             <div class="flex items-center gap-3 p-3 bg-brand-50/70 border border-brand-100 rounded-2xl">
-                <img src="{{ $user->avatar ?? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150' }}"
+                <img src="{{ $user->avatar_url ?? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150' }}"
                     alt="Avatar" class="w-12 h-12 rounded-full object-cover border border-brand-200">
                 <div class="min-w-0 flex-1">
                     <p class="text-sm font-bold text-gray-800 truncate">{{ $user->name }}</p>
@@ -275,10 +258,12 @@
                     class="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-xl">
                     <i class="fa-regular fa-user text-gray-400 w-4"></i> Thông tin cá nhân
                 </a>
-                <a href="{{ route('customer.profile', ['tab' => 'orders']) }}"
-                    class="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-xl">
-                    <i class="fa-solid fa-box-archive text-gray-400 w-4"></i> Đơn hàng của tôi
+                @if (\App\Models\Subscription::where('user_id', Auth::id())->where('status', 'active')->exists())
+                <a href="{{ route('customer.vip.setup') }}" wire:navigate
+                    class="flex items-center gap-2.5 px-3 py-2 text-sm font-bold text-amber-900 bg-amber-50 hover:bg-amber-100/80 rounded-xl transition">
+                    <i class="fa-solid fa-crown text-amber-600 w-4"></i> Lịch Giao Rau VIP
                 </a>
+                @endif
             </div>
 
             <div class="pt-2 border-t border-gray-100">

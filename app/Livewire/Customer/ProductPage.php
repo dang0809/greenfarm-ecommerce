@@ -29,10 +29,14 @@ class ProductPage extends Component
     #[Url(as: 'sort')]
     public $sortBy = 'newest';
 
+    #[Url(as: 'sale')]
+    public bool $onlySale = false;
+
     public function updatedSelectedCategory() { $this->resetPage(); }
     public function updatedPriceRange() { $this->resetPage(); }
     public function updatedSortBy() { $this->resetPage(); }
     public function updatedSearch() { $this->resetPage(); }
+    public function updatedOnlySale() { $this->resetPage(); }
 
     public function resetFilters()
     {
@@ -40,6 +44,7 @@ class ProductPage extends Component
         $this->priceRange = '';
         $this->search = '';
         $this->sortBy = 'newest';
+        $this->onlySale = false;
         $this->resetPage();
     }
 
@@ -68,20 +73,29 @@ class ProductPage extends Component
             $query->where('name', 'like', '%' . trim($this->search) . '%');
         }
 
+        $saleScope = fn($q) => $q->whereNotNull('sale_price')
+            ->where('sale_price', '>', 0)
+            ->whereColumn('sale_price', '<', 'price');
+
+        $saleCount = $saleScope(Product::where('status', 'active'))->count();
+
+        if ($this->onlySale) {
+            $saleScope($query);
+        }
+
+        $effectivePrice = 'CASE WHEN sale_price IS NOT NULL AND sale_price > 0 AND sale_price < price THEN sale_price ELSE price END';
+
         match ($this->priceRange) {
-            'under_50' => $query->where('price', '<', 50000),
-            '50_100'   => $query->whereBetween('price', [50000, 100000]),
-            'over_100' => $query->where('price', '>', 100000),
+            'under_50' => $query->whereRaw("({$effectivePrice}) < ?", [50000]),
+            '50_100'   => $query->whereRaw("({$effectivePrice}) BETWEEN ? AND ?", [50000, 100000]),
+            'over_100' => $query->whereRaw("({$effectivePrice}) > ?", [100000]),
             default    => null, // Người dùng chọn "Tất cả mức giá" thì không thêm điều kiện
         };
 
-        // 1. Ưu tiên: Sản phẩm đang có Flash Sale (sale_price < price) luôn được đẩy lên đầu trang
-        $query->orderByRaw('CASE WHEN sale_price IS NOT NULL AND sale_price < price THEN 0 ELSE 1 END');
-
-        // 2. Tiếp theo: Sắp xếp theo tiêu chí người dùng chọn
+        // Sắp xếp theo tiêu chí người dùng chọn
         match ($this->sortBy) {
-            'price_asc'  => $query->orderBy('price', 'asc'),
-            'price_desc' => $query->orderBy('price', 'desc'),
+            'price_asc'  => $query->orderByRaw("({$effectivePrice}) asc"),
+            'price_desc' => $query->orderByRaw("({$effectivePrice}) desc"),
             'popular'    => $query->orderBy('sold_count', 'desc'),
             default      => $query->latest(), // Mặc định: sản phẩm mới nhất
         };
@@ -90,7 +104,8 @@ class ProductPage extends Component
 
         return view('livewire.customer.product-page', [
             'categories' => $categories,
-            'products' => $products,
+            'products'   => $products,
+            'saleCount'  => $saleCount,
         ]);
     }
 }

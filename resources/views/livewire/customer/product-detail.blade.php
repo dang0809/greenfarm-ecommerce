@@ -66,9 +66,9 @@
                 <div class="flex items-center text-amber-400">
                     <i class="fa-solid fa-star"></i>
                     <span
-                        class="text-gray-800 font-bold ml-1.5">{{ number_format($product->reviews->avg('rating') ?? 5, 1) }}</span>
+                        class="text-gray-800 font-bold ml-1.5">{{ number_format($avgRating, 1) }}</span>
                     <button type="button" wire:click="switchTab('reviews')"
-                        class="text-gray-400 font-medium ml-1 hover:text-brand-600">({{ $product->reviews->count() }}
+                        class="text-gray-400 font-medium ml-1 hover:text-brand-600">({{ $reviewCount }}
                         nhận xét)</button>
                 </div>
                 <span>•</span>
@@ -183,7 +183,7 @@
     </div>
 
     <!-- TABS: MÔ TẢ & ĐÁNH GIÁ -->
-    <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden mb-16" id="reviews">
+    <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden mb-16 scroll-mt-24" id="reviews">
         <div class="flex border-b border-gray-100">
             <button type="button" wire:click="switchTab('desc')"
                 class="flex-1 py-4 sm:py-5 text-center font-bold text-xs sm:text-sm {{ $activeTab === 'desc' ? 'text-brand-600 border-b-2 border-brand-600 bg-gray-50/40' : 'text-gray-500 border-b-2 border-transparent hover:text-brand-600' }}">
@@ -191,7 +191,7 @@
             </button>
             <button type="button" wire:click="switchTab('reviews')"
                 class="flex-1 py-4 sm:py-5 text-center font-bold text-xs sm:text-sm {{ $activeTab === 'reviews' ? 'text-brand-600 border-b-2 border-brand-600 bg-gray-50/40' : 'text-gray-500 border-b-2 border-transparent hover:text-brand-600' }}">
-                Đánh Giá Khách Hàng ({{ $product->reviews->count() }})
+                Đánh Giá Khách Hàng ({{ $reviewCount }})
             </button>
         </div>
 
@@ -206,14 +206,14 @@
             <div class="flex flex-col sm:flex-row items-center gap-6 pb-8 border-b border-gray-100 mb-8">
                 <div class="text-center sm:text-left shrink-0">
                     <div class="text-5xl font-black text-brand-600">
-                        {{ number_format($product->reviews->avg('rating') ?? 5, 1) }}<span
+                        {{ number_format($avgRating, 1) }}<span
                             class="text-2xl text-gray-400">/5</span></div>
                     <div class="flex items-center text-amber-400 text-sm mt-1 justify-center sm:justify-start">
-                        <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i
-                            class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i
-                            class="fa-solid fa-star"></i>
+                        @for ($i = 1; $i <= 5; $i++)
+                            <i class="fa-solid fa-star {{ $i <= round($avgRating) ? 'text-amber-400' : 'text-gray-200' }}"></i>
+                        @endfor
                     </div>
-                    <p class="text-xs text-gray-400 mt-1">Dựa trên {{ $product->reviews->count() }} đánh giá thực tế</p>
+                    <p class="text-xs text-gray-400 mt-1">Dựa trên {{ $reviewCount }} đánh giá thực tế</p>
                 </div>
             </div>
 
@@ -303,13 +303,19 @@
             @endauth
 
             <div class="space-y-6">
-                @forelse ($product->reviews as $review)
-                <div class="border-b border-gray-100 pb-6 last:border-0 last:pb-0">
+                @forelse ($reviews as $review)
+                <div wire:key="product-review-{{ $review->id }}" class="border-b border-gray-100 pb-6 last:border-0 last:pb-0">
                     <div class="flex items-start gap-3.5 mb-2.5">
-                        <div
-                            class="w-10 h-10 rounded-full bg-brand-100 text-brand-700 font-bold flex items-center justify-center shrink-0 text-sm">
-                            {{ mb_substr($review->user->name ?? 'K', 0, 1) }}
-                        </div>
+                        @if ($review->user?->avatar_url)
+                            <img src="{{ $review->user->avatar_url }}"
+                                alt="{{ $review->user->name ?? 'Khách hàng' }}"
+                                class="w-10 h-10 rounded-full object-cover border border-brand-200 shrink-0">
+                        @else
+                            <div
+                                class="w-10 h-10 rounded-full bg-brand-100 text-brand-700 font-bold flex items-center justify-center shrink-0 text-sm">
+                                {{ mb_strtoupper(mb_substr($review->user->name ?? 'K', 0, 1)) }}
+                            </div>
+                        @endif
                         <div class="flex-1">
                             <div class="flex items-center justify-between">
                                 <h5 class="font-bold text-gray-900 text-sm">{{ $review->user->name ?? 'Khách hàng' }}
@@ -361,6 +367,12 @@
                 <p class="text-xs text-gray-400 text-center py-6">Chưa có đánh giá nào cho sản phẩm này.</p>
                 @endforelse
             </div>
+
+            @if ($reviews->hasPages())
+                <div class="mt-8 pt-6 border-t border-gray-100">
+                    {{ $reviews->links(data: ['scrollTo' => '#reviews']) }}
+                </div>
+            @endif
         </div>
         @endif
     </div>
@@ -429,7 +441,7 @@
                         </h4>
                         <div class="flex items-center gap-1 text-amber-400 text-xs mb-3">
                             <i class="fa-solid fa-star"></i><span
-                                class="text-gray-500 font-medium ml-1">{{ number_format($related->reviews->avg('rating') ?? 5, 1) }}
+                                class="text-gray-500 font-medium ml-1">{{ number_format($related->approved_avg_rating ?? 5, 1) }}
                                 | Đã bán {{ $related->sold_count ?? 0 }}</span>
                         </div>
                         <div class="mt-auto pt-3 border-t border-gray-50 flex items-end justify-between">

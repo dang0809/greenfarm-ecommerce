@@ -110,6 +110,10 @@ class User extends Authenticatable implements MustVerifyEmail
             return null;
         }
 
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
         $r2Url = config('filesystems.disks.r2.url');
         if (!empty($r2Url)) {
             return rtrim($r2Url, '/') . '/' . ltrim($path, '/');
