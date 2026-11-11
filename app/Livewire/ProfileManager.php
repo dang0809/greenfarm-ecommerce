@@ -1,23 +1,19 @@
 <?php
 
-namespace App\Livewire\FarmStaff;
+namespace App\Livewire;
 
 use App\Models\User;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
-use Livewire\Attributes\Layout;
-use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use RuntimeException;
 use Throwable;
 
-#[Layout('layouts.farm-staff.app')]
-#[Title('Hồ Sơ Cá Nhân Nhân Viên | Nông Trại Đất Lành')]
 class ProfileManager extends Component
 {
     use WithFileUploads;
@@ -41,8 +37,6 @@ class ProfileManager extends Component
 
     protected function rules(): array
     {
-
-
         return [
             'name' => ['required', 'string', 'max:255'],
 
@@ -159,7 +153,7 @@ class ProfileManager extends Component
         }
 
         try {
-            $disk = Storage::disk('public');
+            $disk = Storage::disk($this->getAvatarDisk());
 
             // Ảnh cũ bị thiếu: cho phép lưu ảnh thay thế.
             if (!$disk->exists($path)) {
@@ -173,9 +167,7 @@ class ProfileManager extends Component
                 !is_string($oldContents)
                 || !is_string($newContents)
             ) {
-                throw new RuntimeException(
-                    'Không đọc được nội dung ảnh.'
-                );
+                throw new RuntimeException('Không đọc được nội dung ảnh.');
             }
 
             $identical = hash_equals(
@@ -200,7 +192,6 @@ class ProfileManager extends Component
 
     public function cancelProfileChanges(): void
     {
-        // staff() truy vấn mới tài khoản từ DB.
         $user = $this->staff();
 
         Auth::setUser($user);
@@ -216,9 +207,7 @@ class ProfileManager extends Component
             'new_password_confirmation',
         ]);
 
-        // Tạo lại file input, xóa lựa chọn tệp trên trình duyệt.
         $this->avatarInputKey++;
-
         $this->resetValidation();
 
         // Đồng bộ lại thông tin sidebar.
@@ -228,21 +217,18 @@ class ProfileManager extends Component
     public function requestSaveProfile(): void
     {
         $this->staff();
-
         $this->dispatch('confirm-profile-save');
     }
 
     public function requestSavePassword(): void
     {
         $this->staff();
-
         $this->dispatch('confirm-password-save');
     }
 
     public function requestSaveAvatar(): void
     {
         $this->staff();
-
         $this->dispatch('confirm-avatar-save');
     }
 
@@ -253,7 +239,6 @@ class ProfileManager extends Component
         $this->name = trim($this->name);
         $this->phone = trim($this->phone);
 
-        // Chỉ validate thông tin tài khoản.
         $validated = $this->validate(
             Arr::only($this->rules(), ['name', 'phone'])
         );
@@ -267,7 +252,6 @@ class ProfileManager extends Component
                 'Không có thay đổi nào',
                 'Thông tin tài khoản chưa có thay đổi.'
             );
-
             return;
         }
 
@@ -278,9 +262,7 @@ class ProfileManager extends Component
             ]);
 
             if (!$user->saveOrFail()) {
-                throw new RuntimeException(
-                    'Không lưu được thông tin tài khoản.'
-                );
+                throw new RuntimeException('Không lưu được thông tin tài khoản.');
             }
         } catch (Throwable $exception) {
             report($exception);
@@ -290,7 +272,6 @@ class ProfileManager extends Component
                 'Lưu thông tin thất bại',
                 'Không thể lưu thông tin tài khoản. Vui lòng thử lại.'
             );
-
             return;
         }
 
@@ -309,7 +290,6 @@ class ProfileManager extends Component
     {
         $user = $this->staff();
 
-        // Chỉ validate dữ liệu đổi mật khẩu.
         $validated = $this->validate(
             Arr::only($this->rules(), [
                 'current_password',
@@ -323,21 +303,17 @@ class ProfileManager extends Component
                 'current_password',
                 'Mật khẩu hiện tại không chính xác.'
             );
-
             return;
         }
 
         try {
             $user->forceFill([
-                // Model User đã có cast password => hashed.
                 'password' => $validated['new_password'],
                 'remember_token' => Str::random(60),
             ]);
 
             if (!$user->saveOrFail()) {
-                throw new RuntimeException(
-                    'Không cập nhật được mật khẩu.'
-                );
+                throw new RuntimeException('Không cập nhật được mật khẩu.');
             }
         } catch (Throwable $exception) {
             report($exception);
@@ -347,13 +323,11 @@ class ProfileManager extends Component
                 'Cập nhật mật khẩu thất bại',
                 'Không thể cập nhật mật khẩu. Vui lòng thử lại.'
             );
-
             return;
         }
 
         Auth::setUser($user);
 
-        // Chỉ xóa dữ liệu mật khẩu sau khi lưu thành công.
         $this->reset([
             'current_password',
             'new_password',
@@ -371,7 +345,6 @@ class ProfileManager extends Component
     {
         $user = $this->staff();
 
-        // Method hiện có sẽ validate ảnh và loại bỏ ảnh trùng.
         $this->discardDuplicateAvatar($user);
 
         if ($this->newAvatar === null) {
@@ -380,23 +353,22 @@ class ProfileManager extends Component
                 'Không có ảnh mới cần lưu',
                 'Bạn chưa chọn ảnh mới hoặc ảnh đã chọn trùng với ảnh đang lưu.'
             );
-
             return;
         }
 
         $oldAvatar = $user->avatar;
         $newPath = null;
+        $roleFolder = $user->role === 'sales' ? 'sales' : 'farm-staff';
+        $diskName = $this->getAvatarDisk();
 
         try {
             $storedPath = $this->newAvatar->store(
-                "avatars/farm-staff/{$user->id}",
-                'public'
+                "avatars/{$roleFolder}/{$user->id}",
+                $diskName
             );
 
             if (!is_string($storedPath) || $storedPath === '') {
-                throw new RuntimeException(
-                    'Không lưu được ảnh đại diện.'
-                );
+                throw new RuntimeException('Không lưu được ảnh đại diện.');
             }
 
             $newPath = $storedPath;
@@ -406,9 +378,7 @@ class ProfileManager extends Component
             ]);
 
             if (!$user->saveOrFail()) {
-                throw new RuntimeException(
-                    'Không cập nhật được ảnh đại diện.'
-                );
+                throw new RuntimeException('Không cập nhật được ảnh đại diện.');
             }
         } catch (Throwable $exception) {
             // Nếu DB lưu thất bại, dọn file mới vừa tạo.
@@ -421,7 +391,6 @@ class ProfileManager extends Component
                 'Lưu ảnh thất bại',
                 'Không thể lưu ảnh đại diện. Vui lòng thử lại.'
             );
-
             return;
         }
 
@@ -443,11 +412,8 @@ class ProfileManager extends Component
         );
     }
 
-    private function notify(
-        string $icon,
-        string $title,
-        string $text
-    ): void {
+    private function notify(string $icon, string $title, string $text): void
+    {
         $this->dispatch(
             'swal',
             icon: $icon,
@@ -456,18 +422,16 @@ class ProfileManager extends Component
         );
     }
 
-    private function staff(): User
+    protected function staff(): User
     {
         $id = Auth::id();
-
         abort_unless($id, 401);
 
-        // Đọc mới từ DB để kiểm tra lại quyền và trạng thái.
         $user = User::find($id);
 
         abort_unless(
             $user
-            && $user->role === 'farm_staff'
+            && in_array($user->role, ['farm_staff', 'sales'])
             && $user->status === 'active',
             403,
             'Bạn không có quyền truy cập chức năng này.'
@@ -476,16 +440,18 @@ class ProfileManager extends Component
         return $user;
     }
 
-    private function deleteManagedAvatar(
-        ?string $path,
-        int $userId
-    ): void {
+    private function getAvatarDisk(): string
+    {
+        return config('filesystems.disks.r2.key') ? 'r2' : 'public';
+    }
+
+    private function deleteManagedAvatar(?string $path, int $userId): void
+    {
         if (
             !$path
-            || !str_starts_with(
-                $path,
-                "avatars/farm-staff/{$userId}/"
-            )
+            || (!str_starts_with($path, "avatars/farm-staff/{$userId}/")
+                && !str_starts_with($path, "avatars/sales/{$userId}/")
+                && !str_starts_with($path, 'avatars/'))
             || str_contains($path, '..')
             || str_contains($path, '\\')
         ) {
@@ -493,21 +459,26 @@ class ProfileManager extends Component
         }
 
         try {
-            if (!Storage::disk('public')->delete($path)) {
-                throw new RuntimeException(
-                    'Không xóa được tệp ảnh đại diện.'
-                );
+            $disk = $this->getAvatarDisk();
+            if (Storage::disk($disk)->exists($path)) {
+                Storage::disk($disk)->delete($path);
             }
         } catch (Throwable $exception) {
-            // Lỗi dọn file không làm hỏng hồ sơ đã lưu.
             report($exception);
         }
     }
 
     public function render()
     {
-        return view('livewire.farm-staff.profile-manager', [
-            'user' => $this->staff(),
-        ]);
+        $user = $this->staff();
+        $isSales = $user->role === 'sales';
+
+        $layout = $isSales ? 'layouts.sales.app' : 'layouts.farm-staff.app';
+        $roleTitle = $isSales ? 'Nhân Viên Bán Hàng' : 'Nhân Viên Nông Trại';
+
+        return view('livewire.profile-manager', [
+            'user' => $user,
+            'roleTitle' => $roleTitle,
+        ])->layout($layout)->title("Hồ Sơ {$roleTitle} | Nông Trại Đất Lành");
     }
 }

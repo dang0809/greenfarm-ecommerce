@@ -16,7 +16,7 @@
             </button>
         </div>
 
-        <!-- Menu Điều Hướng (Đúng 4 Tab Yêu Cầu) -->
+        <!-- Menu Điều Hướng -->
         <nav class="px-3.5 space-y-1.5 mt-6">
             <!-- 1. Quản lý đơn hàng -->
             <a href="{{ route('sales.orders') }}" wire:navigate class="w-full flex items-center justify-between px-4 py-3 rounded-2xl font-bold text-sm transition-all {{ str_starts_with($activeRoute, 'sales.orders') ? 'menu-active' : 'menu-inactive' }} text-left">
@@ -45,9 +45,16 @@
             </a>
 
             <!-- 3. Quản lý xả hàng -->
-            <a href="{{ route('sales.clearance') }}" wire:navigate class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all {{ str_starts_with($activeRoute, 'sales.clearance') ? 'menu-active' : 'menu-inactive' }} text-left">
-                <i class="fa-solid fa-tags w-5 text-center"></i>
-                <span>Quản Lý Xả Hàng</span>
+            <a href="{{ route('sales.clearance') }}" wire:navigate class="w-full flex items-center justify-between px-4 py-3 rounded-2xl font-bold text-sm transition-all {{ str_starts_with($activeRoute, 'sales.clearance') ? 'menu-active' : 'menu-inactive' }} text-left">
+                <div class="flex items-center space-x-3">
+                    <i class="fa-solid fa-tags w-5 text-center"></i>
+                    <span>Quản Lý Xả Hàng</span>
+                </div>
+                @if (isset($nearExpiryCount) && $nearExpiryCount > 0)
+                    <span class="inline-flex items-center justify-center px-2 py-0.5 text-[11px] font-black rounded-full bg-rose-500 text-white shadow-xs">
+                        {{ $nearExpiryCount > 99 ? '99+' : $nearExpiryCount }}
+                    </span>
+                @endif
             </a>
 
             <!-- 4. Gói rau định kỳ VIP -->
@@ -55,18 +62,36 @@
                 <i class="fa-solid fa-calendar-check w-5 text-center"></i>
                 <span>Gói Rau Định Kỳ VIP</span>
             </a>
+
+            <!-- 5. Hồ sơ cá nhân -->
+            <a href="{{ route('sales.profile') }}" wire:navigate class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all {{ str_starts_with($activeRoute, 'sales.profile') ? 'menu-active' : 'menu-inactive' }} text-left">
+                <i class="fa-solid fa-id-badge w-5 text-center"></i>
+                <span>Hồ Sơ Cá Nhân</span>
+            </a>
         </nav>
     </div>
 
     <!-- User Footer & Đăng xuất -->
     <div class="p-4 border-t border-gray-100">
-        <div class="flex items-center space-x-3 bg-brand-50/70 p-3 rounded-2xl border border-brand-100 mb-3">
-            <img src="{{ $user->avatar ?? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150' }}" alt="Avatar" class="w-9 h-9 rounded-full object-cover border border-brand-200">
+        <a href="{{ route('sales.profile') }}" wire:navigate class="flex items-center space-x-3 bg-brand-50/70 hover:bg-brand-100/70 p-3 rounded-2xl border border-brand-100 mb-3 transition-colors group cursor-pointer" title="Hồ sơ cá nhân">
+            @if ($user->avatar_url)
+                <img src="{{ $user->avatar_url }}" alt="Ảnh đại diện" class="w-9 h-9 rounded-full object-cover border border-brand-200">
+            @else
+                <div class="w-9 h-9 shrink-0 rounded-full bg-brand-100 text-brand-800 flex items-center justify-center font-bold">
+                    {{ mb_strtoupper(mb_substr($user->name ?? 'S', 0, 1)) }}
+                </div>
+            @endif
+
             <div class="min-w-0 flex-1">
-                <p class="text-sm font-bold text-gray-800 truncate">{{ $user->name ?? 'Nhân viên Sales' }}</p>
-                <p class="text-xs text-brand-700 font-semibold truncate">Nhân viên bán hàng</p>
+                <p class="text-sm font-bold text-gray-800 truncate group-hover:text-brand-800">
+                    {{ $user->name ?? 'Nhân viên Sales' }}
+                </p>
+
+                <p class="text-xs text-brand-700 font-semibold truncate">
+                    Nhân viên bán hàng
+                </p>
             </div>
-        </div>
+        </a>
         
         <!-- Nút Đăng xuất -->
         <button type="button" 
@@ -79,4 +104,3 @@
         </button>
     </div>
 </aside>
-

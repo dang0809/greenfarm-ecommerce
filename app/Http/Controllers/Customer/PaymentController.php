@@ -116,6 +116,7 @@ class PaymentController extends Controller
                 foreach ($order->items as $item) {
                     if ($item->batch_id) {
                         \App\Models\ProductBatch::where('id', $item->batch_id)->decrement('reserved_quantity', $item->quantity);
+                        \App\Models\ProductBatch::syncProductSalePrice($item->product_id);
                     }
                 }
 

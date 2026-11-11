@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class User extends Authenticatable implements MustVerifyEmail
@@ -104,19 +103,22 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     public function getAvatarUrlAttribute(): ?string
-{
-    $path = trim((string) $this->avatar);
+    {
+        $path = trim((string) $this->avatar);
 
-    if ($path === '') {
+        if ($path === '') {
+            return null;
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        $r2Url = config('filesystems.disks.r2.url');
+        if (!empty($r2Url)) {
+            return rtrim($r2Url, '/') . '/' . ltrim($path, '/');
+        }
+
         return null;
     }
-
-    /*
-     * Avatar ở trong đường dẫn tương đối,
-     * ví dụ: avatars/farm-staff/userid/hinhanh.jpg
-     */
-    return Storage::disk('public')->url(
-        ltrim($path, '/')
-    );
-}
 }

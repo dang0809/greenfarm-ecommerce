@@ -9,17 +9,19 @@
                 <!-- Card Thông tin cá nhân ngắn gọn trong Sidebar -->
                 <div class="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm">
                     <div class="flex items-center gap-4">
-                        <div class="relative">
-                            <!-- Hiển thị Avatar chuẩn xác -->
-                            @if ($newAvatar)
-                                <img src="{{ $newAvatar->temporaryUrl() }}" alt="Avatar Preview" class="w-16 h-16 rounded-full object-cover border-2 border-brand-200">
+                        <div class="relative shrink-0">
+                            <!-- Hiển thị Avatar chuẩn xác (Preview hoặc R2) -->
+                            @if ($newAvatar && !$errors->has('newAvatar') && (!method_exists($newAvatar, 'isPreviewable') || $newAvatar->isPreviewable()))
+                                <img wire:key="customer-avatar-preview-{{ $newAvatar->getFilename() }}"
+                                    src="{{ $newAvatar->temporaryUrl() }}" alt="Avatar Preview"
+                                    class="w-16 h-16 rounded-full object-cover border-2 border-amber-400 ring-2 ring-amber-100">
                             @else
-                                <img src="{{ $user->avatar ? (str_starts_with($user->avatar, 'http') ? $user->avatar : asset('storage/' .$user->avatar)) : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200' }}" 
+                                <img src="{{ $user->avatar_url ?? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200' }}" 
                                     alt="Avatar" class="w-16 h-16 rounded-full object-cover border-2 border-brand-200">
                             @endif
 
-                            <!-- Loading Spinner hiển thị khi đang upload ảnh -->
-                            <div wire:loading wire:target="newAvatar" class="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center">
+                            <!-- Loading Spinner hiển thị khi đang tải / lưu ảnh -->
+                            <div wire:loading wire:target="newAvatar,saveAvatar" class="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center">
                                 <i class="fa-solid fa-spinner text-white text-xs animate-spin"></i>
                             </div>
 
@@ -27,17 +29,38 @@
                             <label for="avatar-input" class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-brand-600 text-white flex items-center justify-center text-[10px] cursor-pointer hover:bg-brand-700 shadow-sm" title="Đổi ảnh đại diện">
                                 <i class="fa-solid fa-camera"></i>
                             </label>
-                            <input type="file" id="avatar-input" wire:model="newAvatar" accept="image/*" class="hidden">
+                            <input type="file" id="avatar-input" wire:key="customer-avatar-input-{{ $avatarInputKey }}" wire:model="newAvatar" accept=".jpg,.jpeg,.png,.webp" class="hidden">
                         </div>
 
                         <div class="min-w-0 flex-1">
                             <h2 class="text-base font-extrabold text-gray-900 truncate">{{ $user->name }}</h2>
                             <p class="text-xs text-gray-400 truncate mt-0.5">{{ $user->email }}</p>
+                            <p class="text-[10px] text-gray-400 mt-1">JPG, PNG, WEBP tối đa 2MB</p>
                         </div>
                     </div>
+
                     @error('newAvatar') 
-                        <span class="text-[11px] text-red-500 mt-2 block font-medium">{{ $message }}</span> 
+                        <span class="text-[11px] text-red-500 mt-2.5 block font-medium">{{ $message }}</span> 
                     @enderror
+
+                    @if ($newAvatar && !$errors->has('newAvatar'))
+                        <div wire:loading.remove wire:target="newAvatar" class="mt-4 pt-3.5 border-t border-gray-100 flex items-center justify-end gap-2">
+                            <button type="button" wire:click="cancelAvatar" wire:loading.attr="disabled" wire:target="saveAvatar,cancelAvatar"
+                                class="px-3 py-1.5 rounded-xl text-xs font-bold bg-gray-100 hover:bg-gray-200 text-gray-600 transition cursor-pointer disabled:opacity-50">
+                                Hủy
+                            </button>
+                            <button type="button"
+                                wire:click="saveAvatar"
+                                wire:confirm="Bạn có chắc chắn muốn đổi ảnh đại diện sang ảnh này?"
+                                wire:loading.attr="disabled"
+                                wire:target="saveAvatar,cancelAvatar"
+                                class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-xs transition cursor-pointer flex items-center gap-1.5 disabled:opacity-50">
+                                <i class="fa-solid fa-spinner fa-spin text-[10px]" wire:loading wire:target="saveAvatar"></i>
+                                <span wire:loading.remove wire:target="saveAvatar">Xác nhận đổi</span>
+                                <span wire:loading wire:target="saveAvatar">Đang lưu...</span>
+                            </button>
+                        </div>
+                    @endif
                 </div>
 
                 <!-- Menu Sidebar -->
@@ -379,13 +402,15 @@
                             <p class="text-xs text-gray-400 mt-0.5">Để bảo mật, vui lòng không chia sẻ mật khẩu cho người khác</p>
                         </div>
 
-                        <form wire:submit.prevent="updatePassword" class="space-y-4 max-w-md">
+                        <form wire:submit.prevent="updatePassword" autocomplete="off" class="space-y-4 max-w-md">
                             <!-- 1. Mật khẩu hiện tại -->
                             <div>
                                 <label class="block text-xs font-bold text-gray-700 mb-1.5">Mật khẩu hiện tại</label>
                                 <div x-data="{ show: false }" class="relative">
                                     <input :type="show ? 'text' : 'password'" 
                                         wire:model="current_password" 
+                                        autocomplete="off"
+                                        data-lpignore="true"
                                         placeholder="••••••••" 
                                         class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-3.5 pr-10 py-2.5 text-sm outline-none focus:border-brand-500">
                                     <button type="button" 
@@ -403,6 +428,8 @@
                                 <div x-data="{ show: false }" class="relative">
                                     <input :type="show ? 'text' : 'password'" 
                                         wire:model="new_password" 
+                                        autocomplete="off"
+                                        data-lpignore="true"
                                         placeholder="Tối thiểu 8 ký tự" 
                                         class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-3.5 pr-10 py-2.5 text-sm outline-none focus:border-brand-500">
                                     <button type="button" 
@@ -420,6 +447,8 @@
                                 <div x-data="{ show: false }" class="relative">
                                     <input :type="show ? 'text' : 'password'" 
                                         wire:model="new_password_confirmation" 
+                                        autocomplete="off"
+                                        data-lpignore="true"
                                         placeholder="Nhập lại mật khẩu mới" 
                                         class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-3.5 pr-10 py-2.5 text-sm outline-none focus:border-brand-500">
                                     <button type="button" 

@@ -38,6 +38,24 @@ class Sidebar extends Component
     }
 
     /**
+     * Lắng nghe sự kiện bật/tắt xả hàng để cập nhật badge xả hàng ở Sidebar
+     */
+    #[On('clearance-updated')]
+    public function onClearanceChanged(): void
+    {
+        // Livewire tự động re-render để cập nhật badge xả hàng
+    }
+
+    /**
+     * Lắng nghe sự kiện cập nhật hồ sơ để đồng bộ tên và ảnh đại diện
+     */
+    #[On('profile-updated')]
+    public function onProfileUpdated(): void
+    {
+        // Livewire tự động re-render cập nhật avatar & tên
+    }
+
+    /**
      * Xử lý đăng xuất tài khoản an toàn
      */
     public function logout()
@@ -66,10 +84,19 @@ class Sidebar extends Component
         // Đếm số lượng khiếu nại đang ở trạng thái pending (Chờ xử lý)
         $pendingComplaintCount = Complaint::where('status', 'pending')->count();
 
+        // Đếm số lượng lô cận date (<= 2 ngày) chưa áp dụng xả kho
+        $nearExpiryCount = \App\Models\ProductBatch::where('status', 'active')
+            ->where('current_quantity', '>', 0)
+            ->whereDate('expiry_date', '>=', today())
+            ->whereDate('expiry_date', '<=', today()->addDays(2))
+            ->where('discount_percent', 0)
+            ->count();
+
         return view('livewire.sales.sidebar', [
             'user'                  => Auth::user(),
             'pendingCount'          => $pendingCount,
             'pendingComplaintCount' => $pendingComplaintCount,
+            'nearExpiryCount'       => $nearExpiryCount,
         ]);
     }
 }

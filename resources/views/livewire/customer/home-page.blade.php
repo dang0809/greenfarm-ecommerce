@@ -112,12 +112,12 @@
         </div>
     </section>
 
-    <!-- 3. NÔNG SẢN NỔI BẬT -->
+    <!-- 3. NÔNG SẢN BÁN CHẠY -->
     <section class="py-16 bg-cream">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between mb-8 border-b border-gray-200 pb-4">
                 <div>
-                    <h2 class="text-2xl font-bold text-gray-900">Nông Sản Nổi Bật</h2>
+                    <h2 class="text-2xl font-bold text-gray-900">Nông Sản Bán Chạy</h2>
                     <p class="text-gray-500 text-sm mt-1">Các sản phẩm tươi sạch được khách hàng đặt nhiều nhất</p>
                 </div>
                 <a href="{{ route('products.index') }}" class="text-gray-500 hover:text-brand-600 font-medium transition flex items-center gap-2 text-sm">Xem tất cả <i class="fa-solid fa-arrow-right text-xs"></i></a>

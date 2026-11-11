@@ -16,6 +16,7 @@ class PlantingBatch extends Model
         'product_id',
         'planting_code',
         'planted_date',
+        'min_manufactured_date',
         'status',
     ];
 
@@ -23,9 +24,11 @@ class PlantingBatch extends Model
     // 'harvesting': Đang trong giai đoạn thu hoạch.
     // 'completed': Vụ mùa đã kết thúc.
 
-    protected function casts(): array{
+    protected function casts(): array
+    {
         return [
             'planted_date' => 'date',
+            'min_manufactured_date' => 'date',
         ];
     }
 

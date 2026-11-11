@@ -22,7 +22,7 @@ use App\Http\Controllers\Api\PayOSWebhookController;
 // Import đầy đủ các Livewire Farm Staff Components
 use App\Livewire\FarmStaff\ProductBatchManager;
 use App\Livewire\FarmStaff\FarmPlotManager;
-use App\Livewire\FarmStaff\ProfileManager;
+use App\Livewire\ProfileManager;
 use App\Livewire\FarmStaff\CertificationManager;
 use App\Livewire\FarmStaff\ProductManager;
 use App\Livewire\FarmStaff\CategoryManager;
@@ -39,6 +39,12 @@ use App\Livewire\Sales\ClearanceManager;
 */
 Route::get('/', HomePage::class)->name('home');
 Route::get('/quan-tri/dang-nhap', Login::class)->name('login');
+Route::get('/dat-lai-mat-khau/{token}', function (Request $request, $token) {
+    return redirect()->route('home', [
+        'reset_token' => $token,
+        'email' => $request->query('email'),
+    ]);
+})->name('password.reset');
 Route::get('/san-pham', ProductPage::class)->name('products.index');
 Route::get('/ve-nong-trai', AboutPage::class)->name('about');
 Route::get('/san-pham/{slug}', ProductDetail::class)->name('customer.product.detail');
@@ -126,4 +132,5 @@ Route::middleware(['role:sales'])->prefix('nhan-vien-ban-hang')->name('sales.')-
     Route::get('/khieu-nai', ComplaintManager::class)->name('complaints');
     Route::get('/xa-hang', ClearanceManager::class)->name('clearance');
     Route::get('/goi-dinh-ky', SubscriptionManager::class)->name('subscriptions');
+    Route::get('/ho-so', ProfileManager::class)->name('profile');
 });

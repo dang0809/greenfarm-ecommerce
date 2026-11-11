@@ -5,6 +5,7 @@ namespace App\Livewire\Traits;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use PayOS\PayOS;
 use App\Models\Order;
 use App\Models\ProductBatch;
@@ -17,12 +18,15 @@ use App\Events\ComplaintSubmittedEvent;
 
 trait WithOrderActions
 {
+    use WithVietnamBanks;
+
     // State cho Modal Khiếu nại hoàn tiền nông sản dập nát (24H)
     public bool $showComplaintModal = false;
     public ?int $complainingOrderId = null;
     public string $complaint_reason = 'Nông sản bị dập nát / hư hỏng trong quá trình vận chuyển';
     public ?int $complaint_refund_amount = null;
     public array $complaint_images = [];
+    public $new_complaint_images = [];
     public string $bank_name = '';
     public string $bank_account_number = '';
     public string $bank_account_name = '';
@@ -262,7 +266,67 @@ trait WithOrderActions
         $this->bank_account_number     = $user->default_bank_account_number ?? '';
         $this->bank_account_name       = $user->default_bank_account_name ?? mb_strtoupper($user->name);
         $this->complaint_images        = [];
+        $this->new_complaint_images    = [];
+        $this->resetValidation();
         $this->showComplaintModal      = true;
+    }
+
+    /**
+     * Cộng dồn ảnh mới được chọn vào danh sách (tối đa 4 ảnh) mà không làm mất ảnh cũ
+     */
+    public function updatedNewComplaintImages(): void
+    {
+        if (empty($this->new_complaint_images)) {
+            return;
+        }
+
+        $files = is_array($this->new_complaint_images)
+            ? $this->new_complaint_images
+            : [$this->new_complaint_images];
+
+        try {
+            $this->validate([
+                'new_complaint_images.*' => 'image|mimes:jpeg,png,jpg,webp|max:5120',
+            ], [
+                'new_complaint_images.*.image' => 'Tập tin tải lên phải là hình ảnh.',
+                'new_complaint_images.*.mimes' => 'Hình ảnh phải có định dạng: jpeg, png, jpg, webp.',
+                'new_complaint_images.*.max'   => 'Mỗi hình ảnh không được vượt quá 5MB.',
+            ]);
+        } catch (ValidationException $e) {
+            $this->new_complaint_images = [];
+            throw $e;
+        }
+
+        $remainingSlots = max(0, 4 - count($this->complaint_images));
+        if ($remainingSlots <= 0) {
+            $this->new_complaint_images = [];
+            $this->dispatch('show-toast', type: 'warning', message: 'Chỉ được tải lên tối đa 4 hình ảnh bằng chứng.');
+            return;
+        }
+
+        if (count($files) > $remainingSlots) {
+            $files = array_slice($files, 0, $remainingSlots);
+            $this->dispatch('show-toast', type: 'warning', message: 'Chỉ được tải lên tối đa 4 hình ảnh bằng chứng.');
+        }
+
+        foreach ($files as $file) {
+            $this->complaint_images[] = $file;
+        }
+
+        $this->new_complaint_images = [];
+        $this->resetErrorBag(['complaint_images', 'complaint_images.*', 'new_complaint_images.*']);
+    }
+
+    /**
+     * Xóa từng ảnh bằng chứng khỏi danh sách đã chọn trước khi gửi
+     */
+    public function removeComplaintImage(int $index): void
+    {
+        if (isset($this->complaint_images[$index])) {
+            unset($this->complaint_images[$index]);
+            $this->complaint_images = array_values($this->complaint_images);
+            $this->resetErrorBag(['complaint_images', 'complaint_images.*', 'new_complaint_images.*']);
+        }
     }
 
     /**
@@ -363,10 +427,12 @@ trait WithOrderActions
             'complaint_reason',
             'complaint_refund_amount',
             'complaint_images',
+            'new_complaint_images',
             'bank_name',
             'bank_account_number',
             'bank_account_name',
         ]);
+        $this->resetValidation();
     }
 }
 

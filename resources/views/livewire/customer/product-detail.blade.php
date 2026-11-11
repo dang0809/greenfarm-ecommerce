@@ -66,9 +66,9 @@
                 <div class="flex items-center text-amber-400">
                     <i class="fa-solid fa-star"></i>
                     <span
-                        class="text-gray-800 font-bold ml-1.5">{{ number_format($product->reviews->avg('rating') ?? 5, 1) }}</span>
+                        class="text-gray-800 font-bold ml-1.5">{{ number_format($avgRating, 1) }}</span>
                     <button type="button" wire:click="switchTab('reviews')"
-                        class="text-gray-400 font-medium ml-1 hover:text-brand-600">({{ $product->reviews->count() }}
+                        class="text-gray-400 font-medium ml-1 hover:text-brand-600">({{ $reviewCount }}
                         nhận xét)</button>
                 </div>
                 <span>•</span>
@@ -183,7 +183,7 @@
     </div>
 
     <!-- TABS: MÔ TẢ & ĐÁNH GIÁ -->
-    <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden mb-16" id="reviews">
+    <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden mb-16 scroll-mt-24" id="reviews">
         <div class="flex border-b border-gray-100">
             <button type="button" wire:click="switchTab('desc')"
                 class="flex-1 py-4 sm:py-5 text-center font-bold text-xs sm:text-sm {{ $activeTab === 'desc' ? 'text-brand-600 border-b-2 border-brand-600 bg-gray-50/40' : 'text-gray-500 border-b-2 border-transparent hover:text-brand-600' }}">
@@ -191,7 +191,7 @@
             </button>
             <button type="button" wire:click="switchTab('reviews')"
                 class="flex-1 py-4 sm:py-5 text-center font-bold text-xs sm:text-sm {{ $activeTab === 'reviews' ? 'text-brand-600 border-b-2 border-brand-600 bg-gray-50/40' : 'text-gray-500 border-b-2 border-transparent hover:text-brand-600' }}">
-                Đánh Giá Khách Hàng ({{ $product->reviews->count() }})
+                Đánh Giá Khách Hàng ({{ $reviewCount }})
             </button>
         </div>
 
@@ -206,78 +206,116 @@
             <div class="flex flex-col sm:flex-row items-center gap-6 pb-8 border-b border-gray-100 mb-8">
                 <div class="text-center sm:text-left shrink-0">
                     <div class="text-5xl font-black text-brand-600">
-                        {{ number_format($product->reviews->avg('rating') ?? 5, 1) }}<span
+                        {{ number_format($avgRating, 1) }}<span
                             class="text-2xl text-gray-400">/5</span></div>
                     <div class="flex items-center text-amber-400 text-sm mt-1 justify-center sm:justify-start">
-                        <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i
-                            class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i
-                            class="fa-solid fa-star"></i>
+                        @for ($i = 1; $i <= 5; $i++)
+                            <i class="fa-solid fa-star {{ $i <= round($avgRating) ? 'text-amber-400' : 'text-gray-200' }}"></i>
+                        @endfor
                     </div>
-                    <p class="text-xs text-gray-400 mt-1">Dựa trên {{ $product->reviews->count() }} đánh giá thực tế</p>
+                    <p class="text-xs text-gray-400 mt-1">Dựa trên {{ $reviewCount }} đánh giá thực tế</p>
                 </div>
             </div>
 
             @auth
-            @if ($this->hasPurchased)
+            @if ($this->unreviewedOrderItem)
             <div class="bg-gray-50/70 border border-gray-200/80 rounded-2xl p-5 sm:p-6 mb-8">
-                <h4 class="text-sm sm:text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
-                    <i class="fa-regular fa-pen-to-square text-brand-600"></i> Viết Đánh Giá Của Bạn
-                </h4>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-gray-200/60">
+                    <h4 class="text-sm sm:text-base font-bold text-gray-900 flex items-center gap-2">
+                        <i class="fa-regular fa-pen-to-square text-brand-600"></i> Viết Đánh Giá Của Bạn
+                    </h4>
+                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-xl self-start sm:self-auto">
+                        <i class="fa-solid fa-badge-check text-emerald-600"></i> Đã nhận hàng từ Nông trại
+                    </span>
+                </div>
 
                 <form wire:submit.prevent="submitReview" class="space-y-4">
                     <div class="flex flex-wrap items-center gap-3">
                         <span class="text-xs font-bold text-gray-700">Mức độ hài lòng:</span>
-                        <div class="flex items-center gap-1.5 text-lg text-amber-400 cursor-pointer">
-                            @for ($i = 1; $i <= 5; $i++) <button type="button" wire:click="$set('rating', {{ $i }})"
-                                class="transition-colors">
-                                <i
-                                    class="fa-solid fa-star {{ $i <= $rating ? 'text-amber-400' : 'text-gray-300' }}"></i>
+                        <div class="flex items-center gap-1.5 text-lg text-amber-400 cursor-pointer select-none">
+                            @for ($i = 1; $i <= 5; $i++)
+                                <button type="button" wire:click="$set('rating', {{ $i }})"
+                                    class="transition-transform hover:scale-110 p-0.5">
+                                    <i class="fa-solid fa-star {{ $i <= $rating ? 'text-amber-400' : 'text-gray-300' }}"></i>
                                 </button>
-                                @endfor
+                            @endfor
                         </div>
-                        <span class="text-xs font-bold text-amber-600">{{ $rating }} sao</span>
+                        <span class="text-xs font-bold text-amber-600">
+                            {{ $rating }} sao - 
+                            @if($rating == 5) Tuyệt vời!
+                            @elseif($rating == 4) Rất tốt
+                            @elseif($rating == 3) Bình thường
+                            @elseif($rating == 2) Chưa hài lòng
+                            @else Rất thất vọng
+                            @endif
+                        </span>
                     </div>
 
                     <div>
-                        <textarea wire:model="comment" rows="3"
+                        <textarea wire:model="content" rows="3"
                             placeholder="Chia sẻ cảm nhận về độ tươi giòn, quy cách đóng gói và thời gian giao nhận..."
                             class="w-full bg-white border border-gray-200 rounded-2xl p-3.5 text-xs sm:text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all resize-none shadow-xs"></textarea>
-                        @error('comment') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
+                        @error('content') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
                     </div>
 
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-                        <label
-                            class="inline-flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-600 hover:text-brand-600 transition-colors">
-                            <i class="fa-solid fa-camera text-brand-600 text-sm"></i>
-                            <span>Thêm ảnh thực tế nhận hàng</span>
-                            <input type="file" wire:model="reviewPhoto" accept="image/*" class="hidden">
-                        </label>
+                    <!-- Upload ảnh thực tế lên Cloudflare R2 -->
+                    <div class="space-y-2">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                            <label class="inline-flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-600 hover:text-brand-600 transition-colors">
+                                <i class="fa-solid fa-camera text-brand-600 text-sm"></i>
+                                <span>Thêm ảnh thực tế nhận hàng (Tối đa 5 ảnh)</span>
+                                <input type="file" wire:model="reviewPhotos" multiple accept="image/*" class="hidden">
+                            </label>
 
-                        <button type="submit"
-                            class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs sm:text-sm shadow-sm transition-all flex items-center justify-center gap-1.5 active:scale-95">
-                            <i class="fa-regular fa-paper-plane text-xs"></i>
-                            <span>Gửi đánh giá</span>
-                        </button>
+                            <button type="submit" wire:loading.attr="disabled"
+                                class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs sm:text-sm shadow-sm transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50 cursor-pointer">
+                                <span wire:loading.remove wire:target="submitReview">
+                                    <i class="fa-regular fa-paper-plane text-xs mr-1"></i> Gửi đánh giá
+                                </span>
+                                <span wire:loading wire:target="submitReview">
+                                    <i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang tải lên...
+                                </span>
+                            </button>
+                        </div>
+
+                        <!-- Khung Preview ảnh đã chọn trước khi gửi -->
+                        @if (!empty($reviewPhotos))
+                            <div class="flex flex-wrap gap-2.5 pt-2">
+                                @foreach ($reviewPhotos as $index => $photo)
+                                    <div class="relative group">
+                                        <img src="{{ $photo->temporaryUrl() }}" class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover border border-brand-200 shadow-2xs">
+                                        <button type="button" wire:click="removePhoto({{ $index }})"
+                                            title="Xóa ảnh này"
+                                            class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 hover:bg-rose-600 text-white rounded-full flex items-center justify-center text-[10px] shadow-sm transition">
+                                            <i class="fa-solid fa-xmark"></i>
+                                        </button>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        @error('reviewPhotos') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
+                        @error('reviewPhotos.*') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
                     </div>
                 </form>
-            </div>
-            @else
-            <div class="bg-amber-50/80 border border-amber-200 rounded-2xl p-5 mb-8 text-center">
-                <i class="fa-solid fa-bag-shopping text-amber-600 text-2xl mb-2"></i>
-                <p class="text-xs sm:text-sm font-bold text-amber-900">Chỉ khách hàng đã mua sản phẩm này mới có thể
-                    viết đánh giá.</p>
             </div>
             @endif
             @endauth
 
             <div class="space-y-6">
-                @forelse ($product->reviews as $review)
-                <div class="border-b border-gray-100 pb-6 last:border-0 last:pb-0">
+                @forelse ($reviews as $review)
+                <div wire:key="product-review-{{ $review->id }}" class="border-b border-gray-100 pb-6 last:border-0 last:pb-0">
                     <div class="flex items-start gap-3.5 mb-2.5">
-                        <div
-                            class="w-10 h-10 rounded-full bg-brand-100 text-brand-700 font-bold flex items-center justify-center shrink-0 text-sm">
-                            {{ mb_substr($review->user->name ?? 'K', 0, 1) }}
-                        </div>
+                        @if ($review->user?->avatar_url)
+                            <img src="{{ $review->user->avatar_url }}"
+                                alt="{{ $review->user->name ?? 'Khách hàng' }}"
+                                class="w-10 h-10 rounded-full object-cover border border-brand-200 shrink-0">
+                        @else
+                            <div
+                                class="w-10 h-10 rounded-full bg-brand-100 text-brand-700 font-bold flex items-center justify-center shrink-0 text-sm">
+                                {{ mb_strtoupper(mb_substr($review->user->name ?? 'K', 0, 1)) }}
+                            </div>
+                        @endif
                         <div class="flex-1">
                             <div class="flex items-center justify-between">
                                 <h5 class="font-bold text-gray-900 text-sm">{{ $review->user->name ?? 'Khách hàng' }}
@@ -302,27 +340,26 @@
                     </p>
 
                     @if ($review->images && $review->images->count() > 0)
-                    <div class="flex flex-wrap gap-2">
+                    <div class="flex flex-wrap gap-2.5">
                         @foreach ($review->images as $revImg)
                         @php
-                        $revImgUrl = str_starts_with($revImg->image, 'http')
-                        ? $revImg->image
-                        : asset('storage/' . $revImg->image);
+                            $revImgUrl = $revImg->url;
                         @endphp
-                        <img src="{{ $revImgUrl }}" @click="previewImage = '{{ $revImgUrl }}'"
-                            title="Nhấn để xem ảnh phóng to"
-                            class="w-16 h-16 rounded-xl object-cover border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity hover:scale-105 transform duration-200 shadow-xs">
+                        @if ($revImgUrl)
+                            <img src="{{ $revImgUrl }}" @click="previewImage = '{{ $revImgUrl }}'"
+                                title="Nhấn để xem ảnh phóng to"
+                                class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover border border-gray-200 cursor-pointer hover:opacity-85 transition-all hover:scale-105 transform duration-200 shadow-2xs">
+                        @endif
                         @endforeach
                     </div>
                     @elseif ($review->image)
                     @php
-                    $singleRevImgUrl = str_starts_with($review->image, 'http') ? $review->image : asset('storage/' .
-                    $review->image);
+                        $singleRevImgUrl = str_starts_with($review->image, 'http') ? $review->image : asset('storage/' . $review->image);
                     @endphp
                     <div class="flex gap-2">
                         <img src="{{ $singleRevImgUrl }}" @click="previewImage = '{{ $singleRevImgUrl }}'"
                             title="Nhấn để xem ảnh phóng to"
-                            class="w-16 h-16 rounded-xl object-cover border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity hover:scale-105 transform duration-200 shadow-xs">
+                            class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover border border-gray-200 cursor-pointer hover:opacity-85 transition-all hover:scale-105 transform duration-200 shadow-2xs">
                     </div>
                     @endif
                 </div>
@@ -330,6 +367,12 @@
                 <p class="text-xs text-gray-400 text-center py-6">Chưa có đánh giá nào cho sản phẩm này.</p>
                 @endforelse
             </div>
+
+            @if ($reviews->hasPages())
+                <div class="mt-8 pt-6 border-t border-gray-100">
+                    {{ $reviews->links(data: ['scrollTo' => '#reviews']) }}
+                </div>
+            @endif
         </div>
         @endif
     </div>
@@ -398,7 +441,7 @@
                         </h4>
                         <div class="flex items-center gap-1 text-amber-400 text-xs mb-3">
                             <i class="fa-solid fa-star"></i><span
-                                class="text-gray-500 font-medium ml-1">{{ number_format($related->reviews->avg('rating') ?? 5, 1) }}
+                                class="text-gray-500 font-medium ml-1">{{ number_format($related->approved_avg_rating ?? 5, 1) }}
                                 | Đã bán {{ $related->sold_count ?? 0 }}</span>
                         </div>
                         <div class="mt-auto pt-3 border-t border-gray-50 flex items-end justify-between">

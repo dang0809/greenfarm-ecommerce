@@ -6,9 +6,6 @@
                 <i class="fa-solid fa-bars text-lg"></i>
             </button>
             <div class="min-w-0">
-                <div class="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5 truncate">
-                    <span class="text-brand-700">Nông Trại Đất Lành</span>
-                </div>
                 <h1 class="text-base sm:text-2xl font-extrabold text-gray-900 tracking-tight truncate leading-tight">
                     Quản Lý Hợp Đồng Gói VIP
                 </h1>

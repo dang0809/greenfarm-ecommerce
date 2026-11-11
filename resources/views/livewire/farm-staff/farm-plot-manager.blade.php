@@ -1,4 +1,4 @@
-<div x-data="{
+<div wire:poll.60s x-data="{
     confirmingFarm: false,
     uploadingFarmPhoto: false,
 
@@ -64,6 +64,11 @@
     <div
         class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 relative z-10 space-y-5 sm:space-y-6 custom-scrollbar h-[calc(100dvh-5rem)]">
 
+        @error('plot')
+            <p role="alert" class="rounded-xl bg-red-50 p-3 text-sm text-red-700">
+                {{ $message }}
+            </p>
+        @enderror
         <!-- ================= DANH SÁCH LUỐNG ================= -->
         @unless ($this->selectedPlot)
             <div class="space-y-4 sm:space-y-6">
@@ -82,9 +87,9 @@
             'empty' => 'Đất trống',
             'in-progress' => 'Đang canh tác',
             'available' => 'Sẵn sàng',
-            'maintenance' => 'Đang cải tạo',
+            'maintenance' => 'Cần cải tạo',
         ] as $key => $label)
-                            <label class="flex items-center gap-1.5 cursor-pointer hover:text-brand-700 transition">
+                            <label class="flex items-center gap-1.5 cursor-pointer">
                                 <input type="radio" name="filter_plot" value="{{ $key }}"
                                     wire:click="setFilter('{{ $key }}')" @checked($filter === $key)
                                     class="accent-brand-700">
@@ -99,7 +104,16 @@
                         @php
                             $batch = $this->activeBatch($plot);
                             $isMaintenance = $plot->status === 'maintenance';
-                            $canSow = !$batch && in_array($plot->status, ['available', 'active'], true);
+                            $canSow = !$batch && $plot->status === 'available';
+                            $canMaintain = !$batch && in_array($plot->status, ['empty', 'maintenance'], true);
+
+                            $statusLabel = match ($plot->status) {
+                                'empty' => 'Đất trống',
+                                'maintenance' => 'Cần cải tạo',
+                                'available' => 'Sẵn sàng xuống giống',
+                                'in-progress' => 'Đang canh tác',
+                                default => $plot->status,
+                            };
                         @endphp
 
                         <div wire:key="plot-{{ $plot->id }}"
@@ -113,18 +127,13 @@
 
                                     <span
                                         class="text-[10px] font-bold px-2 py-1 rounded-full shrink-0
-                    {{ $isMaintenance
-                        ? 'bg-amber-50 text-amber-800'
-                        : ($batch
-                            ? 'bg-brand-50 text-brand-800'
-                            : 'bg-gray-100 text-gray-600') }}">
-                                        {{ $isMaintenance
-                                            ? 'Bảo trì'
-                                            : ($batch
-                                                ? ($batch->status === 'harvesting'
-                                                    ? 'Đang thu hoạch'
-                                                    : 'Đang canh tác')
-                                                : 'Đất trống') }}
+    {{ match ($plot->status) {
+        'maintenance' => 'bg-amber-50 text-amber-800',
+        'available' => 'bg-brand-50 text-brand-800',
+        'in-progress' => 'bg-blue-50 text-blue-800',
+        default => 'bg-gray-100 text-gray-600',
+    } }}">
+                                        {{ $statusLabel }}
                                     </span>
                                 </div>
 
@@ -150,7 +159,12 @@
                                     </div>
                                 @else
                                     <p class="text-xs text-gray-500 bg-gray-50 rounded-xl p-3">
-                                        {{ $isMaintenance ? 'Luống đang bảo trì, chưa thể xuống giống.' : 'Luống sẵn sàng cho vụ trồng mới.' }}
+                                        {{ match ($plot->status) {
+                                            'empty' => 'Luống mới cần cải tạo trước khi xuống giống.',
+                                            'maintenance' => 'Cần cải tạo đất sau khi kết thúc vụ.',
+                                            'available' => 'Luống sẵn sàng cho vụ trồng mới.',
+                                            default => 'Kiểm tra hiện trạng luống trước khi thao tác.',
+                                        } }}
                                     </p>
                                 @endif
 
@@ -162,6 +176,44 @@
                             </div>
 
                             <div class="space-y-2">
+                                @if ($canMaintain)
+                                    <div wire:key="maintenance-{{ $plot->id }}" x-data="{
+                                        running: false,
+                                        seconds: 3
+                                    }">
+                                        <button type="button" x-bind:disabled="running || confirmingFarm"
+                                            x-on:click="
+                if (running) return;
+
+                running = true;
+                seconds = 3;
+
+                const timer = setInterval(() => {
+                    seconds--;
+
+                    if (seconds <= 0) {
+                        clearInterval(timer);
+
+                        $wire.completeMaintenance({{ $plot->id }})
+                            .finally(() => {
+                                running = false;
+                            });
+                    }
+                }, 1000);
+            "
+                                            class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 rounded-xl text-xs disabled:opacity-60">
+                                            <span x-show="!running">
+                                                <i class="fa-solid fa-wrench mr-1"></i>
+                                                Cải tạo đất
+                                            </span>
+
+                                            <span x-show="running" x-cloak>
+                                                Đang cải tạo...
+                                                <strong x-text="seconds"></strong>
+                                            </span>
+                                        </button>
+                                    </div>
+                                @endif
                                 @if ($canSow)
                                     <button type="button" wire:click="openSowFor({{ $plot->id }})"
                                         class="w-full bg-brand-700 hover:bg-brand-800 text-white font-bold py-2.5 rounded-xl text-xs">
@@ -211,12 +263,20 @@
 
                                 <span
                                     class="text-[10px] font-bold px-2.5 py-1 rounded-full border
-                    {{ $plot->status === 'maintenance'
-                        ? 'bg-amber-50 border-amber-200 text-amber-800'
-                        : 'bg-brand-50 border-brand-200 text-brand-800' }}">
-                                    {{ $plot->status === 'maintenance' ? 'Bảo trì' : 'Đang hoạt động' }}
+    {{ $plot->status === 'maintenance'
+        ? 'bg-amber-50 border-amber-200 text-amber-800'
+        : 'bg-brand-50 border-brand-200 text-brand-800' }}">
+                                    {{ match ($plot->status) {
+                                        'empty' => 'Đất trống',
+                                        'maintenance' => 'Cần cải tạo',
+                                        'available' => 'Sẵn sàng xuống giống',
+                                        'in-progress' => 'Đang canh tác',
+                                        default => $plot->status,
+                                    } }}
                                 </span>
                             </div>
+
+
 
                             <p class="text-xs text-gray-500 mt-2">
                                 Diện tích:
@@ -233,7 +293,40 @@
                             </p>
                         </div>
 
-                        @if (!$this->currentBatch && in_array($plot->status, ['available', 'active'], true))
+                        @if (!$this->currentBatch && in_array($plot->status, ['empty', 'maintenance'], true))
+                            <div wire:key="maintenance-detail-{{ $plot->id }}" x-data="{ running: false, seconds: 3 }">
+                                <button type="button" x-bind:disabled="running || confirmingFarm"
+                                    x-on:click="
+                if (running) return;
+
+                running = true;
+                seconds = 3;
+
+                const timer = setInterval(() => {
+                    seconds--;
+
+                    if (seconds <= 0) {
+                        clearInterval(timer);
+
+                        $wire.completeMaintenance({{ $plot->id }})
+                            .finally(() => {
+                                running = false;
+                            });
+                    }
+                }, 1000);
+            "
+                                    class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs disabled:opacity-60">
+                                    <span x-show="!running">
+                                        Cải tạo đất
+                                    </span>
+
+                                    <span x-show="running" style="display: none">
+                                        Đang cải tạo…
+                                        <strong x-text="seconds"></strong>
+                                    </span>
+                                </button>
+                            </div>
+                        @elseif (!$this->currentBatch && $plot->status === 'available')
                             <button type="button" wire:click="openSowFor({{ $plot->id }})"
                                 class="bg-brand-700 hover:bg-brand-800 text-white font-bold py-2.5 px-4 rounded-xl text-xs shrink-0">
                                 <i class="fa-solid fa-seedling mr-1"></i>
@@ -335,7 +428,8 @@
 
                 @if ($batch)
                     <!-- TABS -->
-                    <div class="bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft overflow-hidden">
+                    <div
+                        class="bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft overflow-hidden">
                         <div
                             class="flex overflow-x-auto border-b border-gray-100 px-4 sm:px-6 pt-3 sm:pt-4 gap-6 sm:gap-8 text-xs sm:text-sm no-scrollbar whitespace-nowrap">
                             <button wire:click="$set('activeTab', 'timeline')"
@@ -428,7 +522,7 @@
                                             hàng
                                             riêng biệt quản lý theo chuẩn FEFO</p>
                                     </div>
-                                    @if ($this->canManageSelectedBatch)
+                                    @if ($this->canHarvestSelectedBatch)
                                         <button type="button" wire:click="openHarvestModal"
                                             class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-2xl transition flex items-center justify-center gap-2 cursor-pointer">
                                             <i class="fa-solid fa-basket-shopping"></i>
@@ -485,7 +579,7 @@
                                                 </tr>
                                             @empty
                                                 <tr>
-                                                    <td colspan="6" class="p-6 text-center text-xs text-gray-400">
+                                                    <td colspan="5" class="p-6 text-center text-xs text-gray-400">
                                                         Chưa có đợt thu hoạch nào cho lô canh tác này.
                                                     </td>
                                                 </tr>
@@ -515,16 +609,16 @@
                         Tạo Luống Đất
                     </h3>
 
-                    <button type="button" wire:click="closeCreatePlotModal" wire:loading.attr="disabled"
-                        wire:target="createPlot,closeCreatePlotModal" aria-label="Đóng"
-                        class="text-gray-400 hover:text-red-500 p-1 disabled:opacity-50">
+                    <button type="button" wire:click="closeCreatePlotModal" x-bind:disabled="confirmingFarm"
+                        wire:loading.attr="disabled" wire:target="requestCreatePlot,createPlot,closeCreatePlotModal"
+                        aria-label="Đóng" class="text-gray-400 hover:text-red-500 p-1 disabled:opacity-50">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
 
-                <form wire:submit="createPlot" novalidate class="space-y-4 text-xs sm:text-sm">
-                    <fieldset wire:loading.attr="disabled" wire:target="createPlot,closeCreatePlotModal"
-                        class="space-y-4">
+                <form wire:submit="requestCreatePlot" novalidate>
+                    <fieldset x-bind:disabled="confirmingFarm" wire:loading.attr="disabled"
+                        wire:target="requestCreatePlot,createPlot,closeCreatePlotModal" class="space-y-4">
                         <div>
                             <label for="new-plot-name" class="block font-bold text-gray-700 mb-1">
                                 Tên luống <span class="text-red-500">*</span>
@@ -558,23 +652,27 @@
                         </div>
 
                         <p class="text-xs text-gray-500">
-                            Luống đất mới tạo sẽ là Đất trống, cần cải tạo.
+                            Luống mới ở trạng thái Đất trống.
+                            Hãy bấm Cải tạo đất trước khi xuống giống.
                         </p>
 
                         <div class="flex justify-end gap-3 pt-3 border-t border-gray-100">
-                            <button type="button" wire:click="closeCreatePlotModal"
-                                class="px-4 py-2.5 rounded-xl border border-gray-200 font-bold text-gray-600">
+                            <button type="button" wire:click="closeCreatePlotModal" x-bind:disabled="confirmingFarm"
+                                wire:loading.attr="disabled"
+                                wire:target="requestCreatePlot,createPlot,closeCreatePlotModal"
+                                class="px-4 py-2.5 rounded-xl border border-gray-200 font-bold text-gray-600 disabled:opacity-50">
                                 Đóng
                             </button>
 
-                            <button type="submit"
+                            <button type="submit" x-bind:disabled="confirmingFarm" wire:loading.attr="disabled"
+                                wire:target="requestCreatePlot,createPlot"
                                 class="px-5 py-2.5 rounded-xl bg-brand-700 hover:bg-brand-800 text-white font-bold disabled:opacity-50">
-                                <span wire:loading.remove wire:target="createPlot">
+                                <span wire:loading.remove wire:target="requestCreatePlot,createPlot">
                                     Tạo luống
                                 </span>
 
-                                <span wire:loading wire:target="createPlot">
-                                    Đang tạo…
+                                <span wire:loading wire:target="requestCreatePlot,createPlot">
+                                    Đang xử lý…
                                 </span>
                             </button>
                         </div>
@@ -597,12 +695,20 @@
                         </p>
                     </div>
                     <button wire:click="closeSowModal" type="button" wire:target="requestSow,sow,closeSowModal"
+                        x-bind:disabled="confirmingFarm || uploadingFarmPhoto" wire:loading.attr="disabled"
                         class="text-gray-400 hover:text-red-500 p-1 cursor-pointer">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
 
-                <form wire:submit="requestSow" novalidate class="space-y-4 text-xs sm:text-sm">
+                <form wire:submit="requestSow" novalidate x-data="{ photoError: '' }"
+                    x-on:submit.capture="
+        if (uploadingFarmPhoto || photoError !== '') {
+            $event.preventDefault();
+            $event.stopImmediatePropagation();
+        }
+    "
+                    class="space-y-4 text-xs sm:text-sm">
                     <fieldset x-bind:disabled="confirmingFarm" wire:loading.attr="disabled"
                         wire:target="requestSow,sow" class="space-y-4">
                         @if ($errors->any())
@@ -619,7 +725,7 @@
                                 class="w-full bg-[#FAFAF8] border border-gray-200 rounded-2xl px-3.5 py-2.5 outline-none focus:border-brand-500 font-medium cursor-pointer">
                                 <option value="">-- Chọn giống --</option>
                                 @foreach ($this->products as $product)
-                                    <option value="{{ $product->id }}">{{ $product->name }} ({{ $product->unit }})
+                                    <option value="{{ $product->id }}">{{ $product->name }}
                                     </option>
                                 @endforeach
                             </select>
@@ -641,7 +747,7 @@
                         @if ($sowProductId !== null && $sowDate !== '')
                             <div class="rounded-2xl border border-brand-200 bg-brand-50 p-3">
                                 <p class="text-xs font-bold text-brand-800">
-                                    Số ngày thu hoạch tối thiểu
+                                    Số ngày thu hoạch tối thiểu của giống cây
                                 </p>
 
                                 @if ($this->sowMinGrowthDays !== null)
@@ -656,8 +762,62 @@
                             </div>
                         @endif
 
-                        <button type="submit" x-bind:disabled="confirmingFarm" wire:loading.attr="disabled"
-                            wire:target="requestSow,sow"
+                        @if ($this->sowMinManufacturedDate !== null)
+                            <div class="rounded-2xl border border-brand-200 bg-brand-50 p-3">
+                                <p class="text-xs font-bold text-brand-800">
+                                    Ngày thu hoạch tối thiểu
+                                </p>
+
+                                <p class="mt-1 text-lg font-extrabold text-brand-900">
+                                    {{ \Carbon\CarbonImmutable::parse($this->sowMinManufacturedDate)->format('d/m/Y') }}
+                                </p>
+                            </div>
+                        @endif
+
+                        <div>
+                            <label for="sow-photo" class="block font-bold text-gray-700 mb-1">
+                                Ảnh xuống giống <span class="text-red-500">*</span>
+                            </label>
+
+                            <p class="text-xs text-gray-500 mb-2">
+                                JPG, JPEG, PNG hoặc WEBP; tối đa 2 MB.
+                            </p>
+
+                            <input type="file" id="sow-photo" wire:model="sowPhoto"
+                                accept=".jpg,.jpeg,.png,.webp" required
+                                x-bind:disabled="confirmingFarm || uploadingFarmPhoto"
+                                x-on:change.capture="photoError = checkFarmPhoto($event, 2)"
+                                x-on:livewire-upload-error="
+            photoError = 'Tải ảnh thất bại. Vui lòng chọn lại ảnh.'
+        "
+                                x-on:livewire-upload-cancel="
+            photoError = 'Đã hủy tải ảnh. Vui lòng chọn lại ảnh.'
+        "
+                                class="w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-brand-50 file:text-brand-700 cursor-pointer">
+
+                            <p x-show="photoError !== ''" x-text="photoError" style="display: none" role="alert"
+                                class="text-xs text-red-600 mt-1"></p>
+
+                            <p wire:loading wire:target="sowPhoto" class="text-xs text-brand-700 mt-1">
+                                Đang tải ảnh lên…
+                            </p>
+
+                            @if (
+                                $sowPhoto instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile &&
+                                    $sowPhoto->isPreviewable() &&
+                                    !$errors->has('sowPhoto'))
+                                <img src="{{ $sowPhoto->temporaryUrl() }}" alt="Ảnh xuống giống đang chọn"
+                                    class="mt-2 w-24 h-24 object-cover rounded-xl border">
+                            @endif
+
+                            @error('sowPhoto')
+                                <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <button type="submit"
+                            x-bind:disabled="confirmingFarm || uploadingFarmPhoto || photoError !== ''"
+                            wire:loading.attr="disabled" wire:target="requestSow,sow,sowPhoto"
                             class="w-full mt-2 bg-brand-700 hover:bg-brand-800 disabled:opacity-60 text-white font-bold py-3 rounded-2xl text-xs sm:text-sm">
                             <span wire:loading.remove wire:target="requestSow,sow">
                                 Khởi Tạo Lô Canh Tác
@@ -824,8 +984,7 @@
                             <p class="text-xs text-gray-500 mb-2">
                                 JPG, JPEG, PNG hoặc WEBP; tối đa 2 MB.
                             </p>
-                            <input type="file" wire:model="logPhoto" accept="image/*"
-                                accept=".jpg,.jpeg,.png,.webp" required
+                            <input type="file" wire:model="logPhoto" accept=".jpg,.jpeg,.png,.webp" required
                                 x-bind:disabled="confirmingFarm || uploadingFarmPhoto"
                                 x-on:change.capture="photoError = checkFarmPhoto($event, 2)"
                                 x-on:livewire-upload-error="photoError = 'Tải ảnh thất bại. Vui lòng chọn lại ảnh.'"
@@ -908,7 +1067,7 @@
                                 <label class="block font-bold text-gray-700 mb-1">Ngày thu hái <span
                                         class="text-red-500">*</span></label>
                                 <input type="date" wire:model="harvestDate" max="{{ now()->toDateString() }}"
-                                    min="{{ $this->selectedBatch?->planted_date?->toDateString() }}"
+                                    min="{{ $this->selectedBatch?->min_manufactured_date?->toDateString() }}"
                                     class="w-full border rounded-2xl px-3 py-2.5">
                                 @error('harvestDate')
                                     <p class="text-[11px] text-red-600 font-bold mt-1">{{ $message }}</p>
@@ -944,8 +1103,19 @@
                             <p class="text-xs text-gray-500 mb-2">
                                 JPG, JPEG, PNG hoặc WEBP; tối đa 2 MB.
                             </p>
-                            <input type="file" wire:model="harvestPhoto" accept="image/*"
+                            <input type="file" wire:model="harvestPhoto" accept=".jpg,.jpeg,.png,.webp" required
+                                x-bind:disabled="confirmingFarm || uploadingFarmPhoto"
+                                x-on:change.capture="photoError = checkFarmPhoto($event, 2)"
+                                x-on:livewire-upload-error="
+        photoError = 'Tải ảnh thất bại. Vui lòng chọn lại ảnh.'
+    "
+                                x-on:livewire-upload-cancel="
+        photoError = 'Đã hủy tải ảnh. Vui lòng chọn lại ảnh.'
+    "
                                 class="w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-blue-50 file:text-blue-700 cursor-pointer">
+
+                            <p x-show="photoError !== ''" x-text="photoError" style="display: none" role="alert"
+                                class="mt-1 text-xs text-red-600"></p>
                             <div wire:loading wire:target="harvestPhoto" class="text-[11px] text-blue-600 mt-1">
                                 <i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang tải ảnh...
                             </div>
@@ -980,9 +1150,9 @@
                                 <div class="text-xs">
                                     <span class="font-bold text-red-800 block">Thu hoạch tổng kết (Kết thúc mùa
                                         vụ)</span>
-                                    <span class="text-[11px] text-gray-500 block mt-0.5 leading-relaxed">Luống đất sẽ
-                                        chuyển
-                                        thành Đất trống để chuẩn bị xuống giống mới.</span>
+                                    <span class="text-[11px] text-gray-500 block mt-0.5 leading-relaxed">
+                                        Luống chuyển sang trạng thái Cần cải tạo.
+                                        Cải tạo xong mới có thể xuống giống vụ mới.</span>
                                 </div>
                             </label>
                         </div>
@@ -1005,41 +1175,27 @@
             </div>
         </div>
     @endif
-    <!-- MODAL IN TEM QR -->
-    @if ($this->qrBatch)
-        @php
-            $qrBatch = $this->qrBatch;
-
-            // Query batch giữ tương thích với bộ quét QR ở trang chủ.
-            $traceUrl =
-                route('customer.traceability.detail', [
-                    'batch' => $qrBatch->batch_code,
-                ]) .
-                '?batch=' .
-                rawurlencode($qrBatch->batch_code);
-
-            $qrImageUrl =
-                'https://api.qrserver.com/v1/create-qr-code/?' .
-                http_build_query([
-                    'size' => '300x300',
-                    'data' => $traceUrl,
-                ]);
-        @endphp
-    @endif
 
     @script
         <script>
             let confirmationOpen = false;
 
             const operations = {
+                create: {
+                    title: 'Xác nhận tạo luống đất?',
+                    save: () => $wire.createPlot(),
+                },
+
                 sow: {
                     title: 'Xác nhận khởi tạo lô canh tác?',
                     save: () => $wire.sow(),
                 },
+
                 log: {
                     title: 'Xác nhận lưu nhật ký?',
                     save: () => $wire.saveLog(),
                 },
+
                 harvest: {
                     title: 'Xác nhận lưu thu hoạch và tạo lô kho?',
                     save: () => $wire.harvest(),

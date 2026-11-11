@@ -10,7 +10,7 @@
             </button>
 
             <h1 class="text-base sm:text-2xl font-extrabold text-gray-900 truncate">
-                Hồ Sơ Nhân Viên Nông Trại
+                Hồ Sơ {{ $roleTitle ?? 'Nhân Viên' }}
             </h1>
         </div>
 
@@ -151,7 +151,7 @@
                     <div class="flex justify-between gap-3">
                         <span class="text-gray-500">Vai trò:</span>
                         <span class="font-bold text-gray-800">
-                            {{ $user->role === 'farm_staff' ? 'Nhân viên Nông trại' : $user->role }}
+                            {{ $user->role === 'sales' ? 'Nhân viên Bán hàng' : ($user->role === 'farm_staff' ? 'Nhân viên Nông trại' : $user->role) }}
                         </span>
                     </div>
 
@@ -241,7 +241,7 @@
                     </div>
                 </form>
 
-                <form wire:submit="requestSavePassword" novalidate class="mt-8 space-y-5 text-sm">
+                <form wire:submit="requestSavePassword" autocomplete="off" novalidate class="mt-8 space-y-5 text-sm">
 
                     <h3 class="font-extrabold text-gray-900 border-b border-gray-100 pb-2 pt-2">
                         Thay Đổi Mật Khẩu
@@ -259,7 +259,7 @@
                         </label>
 
                         <input type="password" id="user-current-password" wire:model="current_password"
-                            autocomplete="current-password"
+                            autocomplete="off" data-lpignore="true"
                             class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-brand-500">
 
                         @error('current_password')
@@ -276,7 +276,7 @@
                             </label>
 
                             <input type="password" id="user-new-password" wire:model="new_password"
-                                autocomplete="new-password" minlength="8" maxlength="72"
+                                autocomplete="off" data-lpignore="true" minlength="8" maxlength="72"
                                 class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-brand-500">
 
                             @error('new_password')
@@ -292,7 +292,7 @@
                             </label>
 
                             <input type="password" id="user-confirm-password" wire:model="new_password_confirmation"
-                                autocomplete="new-password" minlength="8" maxlength="72"
+                                autocomplete="off" data-lpignore="true" minlength="8" maxlength="72"
                                 class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-brand-500">
 
                             @error('new_password_confirmation')
@@ -374,3 +374,5 @@
         </script>
     @endscript
 </div>
+<<<<<<< HEAD:resources/views/livewire/farm-staff/profile-manager.blade.php=======>>>>>>>
+    909e51ba9809b76457a6d00dfc53b9da5f5bb86b:resources/views/livewire/profile-manager.blade.php

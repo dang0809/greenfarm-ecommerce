@@ -1,5 +1,6 @@
 <?php
 use Illuminate\Support\Facades\Schedule;
+use App\Services\FarmPlotService;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductBatch;
@@ -26,10 +27,10 @@ Schedule::call(function () {
 
             // 3. Cập nhật trạng thái hủy
             $order->update([
-                'status'        => 'cancelled',
+                'status' => 'cancelled',
                 'cancel_reason' => 'Tự động hủy do quá hạn thanh toán 5 phút',
-                'cancelled_at'  => now(),
-                'cancelled_by'  => 'system',
+                'cancelled_at' => now(),
+                'cancelled_by' => 'system',
             ]);
 
             // Đồng bộ trạng thái giao dịch sang failed trong bảng payments
@@ -49,6 +50,7 @@ Schedule::call(function () {
             foreach ($order->items as $item) {
                 if ($item->batch_id) {
                     ProductBatch::where('id', $item->batch_id)->decrement('reserved_quantity', $item->quantity);
+                    ProductBatch::syncProductSalePrice($item->product_id);
                 }
             }
 
@@ -63,4 +65,47 @@ Schedule::call(function () {
 // Tự động quét và tạo đơn hàng cho các đợt giao rau VIP vào 06:00 sáng mỗi ngày
 Schedule::command('vip:generate-orders')
     ->dailyAt('06:00')
+    ->withoutOverlapping();
+
+// Tự động nâng mức giảm Flash Sale từ 30% lên 50% khi lô sang ngưỡng <= 1 ngày, hoặc tắt sale nếu hết hạn / ngừng bán
+Schedule::call(function () {
+    $saleBatches = ProductBatch::with('plantingBatch')
+        ->where('discount_percent', '>', 0)
+        ->get();
+
+    $affectedProductIds = [];
+
+    foreach ($saleBatches as $batch) {
+        if (!$batch->expiry_date) {
+            continue;
+        }
+
+        $daysLeft = today()->diffInDays($batch->expiry_date, false);
+        $newDiscount = $batch->discount_percent;
+
+        if ($batch->status !== 'active' || $daysLeft < 0) {
+            $newDiscount = 0;
+        } elseif ($daysLeft <= 1 && $batch->discount_percent < 50) {
+            $newDiscount = 50;
+        }
+
+        if ($newDiscount !== $batch->discount_percent) {
+            $batch->update(['discount_percent' => $newDiscount]);
+
+            if ($batch->plantingBatch?->product_id) {
+                $affectedProductIds[$batch->plantingBatch->product_id] = true;
+            }
+        }
+    }
+
+    foreach (array_keys($affectedProductIds) as $productId) {
+        ProductBatch::syncProductSalePrice($productId);
+    }
+})->name('sync-flash-sale-batches')->everyMinute();
+
+Schedule::call(function () {
+    app(FarmPlotService::class)->syncHarvestingStatuses();
+})
+    ->name('sync-planting-harvesting')
+    ->everyMinute()
     ->withoutOverlapping();

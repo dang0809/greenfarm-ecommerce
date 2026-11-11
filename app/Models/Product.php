@@ -85,4 +85,81 @@ class Product extends Model
     {
         return $this->hasMany(ProductImage::class);
     }
+
+    public function getPriceBreakdownForQuantity(int $quantity): array
+    {
+        $remainingNeeded = max(0, $quantity);
+        $total = 0;
+        $breakdown = [];
+
+        $availableBatches = $this->batches()
+            ->where('product_batches.status', 'active')
+            ->whereDate('product_batches.expiry_date', '>=', now())
+            ->whereRaw('product_batches.current_quantity > COALESCE(product_batches.reserved_quantity, 0)')
+            ->orderBy('product_batches.expiry_date', 'asc')
+            ->get();
+
+        foreach ($availableBatches as $batch) {
+            if ($remainingNeeded <= 0)
+                break;
+
+            $availableInBatch = max(0, (int) $batch->current_quantity - (int) ($batch->reserved_quantity ?? 0));
+            $take = min($availableInBatch, $remainingNeeded);
+            if ($take <= 0)
+                continue;
+
+            $isSale = $batch->discount_percent > 0;
+            $unitPrice = $isSale
+                ? round($this->price * (100 - $batch->discount_percent) / 100)
+                : (float) $this->price;
+
+            $subtotalBatch = $unitPrice * $take;
+            $total += $subtotalBatch;
+
+            $breakdown[] = [
+                'batch_id' => $batch->id,
+                'batch_code' => $batch->batch_code,
+                'quantity' => $take,
+                'unit_price' => $unitPrice,
+                'subtotal' => $subtotalBatch,
+                'is_sale' => $isSale,
+                'discount_percent' => $batch->discount_percent,
+            ];
+
+            $remainingNeeded -= $take;
+        }
+
+        // Dự phòng nếu thiếu lô, phần còn lại tính theo giá gốc
+        if ($remainingNeeded > 0) {
+            $unitPrice = (float) $this->price;
+            $subtotalExtra = $unitPrice * $remainingNeeded;
+            $total += $subtotalExtra;
+            $breakdown[] = [
+                'batch_id' => null,
+                'batch_code' => null,
+                'quantity' => $remainingNeeded,
+                'unit_price' => $unitPrice,
+                'subtotal' => $subtotalExtra,
+                'is_sale' => false,
+                'discount_percent' => 0,
+            ];
+        }
+
+        // Gộp các phần có cùng đơn giá và cùng mức giảm giá để hiển thị gọn gàng trên Giỏ hàng & Thanh toán
+        $mergedBreakdown = [];
+        foreach ($breakdown as $item) {
+            $key = $item['unit_price'] . '_' . ($item['discount_percent'] ?? 0);
+            if (isset($mergedBreakdown[$key])) {
+                $mergedBreakdown[$key]['quantity'] += $item['quantity'];
+                $mergedBreakdown[$key]['subtotal'] += $item['subtotal'];
+            } else {
+                $mergedBreakdown[$key] = $item;
+            }
+        }
+
+        return [
+            'total' => $total,
+            'breakdown' => array_values($mergedBreakdown),
+        ];
+    }
 }

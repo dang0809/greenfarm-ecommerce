@@ -21,13 +21,27 @@ use Throwable;
 
 class FarmPlotService
 {
-    public function createPlot(array $data, User $staff): FarmPlot
-    {
-        $this->requireStaff($staff);
 
+    public function syncHarvestingStatuses(): int
+    {
+        return PlantingBatch::query()
+            ->where('status', 'planting')
+            ->whereNotNull('min_manufactured_date')
+            ->where(
+                'min_manufactured_date',
+                '<=',
+                today()->toDateString()
+            )
+            ->update([
+                'status' => 'harvesting',
+                'updated_at' => now(),
+            ]);
+    }
+    public function validatePlotData(array $data): array
+    {
         $area = $data['area'] ?? null;
 
-        $validated = $this->validateData([
+        return $this->validateData([
             'newPlotName' => trim((string) ($data['name'] ?? '')),
             'newPlotArea' => $area === '' ? null : $area,
         ], [
@@ -44,21 +58,73 @@ class FarmPlotService
                 'max:9999999999.99',
             ],
         ]);
+    }
+    public function createPlot(array $data, User $staff): FarmPlot
+    {
+        $this->requireStaff($staff);
+
+        $validated = $this->validatePlotData($data);
 
         return FarmPlot::create([
             'name' => $validated['newPlotName'],
-            'area' => $validated['newPlotArea'] ?? null,
-            'status' => 'available',
+            'area' => $validated['newPlotArea'],
+            // Luống mới phải cải tạo trước khi trồng.
+            'status' => 'empty',
         ]);
     }
 
-    public function sow(FarmPlot $plot, ?int $productId, string $plantedDate, User $staff): PlantingBatch
-    {
-        $staff = $this->requireStaff($staff);
+    public function completeMaintenance(
+        FarmPlot $plot,
+        User $staff
+    ): FarmPlot {
+        $this->requireStaff($staff);
 
-        $validated = $this->validateData([
+        return DB::transaction(function () use ($plot) {
+            $lockedPlot = FarmPlot::query()
+                ->lockForUpdate()
+                ->findOrFail($plot->id);
+
+            if (
+                !in_array(
+                    $lockedPlot->status,
+                    ['empty', 'maintenance'],
+                    true
+                )
+            ) {
+                $this->reject(
+                    'plot',
+                    'Luống hiện không ở trạng thái cần cải tạo.'
+                );
+            }
+
+            $hasActiveBatch = $lockedPlot->plantingBatches()
+                ->whereIn('status', ['planting', 'harvesting'])
+                ->exists();
+
+            if ($hasActiveBatch) {
+                $this->reject(
+                    'plot',
+                    'Luống vẫn còn vụ đang canh tác.'
+                );
+            }
+
+            $lockedPlot->update([
+                'status' => 'available',
+            ]);
+
+            return $lockedPlot->fresh();
+        });
+    }
+
+    public function validateSowData(
+        ?int $productId,
+        string $plantedDate,
+        ?UploadedFile $photo
+    ): array {
+        return $this->validateData([
             'sowProductId' => $productId,
             'sowDate' => $plantedDate,
+            'sowPhoto' => $photo,
         ], [
             'sowProductId' => ['required', 'integer'],
             'sowDate' => [
@@ -66,93 +132,137 @@ class FarmPlotService
                 'date_format:Y-m-d',
                 'before_or_equal:today',
             ],
+            'sowPhoto' => [
+                'bail',
+                'required',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:2048',
+            ],
         ]);
+    }
 
-        return DB::transaction(function () use ($plot, $validated, $staff) {
-            $lockedPlot = FarmPlot::whereKey($plot->id)
-                ->lockForUpdate()
-                ->firstOrFail();
+    public function sow(FarmPlot $plot, ?int $productId, string $plantedDate, ?UploadedFile $photo, User $staff): PlantingBatch
+    {
+        $staff = $this->requireStaff($staff);
 
-            if (
-                !in_array(
-                    $lockedPlot->status,
-                    ['available', 'active'],
-                    true
+        // Kiểm tra lại khi người dùng xác nhận lưu.
+        $validated = $this->validateSowData(
+            $productId,
+            $plantedDate,
+            $photo
+        );
+
+        $imagePath = null;
+
+        try {
+            return DB::transaction(function () use ($plot, $validated, $photo, $staff, &$imagePath) {
+                $lockedPlot = FarmPlot::whereKey($plot->id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                if ($lockedPlot->status !== 'available') {
+                    $this->reject(
+                        'sowProductId',
+                        'Luống chưa sẵn sàng để xuống giống.'
+                    );
+                }
+
+                $occupying = $lockedPlot->plantingBatches()
+                    ->whereIn('status', ['planting', 'harvesting'])
+                    ->lockForUpdate()
+                    ->get(['id']);
+
+                if ($occupying->isNotEmpty()) {
+                    $this->reject(
+                        'sowProductId',
+                        'Luống đang có cây trồng. Hãy kết thúc vụ hiện tại trước.'
+                    );
+                }
+
+                $product = Product::whereKey($validated['sowProductId'])
+                    ->where('status', 'active')
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$product) {
+                    $this->reject(
+                        'sowProductId',
+                        'Giống trồng không tồn tại hoặc đã ngừng sử dụng.'
+                    );
+                }
+
+                $lastHarvestDate = ProductBatch::whereHas(
+                    'plantingBatch',
+                    fn($query) => $query->where(
+                        'farm_plot_id',
+                        $lockedPlot->id
+                    )
+                )->max('manufactured_date');
+
+                if (
+                    $lastHarvestDate
+                    && $validated['sowDate'] < $lastHarvestDate
+                ) {
+                    $this->reject(
+                        'sowDate',
+                        'Ngày xuống giống không được trước lần thu hoạch gần nhất của luống.'
+                    );
+                }
+
+                $growthDays = (int) $product->min_growth_days;
+
+                if ($growthDays < 1) {
+                    $this->reject(
+                        'sowProductId',
+                        'Giống cây chưa có số ngày thu hoạch tối thiểu hợp lệ.'
+                    );
+                }
+
+                $minManufacturedDate = CarbonImmutable::createFromFormat(
+                    '!Y-m-d',
+                    $validated['sowDate'],
+                    config('app.timezone')
                 )
-            ) {
-                $this->reject(
-                    'sowProductId',
-                    'Luống chưa sẵn sàng để xuống giống.'
+                    ->addDays($growthDays)
+                    ->toDateString();
+
+                // Lưu ảnh thật trước khi tạo nhật ký.
+                $this->savePhoto($photo, $imagePath);
+
+                $batch = PlantingBatch::create([
+                    'farm_plot_id' => $lockedPlot->id,
+                    'product_id' => $product->id,
+                    'planting_code' => 'TRONG-'
+                        . $lockedPlot->id . '-'
+                        . now()->format('Ymd') . '-'
+                        . strtoupper((string) Str::uuid()),
+                    'planted_date' => $validated['sowDate'],
+                    'min_manufactured_date' => $minManufacturedDate,
+                    'status' => 'planting',
+                ]);
+
+                $this->appendEvent(
+                    $batch,
+                    'Xuống giống',
+                    "Xuống giống {$product->name} tại {$lockedPlot->name}. "
+                    . "Ngày xuống giống: {$validated['sowDate']}.",
+                    $imagePath,
+                    $staff
                 );
-            }
 
-            $occupying = $lockedPlot->plantingBatches()
-                ->whereIn('status', ['planting', 'harvesting'])
-                ->lockForUpdate()
-                ->get(['id']);
+                $lockedPlot->update([
+                    'status' => 'in-progress',
+                ]);
 
-            if ($occupying->isNotEmpty()) {
-                $this->reject(
-                    'sowProductId',
-                    'Luống đang có cây trồng. Hãy kết thúc vụ hiện tại trước.'
-                );
-            }
+                return $batch;
+            });
+        } catch (Throwable $exception) {
+            // Transaction rollback thì dọn ảnh vừa lưu.
+            $this->cleanupPhoto($imagePath);
 
-            $product = Product::whereKey($validated['sowProductId'])
-                ->where('status', 'active')
-                ->lockForUpdate()
-                ->first();
-
-            if (!$product) {
-                $this->reject(
-                    'sowProductId',
-                    'Giống trồng không tồn tại hoặc đã ngừng sử dụng.'
-                );
-            }
-
-            $lastHarvestDate = ProductBatch::whereHas(
-                'plantingBatch',
-                fn($query) => $query->where(
-                    'farm_plot_id',
-                    $lockedPlot->id
-                )
-            )->max('manufactured_date');
-
-            if (
-                $lastHarvestDate
-                && $validated['sowDate'] < $lastHarvestDate
-            ) {
-                $this->reject(
-                    'sowDate',
-                    'Ngày xuống giống không được trước lần thu hoạch gần nhất của luống.'
-                );
-            }
-
-            $batch = PlantingBatch::create([
-                'farm_plot_id' => $lockedPlot->id,
-                'product_id' => $product->id,
-                'planting_code' => 'TRONG-'
-                    . $lockedPlot->id . '-'
-                    . now()->format('Ymd') . '-'
-                    . strtoupper((string) Str::uuid()),
-                'planted_date' => $validated['sowDate'],
-                'status' => 'planting',
-            ]);
-
-            $this->appendEvent(
-                $batch,
-                'Xuống giống',
-                "Xuống giống {$product->name} tại {$lockedPlot->name}. "
-                . "Ngày xuống giống: {$validated['sowDate']}.",
-                null,
-                $staff
-            );
-
-            $lockedPlot->update([
-                'status' => 'in-progress',
-            ]);
-            return $batch;
-        });
+            throw $exception;
+        }
     }
 
     public function validateLogData(
@@ -346,6 +456,11 @@ class FarmPlotService
             );
         }
 
+        $this->requireHarvestable(
+            $batch,
+            $validated['harvestDate']
+        );
+
         return $validated;
     }
 
@@ -357,7 +472,7 @@ class FarmPlotService
     ): TraceabilityEvent {
         $staff = $this->requireStaff($staff);
 
-        
+
 
         $imagePath = null;
 
@@ -402,6 +517,10 @@ class FarmPlotService
                 $lockedBatch = $this->lockBatch($batch->id);
 
                 $this->requireOpenBatch($lockedBatch, 'harvestQty');
+                $this->requireHarvestable(
+                    $lockedBatch,
+                    $validated['harvestDate']
+                );
 
                 if (
                     $lockedBatch->planted_date
@@ -470,10 +589,10 @@ class FarmPlotService
                 ]);
 
                 FarmPlot::whereKey($lockedBatch->farm_plot_id)
-                    ->whereIn('status', ['available', 'active', 'in-progress'])
+                    ->whereIn('status', ['available', 'in-progress'])
                     ->update([
                         'status' => $validated['harvestMode'] === 'finish'
-                            ? 'available'
+                            ? 'maintenance'
                             : 'in-progress',
                     ]);
 
@@ -502,6 +621,41 @@ class FarmPlotService
             ->where('farm_plot_id', $plotId)
             ->lockForUpdate()
             ->firstOrFail();
+    }
+
+    private function requireHarvestable(
+        PlantingBatch $batch,
+        string $harvestDate
+    ): void {
+        if ($batch->status !== 'harvesting') {
+            $this->reject(
+                'harvestDate',
+                'Vụ trồng chưa ở giai đoạn thu hoạch.'
+            );
+        }
+
+        $minimum = $batch->min_manufactured_date?->toDateString();
+
+        if ($minimum === null) {
+            $this->reject(
+                'harvestDate',
+                'Vụ trồng chưa có ngày thu hoạch tối thiểu.'
+            );
+        }
+
+        if ($minimum > today()->toDateString()) {
+            $this->reject(
+                'harvestDate',
+                'Vụ trồng chưa đến ngày thu hoạch tối thiểu.'
+            );
+        }
+
+        if ($harvestDate < $minimum) {
+            $this->reject(
+                'harvestDate',
+                'Ngày thu hoạch không được trước ngày thu hoạch tối thiểu.'
+            );
+        }
     }
 
     private function requireOpenBatch(
@@ -626,23 +780,32 @@ class FarmPlotService
             'max.string' => ':attribute tối đa :max ký tự.',
             'max.file' => ':attribute tối đa :max KB.',
             'image' => ':attribute phải là hình ảnh.',
-            'mimes' => ':attribute chỉ nhận JPG, PNG hoặc WEBP.',
+            'mimes' => ':attribute chỉ nhận JPG, JPEG, PNG hoặc WEBP.',
             'in' => ':attribute không hợp lệ.',
+
             'newPlotName.string' => 'Tên luống không hợp lệ.',
             'newPlotArea.numeric' => 'Diện tích phải là số.',
             'newPlotArea.decimal' => 'Diện tích chỉ nhận tối đa hai chữ số thập phân.',
             'newPlotArea.gt' => 'Diện tích phải lớn hơn 0.',
             'newPlotArea.max' => 'Diện tích vượt quá giới hạn cho phép.',
+
+            'sowPhoto.required' => 'Vui lòng tải ảnh xuống giống.',
+            'sowPhoto.image' => 'Tệp tải lên phải là ảnh.',
+            'sowPhoto.mimes' => 'Chỉ nhận JPG, JPEG, PNG hoặc WEBP.',
+            'sowPhoto.max' => 'Ảnh xuống giống tối đa 2 MB.',
+
+            'logPhoto.required' => 'Vui lòng tải ảnh minh chứng nhật ký.',
+            'logPhoto.max' => 'Ảnh nhật ký tối đa 2 MB.',
+
+            'harvestPhoto.required' => 'Vui lòng tải ảnh thu hoạch thực tế.',
+            'harvestPhoto.max' => 'Ảnh thu hoạch tối đa 2 MB.',
         ], [
             'sowProductId' => 'Giống trồng',
             'sowDate' => 'Ngày xuống giống',
+            'sowPhoto' => 'Ảnh xuống giống',
             'logName' => 'Tên hoạt động',
             'logDesc' => 'Mô tả nhật ký',
             'logPhoto' => 'Ảnh nhật ký',
-            'logPhoto.required' => 'Vui lòng tải ảnh minh chứng nhật ký.',
-            'logPhoto.max' => 'Ảnh nhật ký tối đa 2 MB.',
-            'harvestPhoto.required' => 'Vui lòng tải ảnh thu hoạch thực tế.',
-            'harvestPhoto.max' => 'Ảnh thu hoạch tối đa 4 MB.',
             'harvestDate' => 'Ngày thu hoạch',
             'harvestExpiry' => 'Hạn sử dụng',
             'harvestQty' => 'Sản lượng',

@@ -1,6 +1,6 @@
 <div>
     <!-- MAIN CONTENT -->
-    <main class="pt-8 pb-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <main class="pt-28 pb-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <div class="pb-6 border-b border-gray-200/80 mb-8">
             <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Thanh Toán Đơn Hàng</h1>
@@ -151,7 +151,9 @@
                                         : 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?w=300';
 
                                     $unitPrice = $product->sale_price ?? $product->price;
-                                    $itemSubtotal = $unitPrice * $item->quantity;
+                                    $priceData = $product->getPriceBreakdownForQuantity((int) $item->quantity);
+                                    $itemSubtotal = $priceData['total'];
+                                    $hasSplit = count($priceData['breakdown']) > 1;
                                 @endphp
 
                                 <div class="flex items-center justify-between gap-3">
@@ -161,9 +163,22 @@
                                              class="w-12 h-12 rounded-xl object-cover border border-gray-100 shrink-0">
                                         <div class="min-w-0 flex-1">
                                             <p class="text-xs font-bold text-gray-900 truncate">{{ $product->name }}</p>
-                                            <p class="text-[11px] text-gray-400">
-                                                {{ number_format($unitPrice) }}đ × {{ $item->quantity + 0 }}
-                                            </p>
+                                            @if($hasSplit)
+                                                <div class="text-[11px] text-gray-500 font-medium space-y-0.5 mt-0.5">
+                                                    @foreach($priceData['breakdown'] as $b)
+                                                        <div class="flex items-center gap-1">
+                                                            <span class="{{ $b['is_sale'] ? 'text-rose-600 font-bold' : 'text-gray-600' }}">
+                                                                {{ $b['quantity'] + 0 }}{{ $product->unit ?? 'kg' }} {{ $b['is_sale'] ? '(-' . $b['discount_percent'] . '%)' : '(Gốc)' }}
+                                                            </span>
+                                                            <span class="text-gray-400">× {{ number_format($b['unit_price']) }}đ</span>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            @else
+                                                <p class="text-[11px] text-gray-400">
+                                                    {{ number_format($priceData['breakdown'][0]['unit_price'] ?? $unitPrice) }}đ × {{ $item->quantity + 0 }}
+                                                </p>
+                                            @endif
                                         </div>
                                     </div>
                                     <span class="text-xs font-bold text-gray-800 shrink-0">
@@ -301,36 +316,4 @@
         :addresses="$addresses" 
         :selected-id="$selectedAddressId" 
         :max-distance="$maxDistance" />
-
-    <!-- STICKY BAR ĐẶT HÀNG MOBILE (< lg) -->
-    <div class="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-gray-200 p-4 shadow-xl">
-        <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
-            <div>
-                <span class="block text-[10px] text-gray-400">Tổng thanh toán:</span>
-                <span class="text-lg font-black text-brand-700 leading-none">{{ number_format($totalAmount) }}đ</span>
-                <span class="block text-[10px] text-brand-600 font-semibold mt-0.5">+{{ number_format($earnedPoints) }} điểm tích lũy</span>
-            </div>
-            
-            <button type="button" 
-                    wire:click="placeOrder" 
-                    wire:loading.attr="disabled"
-                    @disabled(!$address || $isDistanceExceeded || $isDistanceUnknown)
-                    class="bg-brand-600 hover:bg-brand-700 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shadow-md active:scale-95 transition-all cursor-pointer">
-                @if (!$address)
-                    <i class="fa-solid fa-location-dot text-[10px]"></i>
-                    <span>Chưa chọn địa chỉ</span>
-                @elseif ($isDistanceUnknown)
-                    <i class="fa-solid fa-triangle-exclamation text-[10px] text-amber-400"></i>
-                    <span>Chưa có vị trí</span>
-                @elseif ($isDistanceExceeded)
-                    <i class="fa-solid fa-ban text-[10px]"></i>
-                    <span>Vượt bán kính {{ $maxDistance }}km</span>
-                @else
-                    <i class="fa-solid fa-lock text-[10px]" wire:loading.remove></i>
-                    <i class="fa-solid fa-spinner fa-spin text-[10px]" wire:loading></i>
-                    <span>Thanh toán PayOS</span>
-                @endif
-            </button>
-        </div>
-    </div>
 </div>

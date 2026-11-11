@@ -9,14 +9,15 @@ use Livewire\Attributes\Url;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
+use App\Livewire\Traits\WithVietnamBanks;
 use App\Models\Address;
 use App\Models\SystemSetting;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Cache;
 #[Title('Tài Khoản Của Tôi | Nông Trại Đất Lành')]
 class ProfilePage extends Component
 {
-    use WithFileUploads;
+    use WithFileUploads, WithVietnamBanks;
 
     #[Url(as: 'tab')]
     public string $activeTab = 'info';
@@ -26,6 +27,7 @@ class ProfilePage extends Component
     public string $phone = '';
     public string $email = '';
     public $newAvatar = null;
+    public int $avatarInputKey = 0;
 
     // 2. Sổ địa chỉ
     public bool $showAddressForm = false;
@@ -68,27 +70,87 @@ class ProfilePage extends Component
         $this->activeTab = $tab;
     }
 
-    // TỰ ĐỘNG LƯU AVATAR NGAY KHI CHỌN FILE
-    public function updatedNewAvatar()
+    /**
+     * Validate ảnh đại diện tạm khi người dùng vừa chọn (chưa lưu ngay, chờ người dùng xác nhận)
+     */
+    public function updatedNewAvatar(): void
     {
-        $this->validate([
-            'newAvatar' => ['required', 'image', 'max:2048'],
-        ], [
-            'newAvatar.image' => 'Tệp tải lên phải là hình ảnh (jpg, png, jpeg...).',
-            'newAvatar.max'   => 'Dung lượng ảnh không được vượt quá 2MB.',
-        ]);
+        if (!$this->newAvatar) {
+            return;
+        }
+
+        try {
+            $this->validateAvatar();
+        } catch (ValidationException $e) {
+            $this->reset('newAvatar');
+            $this->avatarInputKey++;
+            throw $e;
+        }
+    }
+
+    /**
+     * Hủy ảnh đại diện đang xem trước
+     */
+    public function cancelAvatar(): void
+    {
+        $this->reset('newAvatar');
+        $this->avatarInputKey++;
+        $this->resetValidation('newAvatar');
+    }
+
+    /**
+     * Xác nhận và tải ảnh đại diện mới lên Cloudflare R2
+     */
+    public function saveAvatar(): void
+    {
+        if (!$this->newAvatar) {
+            return;
+        }
+
+        $this->validateAvatar();
 
         $user = Auth::user();
-        $avatarPath = $this->newAvatar->store('avatars', 'public');
-        
+        $oldAvatar = $user->avatar;
+
+        $avatarPath = $this->newAvatar->store("avatars/customer/{$user->id}", 'r2');
+        if (!$avatarPath) {
+            $this->dispatch('show-toast', type: 'error', message: 'Tải ảnh đại diện lên Cloudflare R2 thất bại, vui lòng thử lại!');
+            return;
+        }
+
         $user->update([
             'avatar' => $avatarPath,
         ]);
 
+        // Xóa ảnh cũ trên R2 nếu là file do người dùng tải lên (không phải URL seed)
+        if ($oldAvatar && !str_starts_with($oldAvatar, 'http') && $oldAvatar !== $avatarPath) {
+            try {
+                if (Storage::disk('r2')->exists($oldAvatar)) {
+                    Storage::disk('r2')->delete($oldAvatar);
+                }
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
         $this->reset('newAvatar');
+        $this->avatarInputKey++;
+        $this->resetValidation('newAvatar');
 
         $this->dispatch('profile-updated');
         $this->dispatch('show-toast', type: 'success', message: 'Đã đổi ảnh đại diện thành công!');
+    }
+
+    protected function validateAvatar(): void
+    {
+        $this->validate([
+            'newAvatar' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ], [
+            'newAvatar.required' => 'Vui lòng chọn ảnh đại diện.',
+            'newAvatar.image'    => 'Tệp tải lên phải là hình ảnh hợp lệ.',
+            'newAvatar.mimes'    => 'Chỉ chấp nhận ảnh JPG, JPEG, PNG hoặc WEBP.',
+            'newAvatar.max'      => 'Dung lượng ảnh không được vượt quá 2MB.',
+        ]);
     }
 
     // Cập nhật Họ tên & Số điện thoại
@@ -325,21 +387,7 @@ class ProfilePage extends Component
             $this->dispatch('show-toast', type: 'info', message: 'Đã xóa địa chỉ thành công.');
         }
     }
-    public function banks()
-    {
-    return Cache::remember('vietnam_banks_list', 86400, function () {
-        try {
-            $response = Http::timeout(3)->get('https://api.vietqr.io/v2/banks');
-            if ($response->successful()) {
-                return $response->json()['data'] ?? [];
-            }
-        } catch (\Exception $e) {
-            \Log::warning('Không thể lấy danh sách ngân hàng VietQR: ' . $e->getMessage());
-        }
 
-        return [];
-    });
-    }
     public function render()
     {
         $user = Auth::user();
