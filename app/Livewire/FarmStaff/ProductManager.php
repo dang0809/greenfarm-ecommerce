@@ -7,7 +7,6 @@ use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -372,57 +371,6 @@ class ProductManager extends Component
         return Str::startsWith($path, ['http://', 'https://'])
             ? $path
             : Storage::disk('public')->url(ltrim($path, '/'));
-    }
-
-    public static function withTotalStock(Builder $query): Builder
-    {
-        return $query->withSum([
-            'batches as total_stock' => function (Builder $query) {
-                $query
-                    ->where('product_batches.status', 'active')
-                    ->whereRaw(
-                        'product_batches.current_quantity
-                        > COALESCE(product_batches.reserved_quantity, 0)'
-                    )
-                    ->whereDate(
-                        'product_batches.expiry_date',
-                        '>=',
-                        today()
-                    );
-            },
-        ], DB::raw(
-            'current_quantity - COALESCE(reserved_quantity, 0)'
-        ));
-    }
-
-    public static function getTotalStock(?Product $product): int
-    {
-        if ($product === null) {
-            return 0;
-        }
-
-        $attributes = $product->getAttributes();
-
-        // Đã có tổng tồn từ query: sử dụng ngay, không query thêm.
-        if (array_key_exists('total_stock', $attributes)) {
-            return (int) ($attributes['total_stock'] ?? 0);
-        }
-
-        // Sản phẩm được lấy riêng, chưa có tổng tồn.
-        return (int) $product->batches()
-            ->where('product_batches.status', 'active')
-            ->whereRaw(
-                'product_batches.current_quantity
-                > COALESCE(product_batches.reserved_quantity, 0)'
-            )
-            ->whereDate(
-                'product_batches.expiry_date',
-                '>=',
-                today()
-            )
-            ->sum(DB::raw(
-                'current_quantity - COALESCE(reserved_quantity, 0)'
-            ));
     }
 
     private function validatedData(): array
@@ -839,9 +787,8 @@ class ProductManager extends Component
     {
         $this->staff();
 
-        $products = self::withTotalStock(
-            Product::with(['category', 'productImages'])
-        )
+        $products = Product::with(['category', 'productImages'])
+            ->withTotalStock()
             ->when(
                 trim($this->search) !== '',
                 function ($query) {
@@ -884,7 +831,7 @@ class ProductManager extends Component
         $productStocks = $products
             ->getCollection()
             ->mapWithKeys(fn (Product $product) => [
-                $product->id => self::getTotalStock($product),
+                $product->id => (int) ($product->total_stock ?? 0),
             ])
             ->all();
 

@@ -25,7 +25,6 @@ return new class extends Migration
           ->cascadeOnDelete();                                                 // FK + UK (1 lần mua = 1 review)
     $table->tinyInteger('rating')->default(5)->index();                       // 1→5 sao
     $table->text('content')->nullable();
-    $table->string('status', 50)->default('approved')->index();               // approved|hidden
     $table->timestamps();
 });
 

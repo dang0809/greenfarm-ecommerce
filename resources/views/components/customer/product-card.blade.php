@@ -8,7 +8,7 @@ $primaryImage = $rawImage
 ? (str_starts_with($rawImage, 'http') ? $rawImage : asset('storage/' . $rawImage))
 : 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?w=600';
 
-$stock = \App\Livewire\FarmStaff\ProductManager::getTotalStock($product);
+$stock = (int) ($product->total_stock ?? 0);
 $isOutOfStock = $stock <= 0; @endphp <div
     class="bg-white rounded-3xl border border-gray-100 hover:border-brand-200 hover:shadow-lg transition-all duration-300 group flex flex-col relative overflow-hidden">
 
