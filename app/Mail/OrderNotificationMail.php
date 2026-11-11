@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\Order;
+use App\Models\SystemSetting;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -50,8 +51,9 @@ class OrderNotificationMail extends Mailable implements ShouldQueue
         return new Content(
             view: 'emails.order_notification',
             with: [
-                'order' => $this->order,
-                'type'  => $this->type,
+                'order'   => $this->order,
+                'type'    => $this->type,
+                'contact' => SystemSetting::contactSettings(),
             ],
         );
     }

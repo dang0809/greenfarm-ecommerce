@@ -192,8 +192,8 @@
                     <tr>
                         <td style="background-color: #f9fafb; padding: 20px 32px; text-align: center; border-top: 1px solid #e5e7eb; font-size: 11px; color: #9ca3af;">
                             <p style="margin: 0 0 4px; font-weight: 600; color: #6b7280;">NÔNG TRẠI ĐẤT LÀNH - GREENFARM E-COMMERCE</p>
-                            <p style="margin: 0 0 4px;">Thôn 3, Xã Đạ Ròn, Huyện Đơn Dương, Tỉnh Lâm Đồng</p>
-                            <p style="margin: 0;">Hotline hỗ trợ: <strong style="color: #16a34a;">0987.654.321</strong> (8h00 - 18h00 hàng ngày)</p>
+                            <p style="margin: 0 0 4px;">{{ $contact['farm_address'] ?? 'Thôn 3, Xã Đạ Ròn, Huyện Đơn Dương, Tỉnh Lâm Đồng' }}</p>
+                            <p style="margin: 0;">Hotline hỗ trợ: <strong style="color: #16a34a;">{{ $contact['hotline'] ?? '0987.654.321' }}</strong> (8h00 - 18h00 hàng ngày)</p>
                         </td>
                     </tr>
 

@@ -360,7 +360,7 @@
                         </span>
                         <p class="font-bold text-sm text-white">2 ngày cố định mỗi tuần (Định lượng: {{ number_format($maxWeightTarget, 1) }} kg/đợt)</p>
                         <p class="text-brand-100/90 leading-relaxed">
-                            Cần dời ngày hoặc hỗ trợ khẩn cấp? Vui lòng liên hệ Hotline CSKH VIP độc quyền: <b class="text-amber-300 font-mono">0987.654.321</b>
+                            Cần dời ngày hoặc hỗ trợ khẩn cấp? Vui lòng liên hệ Hotline CSKH VIP độc quyền: <b class="text-amber-300 font-mono">{{ $hotline }}</b>
                         </p>
                     </div>
                 </div>

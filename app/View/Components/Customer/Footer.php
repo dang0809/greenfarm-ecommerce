@@ -2,6 +2,7 @@
 
 namespace App\View\Components\Customer;
 
+use App\Models\SystemSetting;
 use Closure;
 use Illuminate\Contracts\View\View;
 use Illuminate\View\Component;
@@ -21,6 +22,8 @@ class Footer extends Component
      */
     public function render(): View|Closure|string
     {
-        return view('components.customer.footer');
+        return view('components.customer.footer', [
+            'contact' => SystemSetting::contactSettings(),
+        ]);
     }
 }

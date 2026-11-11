@@ -619,8 +619,8 @@
                 <div class="flex justify-between items-start border-b pb-4 mb-4">
                     <div>
                         <h2 class="text-lg font-black text-emerald-800">NÔNG TRẠI ĐẤT LÀNH</h2>
-                        <p class="text-[10px] text-gray-500 font-mono">Thung lũng Đạ Ròn, Đơn Dương, Lâm Đồng</p>
-                        <p class="text-[10px] text-gray-500">Hotline: 0987.654.321</p>
+                        <p class="text-[10px] text-gray-500 font-mono">{{ $contact['farm_address'] }}</p>
+                        <p class="text-[10px] text-gray-500">Hotline: {{ $contact['hotline'] }}</p>
                     </div>
                     <div class="text-right">
                         <h3 class="text-base font-black font-mono">#{{ ltrim($selectedOrder->order_code, '#') }}</h3>

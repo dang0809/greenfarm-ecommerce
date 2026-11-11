@@ -19,15 +19,15 @@
                 <ul class="space-y-3.5 text-sm text-gray-500">
                     <li class="flex items-start gap-3">
                         <i class="fa-solid fa-location-dot mt-1 text-gray-400"></i>
-                        <span>Thôn 3, Xã Đạ Ròn, Huyện Đơn Dương, Tỉnh Lâm Đồng</span>
+                        <span>{{ $contact['farm_address'] }}</span>
                     </li>
                     <li class="flex items-center gap-3">
                         <i class="fa-solid fa-phone text-gray-400"></i>
-                        <span>Hotline: 0987.654.321 (8h - 18h)</span>
+                        <span>Hotline: {{ $contact['hotline'] }} (8h - 18h)</span>
                     </li>
                     <li class="flex items-center gap-3">
                         <i class="fa-solid fa-envelope text-gray-400"></i>
-                        <span>lienhe@datlanhfarm.vn</span>
+                        <span>{{ $contact['email'] }}</span>
                     </li>
                 </ul>
             </div>
