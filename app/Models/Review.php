@@ -17,7 +17,6 @@ class Review extends Model
         'order_item_id',
         'rating',
         'content',
-        'status',
     ];
 
     protected function casts(): array

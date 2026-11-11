@@ -105,7 +105,7 @@ class Product extends Model
         return $query->withSum(['batches as total_stock' => function ($q) {
             $q->where('product_batches.status', 'active')
               ->whereRaw('product_batches.current_quantity > COALESCE(product_batches.reserved_quantity, 0)')
-              ->whereDate('product_batches.expiry_date', '>=', now());
+              ->whereDate('product_batches.expiry_date', '>=', today());
         }], DB::raw('current_quantity - COALESCE(reserved_quantity, 0)'));
     }
 
@@ -122,7 +122,7 @@ class Product extends Model
         return (int) $this->batches()
             ->where('product_batches.status', 'active')
             ->whereRaw('product_batches.current_quantity > COALESCE(product_batches.reserved_quantity, 0)')
-            ->whereDate('product_batches.expiry_date', '>=', now())
+            ->whereDate('product_batches.expiry_date', '>=', today())
             ->sum(DB::raw('current_quantity - COALESCE(reserved_quantity, 0)'));
     }
 

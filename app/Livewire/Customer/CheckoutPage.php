@@ -18,7 +18,6 @@ use App\Models\SystemSetting;
 use App\Models\Product;
 use App\Models\Payment;
 use App\Livewire\Traits\WithShippingAddress;
-use App\Livewire\FarmStaff\ProductManager as ProductData;
 
 #[Title('Thanh Toán Đơn Hàng | Nông Trại Đất Lành')]
 class CheckoutPage extends Component
@@ -47,7 +46,7 @@ class CheckoutPage extends Component
         if ($mode === 'buy_now' && !empty($buyNowData)) {
             $this->isBuyNow = true;
 
-            $product = ProductData::withTotalStock(Product::query())->find($buyNowData['product_id']);
+            $product = Product::withTotalStock()->find($buyNowData['product_id']);
 
             if (!$product || $product->status !== 'active') {
                 session()->forget('checkout_buy_now');
@@ -55,7 +54,7 @@ class CheckoutPage extends Component
                 return redirect()->route('products.index');
             }
 
-            $availableUnits = ProductData::getTotalStock($product);
+            $availableUnits = (int) ($product->total_stock ?? 0);
             if ($availableUnits <= 0) {
                 session()->forget('checkout_buy_now');
                 session()->flash('error', 'Sản phẩm đã hết hàng trong kho!');
@@ -78,7 +77,7 @@ class CheckoutPage extends Component
             }
 
             $cart = Cart::with([
-                'items.product' => fn ($relation) => ProductData::withTotalStock($relation->getQuery()),
+                'items.product' => fn ($q) => $q->withTotalStock(),
             ])->where('user_id', $user->id)->first();
 
             if (!$cart || $cart->items()->count() === 0) {
@@ -95,7 +94,7 @@ class CheckoutPage extends Component
                     continue;
                 }
 
-                $availableUnits = ProductData::getTotalStock($cartItem->product);
+                $availableUnits = (int) ($cartItem->product?->total_stock ?? 0);
 
                 if ($availableUnits <= 0) {
                     $hasStockAdjusted = true;
@@ -217,7 +216,7 @@ class CheckoutPage extends Component
         
             // Khóa các dòng sản phẩm này lại, không cho người khác mua cùng lúc
             $productsInDB = Product::whereIn('id', $productIds)
-                ->tap([ProductData::class, 'withTotalStock'])
+                ->withTotalStock()
                 ->lockForUpdate()
                 ->get();
 
@@ -231,7 +230,7 @@ class CheckoutPage extends Component
                 }
 
                 // 2. Kiểm tra tồn kho có đủ số đơn vị mua không
-                $availableUnits = ProductData::getTotalStock($product);
+                $availableUnits = (int) ($product->total_stock ?? 0);
                 if ($availableUnits < (int) $item->quantity) {
                     throw new \Exception("Sản phẩm {$product->name} không đủ số lượng (Chỉ còn {$availableUnits} {$product->unit}).");
                 }
