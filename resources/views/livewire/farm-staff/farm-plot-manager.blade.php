@@ -351,15 +351,22 @@
 
                             <p class="text-xs text-gray-500">
                                 Gieo:
-                                {{ $batch->planted_date?->format('d/m/Y') ?? '—' }}
+                                <span class="font-bold text-brand-800">
+                                    {{ $batch->planted_date?->format('d/m/Y') ?? '—' }}
+                                </span>
 
-                                ·
                                 {{ match ($batch->status) {
                                     'planting' => 'Đang canh tác',
                                     'harvesting' => 'Đang thu hoạch',
                                     'completed' => 'Đã kết thúc vụ',
                                     default => $batch->status,
                                 } }}
+                            </p>
+                            <p class="text-xs text-gray-500">
+                                Ngày thu hoạch tối thiểu:
+                                <span class="font-bold text-brand-800">
+                                    {{ $batch->min_manufactured_date?->format('d/m/Y') ?? '—' }}
+                                </span>
                             </p>
                         </div>
                     @endif
