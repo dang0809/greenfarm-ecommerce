@@ -17,7 +17,6 @@ use Livewire\Attributes\Title;
 use App\Livewire\Traits\HandlesCart;
 use App\Models\Cart;
 use App\Models\CartItem;
-use App\Livewire\FarmStaff\ProductManager as ProductData;
 #[Layout('layouts.customer.app')]
 #[Title('Chi tiết sản phẩm')]
 class ProductDetail extends Component
@@ -57,20 +56,10 @@ class ProductDetail extends Component
             $this->activeTab = 'reviews';
         }
 
-        $primaryImgObj = $this->product->productImages->firstWhere('is_primary', true) 
-            ?? $this->product->productImages->first();
+        $this->selectedImage = $this->product->cover_image_url
+            ?? 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?auto=format&fit=crop&q=80&w=900';
 
-        $rawImage = $primaryImgObj?->image;
-
-        if ($rawImage) {
-            $this->selectedImage = str_starts_with($rawImage, 'http') 
-                ? $rawImage 
-                : asset('storage/' . $rawImage);
-        } else {
-            $this->selectedImage = 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?auto=format&fit=crop&q=80&w=900';
-        }
-
-        $this->totalStock = ProductData::getTotalStock($this->product);
+        $this->totalStock = (int) ($this->product->total_stock ?? 0);
         if ($this->totalStock == 0) {
             $this->quantity = 0;
         }
@@ -202,7 +191,6 @@ class ProductDetail extends Component
                 'order_item_id' => $orderItem->id,
                 'rating' => $this->rating,
                 'content' => trim($this->content),
-                'status' => 'approved',
             ]);
 
             if (!empty($this->reviewPhotos)) {
@@ -215,6 +203,8 @@ class ProductDetail extends Component
                     ]);
                 }
             }
+
+            $this->product->syncAvgRating();
         });
 
         $this->reset(['content', 'reviewPhotos']);
@@ -233,25 +223,18 @@ class ProductDetail extends Component
     public function render()
     {
         $relatedProducts = Product::with(['productImages', 'category'])
-            ->withAvg(['reviews as approved_avg_rating' => fn($q) => $q->where('status', 'approved')], 'rating')
-            ->tap([ProductData::class, 'withTotalStock'])
+            ->withTotalStock()
             ->where('category_id', $this->product->category_id)
             ->where('id', '!=', $this->product->id)
             ->where('status', 'active')
             ->take(4)
             ->get();
 
-        $reviewStats = Review::where('product_id', $this->product->id)
-            ->where('status', 'approved')
-            ->selectRaw('COUNT(*) as total_count, AVG(rating) as avg_rating')
-            ->first();
-
-        $reviewCount = (int) ($reviewStats->total_count ?? 0);
-        $avgRating = $reviewCount > 0 ? round((float) $reviewStats->avg_rating, 1) : 5.0;
+        $reviewCount = Review::where('product_id', $this->product->id)->count();
+        $avgRating = (float) ($this->product->avg_rating ?? 0);
 
         $reviews = Review::with(['user', 'images'])
             ->where('product_id', $this->product->id)
-            ->where('status', 'approved')
             ->latest()
             ->paginate(10, ['*'], 'reviewsPage');
 

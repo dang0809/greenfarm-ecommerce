@@ -42,14 +42,14 @@
             <div class="grid grid-cols-4 gap-3 sm:gap-4">
                 @foreach ($productImages as $imgObj)
                 @php
-                $imgUrl = str_starts_with($imgObj->image, 'http')
-                ? $imgObj->image
-                : asset('storage/' . $imgObj->image);
+                $imgUrl = $imgObj->url ?? '';
                 @endphp
+                @if ($imgUrl !== '')
                 <button type="button" wire:click="selectImage('{{ $imgUrl }}')"
                     class="thumb-btn border-2 {{ $selectedImage === $imgUrl ? 'border-brand-600' : 'border-transparent' }} rounded-2xl overflow-hidden aspect-square bg-white shadow-sm p-0.5 hover:border-brand-300 transition-colors">
                     <img src="{{ $imgUrl }}" class="w-full h-full object-cover rounded-xl">
                 </button>
+                @endif
                 @endforeach
             </div>
             @endif
@@ -352,15 +352,6 @@
                         @endif
                         @endforeach
                     </div>
-                    @elseif ($review->image)
-                    @php
-                        $singleRevImgUrl = str_starts_with($review->image, 'http') ? $review->image : asset('storage/' . $review->image);
-                    @endphp
-                    <div class="flex gap-2">
-                        <img src="{{ $singleRevImgUrl }}" @click="previewImage = '{{ $singleRevImgUrl }}'"
-                            title="Nhấn để xem ảnh phóng to"
-                            class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover border border-gray-200 cursor-pointer hover:opacity-85 transition-all hover:scale-105 transform duration-200 shadow-2xs">
-                    </div>
                     @endif
                 </div>
                 @empty
@@ -390,15 +381,11 @@
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3.5 sm:gap-6">
             @foreach ($relatedProducts as $related)
             @php
-            $relRawImg = $related->productImages->firstWhere('is_primary', true)?->image
-            ?? $related->productImages->first()?->image;
-
-            $relImgUrl = $relRawImg
-            ? (str_starts_with($relRawImg, 'http') ? $relRawImg : asset('storage/' . $relRawImg))
-            : 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?w=600';
+            $relImgUrl = $related->cover_image_url
+                ?? 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?w=600';
 
             // Tính tồn kho thực tế của sản phẩm tương tự
-            $relStock = \App\Livewire\FarmStaff\ProductManager::getTotalStock($related);
+            $relStock = (int) ($related->total_stock ?? 0);
             $isRelOutOfStock = $relStock <= 0; @endphp <div
                 class="bg-white rounded-3xl border border-gray-100 hover:border-brand-200 hover:shadow-lg transition-all duration-300 group flex flex-col relative overflow-hidden">
 
@@ -441,7 +428,7 @@
                         </h4>
                         <div class="flex items-center gap-1 text-amber-400 text-xs mb-3">
                             <i class="fa-solid fa-star"></i><span
-                                class="text-gray-500 font-medium ml-1">{{ number_format($related->approved_avg_rating ?? 5, 1) }}
+                                class="text-gray-500 font-medium ml-1">{{ number_format($related->avg_rating ?? 0, 1) }}
                                 | Đã bán {{ $related->sold_count ?? 0 }}</span>
                         </div>
                         <div class="mt-auto pt-3 border-t border-gray-50 flex items-end justify-between">

@@ -161,8 +161,8 @@
                                         </b>
                                     </td>
 
-                                    <td class="py-3.5 px-4 text-center font-mono">
-                                        {{ $product->sold_count ?? 0 }} {{ $product->unit }}
+                                    <td class="py-3.5 px-4 text-center font-mono text-amber-500 font-bold">
+                                        {{ number_format($product->avg_rating ?? 0, 1) }} ★
                                     </td>
 
                                     <td class="py-3.5 px-4 text-center font-mono text-amber-500 font-bold">

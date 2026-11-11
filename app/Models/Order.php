@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\DB;
 
 class Order extends Model
 {
@@ -56,4 +57,28 @@ class Order extends Model
     public function complaint(): HasOne { return $this->hasOne(Complaint::class); }
     public function shippingAddress(): BelongsTo { return $this->belongsTo(Address::class, 'shipping_address_id'); }
     public function deliverySchedule(): HasOne { return $this->hasOne(DeliverySchedule::class, 'order_id'); }
+
+    public function adjustProductSoldCounts(int $direction): void
+    {
+        if ($direction === 0) {
+            return;
+        }
+
+        $this->loadMissing('items');
+
+        $totalsByProduct = $this->items
+            ->filter(fn ($item) => $item->product_id && (int) $item->quantity > 0)
+            ->groupBy('product_id')
+            ->map(fn ($group) => (int) $group->sum('quantity'));
+
+        foreach ($totalsByProduct as $productId => $qty) {
+            if ($direction > 0) {
+                Product::whereKey($productId)->increment('sold_count', $qty);
+            } else {
+                Product::whereKey($productId)->update([
+                    'sold_count' => DB::raw("CASE WHEN sold_count >= {$qty} THEN sold_count - {$qty} ELSE 0 END"),
+                ]);
+            }
+        }
+    }
 }

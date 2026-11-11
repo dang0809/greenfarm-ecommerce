@@ -131,9 +131,11 @@ class PayOSWebhookController extends Controller
                         'changed_by' => $order->user_id,
                     ]);
 
-                    foreach ($order->items as $item) {
-                        Product::where('id', $item->product_id)->increment('sold_count', $item->quantity);
+                    if ($order->order_type === 'retail') {
+                        $order->adjustProductSoldCounts(1);
+                    }
 
+                    foreach ($order->items as $item) {
                         if ($item->batch_id) {
                             // 1. Nhả giữ chỗ
                             ProductBatch::where('id', $item->batch_id)->decrement('reserved_quantity', $item->quantity);

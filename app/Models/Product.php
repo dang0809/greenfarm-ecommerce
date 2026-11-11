@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Models;
-
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
@@ -55,7 +54,28 @@ class Product extends Model
 
     public function getCoverImageUrlAttribute(): ?string
     {
+        if ($this->relationLoaded('productImages')) {
+            $cover = $this->productImages
+                ->sortBy([
+                    ['is_primary', 'desc'],
+                    ['sort_order', 'asc'],
+                    ['id', 'asc'],
+                ])
+                ->first();
+
+            return $cover?->url;
+        }
+
         return $this->coverImage?->url;
+    }
+
+    public function syncAvgRating(): void
+    {
+        $avg = $this->reviews()->avg('rating');
+
+        $this->update([
+            'avg_rating' => $avg !== null ? round((float) $avg, 2) : 0,
+        ]);
     }
 
     public function category(): BelongsTo
@@ -109,7 +129,7 @@ class Product extends Model
             'batches as total_stock' => function ($q) {
                 $q->where('product_batches.status', 'active')
                     ->whereRaw('product_batches.current_quantity > COALESCE(product_batches.reserved_quantity, 0)')
-                    ->whereDate('product_batches.expiry_date', '>=', now());
+                    ->whereDate('product_batches.expiry_date', '>=', today());
             }
         ], DB::raw('current_quantity - COALESCE(reserved_quantity, 0)'));
     }
@@ -127,7 +147,7 @@ class Product extends Model
         return (int) $this->batches()
             ->where('product_batches.status', 'active')
             ->whereRaw('product_batches.current_quantity > COALESCE(product_batches.reserved_quantity, 0)')
-            ->whereDate('product_batches.expiry_date', '>=', now())
+            ->whereDate('product_batches.expiry_date', '>=', today())
             ->sum(DB::raw('current_quantity - COALESCE(reserved_quantity, 0)'));
     }
 

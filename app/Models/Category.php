@@ -31,23 +31,6 @@ class Category extends Model
         return $this->hasMany(Product::class);
     }
 
-    protected function imageUrl(): Attribute
-    {
-        return Attribute::make(
-            get: function (): ?string {
-                $path = trim((string) $this->image);
-
-                if ($path === '') {
-                    return null;
-                }
-
-                return Str::startsWith($path, ['http://', 'https://'])
-                    ? $path
-                    : Storage::disk('public')->url(ltrim($path, '/'));
-            }
-        );
-    }
-
     public function scopeSearch(Builder $query, string $search): Builder
     {
         $search = trim($search);
@@ -62,5 +45,25 @@ class Category extends Model
             $query->where('name', 'like', $term)
                 ->orWhere('slug', 'like', $term);
         });
+    }
+
+    public function getImageUrlAttribute(): ?string
+    {
+        $path = trim((string) $this->image);
+
+        if ($path === '') {
+            return null;
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        $r2Url = config('filesystems.disks.r2.url');
+        if (!empty($r2Url)) {
+            return rtrim($r2Url, '/') . '/' . ltrim($path, '/');
+        }
+
+        return asset('storage/' . ltrim($path, '/'));
     }
 }

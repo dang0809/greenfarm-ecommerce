@@ -72,6 +72,11 @@ class CategoryManager extends Component
         $this->resetPage();
     }
 
+    private function getImageDisk(): string
+    {
+        return config('filesystems.disks.r2.key') ? 'r2' : 'public';
+    }
+
     public function createCategory(): void
     {
         $this->resetForm();
@@ -152,17 +157,12 @@ class CategoryManager extends Component
         $path = (string) $category->image;
 
         // Chỉ so sánh ảnh đã lưu trong thư mục quản lý của chức năng.
-        if (
-            !preg_match(
-                '#\Acategories/[A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp)\z#i',
-                $path
-            )
-        ) {
+        if (!$this->isManagedImagePath($path)) {
             return true;
         }
 
         try {
-            $disk = Storage::disk('public');
+            $disk = Storage::disk($this->getImageDisk());
 
             if (!$disk->exists($path)) {
                 return true;
@@ -377,17 +377,27 @@ class CategoryManager extends Component
                     return 'unchanged';
                 }
 
+                // Lưu thông tin trước để luôn có $category->id (và bắt trùng slug trước khi upload).
+                $category->fill($data);
+
+                if (!$category->save()) {
+                    throw new RuntimeException(
+                        'Không lưu được danh mục.'
+                    );
+                }
+
                 // Chỉ lưu file mới khi người dùng thực sự chọn file.
                 if ($this->newImage !== null) {
+                    $diskName = $this->getImageDisk();
                     $newPath = $this->newImage->store(
-                        'categories',
-                        'public'
+                        "categories/{$category->id}",
+                        $diskName
                     );
 
                     if (
                         !is_string($newPath)
                         || $newPath === ''
-                        || !Storage::disk('public')->exists($newPath)
+                        || !Storage::disk($diskName)->exists($newPath)
                     ) {
                         throw new RuntimeException(
                             'Không lưu được ảnh danh mục.'
@@ -396,15 +406,12 @@ class CategoryManager extends Component
 
                     $oldPath = $category->image;
                     $category->image = $newPath;
-                }
 
-                // Nếu không chọn ảnh mới, image cũ được giữ nguyên.
-                $category->fill($data);
-
-                if (!$category->save()) {
-                    throw new RuntimeException(
-                        'Không lưu được danh mục.'
-                    );
+                    if (!$category->save()) {
+                        throw new RuntimeException(
+                            'Không lưu được ảnh danh mục.'
+                        );
+                    }
                 }
 
                 if (!$category->is_active) {
@@ -533,17 +540,20 @@ class CategoryManager extends Component
         $this->notify('success', 'Đã xóa danh mục!');
     }
 
+    private function isManagedImagePath(?string $path): bool
+    {
+        return is_string($path)
+            && preg_match(
+                '#\Acategories/(?:[0-9]+/)?[A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp)\z#i',
+                $path
+            ) === 1;
+    }
+
     private function deleteManagedImage(?string $path): void
     {
         // Chỉ dọn ảnh thuộc định dạng đường dẫn do chức năng này tạo.
         // URL ngoài và đường dẫn thư mục khác sẽ được bỏ qua.
-        if (
-            !$path
-            || !preg_match(
-                '#\Acategories/[A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp)\z#i',
-                $path
-            )
-        ) {
+        if (!$this->isManagedImagePath($path)) {
             return;
         }
 
@@ -553,10 +563,15 @@ class CategoryManager extends Component
                 return;
             }
 
-            if (!Storage::disk('public')->delete($path)) {
+            $diskName = $this->getImageDisk();
+            if (!Storage::disk($diskName)->delete($path)) {
                 throw new RuntimeException(
                     'Không dọn được ảnh danh mục.'
                 );
+            }
+
+            if ($diskName !== 'public' && Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
             }
         } catch (Throwable $exception) {
             // Lỗi dọn file không làm đảo ngược thao tác DB đã thành công.

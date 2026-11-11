@@ -6,7 +6,6 @@ use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
 use Illuminate\Support\Facades\Auth;
-use App\Livewire\FarmStaff\ProductManager as ProductData;
 trait HandlesCart
 {
     public function addToCart(?int $productId = null): bool
@@ -21,9 +20,9 @@ trait HandlesCart
         if (!$targetProductId) return false;
 
         // 2. Lấy thông tin sản phẩm & tính tổng tồn kho các lô còn hạn
-        $product = ProductData::withTotalStock(Product::query())->find($targetProductId);
+        $product = Product::withTotalStock()->find($targetProductId);
 
-        $availableStock = ProductData::getTotalStock($product);
+        $availableStock = (int) ($product?->total_stock ?? 0);
 
         if ($availableStock <= 0 ) {
             $this->dispatch(

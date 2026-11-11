@@ -92,7 +92,7 @@ class CertificationManager extends Component
         $this->description = (string) ($cert->description ?? '');
 
         $this->currentFileUrl = $cert->image_url;
-        $this->currentIsPdf = $cert->is_pdf;
+        $this->currentIsPdf = $this->isPdf($cert->image);
 
         $this->showForm = true;
     }
@@ -262,6 +262,11 @@ class CertificationManager extends Component
             || $this->scanHasChanged($cert);
     }
 
+    private function getFileDisk(): string
+    {
+        return config('filesystems.disks.r2.key') ? 'r2' : 'public';
+    }
+
     private function scanHasChanged(Certification $cert): bool
     {
         if ($this->newFile === null) {
@@ -281,7 +286,7 @@ class CertificationManager extends Component
         }
 
         try {
-            $disk = Storage::disk('public');
+            $disk = Storage::disk($this->getFileDisk());
 
             if (!$disk->exists($path)) {
                 return true;
@@ -359,15 +364,16 @@ class CertificationManager extends Component
                 $cert->fill($data);
 
                 if ($this->newFile !== null) {
+                    $diskName = $this->getFileDisk();
                     $newPath = $this->newFile->store(
                         'certifications',
-                        'public'
+                        $diskName
                     );
 
                     if (
                         !is_string($newPath)
                         || $newPath === ''
-                        || !Storage::disk('public')->exists($newPath)
+                        || !Storage::disk($diskName)->exists($newPath)
                     ) {
                         throw new RuntimeException(
                             'Không lưu được bản scan.'
@@ -427,7 +433,6 @@ class CertificationManager extends Component
             : 'Đã thêm giấy kiểm định!'
         );
     }
-
     public function requestDelete(int $id): void
     {
         $cert = Certification::findOrFail($id);
@@ -504,13 +509,19 @@ class CertificationManager extends Component
         }
 
         try {
-            if (
-                !Certification::where('image', $path)->exists()
-                && !Storage::disk('public')->delete($path)
-            ) {
+            if (Certification::where('image', $path)->exists()) {
+                return;
+            }
+
+            $diskName = $this->getFileDisk();
+            if (!Storage::disk($diskName)->delete($path)) {
                 throw new RuntimeException(
                     'Không dọn được bản scan cũ.'
                 );
+            }
+
+            if ($diskName !== 'public' && Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
             }
         } catch (Throwable $exception) {
             // Dọn file thất bại không đảo ngược DB đã commit.

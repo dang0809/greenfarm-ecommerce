@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Livewire\FarmStaff;
 
 use App\Models\Category;
@@ -7,7 +6,7 @@ use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -152,7 +151,7 @@ class ProductManager extends Component
         }
 
         $this->category_id = (string) $product->category_id;
-        $this->currentImageUrl = $this->coverImageUrlForForm($product);
+        $this->currentImageUrl = $product->cover_image_url;
         $this->showModal = true;
     }
 
@@ -369,23 +368,9 @@ class ProductManager extends Component
         return $query->withTotalStock();
     }
 
-    public static function getTotalStock(?Product $product): int
+    private static function getImageDisk(): string
     {
-        return (int) ($product?->total_stock ?? 0);
-    }
-
-    private function coverImageUrlForForm(Product $product): ?string
-    {
-        // Chọn ảnh chính bằng quan hệ đã có trong model.
-        $path = trim((string) ($product->coverImage?->image ?? ''));
-
-        if ($path === '') {
-            return null;
-        }
-
-        return Str::startsWith($path, ['http://', 'https://'])
-            ? $path
-            : Storage::disk('public')->url(ltrim($path, '/'));
+        return config('filesystems.disks.r2.key') ? 'r2' : 'public';
     }
 
     private function validatedData(): array
@@ -489,15 +474,16 @@ class ProductManager extends Component
                 }
 
                 if ($this->newImage !== null) {
+                    $diskName = self::getImageDisk();
                     $newPath = $this->newImage->store(
                         "products/{$product->id}",
-                        'public'
+                        $diskName
                     );
 
                     if (
                         !is_string($newPath)
                         || $newPath === ''
-                        || !Storage::disk('public')->exists($newPath)
+                        || !Storage::disk($diskName)->exists($newPath)
                     ) {
                         throw new RuntimeException(
                             'Không lưu được ảnh sản phẩm.'
@@ -730,13 +716,19 @@ class ProductManager extends Component
         }
 
         try {
-            if (
-                !ProductImage::where('image', $path)->exists()
-                && !Storage::disk('public')->delete($path)
-            ) {
+            if (ProductImage::where('image', $path)->exists()) {
+                return;
+            }
+
+            $diskName = self::getImageDisk();
+            if (!Storage::disk($diskName)->delete($path)) {
                 throw new RuntimeException(
                     'Không dọn được ảnh.'
                 );
+            }
+
+            if ($diskName !== 'public' && Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
             }
         } catch (Throwable $exception) {
             report($exception);
@@ -799,6 +791,7 @@ class ProductManager extends Component
         $products = Product::with(['category', 'coverImage'])
             ->withTotalStock()
             ->search($this->search)
+
             ->when(
                 $this->selectedCategory !== '',
                 fn($query) => $query->where(
@@ -823,14 +816,14 @@ class ProductManager extends Component
         $productImageUrls = $products
             ->getCollection()
             ->mapWithKeys(fn(Product $product) => [
-                $product->id => $this->coverImageUrlForForm($product),
+                $product->id => $product->cover_image_url,
             ])
             ->all();
 
         $productStocks = $products
             ->getCollection()
             ->mapWithKeys(fn(Product $product) => [
-                $product->id => (int) $product->total_stock,
+                $product->id => (int) ($product->total_stock ?? 0),
             ])
             ->all();
 

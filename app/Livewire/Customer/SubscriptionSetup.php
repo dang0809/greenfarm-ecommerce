@@ -14,7 +14,6 @@ use App\Models\Category;
 use App\Models\DeliverySchedule;
 use App\Models\SystemSetting;
 use App\Livewire\Traits\WithShippingAddress;
-use App\Livewire\FarmStaff\ProductManager as ProductData;
 #[Title('Thiết Lập Lịch & Theo Dõi Gói VIP | Nông Trại Đất Lành')]
 class SubscriptionSetup extends Component
 {
@@ -308,14 +307,14 @@ class SubscriptionSetup extends Component
         // Kiểm tra tồn kho và khống chế cân nặng khi khách bấm TĂNG (+)
         if ($delta > 0) {
             // 1. Kiểm tra tồn kho FEFO thực tế của sản phẩm
-            $product = ProductData::withTotalStock(Product::query())->find($veggieId);
+            $product = Product::withTotalStock()->find($veggieId);
 
             if (!$product) {
                 $this->dispatch('show-toast', type: 'error', message: 'Sản phẩm không tồn tại hoặc đã ngừng kinh doanh!');
                 return;
             }
 
-            $availableStock = ProductData::getTotalStock($product);
+            $availableStock = (int) ($product->total_stock ?? 0);
             if ($newQty > $availableStock) {
                 $this->dispatch('show-toast', type: 'warning', message: "Món {$product->name} trong kho hiện chỉ còn {$availableStock} đơn vị khả dụng!");
                 return;
@@ -522,7 +521,7 @@ class SubscriptionSetup extends Component
                 $q->where('is_primary', true);
             }
         ])
-        ->tap([ProductData::class, 'withTotalStock'])
+        ->withTotalStock()
         ->where('status', 'active')
         ->whereHas('category', function ($query) {
             $query->where('is_active', true);
@@ -541,18 +540,15 @@ class SubscriptionSetup extends Component
 
         // Chuẩn hóa danh sách sản phẩm để render lên danh mục chọn rau củ
         $veggieCatalog = $products->map(function ($p) {
-            $rawImg = $p->productImages?->firstWhere('is_primary', true)?->image 
-                ?? $p->productImages?->first()?->image;
-            $imgUrl = $rawImg 
-                ? (str_starts_with($rawImg, 'http') ? $rawImg : asset('storage/' . $rawImg))
-                : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300';
+            $imgUrl = $p->cover_image_url
+                ?? 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300';
 
             return [
                 'id'         => $p->id,
                 'name'       => $p->name,
                 'slug'       => $p->slug,
                 'image'      => $imgUrl,
-                'stock' => ProductData::getTotalStock($p),
+                'stock'      => (int) ($p->total_stock ?? 0),
                 'unit'       => $p->unit ?? 'kg',
                 'unit_label' => $p->unit ?? 'kg',
                 'weight'     => $p->weight_kg,
@@ -613,19 +609,9 @@ class SubscriptionSetup extends Component
                     $q = (int) ($it['quantity'] ?? 1);
                     $prod = $pId ? ($productsKeyed->get($pId)) : null;
 
-                    // Xử lý lấy ảnh đại diện của món rau:
-                    // 1. Ưu tiên ảnh chính (is_primary = true)
-                    // 2. Nếu không có thì lấy ảnh đầu tiên trong danh sách ảnh của sản phẩm
-                    $rawImg = $prod?->productImages?->firstWhere('is_primary', true)?->image 
-                        ?? $prod?->productImages?->first()?->image;
-
-                    // Chuẩn hóa link ảnh:
-                    // - Nếu link bắt đầu bằng 'http' (link ngoài / CDN) thì giữ nguyên
-                    // - Nếu là đường dẫn tương đối trong storage thì chuyển qua asset('storage/...')
-                    // - Nếu sản phẩm chưa có ảnh thì dùng ảnh placeholder mặc định từ Unsplash
-                    $imgUrl = $rawImg 
-                        ? (str_starts_with($rawImg, 'http') ? $rawImg : asset('storage/' . $rawImg))
-                        : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=100';
+                    // Lấy ảnh đại diện của món rau (ưu tiên ảnh chính / R2)
+                    $imgUrl = $prod?->cover_image_url
+                        ?? 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=100';
 
                     $itemWeight = isset($it['weight']) ? (float)$it['weight'] : round($q * ($prod?->weight_kg ?? 0.5), 2);
                     $itemsDetail[] = [
