@@ -428,7 +428,7 @@
                         </h4>
                         <div class="flex items-center gap-1 text-amber-400 text-xs mb-3">
                             <i class="fa-solid fa-star"></i><span
-                                class="text-gray-500 font-medium ml-1">{{ number_format($related->reviews_avg_rating ?? 5, 1) }}
+                                class="text-gray-500 font-medium ml-1">{{ number_format($related->avg_rating ?? 0, 1) }}
                                 | Đã bán {{ $related->sold_count ?? 0 }}</span>
                         </div>
                         <div class="mt-auto pt-3 border-t border-gray-50 flex items-end justify-between">
