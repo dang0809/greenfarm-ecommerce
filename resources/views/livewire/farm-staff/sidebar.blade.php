@@ -9,9 +9,11 @@
                     <i class="fa-solid fa-leaf text-brand-200 text-xl"></i>
                 </div>
                 <div>
-                    <span class="font-extrabold text-xl text-brand-800 tracking-tight block leading-tight">ĐẤT LÀNH</span>
+                    <span class="font-extrabold text-xl text-brand-800 tracking-tight block leading-tight">ĐẤT
+                        LÀNH</span>
                     <span
-                        class="text-[10px] font-bold text-brand-700 bg-brand-50 border border-brand-200 px-2 py-0.5 rounded uppercase tracking-wider">Farm Staff</span>
+                        class="text-[10px] font-bold text-brand-700 bg-brand-50 border border-brand-200 px-2 py-0.5 rounded uppercase tracking-wider">Farm
+                        Staff</span>
                 </div>
             </a>
             <button type="button" onclick="toggleSidebar()"
@@ -57,15 +59,17 @@
 
     <!-- User Footer & Đăng xuất -->
     <div class="p-4 border-t border-gray-100">
-        <a href="{{ route('farm-staff.profile') }}" wire:navigate class="flex items-center space-x-3 bg-brand-50/70 hover:bg-brand-100/70 p-3 rounded-2xl border border-brand-100 mb-3 transition-colors group cursor-pointer" title="Hồ sơ cá nhân">
+        <a href="{{ route('farm-staff.profile') }}" wire:navigate
+            class="flex items-center space-x-3 bg-brand-50/70 hover:bg-brand-100/70 p-3 rounded-2xl border border-brand-100 mb-3 transition-colors group cursor-pointer"
+            title="Hồ sơ cá nhân">
             @if ($user->avatar_url)
-            <img src="{{ $user->avatar_url }}" alt="Ảnh đại diện"
-                class="w-9 h-9 rounded-full object-cover border border-brand-200">
+                <img src="{{ $user->avatar_url }}" alt="Ảnh đại diện"
+                    class="w-9 h-9 rounded-full object-cover border border-brand-200">
             @else
-            <div
-                class="w-9 h-9 shrink-0 rounded-full bg-brand-100 text-brand-800 flex items-center justify-center font-bold">
-                {{ mb_strtoupper(mb_substr($user->name ?? 'F', 0, 1)) }}
-            </div>
+                <div
+                    class="w-9 h-9 shrink-0 rounded-full bg-brand-100 text-brand-800 flex items-center justify-center font-bold">
+                    {{ mb_strtoupper(mb_substr($user->name ?? 'F', 0, 1)) }}
+                </div>
             @endif
 
             <div class="min-w-0 flex-1">

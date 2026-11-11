@@ -156,7 +156,7 @@ class ProfileManager extends Component
             $disk = Storage::disk($this->getAvatarDisk());
 
             // Ảnh cũ bị thiếu: cho phép lưu ảnh thay thế.
-            if (! $disk->exists($path)) {
+            if (!$disk->exists($path)) {
                 return;
             }
 
@@ -164,8 +164,8 @@ class ProfileManager extends Component
             $newContents = $this->newAvatar->get();
 
             if (
-                ! is_string($oldContents)
-                || ! is_string($newContents)
+                !is_string($oldContents)
+                || !is_string($newContents)
             ) {
                 throw new RuntimeException('Không đọc được nội dung ảnh.');
             }
@@ -261,7 +261,7 @@ class ProfileManager extends Component
                 'phone' => $validated['phone'],
             ]);
 
-            if (! $user->saveOrFail()) {
+            if (!$user->saveOrFail()) {
                 throw new RuntimeException('Không lưu được thông tin tài khoản.');
             }
         } catch (Throwable $exception) {
@@ -298,7 +298,7 @@ class ProfileManager extends Component
             ])
         );
 
-        if (! Hash::check($validated['current_password'], $user->password)) {
+        if (!Hash::check($validated['current_password'], $user->password)) {
             $this->addError(
                 'current_password',
                 'Mật khẩu hiện tại không chính xác.'
@@ -312,7 +312,7 @@ class ProfileManager extends Component
                 'remember_token' => Str::random(60),
             ]);
 
-            if (! $user->saveOrFail()) {
+            if (!$user->saveOrFail()) {
                 throw new RuntimeException('Không cập nhật được mật khẩu.');
             }
         } catch (Throwable $exception) {
@@ -367,7 +367,7 @@ class ProfileManager extends Component
                 $diskName
             );
 
-            if (! is_string($storedPath) || $storedPath === '') {
+            if (!is_string($storedPath) || $storedPath === '') {
                 throw new RuntimeException('Không lưu được ảnh đại diện.');
             }
 
@@ -377,7 +377,7 @@ class ProfileManager extends Component
                 'avatar' => $newPath,
             ]);
 
-            if (! $user->saveOrFail()) {
+            if (!$user->saveOrFail()) {
                 throw new RuntimeException('Không cập nhật được ảnh đại diện.');
             }
         } catch (Throwable $exception) {
@@ -431,8 +431,8 @@ class ProfileManager extends Component
 
         abort_unless(
             $user
-                && in_array($user->role, ['farm_staff', 'sales'])
-                && $user->status === 'active',
+            && in_array($user->role, ['farm_staff', 'sales'])
+            && $user->status === 'active',
             403,
             'Bạn không có quyền truy cập chức năng này.'
         );
@@ -448,10 +448,10 @@ class ProfileManager extends Component
     private function deleteManagedAvatar(?string $path, int $userId): void
     {
         if (
-            ! $path
-            || (! str_starts_with($path, "avatars/farm-staff/{$userId}/") 
-                && ! str_starts_with($path, "avatars/sales/{$userId}/") 
-                && ! str_starts_with($path, 'avatars/'))
+            !$path
+            || (!str_starts_with($path, "avatars/farm-staff/{$userId}/")
+                && !str_starts_with($path, "avatars/sales/{$userId}/")
+                && !str_starts_with($path, 'avatars/'))
             || str_contains($path, '..')
             || str_contains($path, '\\')
         ) {
@@ -482,4 +482,3 @@ class ProfileManager extends Component
         ])->layout($layout)->title("Hồ Sơ {$roleTitle} | Nông Trại Đất Lành");
     }
 }
-

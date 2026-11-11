@@ -11,7 +11,6 @@ use App\Services\FarmPlotService;
 use Closure;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -48,19 +47,23 @@ class FarmPlotManager extends Component
     public ?int $harvestBatchId = null;
 
     #[Locked]
-    public ?string $harvestToken = null;
-
-    #[Locked]
     public ?int $qrBatchId = null;
 
     public bool $showSowModal = false;
+
+    public bool $showCreatePlotModal = false;
+    public string $newPlotName = '';
+    public string $newPlotArea = '';
     public bool $showLogModal = false;
     public bool $showHarvestModal = false;
 
     public ?int $sowProductId = null;
     public string $sowDate = '';
 
-    public string $logName = '';
+    public $sowPhoto = null;
+
+    public string $logType = '';
+    public array $logDetails = [];
     public string $logDesc = '';
     public $logPhoto = null;
 
@@ -71,46 +74,248 @@ class FarmPlotManager extends Component
     public string $harvestMode = 'inherit';
     public $harvestPhoto = null;
 
-    public function boot(): void
+
+    public function openCreatePlotModal(): void
     {
         $this->staff();
+        $this->closeModals();
+
+        $this->showCreatePlotModal = true;
+    }
+
+    public function requestCreatePlot(
+        FarmPlotService $service
+    ): void {
+        $this->staff();
+
+        abort_unless($this->showCreatePlotModal, 404);
+
+        $this->resetValidation();
+
+        $service->validatePlotData([
+            'name' => $this->newPlotName,
+            'area' => $this->newPlotArea,
+        ]);
+
+        $this->dispatch(
+            'confirm-farm-action',
+            action: 'create'
+        )->self();
+    }
+
+    public function closeCreatePlotModal(): void
+    {
+        $this->closeModals();
+    }
+
+    public function createPlot(FarmPlotService $service): void
+    {
+        abort_unless($this->showCreatePlotModal, 404);
+
+        $this->attempt('newPlotName', function () use ($service) {
+            $plot = $service->createPlot([
+                'name' => $this->newPlotName,
+                'area' => $this->newPlotArea,
+            ], $this->staff());
+
+            $this->closeModals();
+
+            // Hiện lại danh sách để bộ lọc không che luống mới.
+            $this->reset([
+                'selectedPlotId',
+                'selectedBatchId',
+                'search',
+                'filter',
+                'activeTab',
+            ]);
+
+            $this->refreshData();
+
+            $this->success(
+                'Đã tạo luống!',
+                "Đã tạo luống {$plot->name}. Hãy cải tạo đất trước khi xuống giống."
+            );
+        });
+    }
+
+    public function requestSow(FarmPlotService $service): void
+    {
+        $this->staff();
+
+        abort_unless(
+            $this->showSowModal && $this->sowPlotId,
+            404
+        );
+
+        $this->resetValidation();
+
+        $service->validateSowData(
+            $this->sowProductId,
+            $this->sowDate,
+            $this->sowPhoto
+        );
+
+        // Chỉ mở xác nhận khi dữ liệu và ảnh hợp lệ.
+        $this->dispatch(
+            'confirm-farm-action',
+            action: 'sow'
+        )->self();
+    }
+
+    public function updatedSowPhoto(): void
+    {
+        $this->staff();
+
+        $this->validateOnly('sowPhoto', [
+            'sowPhoto' => [
+                'bail',
+                'required',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:2048',
+            ],
+        ], [
+            'sowPhoto.required' => 'Vui lòng tải ảnh xuống giống.',
+            'sowPhoto.image' => 'Tệp tải lên phải là ảnh.',
+            'sowPhoto.mimes' => 'Chỉ nhận JPG, JPEG, PNG hoặc WEBP.',
+            'sowPhoto.max' => 'Ảnh xuống giống tối đa 2 MB.',
+        ]);
+    }
+
+    public function updatedLogType(): void
+    {
+        $this->reset(['logDetails', 'logDesc']);
+
+        // Giữ ảnh và lỗi ảnh khi đổi loại hoạt động.
+        $this->resetValidation(['logType', 'logDetails', 'logDetails.*', 'logDesc']);
+
+        if ($this->logType === 'spraying') {
+            $this->logDetails['sprayed_on'] = today()->toDateString();
+        }
+    }
+
+    #[Computed]
+    public function isolationEndDate(): ?string
+    {
+        if ($this->logType !== 'spraying') {
+            return null;
+        }
+
+        $date = $this->logDetails['sprayed_on'] ?? null;
+        $days = $this->logDetails['isolation_days'] ?? null;
+
+        if (
+            !is_string($date)
+            || !preg_match('/^\d{4}-\d{2}-\d{2}$/D', $date)
+            || (!is_int($days) && !is_string($days))
+            || !preg_match('/^\d{1,3}$/D', (string) $days)
+            || (int) $days > 365
+        ) {
+            return null;
+        }
+
+        $sprayedOn = \DateTimeImmutable::createFromFormat(
+            '!Y-m-d',
+            $date,
+            new \DateTimeZone(config('app.timezone'))
+        );
+
+        $plantedOn = $this->selectedBatch?->planted_date?->toDateString();
+
+        if (
+            !$sprayedOn
+            || $sprayedOn->format('Y-m-d') !== $date
+            || $date > today()->toDateString()
+            || ($plantedOn !== null && $date < $plantedOn)
+        ) {
+            return null;
+        }
+
+        return $sprayedOn->modify('+' . (int) $days . ' days')->format('d/m/Y');
+    }
+
+    private function logFormData(): array
+    {
+        return [
+            'type' => $this->logType,
+            'details' => $this->logDetails,
+            'description' => $this->logDesc,
+        ];
+    }
+
+    public function requestSaveLog(FarmPlotService $service): void
+    {
+        $this->staff();
+        abort_unless($this->showLogModal && $this->logBatchId, 404);
+
+        $this->resetValidation();
+
+        $service->validateLogData(
+            $this->logFormData(),
+            $this->logPhoto,
+            $this->batchForForm($this->logBatchId)
+        );
+
+        $this->dispatch('confirm-farm-action', action: 'log')->self();
+    }
+
+    public function requestHarvest(FarmPlotService $service): void
+    {
+        $this->staff();
+
+        abort_unless(
+            $this->showHarvestModal && $this->harvestBatchId,
+            404
+        );
+
+        $this->resetValidation();
+
+        $batch = $this->batchForForm($this->harvestBatchId);
+
+        $service->validateHarvestData([
+            'harvest_date' => $this->harvestDate,
+            'expiry_date' => $this->harvestExpiry,
+            'quantity' => $this->harvestQty,
+            'note' => $this->harvestNote,
+            'mode' => $this->harvestMode,
+        ], $this->harvestPhoto, $batch);
+
+        $this->dispatch(
+            'confirm-farm-action',
+            action: 'harvest'
+        )->self();
+    }
+    public function boot(FarmPlotService $service): void
+    {
+        $this->staff();
+
+        $service->syncHarvestingStatuses();
     }
 
     #[Computed]
     public function plots(): Collection
     {
         return FarmPlot::query()
-            ->when(
-                trim($this->search) !== '',
-                fn ($query) => $query->where(
-                    'name',
-                    'like',
-                    '%' . trim($this->search) . '%'
-                )
-            )
-            ->when(
-                $this->filter === 'active',
-                fn ($query) => $query->whereHas(
-                    'plantingBatches',
-                    fn ($batches) => $batches->occupying()
-                )
-            )
+            ->search($this->search)
             ->when(
                 $this->filter === 'empty',
-                fn ($query) => $query
-                    ->where('status', 'active')
-                    ->whereDoesntHave(
-                        'plantingBatches',
-                        fn ($batches) => $batches->occupying()
-                    )
+                fn($query) => $query->where('status', 'empty')
+            )
+            ->when(
+                $this->filter === 'in-progress',
+                fn($query) => $query->where('status', 'in-progress')
+            )
+            ->when(
+                $this->filter === 'available',
+                fn($query) => $query->where('status', 'available')
             )
             ->when(
                 $this->filter === 'maintenance',
-                fn ($query) => $query->where('status', 'maintenance')
+                fn($query) => $query->where('status', 'maintenance')
             )
             ->with([
-                'plantingBatches' => fn ($query) => $query
-                    ->occupying()
+                'plantingBatches' => fn($query) => $query
+                    ->whereIn('status', ['planting', 'harvesting'])
                     ->with('product')
                     ->latest('id'),
             ])
@@ -123,19 +328,74 @@ class FarmPlotManager extends Component
     {
         return Product::where('status', 'active')
             ->orderBy('name')
-            ->get(['id', 'name', 'unit']);
+            ->get([
+                'id',
+                'name',
+                'unit',
+                'min_growth_days',
+            ]);
+    }
+
+    #[Computed]
+    public function sowMinGrowthDays(): ?int
+    {
+        if ($this->sowProductId === null) {
+            return null;
+        }
+
+        $product = $this->products->firstWhere(
+            'id',
+            $this->sowProductId
+        );
+
+        $days = $product?->min_growth_days;
+
+        return $days !== null && (int) $days >= 1
+            ? (int) $days
+            : null;
+    }
+
+    #[Computed]
+    public function sowMinManufacturedDate(): ?string
+    {
+        $days = $this->sowMinGrowthDays;
+
+        if (
+            $days === null
+            || !preg_match('/^\d{4}-\d{2}-\d{2}$/D', $this->sowDate)
+        ) {
+            return null;
+        }
+
+        $date = \DateTimeImmutable::createFromFormat(
+            '!Y-m-d',
+            $this->sowDate,
+            new \DateTimeZone(config('app.timezone'))
+        );
+
+        if (
+            !$date
+            || $date->format('Y-m-d') !== $this->sowDate
+            || $this->sowDate > today()->toDateString()
+        ) {
+            return null;
+        }
+
+        return $date
+            ->modify('+' . $days . ' days')
+            ->format('Y-m-d');
     }
 
     #[Computed]
     public function selectedPlot(): ?FarmPlot
     {
-        if (! $this->selectedPlotId) {
+        if (!$this->selectedPlotId) {
             return null;
         }
 
         return FarmPlot::with([
-            'plantingBatches' => fn ($query) => $query
-                ->occupying()
+            'plantingBatches' => fn($query) => $query
+                ->whereIn('status', ['planting', 'harvesting'])
                 ->with('product')
                 ->latest('id'),
         ])->find($this->selectedPlotId);
@@ -144,13 +404,17 @@ class FarmPlotManager extends Component
     #[Computed]
     public function currentBatch(): ?PlantingBatch
     {
-        return $this->selectedPlot?->activeBatch();
+        $plot = $this->selectedPlot;
+
+        return $plot !== null
+            ? $plot->activeBatch()
+            : null;
     }
 
     #[Computed]
     public function selectedBatch(): ?PlantingBatch
     {
-        if (! $this->selectedPlotId) {
+        if (!$this->selectedPlotId) {
             return null;
         }
 
@@ -166,7 +430,7 @@ class FarmPlotManager extends Component
     #[Computed]
     public function historyBatches(): Collection
     {
-        if (! $this->selectedPlotId) {
+        if (!$this->selectedPlotId) {
             return collect();
         }
 
@@ -214,6 +478,13 @@ class FarmPlotManager extends Component
     }
 
     #[Computed]
+    public function canHarvestSelectedBatch(): bool
+    {
+        return $this->canManageSelectedBatch
+            && ($this->selectedBatch?->isHarvestReady() ?? false);
+    }
+
+    #[Computed]
     public function harvestBatches(): Collection
     {
         return $this->selectedBatch
@@ -227,7 +498,7 @@ class FarmPlotManager extends Component
     #[Computed]
     public function qrBatch(): ?ProductBatch
     {
-        if (! $this->qrBatchId || ! $this->selectedBatch) {
+        if (!$this->qrBatchId || !$this->selectedBatch) {
             return null;
         }
 
@@ -238,11 +509,13 @@ class FarmPlotManager extends Component
 
     public function setFilter(string $value): void
     {
-        if (! in_array(
-            $value,
-            ['all', 'active', 'empty', 'maintenance'],
-            true
-        )) {
+        if (
+            !in_array(
+                $value,
+                ['all', 'empty', 'in-progress', 'available', 'maintenance'],
+                true
+            )
+        ) {
             return;
         }
 
@@ -294,31 +567,27 @@ class FarmPlotManager extends Component
         $this->closeModals();
 
         if (
-            $plot->status !== 'active'
-            || $plot->plantingBatches()->occupying()->exists()
+            $plot->status !== 'available'
+            || $plot->plantingBatches()
+                ->whereIn('status', ['planting', 'harvesting'])
+                ->exists()
         ) {
             $this->dispatch(
                 'swal',
                 icon: 'warning',
                 title: 'Chưa thể xuống giống',
-                text: 'Luống phải đang hoạt động và chưa có cây trồng.'
+                text: 'Luống phải sẵn sàng và chưa có vụ đang canh tác.'
             );
 
             return;
         }
 
         $this->sowPlotId = $plot->id;
-        $this->sowProductId = $this->products->first()?->id;
+        $this->sowProductId = null;
         $this->sowDate = now()->toDateString();
         $this->showSowModal = true;
 
         unset($this->sowPlot);
-    }
-
-    public function openSowModal(): void
-    {
-        abort_unless($this->selectedPlotId, 404);
-        $this->openSowFor($this->selectedPlotId);
     }
 
     public function sow(FarmPlotService $service): void
@@ -330,6 +599,7 @@ class FarmPlotManager extends Component
                 FarmPlot::findOrFail($this->sowPlotId),
                 $this->sowProductId,
                 $this->sowDate,
+                $this->sowPhoto,
                 $this->staff()
             );
 
@@ -350,7 +620,7 @@ class FarmPlotManager extends Component
     {
         $this->refreshData();
 
-        if (! $this->canManageSelectedBatch) {
+        if (!$this->canManageSelectedBatch) {
             $this->cannotManage();
             return;
         }
@@ -366,13 +636,15 @@ class FarmPlotManager extends Component
     {
         abort_unless($this->logBatchId, 404);
 
-        $this->attempt('logName', function () use ($service) {
+        $this->attempt('logType', function () use ($service) {
             $batch = $this->batchForForm($this->logBatchId);
 
-            $service->recordEvent($batch, [
-                'event_name' => $this->logName,
-                'description' => $this->logDesc,
-            ], $this->logPhoto, $this->staff());
+            $service->recordEvent(
+                $batch,
+                $this->logFormData(),
+                $this->logPhoto,
+                $this->staff()
+            );
 
             $this->closeModals();
             $this->refreshData();
@@ -388,8 +660,14 @@ class FarmPlotManager extends Component
     {
         $this->refreshData();
 
-        if (! $this->canManageSelectedBatch) {
-            $this->cannotManage();
+        if (!$this->canHarvestSelectedBatch) {
+            $this->dispatch(
+                'swal',
+                icon: 'warning',
+                title: 'Chưa thể thu hoạch',
+                text: 'Chỉ được thu hoạch vụ đang hoạt động và đã đến ngày thu hoạch tối thiểu.'
+            );
+
             return;
         }
 
@@ -397,9 +675,8 @@ class FarmPlotManager extends Component
         $this->closeModals();
 
         $this->harvestBatchId = $batchId;
-        $this->harvestToken = (string) Str::uuid();
-        $this->harvestDate = now()->toDateString();
-        $this->harvestExpiry = now()->addDays(15)->toDateString();
+        $this->harvestDate = today()->toDateString();
+        $this->harvestExpiry = today()->addDays(15)->toDateString();
         $this->showHarvestModal = true;
     }
 
@@ -416,7 +693,6 @@ class FarmPlotManager extends Component
                 'quantity' => $this->harvestQty,
                 'note' => $this->harvestNote,
                 'mode' => $this->harvestMode,
-                'token' => $this->harvestToken,
             ], $this->harvestPhoto, $this->staff());
 
             $this->closeModals();
@@ -427,8 +703,8 @@ class FarmPlotManager extends Component
             $this->success(
                 'Đã ghi nhận thu hoạch!',
                 "Lô {$productBatch->batch_code}: "
-                    . number_format($productBatch->initial_quantity, 2)
-                    . ' kg.'
+                . number_format($productBatch->initial_quantity, 2)
+                . ' kg.'
             );
         });
     }
@@ -448,46 +724,18 @@ class FarmPlotManager extends Component
         unset($this->qrBatch);
     }
 
-    public function verifyLogHash(
-        int $eventId,
-        FarmPlotService $service
-    ): void {
-        abort_unless($this->selectedBatch, 404);
-
-        $event = $this->selectedBatch
-            ->traceabilityEvents()
-            ->findOrFail($eventId);
-
-        $this->attempt('logName', function () use ($event, $service) {
-            $valid = $service->verifyEvent($event, $this->staff());
-
-            $this->dispatch(
-                'swal',
-                icon: $valid === true
-                    ? 'success'
-                    : ($valid === null ? 'info' : 'error'),
-                title: match ($valid) {
-                    true => 'Dữ liệu khớp mã kiểm chứng',
-                    false => 'Dữ liệu hoặc ảnh không khớp',
-                    null => 'Nhật ký thuộc phiên bản cũ',
-                },
-                text: match ($valid) {
-                    true => 'Nội dung và ảnh hiện tại khớp dữ liệu đã băm.',
-                    false => 'Vui lòng kiểm tra nội dung, ảnh hoặc mã hash.',
-                    null => 'Nhật ký này chưa có dữ liệu kiểm chứng theo phiên bản mới.',
-                }
-            );
-        });
-    }
-
     public function updatedLogPhoto(): void
     {
         $this->validateOnly('logPhoto', [
             'logPhoto' => [
-                'nullable', 'image',
-                'mimes:jpg,jpeg,png,webp', 'max:2048',
+                'bail',
+                'required',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:2048',
             ],
         ], [
+            'logPhoto.required' => 'Vui lòng tải ảnh minh chứng nhật ký.',
             'logPhoto.image' => 'Tệp phải là hình ảnh.',
             'logPhoto.mimes' => 'Chỉ nhận JPG, PNG hoặc WEBP.',
             'logPhoto.max' => 'Ảnh nhật ký tối đa 2 MB.',
@@ -498,13 +746,17 @@ class FarmPlotManager extends Component
     {
         $this->validateOnly('harvestPhoto', [
             'harvestPhoto' => [
-                'nullable', 'image',
-                'mimes:jpg,jpeg,png,webp', 'max:4096',
+                'bail',
+                'required',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:2048',
             ],
         ], [
+            'harvestPhoto.required' => 'Vui lòng tải ảnh thu hoạch thực tế.',
             'harvestPhoto.image' => 'Tệp phải là hình ảnh.',
             'harvestPhoto.mimes' => 'Chỉ nhận JPG, PNG hoặc WEBP.',
-            'harvestPhoto.max' => 'Ảnh thu hoạch tối đa 4 MB.',
+            'harvestPhoto.max' => 'Ảnh thu hoạch tối đa 2 MB.',
         ]);
     }
 
@@ -528,16 +780,55 @@ class FarmPlotManager extends Component
         $this->closeModals();
     }
 
+    public function completeMaintenance(
+        int $plotId,
+        FarmPlotService $service
+    ): void {
+        $this->staff();
+
+        $this->attempt('plot', function () use ($plotId, $service) {
+            $plot = FarmPlot::findOrFail($plotId);
+
+            $service->completeMaintenance(
+                $plot,
+                $this->staff()
+            );
+
+            $this->refreshData();
+
+            $this->success(
+                'Đã cải tạo luống đất!',
+                'Luống đã sẵn sàng để xuống giống.'
+            );
+        });
+    }
+
     public function closeModals(): void
     {
         $this->reset([
-            'showSowModal', 'showLogModal', 'showHarvestModal',
-            'sowPlotId', 'logBatchId', 'harvestBatchId',
-            'harvestToken', 'qrBatchId',
-            'sowProductId', 'sowDate',
-            'logName', 'logDesc', 'logPhoto',
-            'harvestDate', 'harvestExpiry', 'harvestQty',
-            'harvestNote', 'harvestMode', 'harvestPhoto',
+            'showSowModal',
+            'showLogModal',
+            'showHarvestModal',
+            'sowPlotId',
+            'logBatchId',
+            'harvestBatchId',
+            'qrBatchId',
+            'sowProductId',
+            'showCreatePlotModal',
+            'newPlotName',
+            'newPlotArea',
+            'sowDate',
+            'logType',
+            'logDetails',
+            'logDesc',
+            'logPhoto',
+            'sowPhoto',
+            'harvestDate',
+            'harvestExpiry',
+            'harvestQty',
+            'harvestNote',
+            'harvestMode',
+            'harvestPhoto',
         ]);
 
         $this->resetValidation();
@@ -564,7 +855,8 @@ class FarmPlotManager extends Component
             $this->timelineEvents,
             $this->harvestBatches,
             $this->sowPlot,
-            $this->qrBatch
+            $this->qrBatch,
+            $this->canHarvestSelectedBatch,
         );
     }
 

@@ -61,41 +61,43 @@
                     </thead>
                     <tbody class="divide-y divide-slate-100 font-medium">
                         @forelse ($categories as $category)
-                        <tr wire:key="category-{{ $category->id }}" class="hover:bg-slate-50 transition bg-white">
-                            <td class="py-3.5 px-5 flex items-center gap-3">
-                                <img src="{{ $categoryImageUrls[$category->id] ?? 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300' }}"
-                                    class="w-9 h-9 rounded-xl object-cover border border-slate-200 shrink-0"
-                                    alt="{{ $category->name }}">
-                                <b class="text-slate-900 text-xs sm:text-sm">{{ $category->name }}</b>
-                            </td>
-                            <td class="py-3.5 px-4 font-mono text-slate-600 text-xs">/{{ $category->slug }}</td>
-                            <td class="py-3.5 px-4 text-center font-mono font-bold">{{ $category->products_count ?? 0 }}
-                                SP</td>
-                            <td class="py-3.5 px-4 text-center">
-                                <span
-                                    class="text-[10px] font-bold px-2.5 py-0.5 rounded-full border {{ $category->is_active ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-slate-100 text-slate-600' }}">
-                                    {{ $category->is_active ? 'Hiển thị' : 'Ẩn' }}
-                                </span>
-                            </td>
-                            <td class="py-3.5 px-6 text-right space-x-1.5">
-                                <button type="button" wire:click="editCategory({{ $category->id }})"
-                                    class="p-1.5 rounded-lg bg-slate-100 hover:text-brand-700 hover:bg-slate-200 transition cursor-pointer"
-                                    title="Sửa danh mục">
-                                    <i class="fa-regular fa-pen-to-square"></i>
-                                </button>
-                                <button type="button" wire:click="requestDeleteCategory({{ $category->id }})"
-                                    wire:loading.attr="disabled" wire:target="requestDeleteCategory,deleteCategory"
-                                    class="p-1.5 rounded-lg bg-slate-100 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                                    title="Xóa danh mục">
-                                    <i class="fa-regular fa-trash-can"></i>
-                                </button>
-                            </td>
-                        </tr>
+                            <tr wire:key="category-{{ $category->id }}" class="hover:bg-slate-50 transition bg-white">
+                                <td class="py-3.5 px-5 flex items-center gap-3">
+                                    <img src="{{ $categoryImageUrls[$category->id] ?? 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300' }}"
+                                        class="w-9 h-9 rounded-xl object-cover border border-slate-200 shrink-0"
+                                        alt="{{ $category->name }}">
+                                    <b class="text-slate-900 text-xs sm:text-sm">{{ $category->name }}</b>
+                                </td>
+                                <td class="py-3.5 px-4 font-mono text-slate-600 text-xs">/{{ $category->slug }}</td>
+                                <td class="py-3.5 px-4 text-center font-mono font-bold">
+                                    {{ $category->products_count ?? 0 }}
+                                    SP</td>
+                                <td class="py-3.5 px-4 text-center">
+                                    <span
+                                        class="text-[10px] font-bold px-2.5 py-0.5 rounded-full border {{ $category->is_active ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-slate-100 text-slate-600' }}">
+                                        {{ $category->is_active ? 'Hiển thị' : 'Ẩn' }}
+                                    </span>
+                                </td>
+                                <td class="py-3.5 px-6 text-right space-x-1.5">
+                                    <button type="button" wire:click="editCategory({{ $category->id }})"
+                                        class="p-1.5 rounded-lg bg-slate-100 hover:text-brand-700 hover:bg-slate-200 transition cursor-pointer"
+                                        title="Sửa danh mục">
+                                        <i class="fa-regular fa-pen-to-square"></i>
+                                    </button>
+                                    <button type="button" wire:click="requestDeleteCategory({{ $category->id }})"
+                                        wire:loading.attr="disabled" wire:target="requestDeleteCategory,deleteCategory"
+                                        class="p-1.5 rounded-lg bg-slate-100 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                                        title="Xóa danh mục">
+                                        <i class="fa-regular fa-trash-can"></i>
+                                    </button>
+                                </td>
+                            </tr>
                         @empty
-                        <tr>
-                            <td colspan="5" class="py-10 text-center text-slate-400 italic">Chưa có danh mục nông sản
-                                nào được khởi tạo.</td>
-                        </tr>
+                            <tr>
+                                <td colspan="5" class="py-10 text-center text-slate-400 italic">Chưa có danh mục nông
+                                    sản
+                                    nào được khởi tạo.</td>
+                            </tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -103,9 +105,9 @@
 
             <!-- Phân trang -->
             @if ($categories->hasPages())
-            <div class="p-4 border-t border-slate-100">
-                {{ $categories->links() }}
-            </div>
+                <div class="p-4 border-t border-slate-100">
+                    {{ $categories->links() }}
+                </div>
             @endif
         </div>
     </div>
@@ -113,9 +115,12 @@
     <!-- MODAL THÊM / SỬA DANH MỤC -->
     <div wire:key="category-modal-{{ $editingId ?? 'new' }}-{{ $imageInputKey }}" x-data="{ uploadingImage: false }"
         x-on:livewire-upload-start="
-        if ($event.detail.property === 'newImage') uploadingImage = true" x-on:livewire-upload-finish="
-        if ($event.detail.property === 'newImage') uploadingImage = false" x-on:livewire-upload-error="
-        if ($event.detail.property === 'newImage') uploadingImage = false" x-on:livewire-upload-cancel="
+        if ($event.detail.property === 'newImage') uploadingImage = true"
+        x-on:livewire-upload-finish="
+        if ($event.detail.property === 'newImage') uploadingImage = false"
+        x-on:livewire-upload-error="
+        if ($event.detail.property === 'newImage') uploadingImage = false"
+        x-on:livewire-upload-cancel="
         if ($event.detail.property === 'newImage') uploadingImage = false"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs {{ $showModal ? '' : 'hidden' }} p-3 sm:p-4">
         <div
@@ -128,7 +133,7 @@
                     </div>
                     <div>
                         <h3 class="text-base sm:text-lg font-extrabold text-slate-900">
-                            {{ $editingId === null ? 'Thêm Danh Mục Mới' : 'Sửa Danh Mục: '.$name }}
+                            {{ $editingId === null ? 'Thêm Danh Mục Mới' : 'Sửa Danh Mục: ' . $name }}
                         </h3>
                     </div>
                 </div>
@@ -139,14 +144,16 @@
                 </button>
             </div>
 
-            <form wire:submit="requestSaveCategory" x-on:submit.capture="
+            <form wire:submit="requestSaveCategory"
+                x-on:submit.capture="
         if (uploadingImage) {
             $event.preventDefault();
             $event.stopImmediatePropagation();
-        }" class="space-y-3.5 text-xs">
+        }"
+                class="space-y-3.5 text-xs">
 
                 @error('form')
-                <p role="alert">{{ $message }}</p>
+                    <p role="alert">{{ $message }}</p>
                 @enderror
 
                 <div>
@@ -160,7 +167,7 @@
                         class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2 text-sm outline-none focus:border-brand-600 focus:bg-white font-semibold">
 
                     @error('name')
-                    <p role="alert">{{ $message }}</p>
+                        <p role="alert">{{ $message }}</p>
                     @enderror
                 </div>
 
@@ -174,7 +181,7 @@
                         class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2 font-mono text-xs text-slate-600 outline-none">
 
                     @error('slug')
-                    <p role="alert">{{ $message }}</p>
+                        <p role="alert">{{ $message }}</p>
                     @enderror
                 </div>
 
@@ -182,25 +189,26 @@
                     <label for="c-file" class="block font-bold text-slate-700 mb-1">
                         Ảnh đại diện danh mục
 
-                        @if ($editingId === null || ! $currentImageUrl)
-                        <span class="text-red-500">*</span>
+                        @if ($editingId === null || !$currentImageUrl)
+                            <span class="text-red-500">*</span>
                         @endif
                     </label>
 
                     @if ($editingId !== null && $currentImageUrl)
-                    <p class="text-[10px] text-slate-400 mt-1">
-                        Danh mục đã có ảnh. Không cần tải lại nếu không muốn thay ảnh.
-                    </p>
+                        <p class="text-[10px] text-slate-400 mt-1">
+                            Danh mục đã có ảnh. Không cần tải lại nếu không muốn thay ảnh.
+                        </p>
                     @else
-                    <p class="text-[10px] text-slate-400 mt-1">
-                        Danh mục chưa có ảnh. Vui lòng tải ảnh JPG, JPEG hoặc WEBP,
-                        tối đa 2 MB.
-                    </p>
+                        <p class="text-[10px] text-slate-400 mt-1">
+                            Danh mục chưa có ảnh. Vui lòng tải ảnh JPG, JPEG hoặc WEBP,
+                            tối đa 2 MB.
+                        </p>
                     @endif
 
-                    <input type="file" id="c-file" wire:key="category-image-{{ $imageInputKey }}" wire:model="newImage"
-                        accept="image/jpeg,image/png,image/webp" x-bind:disabled="uploadingImage"
-                        wire:loading.attr="disabled" wire:target="requestSaveCategory,saveCategory,closeModal"
+                    <input type="file" id="c-file" wire:key="category-image-{{ $imageInputKey }}"
+                        wire:model="newImage" accept="image/jpeg,image/png,image/webp"
+                        x-bind:disabled="uploadingImage" wire:loading.attr="disabled"
+                        wire:target="requestSaveCategory,saveCategory,closeModal"
                         class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-amber-50 file:text-amber-800 cursor-pointer">
 
                     <p class="text-[10px] text-slate-400 mt-1">
@@ -213,21 +221,21 @@
                     </template>
 
                     @error('newImage')
-                    <p role="alert">{{ $message }}</p>
+                        <p role="alert">{{ $message }}</p>
                     @enderror
 
-                    <div class="mt-2 {{ ($newImage || $currentImageUrl) ? '' : 'hidden' }}">
+                    <div class="mt-2 {{ $newImage || $currentImageUrl ? '' : 'hidden' }}">
 
-                        @if ($newImage && ! $errors->has('newImage'))
-                        <img wire:key="category-preview-new-{{ $newImage->getFilename() }}"
-                            src="{{ $newImage->temporaryUrl() }}"
-                            class="w-16 h-16 object-cover rounded-xl border border-slate-200" alt="Ảnh mới đang chọn">
-
+                        @if ($newImage && !$errors->has('newImage'))
+                            <img wire:key="category-preview-new-{{ $newImage->getFilename() }}"
+                                src="{{ $newImage->temporaryUrl() }}"
+                                class="w-16 h-16 object-cover rounded-xl border border-slate-200"
+                                alt="Ảnh mới đang chọn">
                         @elseif ($currentImageUrl)
-                        <img wire:key="category-preview-current-{{ $editingId }}-{{ $imageInputKey }}"
-                            src="{{ $currentImageUrl }}"
-                            class="w-16 h-16 object-cover rounded-xl border border-slate-200"
-                            alt="Ảnh danh mục hiện tại">
+                            <img wire:key="category-preview-current-{{ $editingId }}-{{ $imageInputKey }}"
+                                src="{{ $currentImageUrl }}"
+                                class="w-16 h-16 object-cover rounded-xl border border-slate-200"
+                                alt="Ảnh danh mục hiện tại">
                         @endif
                     </div>
                 </div>
@@ -244,7 +252,7 @@
                     </select>
 
                     @error('status')
-                    <p role="alert">{{ $message }}</p>
+                        <p role="alert">{{ $message }}</p>
                     @enderror
                 </div>
 
@@ -267,85 +275,85 @@
 </div>
 
 @script
-<script>
-let confirming = false;
+    <script>
+        let confirming = false;
 
-async function showCategoryRequestError() {
-    await Swal.fire({
-        icon: 'error',
-        title: 'Yêu cầu chưa hoàn tất',
-        text: 'Vui lòng kiểm tra dữ liệu, kết nối và thử lại.',
-        confirmButtonText: 'Đã hiểu',
-        confirmButtonColor: '#15803d'
-    });
-}
-
-$wire.on('confirm-category-save', async ({
-    editing
-}) => {
-    if (confirming) return;
-
-    confirming = true;
-
-    try {
-        const result = await Swal.fire({
-            icon: 'question',
-            title: editing ?
-                'Xác nhận cập nhật danh mục?' : 'Xác nhận thêm danh mục?',
-            text: 'Bạn có muốn lưu thông tin và ảnh danh mục?',
-            showCancelButton: true,
-            confirmButtonText: 'Xác nhận',
-            cancelButtonText: 'Hủy',
-            confirmButtonColor: '#15803d',
-            cancelButtonColor: '#6b7280',
-            reverseButtons: true,
-            allowOutsideClick: false
-        });
-
-        if (result.isConfirmed) {
-            await $wire.saveCategory();
+        async function showCategoryRequestError() {
+            await Swal.fire({
+                icon: 'error',
+                title: 'Yêu cầu chưa hoàn tất',
+                text: 'Vui lòng kiểm tra dữ liệu, kết nối và thử lại.',
+                confirmButtonText: 'Đã hiểu',
+                confirmButtonColor: '#15803d'
+            });
         }
 
-        // Hủy: không đóng modal, không reset dữ liệu hoặc ảnh.
-    } catch (error) {
-        await showCategoryRequestError();
-    } finally {
-        confirming = false;
-    }
-});
+        $wire.on('confirm-category-save', async ({
+            editing
+        }) => {
+            if (confirming) return;
 
-$wire.on('confirm-category-delete', async ({
-    id,
-    name
-}) => {
-    if (confirming) return;
+            confirming = true;
 
-    confirming = true;
+            try {
+                const result = await Swal.fire({
+                    icon: 'question',
+                    title: editing ?
+                        'Xác nhận cập nhật danh mục?' : 'Xác nhận thêm danh mục?',
+                    text: 'Bạn có muốn lưu thông tin và ảnh danh mục?',
+                    showCancelButton: true,
+                    confirmButtonText: 'Xác nhận',
+                    cancelButtonText: 'Hủy',
+                    confirmButtonColor: '#15803d',
+                    cancelButtonColor: '#6b7280',
+                    reverseButtons: true,
+                    allowOutsideClick: false
+                });
 
-    try {
-        const result = await Swal.fire({
-            icon: 'warning',
-            title: 'Xác nhận xóa danh mục?',
-            text: `Bạn có chắc muốn xóa danh mục “${name}”?`,
-            showCancelButton: true,
-            confirmButtonText: 'Xác nhận',
-            cancelButtonText: 'Hủy',
-            confirmButtonColor: '#e11d48',
-            cancelButtonColor: '#6b7280',
-            reverseButtons: true,
-            allowOutsideClick: false
+                if (result.isConfirmed) {
+                    await $wire.saveCategory();
+                }
+
+                // Hủy: không đóng modal, không reset dữ liệu hoặc ảnh.
+            } catch (error) {
+                await showCategoryRequestError();
+            } finally {
+                confirming = false;
+            }
         });
 
-        if (result.isConfirmed) {
-            await $wire.deleteCategory(id);
-        }
+        $wire.on('confirm-category-delete', async ({
+            id,
+            name
+        }) => {
+            if (confirming) return;
 
-        // Hủy: không gọi action xóa.
-    } catch (error) {
-        await showCategoryRequestError();
-    } finally {
-        confirming = false;
-    }
-});
-</script>
+            confirming = true;
+
+            try {
+                const result = await Swal.fire({
+                    icon: 'warning',
+                    title: 'Xác nhận xóa danh mục?',
+                    text: `Bạn có chắc muốn xóa danh mục “${name}”?`,
+                    showCancelButton: true,
+                    confirmButtonText: 'Xác nhận',
+                    cancelButtonText: 'Hủy',
+                    confirmButtonColor: '#e11d48',
+                    cancelButtonColor: '#6b7280',
+                    reverseButtons: true,
+                    allowOutsideClick: false
+                });
+
+                if (result.isConfirmed) {
+                    await $wire.deleteCategory(id);
+                }
+
+                // Hủy: không gọi action xóa.
+            } catch (error) {
+                await showCategoryRequestError();
+            } finally {
+                confirming = false;
+            }
+        });
+    </script>
 @endscript

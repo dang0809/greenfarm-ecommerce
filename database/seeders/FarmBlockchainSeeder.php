@@ -6,7 +6,7 @@ use App\Models\Product;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-
+use Carbon\CarbonImmutable;
 class FarmBlockchainSeeder extends Seeder
 {
     public function run(): void
@@ -15,12 +15,12 @@ class FarmBlockchainSeeder extends Seeder
 
         // 1. Khu đất canh tác (Tạo hoặc cập nhật)
         $plotsData = [
-            'A1' => ['name' => 'Nhà Màng A1 - Hữu Cơ', 'area' => '1000', 'status' => 'active'],
-            'A2' => ['name' => 'Nhà Màng A2 - Công Nghệ Cao', 'area' => '1200', 'status' => 'active'],
-            'A3' => ['name' => 'Nhà Màng A3 - Trồng Rau Ăn Lá', 'area' => '1500', 'status' => 'active'],
-            'B1' => ['name' => 'Luống B1 - Ngoài Trời', 'area' => '800', 'status' => 'active'],
-            'N1' => ['name' => 'Nhà Nấm Hữu Cơ N1', 'area' => '600', 'status' => 'active'],
-            'C1' => ['name' => 'Vườn Cây Ăn Trái C1', 'area' => '2500', 'status' => 'active'],
+            'A1' => ['name' => 'Nhà Màng A1 - Hữu Cơ', 'area' => '1000', 'status' => 'available'],
+            'A2' => ['name' => 'Nhà Màng A2 - Công Nghệ Cao', 'area' => '1200', 'status' => 'available'],
+            'A3' => ['name' => 'Nhà Màng A3 - Trồng Rau Ăn Lá', 'area' => '1500', 'status' => 'available'],
+            'B1' => ['name' => 'Luống B1 - Ngoài Trời', 'area' => '800', 'status' => 'available'],
+            'N1' => ['name' => 'Nhà Nấm Hữu Cơ N1', 'area' => '600', 'status' => 'available'],
+            'C1' => ['name' => 'Vườn Cây Ăn Trái C1', 'area' => '2500', 'status' => 'available'],
         ];
 
         $plotIds = [];
@@ -39,222 +39,222 @@ class FarmBlockchainSeeder extends Seeder
         // 2. Danh sách cấu hình Lô trồng & Lô thu hoạch kho cho toàn bộ 12 sản phẩm
         $inventorySetup = [
             [
-                'product_slug'   => 'cai-bo-xoi-huu-co',
-                'plot_key'       => 'A1',
-                'planting_code'  => 'TRONG-BOXOI-L1',
-                'planted_days'   => 60,
-                'planting_status'=> 'harvesting',
+                'product_slug' => 'cai-bo-xoi-huu-co',
+                'plot_key' => 'A1',
+                'planting_code' => 'TRONG-BOXOI-L1',
+                'planted_days' => 60,
+                'planting_status' => 'completed',
                 'batches' => [
                     [
-                        'batch_code'    => 'DL-20261015-K1',
-                        'mfg_days_ago'  => 4,
+                        'batch_code' => 'DL-20261015-K1',
+                        'mfg_days_ago' => 4,
                         'exp_days_next' => 1, // Còn 1 ngày (dưới 24h) -> Flash Sale 50%
-                        'initial_qty'   => 10,
-                        'current_qty'   => 10,
-                        'discount'      => 50,
+                        'initial_qty' => 10,
+                        'current_qty' => 10,
+                        'discount' => 50,
                     ],
                     [
-                        'batch_code'    => 'DL-BOXOI-NEAR-K2',
-                        'mfg_days_ago'  => 3,
+                        'batch_code' => 'DL-BOXOI-NEAR-K2',
+                        'mfg_days_ago' => 3,
                         'exp_days_next' => 2, // Còn 2 ngày (24h - 48h) -> Flash Sale 30%
-                        'initial_qty'   => 10,
-                        'current_qty'   => 10,
-                        'discount'      => 30,
+                        'initial_qty' => 10,
+                        'current_qty' => 10,
+                        'discount' => 30,
                     ],
                     [
-                        'batch_code'    => 'DL-BOXOI-FRESH-K3',
-                        'mfg_days_ago'  => 1,
+                        'batch_code' => 'DL-BOXOI-FRESH-K3',
+                        'mfg_days_ago' => 1,
                         'exp_days_next' => 7, // Còn 7 ngày -> Hàng mới hạn dài (Giá gốc)
-                        'initial_qty'   => 10,
-                        'current_qty'   => 10,
-                        'discount'      => 0,
+                        'initial_qty' => 10,
+                        'current_qty' => 10,
+                        'discount' => 0,
                     ],
                 ],
             ],
             [
-                'product_slug'   => 'ca-chua-cherry-da-lat',
-                'plot_key'       => 'A2',
-                'planting_code'  => 'TRONG-CACHUA-L2',
-                'planted_days'   => 45,
-                'planting_status'=> 'harvesting',
+                'product_slug' => 'ca-chua-cherry-da-lat',
+                'plot_key' => 'A2',
+                'planting_code' => 'TRONG-CACHUA-L2',
+                'planted_days' => 45,
+                'planting_status' => 'completed',
                 'batches' => [
                     [
-                        'batch_code'    => 'DL-20261016-K2',
-                        'mfg_days_ago'  => 1,
+                        'batch_code' => 'DL-20261016-K2',
+                        'mfg_days_ago' => 1,
                         'exp_days_next' => 12,
-                        'initial_qty'   => 100,
-                        'current_qty'   => 70,
-                        'discount'      => 0,
+                        'initial_qty' => 100,
+                        'current_qty' => 70,
+                        'discount' => 0,
                     ],
                 ],
             ],
             [
-                'product_slug'   => 'xa-lach-lo-lo-xanh',
-                'plot_key'       => 'A3',
-                'planting_code'  => 'TRONG-XALACH-L1',
-                'planted_days'   => 35,
-                'planting_status'=> 'harvesting',
+                'product_slug' => 'xa-lach-lo-lo-xanh',
+                'plot_key' => 'A3',
+                'planting_code' => 'TRONG-XALACH-L1',
+                'planted_days' => 35,
+                'planting_status' => 'completed',
                 'batches' => [
                     [
-                        'batch_code'    => 'DL-XALACH-K1',
-                        'mfg_days_ago'  => 1,
+                        'batch_code' => 'DL-XALACH-K1',
+                        'mfg_days_ago' => 1,
                         'exp_days_next' => 10,
-                        'initial_qty'   => 80,
-                        'current_qty'   => 75,
-                        'discount'      => 0,
+                        'initial_qty' => 80,
+                        'current_qty' => 75,
+                        'discount' => 0,
                     ],
                 ],
             ],
             [
-                'product_slug'   => 'ca-rot-organic-don-duong',
-                'plot_key'       => 'B1',
-                'planting_code'  => 'TRONG-CAROT-L1',
-                'planted_days'   => 75,
-                'planting_status'=> 'harvesting',
+                'product_slug' => 'ca-rot-organic-don-duong',
+                'plot_key' => 'B1',
+                'planting_code' => 'TRONG-CAROT-L1',
+                'planted_days' => 75,
+                'planting_status' => 'completed',
                 'batches' => [
                     [
-                        'batch_code'    => 'DL-CAROT-K1',
-                        'mfg_days_ago'  => 2,
+                        'batch_code' => 'DL-CAROT-K1',
+                        'mfg_days_ago' => 2,
                         'exp_days_next' => 16,
-                        'initial_qty'   => 100,
-                        'current_qty'   => 90,
-                        'discount'      => 0,
+                        'initial_qty' => 100,
+                        'current_qty' => 90,
+                        'discount' => 0,
                     ],
                 ],
             ],
             [
-                'product_slug'   => 'dua-luoi-tach-mat',
-                'plot_key'       => 'A2',
-                'planting_code'  => 'TRONG-DUALUOI-L3',
-                'planted_days'   => 50,
-                'planting_status'=> 'harvesting',
+                'product_slug' => 'dua-luoi-tach-mat',
+                'plot_key' => 'A2',
+                'planting_code' => 'TRONG-DUALUOI-L3',
+                'planted_days' => 50,
+                'planting_status' => 'completed',
                 'batches' => [
                     [
-                        'batch_code'    => 'DL-DUALUOI-K1',
-                        'mfg_days_ago'  => 1,
+                        'batch_code' => 'DL-DUALUOI-K1',
+                        'mfg_days_ago' => 1,
                         'exp_days_next' => 14,
-                        'initial_qty'   => 60,
-                        'current_qty'   => 50,
-                        'discount'      => 0,
+                        'initial_qty' => 60,
+                        'current_qty' => 50,
+                        'discount' => 0,
                     ],
                 ],
             ],
             [
-                'product_slug'   => 'bap-cai-trai-tim',
-                'plot_key'       => 'B1',
-                'planting_code'  => 'TRONG-BAPCAI-L1',
-                'planted_days'   => 55,
-                'planting_status'=> 'harvesting',
+                'product_slug' => 'bap-cai-trai-tim',
+                'plot_key' => 'B1',
+                'planting_code' => 'TRONG-BAPCAI-L1',
+                'planted_days' => 55,
+                'planting_status' => 'completed',
                 'batches' => [
                     [
-                        'batch_code'    => 'DL-BAPCAI-K1',
-                        'mfg_days_ago'  => 2,
+                        'batch_code' => 'DL-BAPCAI-K1',
+                        'mfg_days_ago' => 2,
                         'exp_days_next' => 14,
-                        'initial_qty'   => 90,
-                        'current_qty'   => 80,
-                        'discount'      => 0,
+                        'initial_qty' => 90,
+                        'current_qty' => 80,
+                        'discount' => 0,
                     ],
                 ],
             ],
             [
-                'product_slug'   => 'rau-can-tay-my',
-                'plot_key'       => 'A3',
-                'planting_code'  => 'TRONG-CANTAY-L1',
-                'planted_days'   => 40,
-                'planting_status'=> 'harvesting',
+                'product_slug' => 'rau-can-tay-my',
+                'plot_key' => 'A3',
+                'planting_code' => 'TRONG-CANTAY-L1',
+                'planted_days' => 40,
+                'planting_status' => 'completed',
                 'batches' => [
                     [
-                        'batch_code'    => 'DL-CANTAY-K1',
-                        'mfg_days_ago'  => 1,
+                        'batch_code' => 'DL-CANTAY-K1',
+                        'mfg_days_ago' => 1,
                         'exp_days_next' => 9,
-                        'initial_qty'   => 70,
-                        'current_qty'   => 60,
-                        'discount'      => 0,
+                        'initial_qty' => 70,
+                        'current_qty' => 60,
+                        'discount' => 0,
                     ],
                 ],
             ],
             [
-                'product_slug'   => 'khoai-lang-mat-huu-co',
-                'plot_key'       => 'B1',
-                'planting_code'  => 'TRONG-KHOAI-L1',
-                'planted_days'   => 90,
-                'planting_status'=> 'completed',
+                'product_slug' => 'khoai-lang-mat-huu-co',
+                'plot_key' => 'B1',
+                'planting_code' => 'TRONG-KHOAI-L1',
+                'planted_days' => 90,
+                'planting_status' => 'completed',
                 'batches' => [
                     [
-                        'batch_code'    => 'DL-KHOAI-K1',
-                        'mfg_days_ago'  => 3,
+                        'batch_code' => 'DL-KHOAI-K1',
+                        'mfg_days_ago' => 3,
                         'exp_days_next' => 30,
-                        'initial_qty'   => 150,
-                        'current_qty'   => 130,
-                        'discount'      => 0,
+                        'initial_qty' => 150,
+                        'current_qty' => 130,
+                        'discount' => 0,
                     ],
                 ],
             ],
             [
-                'product_slug'   => 'nam-dui-ga-huu-co',
-                'plot_key'       => 'N1',
-                'planting_code'  => 'TRONG-NAMDUIGA-L1',
-                'planted_days'   => 25,
-                'planting_status'=> 'harvesting',
+                'product_slug' => 'nam-dui-ga-huu-co',
+                'plot_key' => 'N1',
+                'planting_code' => 'TRONG-NAMDUIGA-L1',
+                'planted_days' => 25,
+                'planting_status' => 'completed',
                 'batches' => [
                     [
-                        'batch_code'    => 'DL-NAMDUIGA-K1',
-                        'mfg_days_ago'  => 1,
+                        'batch_code' => 'DL-NAMDUIGA-K1',
+                        'mfg_days_ago' => 1,
                         'exp_days_next' => 10,
-                        'initial_qty'   => 75,
-                        'current_qty'   => 65,
-                        'discount'      => 0,
+                        'initial_qty' => 75,
+                        'current_qty' => 65,
+                        'discount' => 0,
                     ],
                 ],
             ],
             [
-                'product_slug'   => 'nam-bao-ngu-xam',
-                'plot_key'       => 'N1',
-                'planting_code'  => 'TRONG-NAMBAONGU-L1',
-                'planted_days'   => 20,
-                'planting_status'=> 'harvesting',
+                'product_slug' => 'nam-bao-ngu-xam',
+                'plot_key' => 'N1',
+                'planting_code' => 'TRONG-NAMBAONGU-L1',
+                'planted_days' => 20,
+                'planting_status' => 'completed',
                 'batches' => [
                     [
-                        'batch_code'    => 'DL-NAMBAONGU-K1',
-                        'mfg_days_ago'  => 1,
+                        'batch_code' => 'DL-NAMBAONGU-K1',
+                        'mfg_days_ago' => 1,
                         'exp_days_next' => 8,
-                        'initial_qty'   => 60,
-                        'current_qty'   => 50,
-                        'discount'      => 0,
+                        'initial_qty' => 60,
+                        'current_qty' => 50,
+                        'discount' => 0,
                     ],
                 ],
             ],
             [
-                'product_slug'   => 'cam-sanh-vat-nuoc',
-                'plot_key'       => 'C1',
-                'planting_code'  => 'TRONG-CAMSANH-L1',
-                'planted_days'   => 180,
-                'planting_status'=> 'harvesting',
+                'product_slug' => 'cam-sanh-vat-nuoc',
+                'plot_key' => 'C1',
+                'planting_code' => 'TRONG-CAMSANH-L1',
+                'planted_days' => 180,
+                'planting_status' => 'completed',
                 'batches' => [
                     [
-                        'batch_code'    => 'DL-CAMSANH-K1',
-                        'mfg_days_ago'  => 2,
+                        'batch_code' => 'DL-CAMSANH-K1',
+                        'mfg_days_ago' => 2,
                         'exp_days_next' => 20,
-                        'initial_qty'   => 120,
-                        'current_qty'   => 100,
-                        'discount'      => 0,
+                        'initial_qty' => 120,
+                        'current_qty' => 100,
+                        'discount' => 0,
                     ],
                 ],
             ],
             [
-                'product_slug'   => 'dau-tay-moc-chau',
-                'plot_key'       => 'A2',
-                'planting_code'  => 'TRONG-DAUTAY-L1',
-                'planted_days'   => 60,
-                'planting_status'=> 'harvesting',
+                'product_slug' => 'dau-tay-moc-chau',
+                'plot_key' => 'A2',
+                'planting_code' => 'TRONG-DAUTAY-L1',
+                'planted_days' => 60,
+                'planting_status' => 'completed',
                 'batches' => [
                     [
-                        'batch_code'    => 'DL-DAUTAY-K1',
-                        'mfg_days_ago'  => 1,
+                        'batch_code' => 'DL-DAUTAY-K1',
+                        'mfg_days_ago' => 1,
                         'exp_days_next' => 7,
-                        'initial_qty'   => 50,
-                        'current_qty'   => 40,
-                        'discount'      => 0,
+                        'initial_qty' => 50,
+                        'current_qty' => 40,
+                        'discount' => 0,
                     ],
                 ],
             ],
@@ -269,23 +269,49 @@ class FarmBlockchainSeeder extends Seeder
 
             $plotId = $plotIds[$item['plot_key']] ?? reset($plotIds);
 
-            // A. Tạo hoặc cập nhật Lô trồng (Planting Batch)
-            $plantingBatch = DB::table('planting_batches')->where('planting_code', $item['planting_code'])->first();
-            if ($plantingBatch) {
+            // A. Tạo hoặc cập nhật Lô trồng.
+            $plantingBatch = DB::table('planting_batches')
+                ->where('planting_code', $item['planting_code'])
+                ->first();
+
+            $minGrowthDays = (int) $product->min_growth_days;
+
+            if ($minGrowthDays < 1) {
+                throw new \RuntimeException(
+                    "Sản phẩm {$product->name} chưa có số ngày thu hoạch tối thiểu hợp lệ."
+                );
+            }
+
+            // Vụ đã tồn tại: sử dụng ngày xuống giống đang lưu.
+// Vụ mới: tính theo cấu hình planted_days của seeder.
+            $plantedDate = $plantingBatch !== null
+                ? CarbonImmutable::parse($plantingBatch->planted_date)
+                : CarbonImmutable::today()->subDays((int) $item['planted_days']);
+
+            $minManufacturedDate = $plantedDate
+                ->addDays($minGrowthDays)
+                ->toDateString();
+
+            if ($plantingBatch !== null) {
                 $pbId = $plantingBatch->id;
-                DB::table('planting_batches')->where('id', $pbId)->update([
-                    'status'       => $item['planting_status'],
-                    'updated_at'   => now(),
-                ]);
+
+                DB::table('planting_batches')
+                    ->where('id', $pbId)
+                    ->update([
+                        'min_manufactured_date' => $minManufacturedDate,
+                        'status' => $item['planting_status'],
+                        'updated_at' => now(),
+                    ]);
             } else {
                 $pbId = DB::table('planting_batches')->insertGetId([
                     'farm_plot_id' => $plotId,
-                    'product_id'   => $product->id,
-                    'planting_code'=> $item['planting_code'],
-                    'planted_date' => now()->subDays($item['planted_days'])->toDateString(),
-                    'status'       => $item['planting_status'],
-                    'created_at'   => now()->subDays($item['planted_days']),
-                    'updated_at'   => now(),
+                    'product_id' => $product->id,
+                    'planting_code' => $item['planting_code'],
+                    'planted_date' => $plantedDate->toDateString(),
+                    'min_manufactured_date' => $minManufacturedDate,
+                    'status' => $item['planting_status'],
+                    'created_at' => now()->subDays($item['planted_days']),
+                    'updated_at' => now(),
                 ]);
             }
 
@@ -295,19 +321,19 @@ class FarmBlockchainSeeder extends Seeder
                 DB::table('traceability_events')->insert([
                     [
                         'planting_batch_id' => $pbId,
-                        'event_name'        => 'Gieo Trồng Chuẩn Hữu Cơ',
-                        'description'       => "Gieo trồng giống chuẩn sạch trên vùng đất hữu cơ tại {$plotsData[$item['plot_key']]['name']}.",
-                        'image'             => 'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?w=500',
-                        'recorded_by'       => $farmStaff?->name ?? 'Kỹ sư nông nghiệp',
-                        'recorded_at'       => now()->subDays($item['planted_days']),
+                        'event_name' => 'Gieo Trồng Chuẩn Hữu Cơ',
+                        'description' => "Gieo trồng giống chuẩn sạch trên vùng đất hữu cơ tại {$plotsData[$item['plot_key']]['name']}.",
+                        'image' => 'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?w=500',
+                        'recorded_by' => $farmStaff?->name ?? 'Kỹ sư nông nghiệp',
+                        'recorded_at' => now()->subDays($item['planted_days']),
                     ],
                     [
                         'planting_batch_id' => $pbId,
-                        'event_name'        => 'Thu Hoạch Sớm & Kiểm Định',
-                        'description'       => 'Thu hoạch đúng độ chín lý tưởng vào sáng sớm, kiểm tra dư lượng đạt chuẩn 100%.',
-                        'image'             => 'https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?w=500',
-                        'recorded_by'       => $farmStaff?->name ?? 'Kỹ sư nông nghiệp',
-                        'recorded_at'       => now()->subDays(1),
+                        'event_name' => 'Thu Hoạch Sớm & Kiểm Định',
+                        'description' => 'Thu hoạch đúng độ chín lý tưởng vào sáng sớm, kiểm tra dư lượng đạt chuẩn 100%.',
+                        'image' => 'https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?w=500',
+                        'recorded_by' => $farmStaff?->name ?? 'Kỹ sư nông nghiệp',
+                        'recorded_at' => now()->subDays(1),
                     ],
                 ]);
             }
@@ -324,28 +350,28 @@ class FarmBlockchainSeeder extends Seeder
                 if ($existingBatch) {
                     // Nếu lô đã tồn tại, đảm bảo status active và cập nhật số lượng tồn khả dụng
                     DB::table('product_batches')->where('id', $existingBatch->id)->update([
-                        'status'            => 'active',
-                        'expiry_date'       => now()->addDays($bData['exp_days_next'])->format('Y-m-d'),
-                        'current_quantity'  => $bData['current_qty'],
+                        'status' => 'active',
+                        'expiry_date' => now()->addDays($bData['exp_days_next'])->format('Y-m-d'),
+                        'current_quantity' => $bData['current_qty'],
                         'reserved_quantity' => 0,
-                        'discount_percent'  => $bData['discount'],
-                        'updated_at'        => now(),
+                        'discount_percent' => $bData['discount'],
+                        'updated_at' => now(),
                     ]);
                     $batchId = $existingBatch->id;
                 } else {
                     $batchId = DB::table('product_batches')->insertGetId([
                         'planting_batch_id' => $pbId,
-                        'batch_code'        => $bData['batch_code'],
-                        'status'            => 'active',
+                        'batch_code' => $bData['batch_code'],
+                        'status' => 'active',
                         'manufactured_date' => now()->subDays($bData['mfg_days_ago'])->format('Y-m-d'),
-                        'expiry_date'       => now()->addDays($bData['exp_days_next'])->format('Y-m-d'),
-                        'initial_quantity'  => $bData['initial_qty'],
-                        'current_quantity'  => $bData['current_qty'],
+                        'expiry_date' => now()->addDays($bData['exp_days_next'])->format('Y-m-d'),
+                        'initial_quantity' => $bData['initial_qty'],
+                        'current_quantity' => $bData['current_qty'],
                         'reserved_quantity' => 0,
-                        'spoiled_quantity'  => 0,
-                        'discount_percent'  => $bData['discount'],
-                        'created_at'        => now()->subDays($bData['mfg_days_ago']),
-                        'updated_at'        => now(),
+                        'spoiled_quantity' => 0,
+                        'discount_percent' => $bData['discount'],
+                        'created_at' => now()->subDays($bData['mfg_days_ago']),
+                        'updated_at' => now(),
                     ]);
                 }
 
@@ -353,10 +379,10 @@ class FarmBlockchainSeeder extends Seeder
                 $logExists = DB::table('inventory_logs')->where('batch_id', $batchId)->where('type', 'import')->exists();
                 if (!$logExists) {
                     DB::table('inventory_logs')->insert([
-                        'batch_id'   => $batchId,
-                        'type'       => 'import',
-                        'quantity'   => $bData['initial_qty'],
-                        'note'       => "Thu hoạch nhập kho nông sản sạch ({$product->name})",
+                        'batch_id' => $batchId,
+                        'type' => 'import',
+                        'quantity' => $bData['initial_qty'],
+                        'note' => "Thu hoạch nhập kho nông sản sạch ({$product->name})",
                         'created_by' => $farmStaff?->id ?? 2,
                         'created_at' => now()->subDays($bData['mfg_days_ago']),
                     ]);

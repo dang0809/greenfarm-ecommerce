@@ -16,18 +16,20 @@ class PlantingBatch extends Model
         'product_id',
         'planting_code',
         'planted_date',
+        'min_manufactured_date',
         'status',
     ];
 
-    protected function casts(): array{
+    // 'planting': Đang gieo trồng / Chăm sóc.
+    // 'harvesting': Đang trong giai đoạn thu hoạch.
+    // 'completed': Vụ mùa đã kết thúc.
+
+    protected function casts(): array
+    {
         return [
             'planted_date' => 'date',
+            'min_manufactured_date' => 'date',
         ];
-    }
-
-    public function scopeOccupying($query)
-    {
-        return $query->whereIn('status', ['planting', 'harvesting']);
     }
 
     public function farmPlot(): BelongsTo
@@ -48,5 +50,13 @@ class PlantingBatch extends Model
     public function productBatches(): HasMany
     {
         return $this->hasMany(ProductBatch::class);
+    }
+
+    public function isHarvestReady(): bool
+    {
+        return $this->status === 'harvesting'
+            && $this->min_manufactured_date !== null
+            && $this->min_manufactured_date->toDateString()
+            <= today()->toDateString();
     }
 }

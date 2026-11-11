@@ -37,7 +37,8 @@
                     <i
                         class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs sm:text-sm"></i>
 
-                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Tìm tên sản phẩm, mã SKU..."
+                    <input type="text" wire:model.live.debounce.300ms="search"
+                        placeholder="Tìm tên sản phẩm, mã SKU..."
                         class="w-full pl-10 pr-4 py-2 sm:py-2.5 border border-slate-200 rounded-xl sm:rounded-2xl text-xs sm:text-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100 bg-[#FAFAF8] font-medium transition-all">
                 </div>
 
@@ -45,12 +46,12 @@
                     class="w-full sm:w-auto bg-[#FAFAF8] border border-slate-200 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-semibold text-slate-700 outline-none focus:border-brand-600 transition cursor-pointer">
                     <option value="">-- Tất cả danh mục --</option>
 
-                    @if(isset($categories))
-                    @foreach($categories as $cat)
-                    <option value="{{ $cat->id }}">
-                        {{ $cat->name }}
-                    </option>
-                    @endforeach
+                    @if (isset($categories))
+                        @foreach ($categories as $cat)
+                            <option value="{{ $cat->id }}">
+                                {{ $cat->name }}
+                            </option>
+                        @endforeach
                     @endif
                 </select>
 
@@ -94,6 +95,7 @@
                             <th class="py-3.5 sm:py-4 px-4 sm:px-5">Sản Phẩm & SKU</th>
                             <th class="py-3.5 sm:py-4 px-4 sm:px-5">Slug</th>
                             <th class="py-3.5 sm:py-4 px-4">Danh Mục</th>
+                            <th class="py-3.5 sm:py-4 px-4">Ngày thu hoạch tối thiểu</th>
                             <th class="py-3.5 sm:py-4 px-4 text-right">Giá Bán Niêm Yết</th>
                             <th class="py-3.5 sm:py-4 px-4 text-center">Đơn Vị</th>
                             <th class="py-3.5 sm:py-4 px-4 text-center">Tồn Kho (Lô FEFO)</th>
@@ -105,125 +107,139 @@
                     </thead>
 
                     <tbody class="divide-y divide-slate-100 font-medium">
-                        @if(isset($products) && count($products) > 0)
-                        @foreach($products as $product)
-                        @php
-                        $totalStock = $productStocks[$product->id] ?? 0;
-                        @endphp
+                        @if (isset($products) && count($products) > 0)
+                            @foreach ($products as $product)
+                                @php
+                                    $totalStock = $productStocks[$product->id] ?? 0;
+                                @endphp
 
-                        <tr wire:key="product-{{ $product->id }}" class="hover:bg-slate-50 transition bg-white">
+                                <tr wire:key="product-{{ $product->id }}"
+                                    class="hover:bg-slate-50 transition bg-white">
 
-                            <td class="py-3.5 px-4 pl-5 flex items-center gap-3">
-                                <img src="{{ $productImageUrls[$product->id] ?? 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300' }}"
-                                    class="w-10 h-10 rounded-xl object-cover border border-slate-200 shrink-0"
-                                    alt="{{ $product->name }}">
+                                    <td class="py-3.5 px-4 pl-5 flex items-center gap-3">
+                                        <img src="{{ $productImageUrls[$product->id] ?? 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300' }}"
+                                            class="w-10 h-10 rounded-xl object-cover border border-slate-200 shrink-0"
+                                            alt="{{ $product->name }}">
 
-                                <div class="min-w-0">
-                                    <b
-                                        class="text-slate-900 text-xs sm:text-sm block truncate hover:text-brand-700 cursor-pointer">
-                                        {{ $product->name }}
-                                    </b>
+                                        <div class="min-w-0">
+                                            <b
+                                                class="text-slate-900 text-xs sm:text-sm block truncate hover:text-brand-700 cursor-pointer">
+                                                {{ $product->name }}
+                                            </b>
 
-                                    <span
-                                        class="font-mono text-[11px] text-brand-800 font-bold bg-brand-50 px-1.5 py-0.2 rounded border border-brand-200">
-                                        {{ $product->sku }}
-                                    </span>
-                                </div>
-                            </td>
+                                            <span
+                                                class="font-mono text-[11px] text-brand-800 font-bold bg-brand-50 px-1.5 py-0.2 rounded border border-brand-200">
+                                                {{ $product->sku }}
+                                            </span>
+                                        </div>
+                                    </td>
 
-                            <td class="py-3.5 px-4 text-slate-700">
-                                {{ $product->slug}}
-                            </td>
+                                    <td class="py-3.5 px-4 text-slate-700">
+                                        {{ $product->slug }}
+                                    </td>
 
-                            <td class="py-3.5 px-4 text-slate-700">
-                                {{ $product->category->name ?? 'Chưa phân nhóm' }}
-                            </td>
+                                    <td class="py-3.5 px-4 text-slate-700">
+                                        {{ $product->category->name ?? 'Chưa phân nhóm' }}
+                                    </td>
 
-                            <td class="py-3.5 px-4 text-right font-mono font-extrabold text-slate-900">
-                                {{ number_format($product->price, 0, ',', '.') }}đ
-                            </td>
+                                    <td class="py-3.5 px-4 text-slate-700">
+                                        {{ $product->min_growth_days }}
+                                    </td>
 
-                            <td class="py-3.5 px-4 text-center font-mono font-bold">
-                                {{ $product->unit }}
-                            </td>
+                                    <td class="py-3.5 px-4 text-right font-mono font-extrabold text-slate-900">
+                                        {{ number_format($product->price, 0, ',', '.') }}đ
+                                    </td>
 
-                            <td class="py-3.5 px-4 text-center">
-                                <b
-                                    class="font-mono text-sm {{ $totalStock > 0 ? 'text-brand-800' : 'text-slate-400' }}">
-                                    {{ $totalStock }} {{ $product->unit }}
-                                </b>
-                            </td>
+                                    <td class="py-3.5 px-4 text-center font-mono font-bold">
+                                        {{ $product->unit }}
+                                    </td>
 
-                            <td class="py-3.5 px-4 text-center font-mono">
-                                {{ $product->sold_count ?? 0 }} {{ $product->unit }}
-                            </td>
+                                    <td class="py-3.5 px-4 text-center">
+                                        <b
+                                            class="font-mono text-sm {{ $totalStock > 0 ? 'text-brand-800' : 'text-slate-400' }}">
+                                            {{ $totalStock }} {{ $product->unit }}
+                                        </b>
+                                    </td>
 
-                            <td class="py-3.5 px-4 text-center font-mono text-amber-500 font-bold">
-                                {{ number_format($product->avg_rating ?? 0, 1) }} ★
-                            </td>
+                                    <td class="py-3.5 px-4 text-center font-mono text-amber-500 font-bold">
+                                        {{ number_format($product->avg_rating ?? 0, 1) }} ★
+                                    </td>
 
-                            <td class="py-3.5 px-4 text-center">
-                                <div x-data="{ enabled: @js($product->status === 'active') }"
-                                    x-on:product-status-updated.window="if (Number($event.detail.id) === {{ $product->id }}) {enabled = $event.detail.status === 'active';}"
-                                    class="inline-flex items-center">
+                                    <td class="py-3.5 px-4 text-center font-mono text-amber-500 font-bold">
+                                        {{ $product->avg_rating ?? '5.0' }} ★
+                                    </td>
 
-                                    <button type="button" role="switch"
-                                        wire:click="requestToggleStatus({{ $product->id }})"
-                                        wire:loading.attr="disabled" wire:target="requestToggleStatus,toggleStatus"
-                                        x-bind:disabled="confirmingProduct" x-bind:aria-checked="enabled.toString()"
-                                        x-bind:aria-label="enabled
-                                        ? 'Tắt hiển thị sản phẩm'
-                                        : 'Bật hiển thị sản phẩm'" x-bind:class="enabled
-                                        ? 'bg-brand-600'
-                                        : 'bg-slate-300'" class="relative inline-flex h-6 w-11 items-center rounded-full
+                                    <td class="py-3.5 px-4 text-center">
+                                        <div x-data="{ enabled: @js($product->status === 'active') }"
+                                            x-on:product-status-updated.window="if (Number($event.detail.id) === {{ $product->id }}) {enabled = $event.detail.status === 'active';}"
+                                            class="inline-flex items-center">
+
+                                            <button type="button" role="switch"
+                                                wire:click="requestToggleStatus({{ $product->id }})"
+                                                wire:loading.attr="disabled"
+                                                wire:target="requestToggleStatus,toggleStatus"
+                                                x-bind:disabled="confirmingProduct"
+                                                x-bind:aria-checked="enabled.toString()"
+                                                x-bind:aria-label="enabled
+                                                    ?
+                                                    'Tắt hiển thị sản phẩm' :
+                                                    'Bật hiển thị sản phẩm'"
+                                                x-bind:class="enabled
+                                                    ?
+                                                    'bg-brand-600' :
+                                                    'bg-slate-300'"
+                                                class="relative inline-flex h-6 w-11 items-center rounded-full
                                         transition-colors duration-300
                                         focus:outline-none focus:ring-2 focus:ring-brand-500
                                         focus:ring-offset-2 disabled:opacity-60
                                         disabled:cursor-wait cursor-pointer">
 
-                                        <span x-bind:class="enabled
-                                            ? 'translate-x-5'
-                                            : 'translate-x-1'" class="inline-block h-5 w-5 rounded-full bg-white shadow
+                                                <span
+                                                    x-bind:class="enabled
+                                                        ?
+                                                        'translate-x-5' :
+                                                        'translate-x-1'"
+                                                    class="inline-block h-5 w-5 rounded-full bg-white shadow
                                             ring-1 ring-slate-200
                                             transition-transform duration-300 ease-in-out">
-                                        </span>
-                                    </button>
-                                </div>
-                            </td>
+                                                </span>
+                                            </button>
+                                        </div>
+                                    </td>
 
-                            <td class="py-3.5 px-4 pr-6 text-right space-x-1.5">
-                                <a href="{{ route('farm-staff.product-batch') }}"
-                                    class="inline-flex items-center p-2 rounded-xl bg-amber-50 text-amber-800 hover:bg-amber-100 transition shadow-2xs font-bold text-xs"
-                                    title="Quản lý Lô thu hoạch & FEFO">
-                                    <i class="fa-solid fa-boxes-stacked mr-1"></i>
-                                    Quản lý Lô
-                                </a>
+                                    <td class="py-3.5 px-4 pr-6 text-right space-x-1.5">
+                                        <a href="{{ route('farm-staff.product-batch') }}"
+                                            class="inline-flex items-center p-2 rounded-xl bg-amber-50 text-amber-800 hover:bg-amber-100 transition shadow-2xs font-bold text-xs"
+                                            title="Quản lý Lô thu hoạch & FEFO">
+                                            <i class="fa-solid fa-boxes-stacked mr-1"></i>
+                                            Quản lý Lô
+                                        </a>
 
-                                <button type="button" wire:click="editProduct({{ $product->id }})"
-                                    wire:loading.attr="disabled"
-                                    class="p-2 rounded-xl bg-slate-100 text-slate-700 hover:text-brand-700 hover:bg-brand-50 transition cursor-pointer"
-                                    title="Sửa sản phẩm">
-                                    <i class="fa-regular fa-pen-to-square"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        @endforeach
+                                        <button type="button" wire:click="editProduct({{ $product->id }})"
+                                            wire:loading.attr="disabled"
+                                            class="p-2 rounded-xl bg-slate-100 text-slate-700 hover:text-brand-700 hover:bg-brand-50 transition cursor-pointer"
+                                            title="Sửa sản phẩm">
+                                            <i class="fa-regular fa-pen-to-square"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            @endforeach
                         @else
-                        <tr>
-                            <td colspan="9" class="py-10 text-center text-slate-400 italic">
-                                Không tìm thấy sản phẩm nông sản nào phù hợp.
-                            </td>
-                        </tr>
+                            <tr>
+                                <td colspan="9" class="py-10 text-center text-slate-400 italic">
+                                    Không tìm thấy sản phẩm nông sản nào phù hợp.
+                                </td>
+                            </tr>
                         @endif
                     </tbody>
                 </table>
             </div>
 
             <!-- Phân trang -->
-            @if(isset($products) && method_exists($products, 'hasPages') && $products->hasPages())
-            <div class="p-4 border-t border-slate-100">
-                {{ $products->links() }}
-            </div>
+            @if (isset($products) && method_exists($products, 'hasPages') && $products->hasPages())
+                <div class="p-4 border-t border-slate-100">
+                    {{ $products->links() }}
+                </div>
             @endif
         </div>
     </div>
@@ -232,11 +248,14 @@
     <div id="modal-product" wire:key="product-modal-{{ $editingId ?? 'new' }}" x-data="{ uploadingImage: false }"
         x-on:livewire-upload-start="
         if ($event.detail.property === 'newImage') uploadingImage = true
-    " x-on:livewire-upload-finish="
+    "
+        x-on:livewire-upload-finish="
         if ($event.detail.property === 'newImage') uploadingImage = false
-    " x-on:livewire-upload-error="
+    "
+        x-on:livewire-upload-error="
         if ($event.detail.property === 'newImage') uploadingImage = false
-    " x-on:livewire-upload-cancel="
+    "
+        x-on:livewire-upload-cancel="
         if ($event.detail.property === 'newImage') uploadingImage = false
     "
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs {{ $showModal ? '' : 'hidden' }} p-3 sm:p-4">
@@ -246,29 +265,32 @@
 
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h3 class="text-base sm:text-xl font-extrabold text-slate-900" id="modal-product-title">
-                    {{ $editingId ? 'Sửa Sản Phẩm: '.$name : 'Thêm Sản Phẩm Nông Sản Mới' }}
+                    {{ $editingId ? 'Sửa Sản Phẩm: ' . $name : 'Thêm Sản Phẩm Nông Sản Mới' }}
                 </h3>
 
                 <button type="button" wire:click="closeModal" x-bind:disabled="uploadingImage"
-                    wire:loading.attr="disabled" wire:target="requestSaveProduct,saveProduct,cancelNewImage,closeModal"
+                    wire:loading.attr="disabled"
+                    wire:target="requestSaveProduct,saveProduct,cancelNewImage,closeModal"
                     class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center cursor-pointer">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
-            <form wire:submit="$js.submitProduct" x-on:submit.capture="
+            <form wire:submit="$js.submitProduct"
+                x-on:submit.capture="
                 if (uploadingImage) {
                     $event.preventDefault();
                     $event.stopImmediatePropagation();
                 }
-            " class="space-y-3.5 text-xs sm:text-sm">
+            "
+                class="space-y-3.5 text-xs sm:text-sm">
                 @if ($errors->any())
-                <div role="alert" class="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+                    <div role="alert" class="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
 
-                    @foreach ($errors->all() as $message)
-                    <p>{{ $message }}</p>
-                    @endforeach
-                </div>
+                        @foreach ($errors->all() as $message)
+                            <p>{{ $message }}</p>
+                        @endforeach
+                    </div>
                 @endif
 
                 <input type="hidden" id="p-id" value="{{ $editingId }}">
@@ -278,7 +300,8 @@
                         Tên sản phẩm <span class="text-red-500">*</span>
                     </label>
 
-                    <input type="text" id="p-name" wire:model.live.debounce.300ms="name" maxlength="255" required
+                    <input type="text" id="p-name" wire:model.live.debounce.300ms="name" maxlength="255"
+                        required
                         class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600">
                 </div>
 
@@ -299,12 +322,12 @@
 
                         <select id="p-category" wire:model.live="category_id" required
                             class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600 cursor-pointer">
-                            @if(isset($categories))
-                            @foreach($categories as $cat)
-                            <option value="{{ $cat->id }}">
-                                {{ $cat->name }}
-                            </option>
-                            @endforeach
+                            @if (isset($categories))
+                                @foreach ($categories as $cat)
+                                    <option value="{{ $cat->id }}">
+                                        {{ $cat->name }}
+                                    </option>
+                                @endforeach
                             @endif
                         </select>
                     </div>
@@ -324,9 +347,9 @@
                             <option value="hộp 500g">Hộp 500g</option>
 
                             @if ($unit !== '' && !in_array($unit, ['kg', 'bó', 'hộp 500g'], true))
-                            <option value="{{ $unit }}">
-                                {{ $unit }}
-                            </option>
+                                <option value="{{ $unit }}">
+                                    {{ $unit }}
+                                </option>
                             @endif
                         </select>
                     </div>
@@ -336,9 +359,23 @@
                             Giá bán gốc (đ) <span class="text-red-500">*</span>
                         </label>
 
-                        <input type="number" id="p-price" wire:model="price" min="0.01" max="9999999999.99" step="0.01"
-                            required
+                        <input type="number" id="p-price" wire:model="price" min="0.01" max="9999999999.99"
+                            step="0.01" required
                             class="w-full min-w-0 bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono outline-none focus:border-brand-600">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">
+                            Số ngày thu hoạch tối thiểu <span class="text-red-500">*</span>
+                        </label>
+
+                        <input type="number" id="p-min-growth-days" wire:model="min_growth_days" min="1"
+                            max="10000" step="1" required inputmode="numeric"
+                            class="w-full min-w-0 bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono outline-none focus:border-brand-600">
+                        @error('min_growth_days')
+                            <p class="text-xs text-red-600 mt-1">
+                                {{ $message }}
+                            </p>
+                        @enderror
                     </div>
                 </div>
 
@@ -355,29 +392,29 @@
                 <div class="space-y-3">
                     <label for="p-image" class="block font-bold text-slate-700 mb-1">
                         Ảnh sản phẩm
-                        @if ($editingId === null || ! $currentImageUrl)
-                        <span class="text-red-500">*</span>
+                        @if ($editingId === null || !$currentImageUrl)
+                            <span class="text-red-500">*</span>
                         @endif
                     </label>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         @if ($editingId)
-                        <div class="border border-slate-200 rounded-xl p-3">
-                            <p class="font-bold text-slate-600 mb-2">
-                                Ảnh đang lưu
-                            </p>
+                            <div class="border border-slate-200 rounded-xl p-3">
+                                <p class="font-bold text-slate-600 mb-2">
+                                    Ảnh đang lưu
+                                </p>
 
-                            @if ($currentImageUrl)
-                            <img src="{{ $currentImageUrl }}" alt="Ảnh sản phẩm đang lưu"
-                                class="w-full h-36 object-contain rounded-lg bg-slate-50">
-                            @else
-                            <p class="text-[11px] text-slate-400">
-                                Sản phẩm chưa có ảnh phải tải ảnh lên trước khi lưu.
-                                Nếu đã có ảnh, có thể giữ ảnh hiện tại.
-                                JPG, JPEG, PNG hoặc WEBP; tối đa 2 MB.
-                            </p>
-                            @endif
-                        </div>
+                                @if ($currentImageUrl)
+                                    <img src="{{ $currentImageUrl }}" alt="Ảnh sản phẩm đang lưu"
+                                        class="w-full h-36 object-contain rounded-lg bg-slate-50">
+                                @else
+                                    <p class="text-[11px] text-slate-400">
+                                        Sản phẩm chưa có ảnh phải tải ảnh lên trước khi lưu.
+                                        Nếu đã có ảnh, có thể giữ ảnh hiện tại.
+                                        JPG, JPEG, PNG hoặc WEBP; tối đa 2 MB.
+                                    </p>
+                                @endif
+                            </div>
                         @endif
 
                         <!-- Xem trước ảnh mới -->
@@ -386,20 +423,22 @@
                                 {{ $editingId ? 'Ảnh mới đang chọn' : 'Xem trước ảnh' }}
                             </p>
 
-                            @if ($newImage && ! $errors->has('newImage'))
-                            <img src="{{ $newImage->temporaryUrl() }}" alt="Xem trước ảnh mới"
-                                class="w-full h-36 object-contain rounded-lg bg-slate-50">
+                            @if ($newImage && !$errors->has('newImage'))
+                                <img src="{{ $newImage->temporaryUrl() }}" alt="Xem trước ảnh mới"
+                                    class="w-full h-36 object-contain rounded-lg bg-slate-50">
                             @else
-                            <p class="text-slate-400">
-                                Chưa chọn ảnh mới.
-                            </p>
+                                <p class="text-slate-400">
+                                    Chưa chọn ảnh mới.
+                                </p>
                             @endif
                         </div>
                     </div>
 
-                    <input type="file" id="p-image" wire:key="product-image-{{ $imageInputKey }}" wire:model="newImage"
-                        accept=".jpg,.jpeg,.png,.webp" x-bind:disabled="uploadingImage" wire:loading.attr="disabled"
-                        wire:target="requestSaveProduct,saveProduct,cancelNewImage,closeModal" x-on:change.capture="
+                    <input type="file" id="p-image" wire:key="product-image-{{ $imageInputKey }}"
+                        wire:model="newImage" accept=".jpg,.jpeg,.png,.webp" x-bind:disabled="uploadingImage"
+                        wire:loading.attr="disabled"
+                        wire:target="requestSaveProduct,saveProduct,cancelNewImage,closeModal"
+                        x-on:change.capture="
             const input = $event.target;
             const file = input.files?.[0];
 
@@ -436,7 +475,8 @@
                     confirmButtonColor: '#15803d'
                 });
             }
-        " class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600">
+        "
+                        class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600">
 
                     <p class="text-[11px] text-slate-400">
                         JPG, JPEG, PNG hoặc WEBP. Tối đa 2 MB.
@@ -447,18 +487,18 @@
                     </p>
 
                     @error('newImage')
-                    <p role="alert" class="text-xs text-red-600">
-                        {{ $message }}
-                    </p>
+                        <p role="alert" class="text-xs text-red-600">
+                            {{ $message }}
+                        </p>
                     @enderror
 
                     @if ($newImage)
-                    <button type="button" wire:click="cancelNewImage" x-bind:disabled="uploadingImage"
-                        wire:loading.attr="disabled"
-                        wire:target="requestSaveProduct,saveProduct,cancelNewImage,closeModal"
-                        class="text-xs font-bold text-red-600 hover:text-red-700">
-                        Hủy ảnh đang chọn
-                    </button>
+                        <button type="button" wire:click="cancelNewImage" x-bind:disabled="uploadingImage"
+                            wire:loading.attr="disabled"
+                            wire:target="requestSaveProduct,saveProduct,cancelNewImage,closeModal"
+                            class="text-xs font-bold text-red-600 hover:text-red-700">
+                            Hủy ảnh đang chọn
+                        </button>
                     @endif
                 </div>
 
@@ -481,145 +521,145 @@
     </div>
 
     @script
-    <script>
-    let submitting = false;
-    let confirming = false;
+        <script>
+            let submitting = false;
+            let confirming = false;
 
-    function setConfirmationState(busy) {
-        $wire.$el.dispatchEvent(
-            new CustomEvent('product-confirm-state', {
-                detail: {
-                    busy
+            function setConfirmationState(busy) {
+                $wire.$el.dispatchEvent(
+                    new CustomEvent('product-confirm-state', {
+                        detail: {
+                            busy
+                        }
+                    })
+                );
+            }
+
+            async function showProductErrors(error = null) {
+                const messages = error?.errors ?
+                    Object.values(error.errors).flat() :
+                    $wire.$errors.all();
+
+                if (!messages.length && !error) return;
+
+                await Swal.fire({
+                    icon: 'error',
+                    title: 'Không thể lưu sản phẩm',
+                    text: messages.length ?
+                        messages.join('\n') : 'Yêu cầu chưa hoàn tất. Vui lòng kiểm tra kết nối và thử lại.',
+                    confirmButtonText: 'Đã hiểu',
+                    confirmButtonColor: '#15803d'
+                });
+            }
+
+            async function runProductAction(action) {
+                try {
+                    await action();
+                    await showProductErrors();
+                } catch (error) {
+                    await showProductErrors(error);
                 }
-            })
-        );
-    }
+            }
 
-    async function showProductErrors(error = null) {
-        const messages = error?.errors ?
-            Object.values(error.errors).flat() :
-            $wire.$errors.all();
+            $js('submitProduct', async () => {
+                if (submitting || confirming) return;
 
-        if (!messages.length && !error) return;
+                submitting = true;
 
-        await Swal.fire({
-            icon: 'error',
-            title: 'Không thể lưu sản phẩm',
-            text: messages.length ?
-                messages.join('\n') : 'Yêu cầu chưa hoàn tất. Vui lòng kiểm tra kết nối và thử lại.',
-            confirmButtonText: 'Đã hiểu',
-            confirmButtonColor: '#15803d'
-        });
-    }
-
-    async function runProductAction(action) {
-        try {
-            await action();
-            await showProductErrors();
-        } catch (error) {
-            await showProductErrors(error);
-        }
-    }
-
-    $js('submitProduct', async () => {
-        if (submitting || confirming) return;
-
-        submitting = true;
-
-        try {
-            // Kiểm tra dữ liệu trước khi mở xác nhận.
-            await runProductAction(
-                () => $wire.requestSaveProduct()
-            );
-        } finally {
-            submitting = false;
-        }
-    });
-
-    $wire.on('confirm-product-save', async () => {
-        if (confirming) return;
-
-        confirming = true;
-        setConfirmationState(true);
-
-        try {
-            const result = await Swal.fire({
-                icon: 'question',
-
-                title: $wire.editingId !== null ?
-                    'Xác nhận cập nhật sản phẩm?' : 'Xác nhận thêm sản phẩm?',
-
-                text: 'Bạn có muốn lưu thông tin và ảnh sản phẩm?',
-                showCancelButton: true,
-                confirmButtonText: 'Xác nhận',
-                cancelButtonText: 'Hủy',
-                confirmButtonColor: '#15803d',
-                cancelButtonColor: '#6b7280',
-                reverseButtons: true,
-                allowOutsideClick: false
+                try {
+                    // Kiểm tra dữ liệu trước khi mở xác nhận.
+                    await runProductAction(
+                        () => $wire.requestSaveProduct()
+                    );
+                } finally {
+                    submitting = false;
+                }
             });
 
-            if (result.isConfirmed) {
-                await runProductAction(
-                    () => $wire.saveProduct()
-                );
-            }
-        } catch (error) {
-            await showProductErrors(error);
-        } finally {
-            confirming = false;
-            setConfirmationState(false);
-        }
-    });
+            $wire.on('confirm-product-save', async () => {
+                if (confirming) return;
 
-    $wire.on('confirm-product-status', async ({
-        id,
-        name,
-        expectedStatus,
-        targetStatus
-    }) => {
-        if (confirming) return;
+                confirming = true;
+                setConfirmationState(true);
 
-        confirming = true;
-        setConfirmationState(true);
+                try {
+                    const result = await Swal.fire({
+                        icon: 'question',
 
-        try {
-            const enabling = targetStatus === 'active';
+                        title: $wire.editingId !== null ?
+                            'Xác nhận cập nhật sản phẩm?' : 'Xác nhận thêm sản phẩm?',
 
-            const result = await Swal.fire({
-                icon: enabling ? 'question' : 'warning',
+                        text: 'Bạn có muốn lưu thông tin và ảnh sản phẩm?',
+                        showCancelButton: true,
+                        confirmButtonText: 'Xác nhận',
+                        cancelButtonText: 'Hủy',
+                        confirmButtonColor: '#15803d',
+                        cancelButtonColor: '#6b7280',
+                        reverseButtons: true,
+                        allowOutsideClick: false
+                    });
 
-                title: enabling ?
-                    'Bật hiển thị sản phẩm?' : 'Tắt hiển thị sản phẩm?',
-
-                text: enabling ?
-                    'Hiển thị “' + name + '” trên cửa hàng?' : 'Ẩn “' + name + '” khỏi cửa hàng?',
-
-                showCancelButton: true,
-                confirmButtonText: 'Xác nhận',
-                cancelButtonText: 'Hủy',
-                confirmButtonColor: enabling ? '#15803d' : '#dc2626',
-                cancelButtonColor: '#6b7280',
-                reverseButtons: true,
-                allowOutsideClick: false
+                    if (result.isConfirmed) {
+                        await runProductAction(
+                            () => $wire.saveProduct()
+                        );
+                    }
+                } catch (error) {
+                    await showProductErrors(error);
+                } finally {
+                    confirming = false;
+                    setConfirmationState(false);
+                }
             });
 
-            if (result.isConfirmed) {
-                await runProductAction(
-                    () => $wire.toggleStatus(
-                        id,
-                        expectedStatus,
-                        targetStatus
-                    )
-                );
-            }
-        } catch (error) {
-            await showProductErrors(error);
-        } finally {
-            confirming = false;
-            setConfirmationState(false);
-        }
-    });
-    </script>
+            $wire.on('confirm-product-status', async ({
+                id,
+                name,
+                expectedStatus,
+                targetStatus
+            }) => {
+                if (confirming) return;
+
+                confirming = true;
+                setConfirmationState(true);
+
+                try {
+                    const enabling = targetStatus === 'active';
+
+                    const result = await Swal.fire({
+                        icon: enabling ? 'question' : 'warning',
+
+                        title: enabling ?
+                            'Bật hiển thị sản phẩm?' : 'Tắt hiển thị sản phẩm?',
+
+                        text: enabling ?
+                            'Hiển thị “' + name + '” trên cửa hàng?' : 'Ẩn “' + name + '” khỏi cửa hàng?',
+
+                        showCancelButton: true,
+                        confirmButtonText: 'Xác nhận',
+                        cancelButtonText: 'Hủy',
+                        confirmButtonColor: enabling ? '#15803d' : '#dc2626',
+                        cancelButtonColor: '#6b7280',
+                        reverseButtons: true,
+                        allowOutsideClick: false
+                    });
+
+                    if (result.isConfirmed) {
+                        await runProductAction(
+                            () => $wire.toggleStatus(
+                                id,
+                                expectedStatus,
+                                targetStatus
+                            )
+                        );
+                    }
+                } catch (error) {
+                    await showProductErrors(error);
+                } finally {
+                    confirming = false;
+                    setConfirmationState(false);
+                }
+            });
+        </script>
     @endscript
 </div>

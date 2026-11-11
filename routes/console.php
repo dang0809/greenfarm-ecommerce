@@ -1,5 +1,6 @@
 <?php
 use Illuminate\Support\Facades\Schedule;
+use App\Services\FarmPlotService;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductBatch;
@@ -26,10 +27,10 @@ Schedule::call(function () {
 
             // 3. Cập nhật trạng thái hủy
             $order->update([
-                'status'        => 'cancelled',
+                'status' => 'cancelled',
                 'cancel_reason' => 'Tự động hủy do quá hạn thanh toán 5 phút',
-                'cancelled_at'  => now(),
-                'cancelled_by'  => 'system',
+                'cancelled_at' => now(),
+                'cancelled_by' => 'system',
             ]);
 
             // Đồng bộ trạng thái giao dịch sang failed trong bảng payments
@@ -101,3 +102,10 @@ Schedule::call(function () {
         ProductBatch::syncProductSalePrice($productId);
     }
 })->name('sync-flash-sale-batches')->everyMinute();
+
+Schedule::call(function () {
+    app(FarmPlotService::class)->syncHarvestingStatuses();
+})
+    ->name('sync-planting-harvesting')
+    ->everyMinute()
+    ->withoutOverlapping();

@@ -1,5 +1,4 @@
-<div x-data="{ avatarReady: false, uploadingAvatar: false }"
-    x-on:livewire-upload-start="uploadingAvatar = true; avatarReady = false"
+<div x-data="{ avatarReady: false, uploadingAvatar: false }" x-on:livewire-upload-start="uploadingAvatar = true; avatarReady = false"
     x-on:livewire-upload-finish="uploadingAvatar = false" x-on:livewire-upload-error="uploadingAvatar = false"
     x-on:livewire-upload-cancel="uploadingAvatar = false">
     <header
@@ -32,20 +31,19 @@
             <div
                 class="bg-white rounded-3xl border border-gray-100 p-6 shadow-soft flex flex-col items-center text-center space-y-4">
                 <div class="relative">
-                    @if ($newAvatar && ! $errors->has('newAvatar'))
-                    <img wire:key="avatar-preview-{{ $newAvatar->getFilename() }}"
-                        src="{{ $newAvatar->temporaryUrl() }}" alt="Ảnh đại diện đang chọn"
-                        x-init="avatarReady = $el.complete && $el.naturalWidth > 0" x-on:load="avatarReady = true"
-                        x-on:error="avatarReady = false"
-                        class="w-28 h-28 rounded-full object-cover border-4 border-brand-100">
+                    @if ($newAvatar && !$errors->has('newAvatar'))
+                        <img wire:key="avatar-preview-{{ $newAvatar->getFilename() }}"
+                            src="{{ $newAvatar->temporaryUrl() }}" alt="Ảnh đại diện đang chọn" x-init="avatarReady = $el.complete && $el.naturalWidth > 0"
+                            x-on:load="avatarReady = true" x-on:error="avatarReady = false"
+                            class="w-28 h-28 rounded-full object-cover border-4 border-brand-100">
                     @elseif ($user->avatar_url)
-                    <img src="{{ $user->avatar_url }}" alt="Ảnh đại diện"
-                        class="w-28 h-28 rounded-full object-cover border-4 border-brand-100">
+                        <img src="{{ $user->avatar_url }}" alt="Ảnh đại diện"
+                            class="w-28 h-28 rounded-full object-cover border-4 border-brand-100">
                     @else
-                    <div
-                        class="w-28 h-28 rounded-full bg-brand-100 text-brand-800 flex items-center justify-center text-3xl font-bold">
-                        {{ mb_strtoupper(mb_substr($user->name, 0, 1)) }}
-                    </div>
+                        <div
+                            class="w-28 h-28 rounded-full bg-brand-100 text-brand-800 flex items-center justify-center text-3xl font-bold">
+                            {{ mb_strtoupper(mb_substr($user->name, 0, 1)) }}
+                        </div>
                     @endif
 
                     <label for="avatar-input" title="Đổi ảnh đại diện"
@@ -53,9 +51,10 @@
                         <i class="fa-solid fa-camera text-xs"></i>
                     </label>
 
-                    <input type="file" id="avatar-input" x-data="{}" wire:key="avatar-input-{{ $avatarInputKey }}"
-                        wire:model="newAvatar" wire:loading.attr="disabled" x-bind:disabled="uploadingAvatar"
-                        accept=".jpg,.jpeg,.png,.webp" x-on:change.capture="
+                    <input type="file" id="avatar-input" x-data="{}"
+                        wire:key="avatar-input-{{ $avatarInputKey }}" wire:model="newAvatar"
+                        wire:loading.attr="disabled" x-bind:disabled="uploadingAvatar" accept=".jpg,.jpeg,.png,.webp"
+                        x-on:change.capture="
                             const input = $event.target;
                             const file = input.files?.[0];
 
@@ -94,7 +93,8 @@
                                     confirmButtonColor: '#15803d'
                                 });
                             }
-                        " class="hidden">
+                        "
+                        class="hidden">
                 </div>
 
                 <p class="text-xs text-gray-500">
@@ -106,35 +106,35 @@
                 </p>
 
                 @error('newAvatar')
-                <p class="text-xs text-red-600" role="alert">
-                    {{ $message }}
-                </p>
+                    <p class="text-xs text-red-600" role="alert">
+                        {{ $message }}
+                    </p>
                 @enderror
 
-                @if ($newAvatar && ! $errors->has('newAvatar'))
-                <div wire:loading.remove wire:target="newAvatar">
-                    <div class="flex flex-col items-center gap-3">
-                        <button type="button" wire:click="cancelAvatar" wire:loading.attr="disabled"
-                            x-bind:disabled="uploadingAvatar"
-                            class="text-xs font-bold text-red-600 disabled:opacity-50">
-                            Hủy ảnh đang chọn
-                        </button>
+                @if ($newAvatar && !$errors->has('newAvatar'))
+                    <div wire:loading.remove wire:target="newAvatar">
+                        <div class="flex flex-col items-center gap-3">
+                            <button type="button" wire:click="cancelAvatar" wire:loading.attr="disabled"
+                                x-bind:disabled="uploadingAvatar"
+                                class="text-xs font-bold text-red-600 disabled:opacity-50">
+                                Hủy ảnh đang chọn
+                            </button>
 
-                        <button type="button" wire:click="requestSaveAvatar" wire:loading.attr="disabled"
-                            wire:target="requestSaveAvatar,saveAvatar" x-bind:disabled="uploadingAvatar"
-                            x-show="avatarReady && !uploadingAvatar" style="display: none"
-                            class="bg-brand-700 hover:bg-brand-800 text-white text-sm font-bold px-6 py-2.5 rounded-xl disabled:opacity-50 disabled:cursor-wait">
-                            <span wire:loading.remove wire:target="requestSaveAvatar,saveAvatar">
-                                Lưu ảnh
-                            </span>
+                            <button type="button" wire:click="requestSaveAvatar" wire:loading.attr="disabled"
+                                wire:target="requestSaveAvatar,saveAvatar" x-bind:disabled="uploadingAvatar"
+                                x-show="avatarReady && !uploadingAvatar" style="display: none"
+                                class="bg-brand-700 hover:bg-brand-800 text-white text-sm font-bold px-6 py-2.5 rounded-xl disabled:opacity-50 disabled:cursor-wait">
+                                <span wire:loading.remove wire:target="requestSaveAvatar,saveAvatar">
+                                    Lưu ảnh
+                                </span>
 
-                            <span wire:loading wire:target="requestSaveAvatar,saveAvatar">
-                                <i class="fa-solid fa-spinner fa-spin mr-1"></i>
-                                Đang xử lý…
-                            </span>
-                        </button>
+                                <span wire:loading wire:target="requestSaveAvatar,saveAvatar">
+                                    <i class="fa-solid fa-spinner fa-spin mr-1"></i>
+                                    Đang xử lý…
+                                </span>
+                            </button>
+                        </div>
                     </div>
-                </div>
                 @endif
 
                 <div class="space-y-2">
@@ -168,9 +168,9 @@
             <div class="lg:col-span-2 bg-white rounded-3xl border border-gray-100 p-5 sm:p-8 shadow-soft">
                 <form wire:submit="requestSaveProfile" novalidate class="space-y-5 text-sm">
                     @error('profile')
-                    <div role="alert" class="rounded-xl bg-red-50 text-red-700 p-3">
-                        {{ $message }}
-                    </div>
+                        <div role="alert" class="rounded-xl bg-red-50 text-red-700 p-3">
+                            {{ $message }}
+                        </div>
                     @enderror
 
                     <h3 class="font-extrabold text-gray-900 border-b border-gray-100 pb-2">
@@ -182,13 +182,14 @@
                             Họ và tên <span class="text-red-500">*</span>
                         </label>
 
-                        <input type="text" id="user-name" wire:model="name" required maxlength="255" autocomplete="name"
+                        <input type="text" id="user-name" wire:model="name" required maxlength="255"
+                            autocomplete="name"
                             class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-brand-500">
 
                         @error('name')
-                        <p class="text-xs text-red-600 mt-1">
-                            {{ $message }}
-                        </p>
+                            <p class="text-xs text-red-600 mt-1">
+                                {{ $message }}
+                            </p>
                         @enderror
                     </div>
 
@@ -217,15 +218,16 @@
                                 class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-brand-500">
 
                             @error('phone')
-                            <p class="text-xs text-red-600 mt-1">
-                                {{ $message }}
-                            </p>
+                                <p class="text-xs text-red-600 mt-1">
+                                    {{ $message }}
+                                </p>
                             @enderror
                         </div>
                     </div>
 
                     <div class="pt-4 border-t border-gray-100 flex justify-end">
-                        <button type="submit" wire:loading.attr="disabled" wire:target="requestSaveProfile,saveProfile"
+                        <button type="submit" wire:loading.attr="disabled"
+                            wire:target="requestSaveProfile,saveProfile"
                             class="w-full sm:w-auto bg-brand-700 hover:bg-brand-800 text-white font-bold px-8 py-3 rounded-xl disabled:opacity-50 disabled:cursor-wait">
                             <span wire:loading.remove wire:target="requestSaveProfile,saveProfile">
                                 Lưu thông tin
@@ -261,9 +263,9 @@
                             class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-brand-500">
 
                         @error('current_password')
-                        <p class="text-xs text-red-600 mt-1">
-                            {{ $message }}
-                        </p>
+                            <p class="text-xs text-red-600 mt-1">
+                                {{ $message }}
+                            </p>
                         @enderror
                     </div>
 
@@ -278,9 +280,9 @@
                                 class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-brand-500">
 
                             @error('new_password')
-                            <p class="text-xs text-red-600 mt-1">
-                                {{ $message }}
-                            </p>
+                                <p class="text-xs text-red-600 mt-1">
+                                    {{ $message }}
+                                </p>
                             @enderror
                         </div>
 
@@ -294,9 +296,9 @@
                                 class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-brand-500">
 
                             @error('new_password_confirmation')
-                            <p class="text-xs text-red-600 mt-1">
-                                {{ $message }}
-                            </p>
+                                <p class="text-xs text-red-600 mt-1">
+                                    {{ $message }}
+                                </p>
                             @enderror
                         </div>
                     </div>
@@ -320,56 +322,57 @@
         </div>
     </div>
     @script
-    <script>
-    let confirmationOpen = false;
+        <script>
+            let confirmationOpen = false;
 
-    async function confirmSave(title, save) {
-        if (confirmationOpen) {
-            return;
-        }
+            async function confirmSave(title, save) {
+                if (confirmationOpen) {
+                    return;
+                }
 
-        confirmationOpen = true;
+                confirmationOpen = true;
 
-        try {
-            const result = await Swal.fire({
-                icon: 'question',
-                title,
-                text: 'Chọn Hủy để hủy bỏ thao tác.',
-                showCancelButton: true,
-                confirmButtonText: 'Xác nhận',
-                cancelButtonText: 'Hủy',
-                confirmButtonColor: '#15803d',
-                cancelButtonColor: '#6b7280',
-                reverseButtons: true,
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-            });
+                try {
+                    const result = await Swal.fire({
+                        icon: 'question',
+                        title,
+                        text: 'Chọn Hủy để hủy bỏ thao tác.',
+                        showCancelButton: true,
+                        confirmButtonText: 'Xác nhận',
+                        cancelButtonText: 'Hủy',
+                        confirmButtonColor: '#15803d',
+                        cancelButtonColor: '#6b7280',
+                        reverseButtons: true,
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                    });
 
-            if (result.isConfirmed) {
-                await save();
-            } else {
-                await $wire.cancelProfileChanges();
+                    if (result.isConfirmed) {
+                        await save();
+                    } else {
+                        await $wire.cancelProfileChanges();
+                    }
+                } finally {
+                    confirmationOpen = false;
+                }
             }
-        } finally {
-            confirmationOpen = false;
-        }
-    }
 
-    $wire.on('confirm-profile-save', () => confirmSave(
-        'Xác nhận lưu thông tin tài khoản?',
-        () => $wire.saveProfile()
-    ));
+            $wire.on('confirm-profile-save', () => confirmSave(
+                'Xác nhận lưu thông tin tài khoản?',
+                () => $wire.saveProfile()
+            ));
 
-    $wire.on('confirm-password-save', () => confirmSave(
-        'Xác nhận cập nhật mật khẩu?',
-        () => $wire.savePassword()
-    ));
+            $wire.on('confirm-password-save', () => confirmSave(
+                'Xác nhận cập nhật mật khẩu?',
+                () => $wire.savePassword()
+            ));
 
-    $wire.on('confirm-avatar-save', () => confirmSave(
-        'Xác nhận lưu ảnh đại diện?',
-        () => $wire.saveAvatar()
-    ));
-    </script>
+            $wire.on('confirm-avatar-save', () => confirmSave(
+                'Xác nhận lưu ảnh đại diện?',
+                () => $wire.saveAvatar()
+            ));
+        </script>
     @endscript
 </div>
-
+<<<<<<< HEAD:resources/views/livewire/farm-staff/profile-manager.blade.php=======>>>>>>>
+    909e51ba9809b76457a6d00dfc53b9da5f5bb86b:resources/views/livewire/profile-manager.blade.php

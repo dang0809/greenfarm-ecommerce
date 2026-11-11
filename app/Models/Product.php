@@ -1,9 +1,9 @@
 <?php
 
 namespace App\Models;
-
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
@@ -28,6 +28,7 @@ class Product extends Model
         'weight_kg',
         'sold_count',
         'avg_rating',
+        'min_growth_days',
         'status',
     ];
 
@@ -38,6 +39,7 @@ class Product extends Model
             'sale_price' => 'decimal:2',
             'weight_kg' => 'float',
             'sold_count' => 'integer',
+            'min_growth_days' => 'integer',
             'avg_rating' => 'decimal:2',
         ];
     }
@@ -123,11 +125,13 @@ class Product extends Model
      */
     public function scopeWithTotalStock($query)
     {
-        return $query->withSum(['batches as total_stock' => function ($q) {
-            $q->where('product_batches.status', 'active')
-              ->whereRaw('product_batches.current_quantity > COALESCE(product_batches.reserved_quantity, 0)')
-              ->whereDate('product_batches.expiry_date', '>=', today());
-        }], DB::raw('current_quantity - COALESCE(reserved_quantity, 0)'));
+        return $query->withSum([
+            'batches as total_stock' => function ($q) {
+                $q->where('product_batches.status', 'active')
+                    ->whereRaw('product_batches.current_quantity > COALESCE(product_batches.reserved_quantity, 0)')
+                    ->whereDate('product_batches.expiry_date', '>=', today());
+            }
+        ], DB::raw('current_quantity - COALESCE(reserved_quantity, 0)'));
     }
 
     /**
@@ -166,14 +170,16 @@ class Product extends Model
             ->get();
 
         foreach ($availableBatches as $batch) {
-            if ($remainingNeeded <= 0) break;
+            if ($remainingNeeded <= 0)
+                break;
 
             $availableInBatch = max(0, (int) $batch->current_quantity - (int) ($batch->reserved_quantity ?? 0));
             $take = min($availableInBatch, $remainingNeeded);
-            if ($take <= 0) continue;
+            if ($take <= 0)
+                continue;
 
             $isSale = $batch->discount_percent > 0;
-            $unitPrice = $isSale 
+            $unitPrice = $isSale
                 ? round($this->price * (100 - $batch->discount_percent) / 100)
                 : (float) $this->price;
 
@@ -181,12 +187,12 @@ class Product extends Model
             $total += $subtotalBatch;
 
             $breakdown[] = [
-                'batch_id'         => $batch->id,
-                'batch_code'       => $batch->batch_code,
-                'quantity'         => $take,
-                'unit_price'       => $unitPrice,
-                'subtotal'         => $subtotalBatch,
-                'is_sale'          => $isSale,
+                'batch_id' => $batch->id,
+                'batch_code' => $batch->batch_code,
+                'quantity' => $take,
+                'unit_price' => $unitPrice,
+                'subtotal' => $subtotalBatch,
+                'is_sale' => $isSale,
                 'discount_percent' => $batch->discount_percent,
             ];
 
@@ -199,12 +205,12 @@ class Product extends Model
             $subtotalExtra = $unitPrice * $remainingNeeded;
             $total += $subtotalExtra;
             $breakdown[] = [
-                'batch_id'         => null,
-                'batch_code'       => null,
-                'quantity'         => $remainingNeeded,
-                'unit_price'       => $unitPrice,
-                'subtotal'         => $subtotalExtra,
-                'is_sale'          => false,
+                'batch_id' => null,
+                'batch_code' => null,
+                'quantity' => $remainingNeeded,
+                'unit_price' => $unitPrice,
+                'subtotal' => $subtotalExtra,
+                'is_sale' => false,
                 'discount_percent' => 0,
             ];
         }
@@ -222,8 +228,24 @@ class Product extends Model
         }
 
         return [
-            'total'     => $total,
+            'total' => $total,
             'breakdown' => array_values($mergedBreakdown),
         ];
+    }
+
+    public function scopeSearch(Builder $query, string $search): Builder
+    {
+        $search = trim($search);
+
+        if ($search === '') {
+            return $query;
+        }
+
+        $term = '%' . $search . '%';
+
+        return $query->where(function (Builder $query) use ($term) {
+            $query->where('name', 'like', $term)
+                ->orWhere('sku', 'like', $term);
+        });
     }
 }

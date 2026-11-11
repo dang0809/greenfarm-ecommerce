@@ -59,8 +59,8 @@ class ProductBatchManager extends Component
 
         abort_unless(
             $user
-                && $user->role === 'farm_staff'
-                && $user->status === 'active',
+            && $user->role === 'farm_staff'
+            && $user->status === 'active',
             403
         );
 
@@ -69,11 +69,13 @@ class ProductBatchManager extends Component
 
     public function updated($property): void
     {
-        if (in_array(
-            $property,
-            ['search', 'productFilter', 'statusFilter'],
-            true
-        )) {
+        if (
+            in_array(
+                $property,
+                ['search', 'productFilter', 'statusFilter'],
+                true
+            )
+        ) {
             $this->resetPage();
         }
     }
@@ -200,11 +202,11 @@ class ProductBatchManager extends Component
     {
         abort_unless(
             $this->batchId
-                && in_array(
-                    $this->modal,
-                    ['spoilage', 'stock', 'expiry', 'status'],
-                    true
-                ),
+            && in_array(
+                $this->modal,
+                ['spoilage', 'stock', 'expiry', 'status'],
+                true
+            ),
             422
         );
 
@@ -215,8 +217,8 @@ class ProductBatchManager extends Component
         ];
 
         if ($this->modal === 'spoilage') {
-    // Chỉ validate số lượng nhập tay với xuất hủy thông thường.
-            if (! $this->destroyAll) {
+            // Chỉ validate số lượng nhập tay với xuất hủy thông thường.
+            if (!$this->destroyAll) {
                 $rules['quantity'] = [
                     'required',
                     'integer',
@@ -281,18 +283,6 @@ class ProductBatchManager extends Component
         ]);
     }
 
-    // Kiểm tra có đơn nào chưa xử lý xong có liên quan đến lô hàng hay không
-    private function hasUnfinishedOrders(ProductBatch $batch): bool
-    {
-        return $batch->orderItems()
-            ->whereHas('order', fn ($query) => $query
-                ->whereNotIn('status', [
-                    'delivered',
-                    'cancelled',
-                ]))
-            ->exists();
-    }
-
     public function saveChange(): void
     {
         $staff = $this->staff();
@@ -300,11 +290,7 @@ class ProductBatchManager extends Component
         $mode = $this->modal;
 
         try {
-            $result = DB::transaction(function () use (
-                $staff,
-                $data,
-                $mode
-            ) {
+            $result = DB::transaction(function () use ($staff, $data, $mode) {
                 $batch = ProductBatch::query()
                     ->lockForUpdate()
                     ->findOrFail($this->batchId);
@@ -372,7 +358,7 @@ class ProductBatchManager extends Component
                         // phải xử lý cả giữ chỗ và các đơn đang phân bổ.
                         if (
                             $reserved > 0
-                            || $this->hasUnfinishedOrders($batch)
+                            || $batch->hasUnfinishedOrders()
                         ) {
                             $this->reject(
                                 'form',
@@ -405,7 +391,7 @@ class ProductBatchManager extends Component
                         // các đơn liên quan chưa xử lý.
                         if (
                             $qty === $current
-                            && $this->hasUnfinishedOrders($batch)
+                            && $batch->hasUnfinishedOrders()
                         ) {
                             $this->reject(
                                 'form',
@@ -459,7 +445,7 @@ class ProductBatchManager extends Component
                     // Sửa HSD vẫn phải chờ xử lý đơn.
                     if (
                         $reserved > 0
-                        || $this->hasUnfinishedOrders($batch)
+                        || $batch->hasUnfinishedOrders()
                     ) {
                         $this->reject(
                             'form',
@@ -471,7 +457,7 @@ class ProductBatchManager extends Component
                         ?? $batch->plantingBatch?->planted_date;
 
                     if (
-                        ! $lowerDate
+                        !$lowerDate
                         || $data['expiry'] <= $lowerDate->toDateString()
                     ) {
                         $this->reject(
@@ -502,7 +488,7 @@ class ProductBatchManager extends Component
                         $target === 'pending_recalled'
                         && (
                             $reserved > 0
-                            || $this->hasUnfinishedOrders($batch)
+                            || $batch->hasUnfinishedOrders()
                         )
                     ) {
                         $this->reject(
@@ -510,12 +496,12 @@ class ProductBatchManager extends Component
                             'Hãy Tạm dừng lô trước. Sales cần chuyển lô hoặc xử lý các đơn liên quan, rồi mới Thu hồi toàn bộ.'
                         );
                     }
-            
+
                     $batch->status = $target;
                     $type = 'status_change';
                 }
 
-                if (! $batch->save()) {
+                if (!$batch->save()) {
                     throw new RuntimeException(
                         'Không lưu được lô hàng.'
                     );
@@ -546,7 +532,7 @@ class ProductBatchManager extends Component
                     'created_by' => $staff->id,
                 ]);
 
-                if (! $log->exists) {
+                if (!$log->exists) {
                     throw new RuntimeException(
                         'Không ghi được nhật ký kho.'
                     );
@@ -626,8 +612,8 @@ class ProductBatchManager extends Component
                 && is_int($payload['quantity_to'] ?? null)
             ) {
                 $stockChange = $payload['quantity_from']
-                    .' → '
-                    .$payload['quantity_to'];
+                    . ' → '
+                    . $payload['quantity_to'];
             }
 
             if (
@@ -636,8 +622,8 @@ class ProductBatchManager extends Component
                 && is_string($payload['expiry_to'] ?? null)
             ) {
                 $expiryChange = $payload['expiry_from']
-                    .' → '
-                    .$payload['expiry_to'];
+                    . ' → '
+                    . $payload['expiry_to'];
             }
         } else {
             // Tương thích những mẫu ghi chú cũ.
@@ -670,7 +656,7 @@ class ProductBatchManager extends Component
                     $matches
                 )
             ) {
-                $stockChange = $matches[1].' → '.$matches[2];
+                $stockChange = $matches[1] . ' → ' . $matches[2];
                 $reason = $matches[3];
             } elseif (
                 $log->type === 'expiry_change'
@@ -680,7 +666,7 @@ class ProductBatchManager extends Component
                     $matches
                 )
             ) {
-                $expiryChange = $matches[1].' → '.$matches[2];
+                $expiryChange = $matches[1] . ' → ' . $matches[2];
                 $reason = $matches[3];
             }
 
@@ -703,8 +689,8 @@ class ProductBatchManager extends Component
 
         $transition = $from !== null && $to !== null
             ? ($statusLabels[$from] ?? $from)
-                .' → '
-                .($statusLabels[$to] ?? $to)
+            . ' → '
+            . ($statusLabels[$to] ?? $to)
             : null;
 
         return [
@@ -723,7 +709,7 @@ class ProductBatchManager extends Component
         $today = today()->toDateString();
         $near = today()->addDays(3)->toDateString();
 
-        $available = fn () => ProductBatch::query()
+        $available = fn() => ProductBatch::query()
             ->where('status', 'active')
             ->whereDate('expiry_date', '>=', $today)
             ->whereColumn(
@@ -765,44 +751,13 @@ class ProductBatchManager extends Component
         $query = ProductBatch::with([
             'plantingBatch.product',
             'plantingBatch.farmPlot',
-        ]);
-
-        $search = trim($this->search);
-
-        if ($search !== '') {
-            $query->where(function ($q) use ($search) {
-                $q->where(
-                    'batch_code',
-                    'like',
-                    '%'.$search.'%'
-                )
-                    ->orWhereHas('plantingBatch', fn ($q) => $q
-                        ->where(
-                            'planting_code',
-                            'like',
-                            '%'.$search.'%'
-                        ))
-                    ->orWhereHas(
-                        'plantingBatch.product',
-                        fn ($q) => $q->where(fn ($q) => $q
-                            ->where('name', 'like', '%'.$search.'%')
-                            ->orWhere('sku', 'like', '%'.$search.'%'))
-                    )
-                    ->orWhereHas(
-                        'plantingBatch.farmPlot',
-                        fn ($q) => $q->where(
-                            'name',
-                            'like',
-                            '%'.$search.'%'
-                        )
-                    );
-            });
-        }
+        ])
+            ->search($this->search);
 
         if ($this->productFilter !== '') {
             $query->whereHas(
                 'plantingBatch',
-                fn ($q) => $q->where(
+                fn($q) => $q->where(
                     'product_id',
                     $this->productFilter
                 )
@@ -856,11 +811,11 @@ class ProductBatchManager extends Component
 
         if ($selectedBatch && $this->modal === 'detail') {
             $selectedBatch->load([
-                'inventoryLogs' => fn ($query) => $query
+                'inventoryLogs' => fn($query) => $query
                     ->with('creator')
                     ->orderByDesc('id'),
 
-                'plantingBatch.traceabilityEvents' => fn ($query) => $query
+                'plantingBatch.traceabilityEvents' => fn($query) => $query
                     ->orderBy('recorded_at')
                     ->orderBy('id'),
             ]);
@@ -872,19 +827,19 @@ class ProductBatchManager extends Component
         }
 
         $hasUnfinishedOrders = $selectedBatch
-        && in_array(
-            $this->modal,
-            ['status', 'spoilage', 'detail'],
-            true
-        )
-        && $this->hasUnfinishedOrders($selectedBatch);
+            && in_array(
+                $this->modal,
+                ['status', 'spoilage', 'detail'],
+                true
+            )
+            && $selectedBatch->hasUnfinishedOrders();
 
         $qrUrl = null;
 
         if (
             $selectedBatch
             && (int) $selectedBatch->current_quantity > 0
-            && ! in_array(
+            && !in_array(
                 $selectedBatch->status,
                 ['pending_recalled', 'recalled'],
                 true
@@ -893,7 +848,7 @@ class ProductBatchManager extends Component
         ) {
             $traceUrl = route('customer.traceability.detail', [
                 'batch' => $selectedBatch->batch_code,
-            ]).'?batch='.rawurlencode($selectedBatch->batch_code);
+            ]) . '?batch=' . rawurlencode($selectedBatch->batch_code);
 
             $qrSvg = (string) QrCode::format('svg')
                 ->size(300)
@@ -902,7 +857,7 @@ class ProductBatchManager extends Component
                 ->generate($traceUrl);
 
             $qrUrl = 'data:image/svg+xml;base64,'
-                .base64_encode($qrSvg);
+                . base64_encode($qrSvg);
         }
 
         return view('livewire.farm-staff.product-batch-manager', [
