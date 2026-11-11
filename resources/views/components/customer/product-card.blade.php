@@ -52,7 +52,7 @@ $isOutOfStock = $stock <= 0; @endphp <div
             <div class="flex items-center gap-1 text-amber-400 text-xs mb-3">
                 <i class="fa-solid fa-star"></i>
                 <span class="text-gray-500 font-medium ml-1">
-                    {{ number_format($product->avg_rating ?? 5.0, 1) }} | Đã bán {{ $product->sold_count ?? 0 }}
+                    {{ number_format($product->avg_rating ?? 0, 1) }} | Đã bán {{ $product->sold_count ?? 0 }}
                 </span>
             </div>
 

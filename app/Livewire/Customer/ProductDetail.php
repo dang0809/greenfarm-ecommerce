@@ -203,6 +203,8 @@ class ProductDetail extends Component
                     ]);
                 }
             }
+
+            $this->product->syncAvgRating();
         });
 
         $this->reset(['content', 'reviewPhotos']);
@@ -221,7 +223,6 @@ class ProductDetail extends Component
     public function render()
     {
         $relatedProducts = Product::with(['productImages', 'category'])
-            ->withAvg('reviews', 'rating')
             ->withTotalStock()
             ->where('category_id', $this->product->category_id)
             ->where('id', '!=', $this->product->id)
@@ -229,12 +230,8 @@ class ProductDetail extends Component
             ->take(4)
             ->get();
 
-        $reviewStats = Review::where('product_id', $this->product->id)
-            ->selectRaw('COUNT(*) as total_count, AVG(rating) as avg_rating')
-            ->first();
-
-        $reviewCount = (int) ($reviewStats->total_count ?? 0);
-        $avgRating = $reviewCount > 0 ? round((float) $reviewStats->avg_rating, 1) : 5.0;
+        $reviewCount = Review::where('product_id', $this->product->id)->count();
+        $avgRating = (float) ($this->product->avg_rating ?? 0);
 
         $reviews = Review::with(['user', 'images'])
             ->where('product_id', $this->product->id)

@@ -159,7 +159,7 @@
                             </td>
 
                             <td class="py-3.5 px-4 text-center font-mono text-amber-500 font-bold">
-                                {{ $product->avg_rating ?? '5.0' }} ★
+                                {{ number_format($product->avg_rating ?? 0, 1) }} ★
                             </td>
 
                             <td class="py-3.5 px-4 text-center">

@@ -320,31 +320,38 @@ class OrderManager extends Component
     {
         if (!$this->cancelOrderId) return;
 
-        $order = Order::with('items')->find($this->cancelOrderId);
-        if (!$order || !in_array($order->status, ['pending', 'processing'], true)) {
-            $this->dispatch('show-toast', type: 'error', message: 'Chỉ có thể hủy đơn hàng khi đang ở trạng thái Chờ xác nhận hoặc Chờ lấy hàng!');
-            return;
-        }
-
         $reason = trim($this->cancelReason);
         if (empty($reason)) {
             $this->dispatch('show-toast', type: 'error', message: 'Vui lòng nhập lý do hủy đơn hàng!');
             return;
         }
 
-        DB::transaction(function () use ($order, $reason) {
-            $oldStatus = $order->status;
+        $order = DB::transaction(function () use ($reason) {
+            $lockedOrder = Order::with(['items', 'payment', 'deliverySchedule'])
+                ->whereKey($this->cancelOrderId)
+                ->lockForUpdate()
+                ->first();
 
-            $order->update([
+            if (!$lockedOrder || !in_array($lockedOrder->status, ['pending', 'processing'], true)) {
+                return null;
+            }
+
+            $oldStatus = $lockedOrder->status;
+
+            $lockedOrder->update([
                 'status'        => 'cancelled',
                 'cancel_reason' => $reason,
                 'cancelled_by'  => 'sales',
                 'cancelled_at'  => now(),
             ]);
 
+            if ($lockedOrder->order_type === 'retail' && $lockedOrder->payment?->status === 'success') {
+                $lockedOrder->adjustProductSoldCounts(-1);
+            }
+
             // 1. Xử lý hoàn kho thực tế và ghi sổ nhật ký return_cancel
             // Toàn bộ đơn ở OrderManager đều đã thanh toán thành công (kho thực tế đã bị trừ qua webhook)
-            foreach ($order->items as $item) {
+            foreach ($lockedOrder->items as $item) {
                 if ($item->batch_id) {
                     ProductBatch::where('id', $item->batch_id)->increment('current_quantity', $item->quantity);
 
@@ -352,32 +359,39 @@ class OrderManager extends Component
                         'batch_id'   => $item->batch_id,
                         'type'       => 'return_cancel',
                         'quantity'   => $item->quantity,
-                        'note'       => "Hoàn kho do NVBH hủy đơn #{$order->order_code}: {$reason}",
-                        'created_by' => Auth::id() ?? $order->user_id ?? 1,
+                        'note'       => "Hoàn kho do NVBH hủy đơn #{$lockedOrder->order_code}: {$reason}",
+                        'created_by' => Auth::id() ?? $lockedOrder->user_id ?? 1,
                     ]);
                 }
             }
 
             // 2. Hoàn lại điểm thưởng tích lũy (nếu khách đã tiêu)
-            if ($order->points_used > 0) {
-                User::find($order->user_id)?->increment('reward_points', $order->points_used);
+            if ($lockedOrder->points_used > 0) {
+                User::find($lockedOrder->user_id)?->increment('reward_points', $lockedOrder->points_used);
             }
 
             // 3. Ghi nhận lịch sử trạng thái
-            $order->statusHistories()->create([
+            $lockedOrder->statusHistories()->create([
                 'old_status' => $oldStatus,
                 'new_status' => 'cancelled',
-                'changed_by' => Auth::id() ?? $order->user_id ?? 1,
+                'changed_by' => Auth::id() ?? $lockedOrder->user_id ?? 1,
             ]);
 
             // 4. Đồng bộ hoàn lại lịch đợt giao cho gói VIP (nếu là đơn giao định kỳ)
-            if ($order->deliverySchedule) {
-                $order->deliverySchedule->update([
+            if ($lockedOrder->deliverySchedule) {
+                $lockedOrder->deliverySchedule->update([
                     'order_id' => null,
                     'status'   => 'pending',
                 ]);
             }
+
+            return $lockedOrder;
         });
+
+        if (!$order) {
+            $this->dispatch('show-toast', type: 'error', message: 'Chỉ có thể hủy đơn hàng khi đang ở trạng thái Chờ xác nhận hoặc Chờ lấy hàng!');
+            return;
+        }
 
         $this->closeCancelModal();
 
