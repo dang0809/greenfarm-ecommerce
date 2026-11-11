@@ -51,6 +51,7 @@ class VipSubscriptionMail extends Mailable implements ShouldQueue
                 'packageName'       => $packageName,
                 'deliveryMaxWeight' => $deliveryMaxWeight,
                 'totalWeight'       => round($deliveryMaxWeight * 8, 1),
+                'contact'           => SystemSetting::contactSettings(),
             ],
         );
     }

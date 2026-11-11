@@ -664,6 +664,7 @@ class SubscriptionSetup extends Component
             'deliveredCount'           => (int) ($this->subscription?->deliverySchedules()->where('status', 'delivered')->count() ?? 0),
             'maxDistance'              => $maxDistance,
             'isCurrentAddressExceeded' => $isCurrentAddressExceeded,
+            'hotline'                  => SystemSetting::contactSettings()['hotline'],
         ])->layout('layouts.customer.app');
     }
 }

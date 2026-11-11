@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\Payment;
 use App\Models\ProductBatch;
+use App\Models\SystemSetting;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -410,6 +411,7 @@ class OrderManager extends Component
         return view('livewire.sales.order-manager', [
             'orders'       => $orders,
             'statusCounts' => $this->statusCounts,
+            'contact'      => SystemSetting::contactSettings(),
         ]);
     }
 }

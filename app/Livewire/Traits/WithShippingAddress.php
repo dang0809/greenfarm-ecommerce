@@ -33,10 +33,10 @@ trait WithShippingAddress
             ?? Address::where('user_id', Auth::id())->first();
     }
 
-    // Hàm lấy tọa độ nông trại từ bảng system_settings (có cache 24h)
+    // Hàm lấy tọa độ nông trại từ bảng system_settings (cache tới khi cài đặt thay đổi)
     protected function getFarmCoordinates(): array
     {
-        return Cache::remember('system_farm_coordinates', 86400, function () {
+        return Cache::rememberForever('system_farm_coordinates', function () {
             $settings = SystemSetting::whereIn('key', [
                 'farm_latitude', 'farm_longitude'
             ])->pluck('value', 'key')->toArray();
@@ -48,10 +48,10 @@ trait WithShippingAddress
         });
     }
 
-    // Hàm lấy bán kính giao hàng tối đa từ bảng system_settings (có cache 24h)
+    // Hàm lấy bán kính giao hàng tối đa từ bảng system_settings (cache tới khi cài đặt thay đổi)
     protected function getMaxShippingDistance(): float
     {
-        return Cache::remember('system_max_shipping_distance', 86400, function () {
+        return Cache::rememberForever('system_max_shipping_distance', function () {
             $val = SystemSetting::where('key', 'max_shipping_distance_km')->value('value');
             return (float) ($val ?? 25.0);
         });
@@ -64,11 +64,12 @@ trait WithShippingAddress
             return null;
         }
 
-        $cacheKey = 'osrm_dist_' . md5("{$destLat}_{$destLng}");
-        return Cache::remember($cacheKey, 86400, function () use ($destLat, $destLng) {
-            $farm = $this->getFarmCoordinates();
-            $farmLat = $farm['lat'];
-            $farmLng = $farm['lng'];
+        $farm = $this->getFarmCoordinates();
+        $farmLat = $farm['lat'];
+        $farmLng = $farm['lng'];
+
+        $cacheKey = 'osrm_dist_' . md5("{$farmLat}_{$farmLng}_{$destLat}_{$destLng}");
+        return Cache::remember($cacheKey, 86400, function () use ($farmLat, $farmLng, $destLat, $destLng) {
 
             try {
                 $coordinates = "{$farmLng},{$farmLat};{$destLng},{$destLat}";

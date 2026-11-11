@@ -19,8 +19,7 @@
                     <span><i class="fa-regular fa-clock mr-1"></i> Cập nhật:
                         {{ isset($page->created_at) ? \Carbon\Carbon::parse($page->created_at)->format('d/m/Y') : 'Tháng 10/2026' }}</span>
                     <span>•</span>
-                    <span><i class="fa-solid fa-location-dot mr-1"></i> Thôn 3, Xã Đạ Ròn, Huyện Đơn Dương, Tỉnh Lâm
-                        Đồng</span>
+                    <span><i class="fa-solid fa-location-dot mr-1"></i> {{ $farmAddress }}</span>
                 </div>
             </header>
 

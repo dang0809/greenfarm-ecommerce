@@ -32,6 +32,7 @@ use App\Livewire\Sales\OrderManager;
 use App\Livewire\Sales\SubscriptionManager;
 use App\Livewire\Sales\ComplaintManager;
 use App\Livewire\Sales\ClearanceManager;
+use App\Livewire\Sales\SystemSettingManager;
 /*
 |--------------------------------------------------------------------------
 | 1. PUBLIC ROUTES (Ai cũng xem được - Không cần đăng nhập)
@@ -132,5 +133,6 @@ Route::middleware(['role:sales'])->prefix('nhan-vien-ban-hang')->name('sales.')-
     Route::get('/khieu-nai', ComplaintManager::class)->name('complaints');
     Route::get('/xa-hang', ClearanceManager::class)->name('clearance');
     Route::get('/goi-dinh-ky', SubscriptionManager::class)->name('subscriptions');
+    Route::get('/cai-dat', SystemSettingManager::class)->name('settings');
     Route::get('/ho-so', ProfileManager::class)->name('profile');
 });

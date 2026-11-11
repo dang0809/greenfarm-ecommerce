@@ -63,7 +63,13 @@
                 <span>Gói Rau Định Kỳ VIP</span>
             </a>
 
-            <!-- 5. Hồ sơ cá nhân -->
+            <!-- 5. Cài đặt cấu hình hệ thống -->
+            <a href="{{ route('sales.settings') }}" wire:navigate class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all {{ str_starts_with($activeRoute, 'sales.settings') ? 'menu-active' : 'menu-inactive' }} text-left">
+                <i class="fa-solid fa-sliders w-5 text-center"></i>
+                <span>Cài Đặt Hệ Thống</span>
+            </a>
+
+            <!-- 6. Hồ sơ cá nhân -->
             <a href="{{ route('sales.profile') }}" wire:navigate class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all {{ str_starts_with($activeRoute, 'sales.profile') ? 'menu-active' : 'menu-inactive' }} text-left">
                 <i class="fa-solid fa-id-badge w-5 text-center"></i>
                 <span>Hồ Sơ Cá Nhân</span>

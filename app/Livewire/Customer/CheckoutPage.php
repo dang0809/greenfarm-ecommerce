@@ -132,10 +132,10 @@ class CheckoutPage extends Component
         }
     }
 
-    // lấy cài đặt loyalty
+    // lấy cài đặt loyalty (cache tới khi cài đặt thay đổi)
     private function getLoyaltySettings(): array
     {
-        return Cache::remember('system_loyalty_settings', 86400, function () {
+        return Cache::rememberForever('system_loyalty_settings', function () {
             return SystemSetting::where('group', 'loyalty')
                 ->pluck('value', 'key')
                 ->toArray();

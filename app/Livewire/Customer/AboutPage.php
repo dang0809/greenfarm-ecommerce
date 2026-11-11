@@ -3,6 +3,7 @@
 namespace App\Livewire\Customer;
 
 use App\Models\Page;
+use App\Models\SystemSetting;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -37,6 +38,7 @@ class AboutPage extends Component
             'page' => $page,
             'farmImages' => $farmImages,
             'certifications' => $certifications,
+            'farmAddress' => SystemSetting::contactSettings()['farm_address'],
         ]);
     }
 }
