@@ -3,7 +3,6 @@
 namespace App\Livewire\FarmStaff;
 
 use App\Models\Certification;
-use Illuminate\Database\Eloquent\Builder;
 use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Auth;
@@ -86,14 +85,14 @@ class CertificationManager extends Component
         $this->name = $cert->name;
         $this->code = $cert->code;
 
-        $this->status = $this->effectiveStatus($cert);
+        $this->status = $cert->effective_status;
 
         $this->issuedDate = $cert->issued_date?->toDateString() ?? '';
         $this->expiryDate = $cert->expiry_date?->toDateString() ?? '';
         $this->description = (string) ($cert->description ?? '');
 
-        $this->currentFileUrl = $this->scanUrl($cert->image);
-        $this->currentIsPdf = $this->isPdf($cert->image);
+        $this->currentFileUrl = $cert->image_url;
+        $this->currentIsPdf = $cert->is_pdf;
 
         $this->showForm = true;
     }
@@ -256,7 +255,7 @@ class CertificationManager extends Component
             'expiry_date' => $cert->expiry_date?->toDateString(),
 
             // So sánh theo trạng thái đang hiển thị trên form.
-            'status' => $this->effectiveStatus($cert),
+            'status' => $cert->effective_status,
         ];
 
         return $current !== $data
@@ -548,135 +547,21 @@ class CertificationManager extends Component
         );
     }
 
-    private function filterByEffectiveStatus(
-        Builder $query,
-        string $status
-    ): Builder {
-        if ($status === 'active') {
-            return $query
-                ->where('status', 'active')
-                ->where(function (Builder $query) {
-                    $query->whereNull('expiry_date')
-                        ->orWhereDate('expiry_date', '>=', today());
-                });
-        }
-
-        if ($status === 'expired') {
-            return $query->where(function (Builder $query) {
-                $query->where('status', 'expired')
-                    ->orWhereDate('expiry_date', '<', today());
-            });
-        }
-
-        return $query;
-    }
-
-    private function effectiveStatus(Certification $cert): string
-    {
-        if (
-            $cert->status === 'expired'
-            || (
-                $cert->expiry_date !== null
-                && $cert->expiry_date->lt(today())
-            )
-        ) {
-            return 'expired';
-        }
-
-        return 'active';
-    }
-
-    private function scanUrl(?string $path): ?string
-    {
-        $path = trim((string) $path);
-
-        if ($path === '') {
-            return null;
-        }
-
-        // Hỗ trợ URL ảnh hiện có trong database.
-        if (preg_match('#\Ahttps?://#i', $path)) {
-            return $path;
-        }
-
-        return Storage::disk('public')->url(ltrim($path, '/'));
-    }
-
-    private function isPdf(?string $path): bool
-    {
-        $filePath = parse_url(
-            trim((string) $path),
-            PHP_URL_PATH
-        );
-
-        return is_string($filePath)
-            && strtolower(
-                pathinfo($filePath, PATHINFO_EXTENSION)
-            ) === 'pdf';
-    }
-
-    private function prepareForView(Certification $cert): object
-    {
-        return (object) [
-            'id' => $cert->id,
-            'name' => $cert->name,
-            'code' => $cert->code,
-            'image' => $cert->image,
-            'description' => $cert->description,
-            'issued_date' => $cert->issued_date,
-            'expiry_date' => $cert->expiry_date,
-            'status' => $cert->status,
-
-            // Các giá trị được component tính để hiển thị.
-            'effective_status' => $this->effectiveStatus($cert),
-            'image_url' => $this->scanUrl($cert->image),
-            'is_pdf' => $this->isPdf($cert->image),
-        ];
-    }
-
     public function render()
     {
-        $search = trim($this->search);
-
-        $query = Certification::query()
-            ->when(
-                $search !== '',
-                function (Builder $query) use ($search) {
-                    $query->where(
-                        function (Builder $query) use ($search) {
-                            $query->where(
-                                'name',
-                                'like',
-                                '%' . $search . '%'
-                            )->orWhere(
-                                    'code',
-                                    'like',
-                                    '%' . $search . '%'
-                                );
-                        }
-                    );
-                }
-            );
-
-        // Lọc bằng hàm của component.
-        $certifications = $this->filterByEffectiveStatus(
-            $query,
-            $this->statusFilter
-        )
+        $certifications = Certification::query()
+            ->search($this->search)
+            ->effectiveStatus($this->statusFilter)
             ->orderByDesc('id')
-            ->get()
-            ->map(
-                fn(Certification $cert) => $this->prepareForView($cert)
-            )
-            ->values();
+            ->get();
 
         // Chuẩn bị dữ liệu cho modal xem bản scan.
         $scanModel = $this->scanId
             ? Certification::find($this->scanId)
             : null;
 
-        $scanCertification = $scanModel
-            ? $this->prepareForView($scanModel)
+        $scanCertification = $this->scanId
+            ? Certification::find($this->scanId)
             : null;
 
         $uploadPreviewUrl = null;
@@ -712,7 +597,7 @@ class CertificationManager extends Component
                 'scanCertification',
                 'uploadPreviewUrl',
                 'uploadFileName'
-            )            
+            )
         );
     }
 }

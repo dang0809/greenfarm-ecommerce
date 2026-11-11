@@ -8,7 +8,6 @@ use App\Models\ProductImage;
 use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -132,7 +131,7 @@ class ProductManager extends Component
     {
         $this->staff();
 
-        $product = Product::with('productImages')->findOrFail($id);
+        $product = Product::with('coverImage')->findOrFail($id);
 
         $this->resetForm();
         $this->editingId = $product->id;
@@ -153,7 +152,7 @@ class ProductManager extends Component
         }
 
         $this->category_id = (string) $product->category_id;
-        $this->currentImageUrl = self::getCoverImageUrl($product);
+        $this->currentImageUrl = $this->coverImageUrlForForm($product);
         $this->showModal = true;
     }
 
@@ -363,31 +362,22 @@ class ProductManager extends Component
         $this->resetValidation('newImage');
     }
 
-    public static function coverImage(Product $product): HasMany
+    // Các trang khách hàng còn gọi hai API static này.
+// Logic tính tồn kho được thực hiện bởi Product model.
+    public static function withTotalStock(Builder $query): Builder
     {
-        return $product->productImages()
-            ->orderByDesc('is_primary')
-            ->orderBy('sort_order')
-            ->orderBy('id');
+        return $query->withTotalStock();
     }
 
-    public static function getCoverImageUrl(?Product $product): ?string
+    public static function getTotalStock(?Product $product): int
     {
-        if ($product === null) {
-            return null;
-        }
+        return (int) ($product?->total_stock ?? 0);
+    }
 
-        $cover = $product->relationLoaded('productImages')
-            ? $product->productImages
-                ->sortBy([
-                    ['is_primary', 'desc'],
-                    ['sort_order', 'asc'],
-                    ['id', 'asc'],
-                ])
-                ->first()
-            : self::coverImage($product)->first();
-
-        $path = trim((string) ($cover?->image ?? ''));
+    private function coverImageUrlForForm(Product $product): ?string
+    {
+        // Chọn ảnh chính bằng quan hệ đã có trong model.
+        $path = trim((string) ($product->coverImage?->image ?? ''));
 
         if ($path === '') {
             return null;
@@ -396,57 +386,6 @@ class ProductManager extends Component
         return Str::startsWith($path, ['http://', 'https://'])
             ? $path
             : Storage::disk('public')->url(ltrim($path, '/'));
-    }
-
-    public static function withTotalStock(Builder $query): Builder
-    {
-        return $query->withSum([
-            'batches as total_stock' => function (Builder $query) {
-                $query
-                    ->where('product_batches.status', 'active')
-                    ->whereRaw(
-                        'product_batches.current_quantity
-                        > COALESCE(product_batches.reserved_quantity, 0)'
-                    )
-                    ->whereDate(
-                        'product_batches.expiry_date',
-                        '>=',
-                        today()
-                    );
-            },
-        ], DB::raw(
-                    'current_quantity - COALESCE(reserved_quantity, 0)'
-                ));
-    }
-
-    public static function getTotalStock(?Product $product): int
-    {
-        if ($product === null) {
-            return 0;
-        }
-
-        $attributes = $product->getAttributes();
-
-        // Đã có tổng tồn từ query: sử dụng ngay, không query thêm.
-        if (array_key_exists('total_stock', $attributes)) {
-            return (int) ($attributes['total_stock'] ?? 0);
-        }
-
-        // Sản phẩm được lấy riêng, chưa có tổng tồn.
-        return (int) $product->batches()
-            ->where('product_batches.status', 'active')
-            ->whereRaw(
-                'product_batches.current_quantity
-                > COALESCE(product_batches.reserved_quantity, 0)'
-            )
-            ->whereDate(
-                'product_batches.expiry_date',
-                '>=',
-                today()
-            )
-            ->sum(DB::raw(
-                'current_quantity - COALESCE(reserved_quantity, 0)'
-            ));
     }
 
     private function validatedData(): array
@@ -565,7 +504,7 @@ class ProductManager extends Component
                         );
                     }
 
-                    $cover = self::coverImage($product)
+                    $cover = $product->coverImage()
                         ->lockForUpdate()
                         ->first();
 
@@ -857,21 +796,9 @@ class ProductManager extends Component
     {
         $this->staff();
 
-        $products = self::withTotalStock(
-            Product::with(['category', 'productImages'])
-        )
-            ->when(
-                trim($this->search) !== '',
-                function ($query) {
-                    $term = '%' . trim($this->search) . '%';
-
-                    $query->where(
-                        fn($query) =>
-                            $query->where('name', 'like', $term)
-                                ->orWhere('sku', 'like', $term)
-                    );
-                }
-            )
+        $products = Product::with(['category', 'coverImage'])
+            ->withTotalStock()
+            ->search($this->search)
             ->when(
                 $this->selectedCategory !== '',
                 fn($query) => $query->where(
@@ -896,14 +823,14 @@ class ProductManager extends Component
         $productImageUrls = $products
             ->getCollection()
             ->mapWithKeys(fn(Product $product) => [
-                $product->id => self::getCoverImageUrl($product),
+                $product->id => $this->coverImageUrlForForm($product),
             ])
             ->all();
 
         $productStocks = $products
             ->getCollection()
             ->mapWithKeys(fn(Product $product) => [
-                $product->id => self::getTotalStock($product),
+                $product->id => (int) $product->total_stock,
             ])
             ->all();
 

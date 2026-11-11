@@ -51,4 +51,12 @@ class PlantingBatch extends Model
     {
         return $this->hasMany(ProductBatch::class);
     }
+
+    public function isHarvestReady(): bool
+    {
+        return $this->status === 'harvesting'
+            && $this->min_manufactured_date !== null
+            && $this->min_manufactured_date->toDateString()
+            <= today()->toDateString();
+    }
 }

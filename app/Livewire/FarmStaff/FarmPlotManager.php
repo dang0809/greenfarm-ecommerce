@@ -296,14 +296,7 @@ class FarmPlotManager extends Component
     public function plots(): Collection
     {
         return FarmPlot::query()
-            ->when(
-                trim($this->search) !== '',
-                fn($query) => $query->where(
-                    'name',
-                    'like',
-                    '%' . trim($this->search) . '%'
-                )
-            )
+            ->search($this->search)
             ->when(
                 $this->filter === 'empty',
                 fn($query) => $query->where('status', 'empty')
@@ -414,7 +407,7 @@ class FarmPlotManager extends Component
         $plot = $this->selectedPlot;
 
         return $plot !== null
-            ? $this->activeBatch($plot)
+            ? $plot->activeBatch()
             : null;
     }
 
@@ -466,19 +459,6 @@ class FarmPlotManager extends Component
     }
 
     #[Computed]
-    public function canHarvestSelectedBatch(): bool
-    {
-        $batch = $this->selectedBatch;
-
-        return $this->canManageSelectedBatch
-            && $batch !== null
-            && $batch->status === 'harvesting'
-            && $batch->min_manufactured_date !== null
-            && $batch->min_manufactured_date->toDateString()
-            <= today()->toDateString();
-    }
-
-    #[Computed]
     public function sowPlot(): ?FarmPlot
     {
         return $this->sowPlotId
@@ -495,6 +475,13 @@ class FarmPlotManager extends Component
                 ->orderByDesc('id')
                 ->get()
             : collect();
+    }
+
+    #[Computed]
+    public function canHarvestSelectedBatch(): bool
+    {
+        return $this->canManageSelectedBatch
+            && ($this->selectedBatch?->isHarvestReady() ?? false);
     }
 
     #[Computed]
@@ -565,27 +552,6 @@ class FarmPlotManager extends Component
         $this->selectedBatchId = $batchId;
         $this->activeTab = 'timeline';
         $this->refreshData();
-    }
-
-    public function activeBatch(FarmPlot $plot): ?PlantingBatch
-    {
-        if ($plot->relationLoaded('plantingBatches')) {
-            return $plot->plantingBatches
-                ->sortByDesc('id')
-                ->first(
-                    fn(PlantingBatch $batch) => in_array(
-                        $batch->status,
-                        ['planting', 'harvesting'],
-                        true
-                    )
-                );
-        }
-
-        return $plot->plantingBatches()
-            ->whereIn('status', ['planting', 'harvesting'])
-            ->with('product')
-            ->latest('id')
-            ->first();
     }
 
     public function backToList(): void
@@ -890,7 +856,6 @@ class FarmPlotManager extends Component
             $this->harvestBatches,
             $this->sowPlot,
             $this->qrBatch,
-            $this->canManageSelectedBatch,
             $this->canHarvestSelectedBatch,
         );
     }

@@ -198,48 +198,6 @@ class ProductBatchManager extends Component
         $this->resetValidation();
     }
 
-    public function availableQuantity(ProductBatch $batch): int
-    {
-        return max(
-            0,
-            (int) $batch->current_quantity
-            - (int) $batch->reserved_quantity
-        );
-    }
-
-    public function displayStatus(ProductBatch $batch): string
-    {
-        if ($batch->status === 'recalled') {
-            return 'recalled';
-        }
-
-        if ((int) $batch->current_quantity <= 0) {
-            return 'out_of_stock';
-        }
-
-        if (
-            in_array(
-                $batch->status,
-                ['pending_recalled', 'suspended'],
-                true
-            )
-        ) {
-            return $batch->status;
-        }
-
-        if ($batch->expiry_date?->lt(today())) {
-            return 'expired';
-        }
-
-        if ($this->availableQuantity($batch) <= 0) {
-            return 'reserved';
-        }
-
-        return $batch->expiry_date?->lte(today()->addDays(3))
-            ? 'near_expiry'
-            : 'active';
-    }
-
     private function validatedInput(): array
     {
         abort_unless(
@@ -325,18 +283,6 @@ class ProductBatchManager extends Component
         ]);
     }
 
-    // Kiểm tra có đơn nào chưa xử lý xong có liên quan đến lô hàng hay không
-    private function hasUnfinishedOrders(ProductBatch $batch): bool
-    {
-        return $batch->orderItems()
-            ->whereHas('order', fn($query) => $query
-                ->whereNotIn('status', [
-                    'delivered',
-                    'cancelled',
-                ]))
-            ->exists();
-    }
-
     public function saveChange(): void
     {
         $staff = $this->staff();
@@ -412,7 +358,7 @@ class ProductBatchManager extends Component
                         // phải xử lý cả giữ chỗ và các đơn đang phân bổ.
                         if (
                             $reserved > 0
-                            || $this->hasUnfinishedOrders($batch)
+                            || $batch->hasUnfinishedOrders()
                         ) {
                             $this->reject(
                                 'form',
@@ -445,7 +391,7 @@ class ProductBatchManager extends Component
                         // các đơn liên quan chưa xử lý.
                         if (
                             $qty === $current
-                            && $this->hasUnfinishedOrders($batch)
+                            && $batch->hasUnfinishedOrders()
                         ) {
                             $this->reject(
                                 'form',
@@ -499,7 +445,7 @@ class ProductBatchManager extends Component
                     // Sửa HSD vẫn phải chờ xử lý đơn.
                     if (
                         $reserved > 0
-                        || $this->hasUnfinishedOrders($batch)
+                        || $batch->hasUnfinishedOrders()
                     ) {
                         $this->reject(
                             'form',
@@ -542,7 +488,7 @@ class ProductBatchManager extends Component
                         $target === 'pending_recalled'
                         && (
                             $reserved > 0
-                            || $this->hasUnfinishedOrders($batch)
+                            || $batch->hasUnfinishedOrders()
                         )
                     ) {
                         $this->reject(
@@ -805,39 +751,8 @@ class ProductBatchManager extends Component
         $query = ProductBatch::with([
             'plantingBatch.product',
             'plantingBatch.farmPlot',
-        ]);
-
-        $search = trim($this->search);
-
-        if ($search !== '') {
-            $query->where(function ($q) use ($search) {
-                $q->where(
-                    'batch_code',
-                    'like',
-                    '%' . $search . '%'
-                )
-                    ->orWhereHas('plantingBatch', fn($q) => $q
-                        ->where(
-                            'planting_code',
-                            'like',
-                            '%' . $search . '%'
-                        ))
-                    ->orWhereHas(
-                        'plantingBatch.product',
-                        fn($q) => $q->where(fn($q) => $q
-                            ->where('name', 'like', '%' . $search . '%')
-                            ->orWhere('sku', 'like', '%' . $search . '%'))
-                    )
-                    ->orWhereHas(
-                        'plantingBatch.farmPlot',
-                        fn($q) => $q->where(
-                            'name',
-                            'like',
-                            '%' . $search . '%'
-                        )
-                    );
-            });
-        }
+        ])
+            ->search($this->search);
 
         if ($this->productFilter !== '') {
             $query->whereHas(
@@ -917,7 +832,7 @@ class ProductBatchManager extends Component
                 ['status', 'spoilage', 'detail'],
                 true
             )
-            && $this->hasUnfinishedOrders($selectedBatch);
+            && $selectedBatch->hasUnfinishedOrders();
 
         $qrUrl = null;
 

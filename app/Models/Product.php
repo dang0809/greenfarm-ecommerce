@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
@@ -42,6 +43,19 @@ class Product extends Model
             'min_growth_days' => 'integer',
             'avg_rating' => 'decimal:2',
         ];
+    }
+
+    public function coverImage(): HasOne
+    {
+        return $this->hasOne(ProductImage::class)
+            ->orderByDesc('is_primary')
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
+
+    public function getCoverImageUrlAttribute(): ?string
+    {
+        return $this->coverImage?->url;
     }
 
     public function category(): BelongsTo
@@ -86,6 +100,42 @@ class Product extends Model
         return $this->hasMany(ProductImage::class);
     }
 
+    /**
+     * Scope tính tổng số lượng tồn kho khả dụng của các lô còn hạn & active (đã trừ phần giữ chỗ)
+     */
+    public function scopeWithTotalStock($query)
+    {
+        return $query->withSum([
+            'batches as total_stock' => function ($q) {
+                $q->where('product_batches.status', 'active')
+                    ->whereRaw('product_batches.current_quantity > COALESCE(product_batches.reserved_quantity, 0)')
+                    ->whereDate('product_batches.expiry_date', '>=', now());
+            }
+        ], DB::raw('current_quantity - COALESCE(reserved_quantity, 0)'));
+    }
+
+    /**
+     * Thuộc tính tổng tồn kho khả dụng (lấy từ SQL nếu có withTotalStock, hoặc tự động tính nếu gọi lẻ)
+     */
+    public function getTotalStockAttribute(): int
+    {
+        // SQL SUM có thể trả NULL khi không có lô phù hợp.
+        if (array_key_exists('total_stock', $this->attributes)) {
+            return (int) ($this->attributes['total_stock'] ?? 0);
+        }
+
+        return (int) $this->batches()
+            ->where('product_batches.status', 'active')
+            ->whereRaw('product_batches.current_quantity > COALESCE(product_batches.reserved_quantity, 0)')
+            ->whereDate('product_batches.expiry_date', '>=', now())
+            ->sum(DB::raw('current_quantity - COALESCE(reserved_quantity, 0)'));
+    }
+
+    /**
+     * Phân tách giá theo nguyên tắc FEFO từng lô hàng:
+     * - Số lượng lấy từ lô đang Flash Sale: tính theo giá giảm của lô đó.
+     * - Số lượng lấy bù từ lô mới / hạn dài: tính theo giá gốc!
+     */
     public function getPriceBreakdownForQuantity(int $quantity): array
     {
         $remainingNeeded = max(0, $quantity);
@@ -161,5 +211,21 @@ class Product extends Model
             'total' => $total,
             'breakdown' => array_values($mergedBreakdown),
         ];
+    }
+
+    public function scopeSearch(Builder $query, string $search): Builder
+    {
+        $search = trim($search);
+
+        if ($search === '') {
+            return $query;
+        }
+
+        $term = '%' . $search . '%';
+
+        return $query->where(function (Builder $query) use ($term) {
+            $query->where('name', 'like', $term)
+                ->orWhere('sku', 'like', $term);
+        });
     }
 }

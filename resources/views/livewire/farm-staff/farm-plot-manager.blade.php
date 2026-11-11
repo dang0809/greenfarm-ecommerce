@@ -102,7 +102,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 pb-12">
                     @forelse ($this->plots as $plot)
                         @php
-                            $batch = $this->activeBatch($plot);
+                            $batch = $plot->activeBatch();
                             $isMaintenance = $plot->status === 'maintenance';
                             $canSow = !$batch && $plot->status === 'available';
                             $canMaintain = !$batch && in_array($plot->status, ['empty', 'maintenance'], true);
