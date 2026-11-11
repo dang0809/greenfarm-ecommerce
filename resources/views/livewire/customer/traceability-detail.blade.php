@@ -15,11 +15,8 @@
         @php
             $product = $plantingBatch?->product;
             $farmPlot = $plantingBatch?->farmPlot;
-            $productImage = $product?->productImages?->firstWhere('is_primary', true)?->image 
-                ?? $product?->productImages?->first()?->image;
-            $imageUrl = $productImage 
-                ? (str_starts_with($productImage, 'http') ? $productImage : asset('storage/' . $productImage))
-                : 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?auto=format&fit=crop&q=80&w=300';
+            $imageUrl = $product?->cover_image_url
+                ?? 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?auto=format&fit=crop&q=80&w=300';
             $events = $plantingBatch?->traceabilityEvents;
         @endphp
 

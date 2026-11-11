@@ -148,7 +148,7 @@ class ProductManager extends Component
         }
 
         $this->category_id = (string) $product->category_id;
-        $this->currentImageUrl = self::getCoverImageUrl($product);
+        $this->currentImageUrl = $product->cover_image_url;
         $this->showModal = true;
     }
 
@@ -346,31 +346,9 @@ class ProductManager extends Component
             ->orderBy('id');
     }
 
-    public static function getCoverImageUrl(?Product $product): ?string
+    private static function getImageDisk(): string
     {
-        if ($product === null) {
-            return null;
-        }
-
-        $cover = $product->relationLoaded('productImages')
-            ? $product->productImages
-                ->sortBy([
-                    ['is_primary', 'desc'],
-                    ['sort_order', 'asc'],
-                    ['id', 'asc'],
-                ])
-                ->first()
-            : self::coverImage($product)->first();
-
-        $path = trim((string) ($cover?->image ?? ''));
-
-        if ($path === '') {
-            return null;
-        }
-
-        return Str::startsWith($path, ['http://', 'https://'])
-            ? $path
-            : Storage::disk('public')->url(ltrim($path, '/'));
+        return config('filesystems.disks.r2.key') ? 'r2' : 'public';
     }
 
     private function validatedData(): array
@@ -477,15 +455,16 @@ class ProductManager extends Component
                 }
 
                 if ($this->newImage !== null) {
+                    $diskName = self::getImageDisk();
                     $newPath = $this->newImage->store(
                         "products/{$product->id}",
-                        'public'
+                        $diskName
                     );
 
                 if (
                     ! is_string($newPath)
                     || $newPath === ''
-                    || ! Storage::disk('public')->exists($newPath)
+                    || ! Storage::disk($diskName)->exists($newPath)
                 ) {
                     throw new RuntimeException(
                         'Không lưu được ảnh sản phẩm.'
@@ -722,13 +701,19 @@ class ProductManager extends Component
         }
 
         try {
-            if (
-                ! ProductImage::where('image', $path)->exists()
-                && ! Storage::disk('public')->delete($path)
-            ) {
+            if (ProductImage::where('image', $path)->exists()) {
+                return;
+            }
+
+            $diskName = self::getImageDisk();
+            if (! Storage::disk($diskName)->delete($path)) {
                 throw new RuntimeException(
                     'Không dọn được ảnh.'
                 );
+            }
+
+            if ($diskName !== 'public' && Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
             }
         } catch (Throwable $exception) {
             report($exception);
@@ -824,7 +809,7 @@ class ProductManager extends Component
         $productImageUrls = $products
             ->getCollection()
             ->mapWithKeys(fn (Product $product) => [
-                $product->id => self::getCoverImageUrl($product),
+                $product->id => $product->cover_image_url,
             ])
             ->all();
 

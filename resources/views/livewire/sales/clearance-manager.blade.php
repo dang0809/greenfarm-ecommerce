@@ -141,11 +141,8 @@
                 @forelse($batches as $batch)
                     @php
                         $product = $batch->plantingBatch?->product;
-                        $rawImg = $product?->productImages?->firstWhere('is_primary', true)?->image
-                            ?? $product?->productImages?->first()?->image;
-                        $imgUrl = $rawImg
-                            ? (str_starts_with($rawImg, 'http') ? $rawImg : ($product?->cover_image_url ?? asset('storage/' . $rawImg)))
-                            : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=200';
+                        $imgUrl = $product?->cover_image_url
+                            ?? 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=200';
 
                         $daysLeft = today()->diffInDays($batch->expiry_date, false);
                         $suggestedPercent = ($daysLeft <= 1) ? 50 : 30;
@@ -262,11 +259,8 @@
                         @forelse($batches as $batch)
                             @php
                                 $product = $batch->plantingBatch?->product;
-                                $rawImg = $product?->productImages?->firstWhere('is_primary', true)?->image
-                                    ?? $product?->productImages?->first()?->image;
-                                $imgUrl = $rawImg
-                                    ? (str_starts_with($rawImg, 'http') ? $rawImg : ($product?->cover_image_url ?? asset('storage/' . $rawImg)))
-                                    : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=200';
+                                $imgUrl = $product?->cover_image_url
+                                    ?? 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=200';
                                 
                                 $daysLeft = today()->diffInDays($batch->expiry_date, false);
                                 $isUrgent = $daysLeft <= 1;

@@ -108,12 +108,8 @@ class SubscriptionManager extends Component
                 $qty = (int) ($it['quantity'] ?? 1);
                 $prod = $pId ? $productsKeyed->get($pId) : null;
 
-                $rawImg = $prod?->productImages?->firstWhere('is_primary', true)?->image 
-                    ?? $prod?->productImages?->first()?->image;
-
-                $imgUrl = $rawImg
-                    ? (str_starts_with($rawImg, 'http') ? $rawImg : asset('storage/' . $rawImg))
-                    : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=100';
+                $imgUrl = $prod?->cover_image_url
+                    ?? 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=100';
 
                 $weight = isset($it['weight']) ? (float) $it['weight'] : round($qty * ($prod?->weight_kg ?? 0.5), 2);
                 $totalWeight += $weight;
