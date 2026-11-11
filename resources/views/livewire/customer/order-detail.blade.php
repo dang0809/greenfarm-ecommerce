@@ -259,11 +259,8 @@
                     @forelse ($order->items as $item)
                         @php
                             $product = $item->product;
-                            $rawThumb = $product?->productImages?->firstWhere('is_primary', true)?->image 
-                                ?? $product?->productImages?->first()?->image;
-                            $thumb = $rawThumb 
-                                ? (str_starts_with($rawThumb, 'http') ? $rawThumb : asset('storage/' . $rawThumb))
-                                : 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?auto=format&fit=crop&q=80&w=200';
+                            $thumb = $product?->cover_image_url
+                                ?? 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?auto=format&fit=crop&q=80&w=200';
                             $unit = $product?->unit ?? 'phần';
                         @endphp
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-50 last:border-0 last:pb-0">

@@ -56,18 +56,8 @@ class ProductDetail extends Component
             $this->activeTab = 'reviews';
         }
 
-        $primaryImgObj = $this->product->productImages->firstWhere('is_primary', true) 
-            ?? $this->product->productImages->first();
-
-        $rawImage = $primaryImgObj?->image;
-
-        if ($rawImage) {
-            $this->selectedImage = str_starts_with($rawImage, 'http') 
-                ? $rawImage 
-                : asset('storage/' . $rawImage);
-        } else {
-            $this->selectedImage = 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?auto=format&fit=crop&q=80&w=900';
-        }
+        $this->selectedImage = $this->product->cover_image_url
+            ?? 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?auto=format&fit=crop&q=80&w=900';
 
         $this->totalStock = (int) ($this->product->total_stock ?? 0);
         if ($this->totalStock == 0) {

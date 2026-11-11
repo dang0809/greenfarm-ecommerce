@@ -170,13 +170,7 @@
                     @php
                     $storedPath = trim((string) ($cert->image ?? ''));
 
-                    $certUrl = $storedPath === ''
-                    ? null
-                    : (
-                    preg_match('#\Ahttps?://#i', $storedPath)
-                    ? $storedPath
-                    : asset('storage/' . ltrim($storedPath, '/'))
-                    );
+                    $certUrl = $cert->image_url;
 
                     $filePath = parse_url($storedPath, PHP_URL_PATH);
 

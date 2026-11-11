@@ -52,7 +52,41 @@ class Product extends Model
 
     public function getCoverImageUrlAttribute(): ?string
     {
+        if ($this->relationLoaded('productImages')) {
+            $cover = $this->productImages
+                ->sortBy([
+                    ['is_primary', 'desc'],
+                    ['sort_order', 'asc'],
+                    ['id', 'asc'],
+                ])
+                ->first();
+
+            return $cover?->url;
+        }
+
         return $this->coverImage?->url;
+    }
+
+    public function getDisplayRatingAttribute(): float
+    {
+        if (array_key_exists('reviews_avg_rating', $this->attributes)) {
+            $avg = $this->attributes['reviews_avg_rating'];
+        } elseif ($this->relationLoaded('reviews')) {
+            $avg = $this->reviews->avg('rating');
+        } else {
+            $avg = $this->reviews()->avg('rating');
+        }
+
+        return $avg !== null ? round((float) $avg, 1) : 5.0;
+    }
+
+    public static function syncAvgRating(int $productId): void
+    {
+        $avg = Review::where('product_id', $productId)->avg('rating');
+
+        self::whereKey($productId)->update([
+            'avg_rating' => $avg !== null ? round((float) $avg, 2) : 0,
+        ]);
     }
 
     public function category(): BelongsTo

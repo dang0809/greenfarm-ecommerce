@@ -1,12 +1,8 @@
 @props(['product'])
 
 @php
-$rawImage = $product->productImages?->firstWhere('is_primary', true)?->image
-?? $product->productImages?->first()?->image;
-
-$primaryImage = $rawImage
-? (str_starts_with($rawImage, 'http') ? $rawImage : asset('storage/' . $rawImage))
-: 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?w=600';
+$primaryImage = $product->cover_image_url
+    ?? 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?w=600';
 
 $stock = (int) ($product->total_stock ?? 0);
 $isOutOfStock = $stock <= 0; @endphp <div

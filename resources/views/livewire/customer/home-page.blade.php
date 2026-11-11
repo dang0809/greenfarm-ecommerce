@@ -90,9 +90,8 @@
             <div id="category-scroll-container" class="flex gap-4 md:gap-6 overflow-x-auto no-scrollbar scroll-smooth py-2">
                 @forelse($categories as $category)
                     @php
-                        $catImage = $category->image 
-                            ? (str_starts_with($category->image, 'http') ? $category->image : asset('storage/' . $category->image))
-                            : 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?w=300';
+                        $catImage = $category->image_url
+                            ?? 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?w=300';
                     @endphp
                     <a href="{{ route('products.index', ['category' => $category->id]) }}" class="group flex flex-col items-center text-center shrink-0 w-[44%] sm:w-[30%] lg:w-[calc((100%-4*1.5rem)/5)]">
                         <div class="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-full overflow-hidden mb-3 shadow-sm border border-gray-100 group-hover:border-brand-300 transition-all duration-300">
