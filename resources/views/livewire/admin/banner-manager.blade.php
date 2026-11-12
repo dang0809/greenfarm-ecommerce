@@ -33,7 +33,7 @@
         <div class="w-full bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-soft overflow-hidden">
             <div
                 class="flex overflow-x-auto border-b border-slate-100 px-4 sm:px-6 pt-3 gap-6 sm:gap-8 text-sm no-scrollbar bg-slate-50/50 w-full">
-                <button type="button" id="tab-btn-banners" x-on:click="tab = 'pages'"
+                <button type="button" id="tab-btn-banners" x-on:click="tab = 'banners'"
                     x-bind:class="tab === 'banners'
                         ?
                         'tab-btn-active' :
@@ -92,7 +92,7 @@
                         <button type="button" x-on:click="modal = 'banner'"
                             class="bg-brand-700 hover:bg-brand-800 text-white font-bold text-xs sm:text-sm px-4 py-2 rounded-xl transition shadow-sm flex items-center gap-2 active:scale-95 cursor-pointer">
                             <i class="fa-solid fa-plus"></i>
-                            <span>+ Thêm Banner Mới</span>
+                            <span>Thêm Banner Mới</span>
                         </button>
                     </div>
                 </div>
@@ -207,202 +207,194 @@
     <!-- MODAL 1: THÊM / SỬA BANNER TRANG CHỦ -->
     <div id="modal-banner-form" x-cloak x-show="modal === 'banner'" x-on:click.self="modal = null"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
-
-        {{-- Giữ nguyên phần bên trong modal --}}
-    </div>
-    <div
-        class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-lg shadow-2xl p-5 sm:p-7 max-h-[92vh] overflow-y-auto custom-scrollbar border border-slate-100 space-y-4">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div class="flex items-center gap-2.5">
-                <div
-                    class="w-9 h-9 rounded-xl bg-brand-50 text-brand-700 flex items-center justify-center text-sm font-bold border border-brand-200">
-                    <i class="fa-solid fa-images"></i>
+        <div
+            class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-lg shadow-2xl p-5 sm:p-7 max-h-[92vh] overflow-y-auto custom-scrollbar border border-slate-100 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div
+                        class="w-9 h-9 rounded-xl bg-brand-50 text-brand-700 flex items-center justify-center text-sm font-bold border border-brand-200">
+                        <i class="fa-solid fa-images"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-extrabold text-slate-900 text-base" id="modal-banner-title">Thêm Banner Quảng
+                            Cáo Mới</h4>
+                        <p class="text-[11px] text-slate-400">Cập nhật vào hệ thống banner trang chủ</p>
+                    </div>
                 </div>
-                <div>
-                    <h4 class="font-extrabold text-slate-900 text-base" id="modal-banner-title">Thêm Banner Quảng
-                        Cáo Mới</h4>
-                    <p class="text-[11px] text-slate-400">Cập nhật vào hệ thống banner trang chủ</p>
-                </div>
+                <button type="button" x-on:click="modal = null" class="text-slate-400 hover:text-slate-600"><i
+                        class="fa-solid fa-xmark"></i></button>
             </div>
-            <button type="button" x-on:click="modal = null" class="text-slate-400 hover:text-slate-600"><i
-                    class="fa-solid fa-xmark"></i></button>
+
+            <form x-on:submit.prevent="" class="space-y-3.5 text-xs">
+                <input type="hidden" id="bn-id">
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Tiêu đề banner <span
+                            class="text-red-500">*</span></label>
+                    <input type="text" id="bn-title" required
+                        placeholder="VD: Nông Sản Sạch Minh Bạch Nguồn Gốc Blockchain"
+                        class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2 text-sm outline-none focus:border-brand-600 font-bold">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Đoạn mô tả ngắn</label>
+                    <textarea id="bn-desc" rows="2"
+                        placeholder="VD: Canh tác tự nhiên tại thung lũng Đạ Ròn, cam kết không hóa chất độc hại..."
+                        class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl p-2.5 outline-none focus:border-brand-600 resize-none font-medium"></textarea>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Chữ trên nút bấm</label>
+                        <input type="text" id="bn-btn-text" placeholder="VD: Khám Phá Ngay, Mua Ngay"
+                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600 font-semibold">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Đường dẫn liên kết</label>
+                        <input type="text" id="bn-link" placeholder="/shop, /subscription"
+                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono outline-none focus:border-brand-600">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Thứ tự hiển thị</label>
+                        <input type="number" id="bn-sort" min="1" value="1" required
+                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold outline-none focus:border-brand-600">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Trạng thái phát hành</label>
+                        <select id="bn-status"
+                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-semibold outline-none focus:border-brand-600">
+                            <option value="active">Hiển thị</option>
+                            <option value="inactive">Tạm ẩn</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Tải ảnh Banner -->
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Hình ảnh banner (Khuyên dùng: 1920x600
+                        px)</label>
+                    <input type="file" id="bn-file" accept="image/*"
+                        class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-brand-50 file:text-brand-700 cursor-pointer">
+                </div>
+
+                <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
+                    <button type="button" x-on:click="modal = null"
+                        class="px-4 py-2 rounded-xl border text-slate-600 font-bold hover:bg-slate-50">Hủy</button>
+                    <button type="submit" disabled
+                        class="bg-brand-700 hover:bg-brand-800 text-white font-bold px-5 py-2 rounded-xl shadow-sm transition active:scale-95">Lưu
+                        Banner</button>
+                </div>
+            </form>
         </div>
+    </div>
 
-        <form x-on:submit.prevent="" class="space-y-3.5 text-xs">
-            <input type="hidden" id="bn-id">
-
-            <div>
-                <label class="block font-bold text-slate-700 mb-1">Tiêu đề banner <span
-                        class="text-red-500">*</span></label>
-                <input type="text" id="bn-title" required
-                    placeholder="VD: Nông Sản Sạch Minh Bạch Nguồn Gốc Blockchain"
-                    class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2 text-sm outline-none focus:border-brand-600 font-bold">
-            </div>
-
-            <div>
-                <label class="block font-bold text-slate-700 mb-1">Đoạn mô tả ngắn</label>
-                <textarea id="bn-desc" rows="2"
-                    placeholder="VD: Canh tác tự nhiên tại thung lũng Đạ Ròn, cam kết không hóa chất độc hại..."
-                    class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl p-2.5 outline-none focus:border-brand-600 resize-none font-medium"></textarea>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Chữ trên nút bấm</label>
-                    <input type="text" id="bn-btn-text" placeholder="VD: Khám Phá Ngay, Mua Ngay"
-                        class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600 font-semibold">
+    <!-- MODAL 2: THÊM / SỬA TRANG TĨNH -->
+    <div id="modal-page-form" x-cloak x-show="modal === 'page'" x-on:click.self="modal = null"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
+        <div
+            class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-2xl shadow-2xl p-5 sm:p-7 max-h-[92vh] overflow-y-auto custom-scrollbar border border-slate-100 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div
+                        class="w-9 h-9 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center text-sm font-bold border border-purple-200">
+                        <i class="fa-solid fa-file-lines"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-extrabold text-slate-900 text-base" id="modal-page-title">Chỉnh Sửa Trang Tĩnh
+                        </h4>
+                        <p class="text-[11px] text-slate-400">Quản trị các trang giới thiệu và chính sách</p>
+                    </div>
                 </div>
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Đường dẫn liên kết</label>
-                    <input type="text" id="bn-link" placeholder="/shop, /subscription"
-                        class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono outline-none focus:border-brand-600">
-                </div>
+                <button type="button" x-on:click="modal = null" class="text-slate-400 hover:text-slate-600"><i
+                        class="fa-solid fa-xmark"></i></button>
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
+            <form x-on:submit.prevent="" class="space-y-3.5 text-xs">
+                <input type="hidden" id="pg-id">
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Tiêu đề trang <span
+                                class="text-red-500">*</span></label>
+                        <input type="text" id="pg-title" required placeholder="VD: Câu Chuyện Thương Hiệu"
+                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2 text-sm outline-none focus:border-brand-600 font-bold">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Đường dẫn URL <span
+                                class="text-red-500">*</span></label>
+                        <input type="text" id="pg-slug" required placeholder="cau-chuyen-thuong-hieu"
+                            class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2 font-mono outline-none text-slate-600">
+                    </div>
+                </div>
+
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Thứ tự hiển thị</label>
-                    <input type="number" id="bn-sort" min="1" value="1" required
+                    <label class="block font-bold text-slate-700 mb-1">Nội dung chi tiết bài viết <span
+                            class="text-red-500">*</span></label>
+                    <textarea id="pg-content" rows="8" required
+                        placeholder="Nhập văn bản giới thiệu, cam kết chất lượng, quy định chính sách..."
+                        class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl p-3 font-mono text-xs outline-none focus:border-brand-600 focus:bg-white resize-none"></textarea>
+                </div>
+
+                <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
+                    <button type="button" x-on:click="modal = null"
+                        class="px-4 py-2 rounded-xl border text-slate-600 font-bold hover:bg-slate-50">Hủy</button>
+                    <button type="submit" disabled
+                        class="bg-brand-700 hover:bg-brand-800 text-white font-bold px-5 py-2 rounded-xl shadow-sm transition active:scale-95">Lưu
+                        Nội Dung Trang</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: THÊM / SỬA ẢNH NÔNG TRẠI -->
+    <div id="modal-farm-image-form" x-cloak x-show="modal === 'farm-image'" x-on:click.self="modal = null"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
+        <div
+            class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-md shadow-2xl p-5 sm:p-6 border border-slate-100 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-camera text-brand-700 text-lg"></i>
+                    <h4 class="font-extrabold text-slate-900 text-sm" id="modal-farm-image-title">Tải Ảnh Nông Trại
+                        Mới</h4>
+                </div>
+                <button type="button" x-on:click="modal = null" class="text-slate-400 hover:text-slate-600"><i
+                        class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <form x-on:submit.prevent="" class="space-y-3.5 text-xs">
+                <input type="hidden" id="fi-id">
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Chú thích bức ảnh <span
+                            class="text-red-500">*</span></label>
+                    <input type="text" id="fi-caption" required
+                        placeholder="VD: Hệ thống tưới nhỏ giọt công nghệ Israel"
+                        class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold outline-none focus:border-brand-600">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Thứ tự sắp xếp</label>
+                    <input type="number" id="fi-sort" min="1" value="1" required
                         class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold outline-none focus:border-brand-600">
                 </div>
+
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Trạng thái phát hành</label>
-                    <select id="bn-status"
-                        class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-semibold outline-none focus:border-brand-600">
-                        <option value="active">Hiển thị</option>
-                        <option value="inactive">Tạm ẩn</option>
-                    </select>
+                    <label class="block font-bold text-slate-700 mb-1">Chọn ảnh thực tế hiện trường</label>
+                    <input type="file" id="fi-file" accept="image/*"
+                        class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-brand-50 file:text-brand-700 cursor-pointer">
                 </div>
-            </div>
 
-            <!-- Tải ảnh Banner -->
-            <div>
-                <label class="block font-bold text-slate-700 mb-1">Hình ảnh banner (Khuyên dùng: 1920x600
-                    px)</label>
-                <input type="file" id="bn-file" accept="image/*"
-                    class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-brand-50 file:text-brand-700 cursor-pointer">
-            </div>
-
-            <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
-                <button type="button" x-on:click="modal = null"
-                    class="px-4 py-2 rounded-xl border text-slate-600 font-bold hover:bg-slate-50">Hủy</button>
-                <button type="submit" disabled
-                    class="bg-brand-700 hover:bg-brand-800 text-white font-bold px-5 py-2 rounded-xl shadow-sm transition active:scale-95">Lưu
-                    Banner</button>
-            </div>
-        </form>
+                <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
+                    <button type="button" x-on:click="modal = null"
+                        class="px-4 py-2 rounded-xl border text-slate-600 font-bold hover:bg-slate-50">Hủy</button>
+                    <button type="submit" disabled
+                        class="bg-brand-700 hover:bg-brand-800 text-white font-bold px-5 py-2 rounded-xl shadow-sm transition active:scale-95">Lưu
+                        Ảnh Vườn</button>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
-
-<!-- MODAL 2: THÊM / SỬA TRANG TĨNH -->
-<div id="modal-page-form" x-cloak x-show="modal === 'page'" x-on:click.self="modal = null"
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
-
-    {{-- Giữ nguyên phần bên trong modal --}}
-</div>
-<div
-    class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-2xl shadow-2xl p-5 sm:p-7 max-h-[92vh] overflow-y-auto custom-scrollbar border border-slate-100 space-y-4">
-    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-        <div class="flex items-center gap-2.5">
-            <div
-                class="w-9 h-9 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center text-sm font-bold border border-purple-200">
-                <i class="fa-solid fa-file-lines"></i>
-            </div>
-            <div>
-                <h4 class="font-extrabold text-slate-900 text-base" id="modal-page-title">Chỉnh Sửa Trang Tĩnh
-                </h4>
-                <p class="text-[11px] text-slate-400">Quản trị các trang giới thiệu và chính sách</p>
-            </div>
-        </div>
-        <button type="button" x-on:click="modal = null" class="text-slate-400 hover:text-slate-600"><i
-                class="fa-solid fa-xmark"></i></button>
-    </div>
-
-    <form x-on:submit.prevent="" class="space-y-3.5 text-xs">
-        <input type="hidden" id="pg-id">
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-                <label class="block font-bold text-slate-700 mb-1">Tiêu đề trang <span
-                        class="text-red-500">*</span></label>
-                <input type="text" id="pg-title" required placeholder="VD: Câu Chuyện Thương Hiệu"
-                    class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2 text-sm outline-none focus:border-brand-600 font-bold">
-            </div>
-            <div>
-                <label class="block font-bold text-slate-700 mb-1">Đường dẫn URL <span
-                        class="text-red-500">*</span></label>
-                <input type="text" id="pg-slug" required placeholder="cau-chuyen-thuong-hieu"
-                    class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2 font-mono outline-none text-slate-600">
-            </div>
-        </div>
-
-        <div>
-            <label class="block font-bold text-slate-700 mb-1">Nội dung chi tiết bài viết <span
-                    class="text-red-500">*</span></label>
-            <textarea id="pg-content" rows="8" required
-                placeholder="Nhập văn bản giới thiệu, cam kết chất lượng, quy định chính sách..."
-                class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl p-3 font-mono text-xs outline-none focus:border-brand-600 focus:bg-white resize-none"></textarea>
-        </div>
-
-        <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
-            <button type="button" x-on:click="modal = null"
-                class="px-4 py-2 rounded-xl border text-slate-600 font-bold hover:bg-slate-50">Hủy</button>
-            <button type="submit" disabled
-                class="bg-brand-700 hover:bg-brand-800 text-white font-bold px-5 py-2 rounded-xl shadow-sm transition active:scale-95">Lưu
-                Nội Dung Trang</button>
-        </div>
-    </form>
-</div>
-</div>
-
-<!-- MODAL 3: THÊM / SỬA ẢNH NÔNG TRẠI -->
-<div id="modal-farm-image-form" x-cloak x-show="modal === 'farm-image'" x-on:click.self="modal = null"
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
-
-    {{-- Giữ nguyên phần bên trong modal --}}
-</div>
-<div
-    class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-md shadow-2xl p-5 sm:p-6 border border-slate-100 space-y-4">
-    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-        <div class="flex items-center gap-2">
-            <i class="fa-solid fa-camera text-brand-700 text-lg"></i>
-            <h4 class="font-extrabold text-slate-900 text-sm" id="modal-farm-image-title">Tải Ảnh Nông Trại
-                Mới</h4>
-        </div>
-        <button type="button" x-on:click="modal = null" class="text-slate-400 hover:text-slate-600"><i
-                class="fa-solid fa-xmark"></i></button>
-    </div>
-
-    <form x-on:submit.prevent="" class="space-y-3.5 text-xs">
-        <input type="hidden" id="fi-id">
-
-        <div>
-            <label class="block font-bold text-slate-700 mb-1">Chú thích bức ảnh <span
-                    class="text-red-500">*</span></label>
-            <input type="text" id="fi-caption" required placeholder="VD: Hệ thống tưới nhỏ giọt công nghệ Israel"
-                class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold outline-none focus:border-brand-600">
-        </div>
-
-        <div>
-            <label class="block font-bold text-slate-700 mb-1">Thứ tự sắp xếp</label>
-            <input type="number" id="fi-sort" min="1" value="1" required
-                class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold outline-none focus:border-brand-600">
-        </div>
-
-        <div>
-            <label class="block font-bold text-slate-700 mb-1">Chọn ảnh thực tế hiện trường</label>
-            <input type="file" id="fi-file" accept="image/*"
-                class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-brand-50 file:text-brand-700 cursor-pointer">
-        </div>
-
-        <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
-            <button type="button" x-on:click="modal = null"
-                class="px-4 py-2 rounded-xl border text-slate-600 font-bold hover:bg-slate-50">Hủy</button>
-            <button type="submit" disabled
-                class="bg-brand-700 hover:bg-brand-800 text-white font-bold px-5 py-2 rounded-xl shadow-sm transition active:scale-95">Lưu
-                Ảnh Vườn</button>
-        </div>
-    </form>
-</div>
-</div>
 </div>

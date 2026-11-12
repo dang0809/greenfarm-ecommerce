@@ -135,32 +135,51 @@
             <!-- 4 Tab Chuyển Đổi Nhóm Đối Tượng -->
             <div
                 class="flex overflow-x-auto border-b border-slate-100 px-4 sm:px-6 pt-3 gap-6 text-sm no-scrollbar bg-slate-50/50">
-                <button type="button" x-on:click="tab = 'all'" id="tab-all"
-                    class="pb-3 tab-btn-active transition whitespace-nowrap flex items-center gap-2">
+
+                <button type="button" id="tab-all" x-on:click="tab = 'all'"
+                    x-bind:class="tab === 'all' ? 'tab-btn-active' : 'tab-btn-inactive'"
+                    class="pb-3 transition whitespace-nowrap flex items-center gap-2">
+
                     <span>Tất Cả Tài Khoản</span>
-                    <span class="text-xs font-bold bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full"
-                        id="count-all">0</span>
+                    <span id="count-all" class="text-xs font-bold bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">
+                        0
+                    </span>
                 </button>
-                <button type="button" x-on:click="tab = 'internal'" id="tab-internal"
-                    class="pb-3 tab-btn-inactive transition whitespace-nowrap flex items-center gap-2">
+
+                <button type="button" id="tab-internal" x-on:click="tab = 'internal'"
+                    x-bind:class="tab === 'internal' ? 'tab-btn-active' : 'tab-btn-inactive'"
+                    class="pb-3 transition whitespace-nowrap flex items-center gap-2">
+
                     <i class="fa-solid fa-id-card-clip text-xs"></i>
                     <span>Đội Ngũ Nhân Sự Nội Bộ</span>
-                    <span class="text-xs font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full"
-                        id="count-internal">0</span>
+                    <span id="count-internal"
+                        class="text-xs font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                        0
+                    </span>
                 </button>
-                <button type="button" x-on:click="tab = 'customer'" id="tab-customer"
-                    class="pb-3 tab-btn-inactive transition whitespace-nowrap flex items-center gap-2">
+
+                <button type="button" id="tab-customer" x-on:click="tab = 'customer'"
+                    x-bind:class="tab === 'customer' ? 'tab-btn-active' : 'tab-btn-inactive'"
+                    class="pb-3 transition whitespace-nowrap flex items-center gap-2">
+
                     <i class="fa-solid fa-basket-shopping text-xs"></i>
                     <span>Khách Hàng (Customer)</span>
-                    <span class="text-xs font-bold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full"
-                        id="count-customer">0</span>
+                    <span id="count-customer"
+                        class="text-xs font-bold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">
+                        0
+                    </span>
                 </button>
-                <button type="button" x-on:click="tab = 'blocked'" id="tab-blocked"
-                    class="pb-3 tab-btn-inactive transition whitespace-nowrap flex items-center gap-2">
+
+                <button type="button" id="tab-blocked" x-on:click="tab = 'blocked'"
+                    x-bind:class="tab === 'blocked' ? 'tab-btn-active' : 'tab-btn-inactive'"
+                    class="pb-3 transition whitespace-nowrap flex items-center gap-2">
+
                     <i class="fa-solid fa-user-slash text-xs"></i>
                     <span>Tài Khoản Bị Khóa (Blocked)</span>
-                    <span class="text-xs font-bold bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full"
-                        id="count-blocked">0</span>
+                    <span id="count-blocked"
+                        class="text-xs font-bold bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full">
+                        0
+                    </span>
                 </button>
             </div>
 
@@ -207,7 +226,7 @@
                 <button type="button" x-on:click="modal = 'user'"
                     class="bg-brand-700 hover:bg-brand-800 text-white font-bold text-xs sm:text-sm px-4 py-2.5 rounded-xl sm:rounded-2xl transition shadow-sm flex items-center justify-center gap-2 active:scale-95 shrink-0 whitespace-nowrap">
                     <i class="fa-solid fa-user-plus"></i>
-                    <span>+ Cấp Tài Khoản Mới</span>
+                    <span>Cấp Tài Khoản Mới</span>
                 </button>
             </div>
 
@@ -230,7 +249,15 @@
                     <tbody class="divide-y divide-slate-100 font-medium" id="users-tbody">
                         <tr>
                             <td colspan="8" class="px-6 py-12 text-center text-slate-400">
-                                Chưa có dữ liệu tài khoản.
+                                <span
+                                    x-text="{
+                    all: 'Chưa có dữ liệu tài khoản.',
+                    internal: 'Chưa có dữ liệu nhân sự nội bộ.',
+                    customer: 'Chưa có dữ liệu khách hàng.',
+                    blocked: 'Chưa có dữ liệu tài khoản bị khóa.'
+                }[tab]">
+                                    Chưa có dữ liệu tài khoản.
+                                </span>
                             </td>
                         </tr>
                     </tbody>
