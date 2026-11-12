@@ -641,8 +641,12 @@
                     </div>
 
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">Chọn ảnh thực tế hiện trường
-                            <span class="text-red-500">*</span>
+                        <label for="fi-file" class="block font-bold text-slate-700 mb-1">
+                            Chọn ảnh thực tế hiện trường
+
+                            @if ($editingId === null || !$currentImagePath)
+                                <span class="text-red-500">*</span>
+                            @endif
                         </label>
                         <input type="file" id="fi-file" wire:model="farmFile"
                             wire:key="farm-file-{{ $fileInputKey }}" accept="image/jpeg,image/png,image/webp"
