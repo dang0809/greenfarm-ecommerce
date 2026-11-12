@@ -38,7 +38,6 @@ class SettingManager extends Component
         );
     }
 
-    // Chỉ nạp database khi khởi tạo component.
     public function mount(): void
     {
         $settings = SystemSetting::whereIn('key', [
