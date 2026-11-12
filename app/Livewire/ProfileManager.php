@@ -479,6 +479,6 @@ class ProfileManager extends Component
         return view('livewire.profile-manager', [
             'user' => $user,
             'roleTitle' => $roleTitle,
-        ])->layout($layout)->title("Hồ Sơ {$roleTitle} | Nông Trại Đất Lành");
+        ])->layout($layout)->title("Hồ Sơ {$roleTitle}");
     }
 }

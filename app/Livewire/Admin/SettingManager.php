@@ -17,7 +17,7 @@ use Throwable;
 class SettingManager extends Component
 {
     // Giá trị mặc định khi database chưa có cấu hình.
-    public string $farm_name = 'Nông Trại Sinh Thái Đất Lành - GreenFarm';
+    public string $farm_name = SystemSetting::DEFAULT_FARM_NAME;
     public string $hotline = '0901 234 567';
     public string $email = 'contact@datlanhfarm.vn';
     public string $farm_address = 'Thung lũng Đạ Ròn, Huyện Đơn Dương, Tỉnh Lâm Đồng';
@@ -38,6 +38,7 @@ class SettingManager extends Component
         );
     }
 
+    // Chỉ nạp database khi khởi tạo component.
     public function mount(): void
     {
         $settings = SystemSetting::whereIn('key', [

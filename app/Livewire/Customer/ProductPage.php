@@ -11,7 +11,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use App\Livewire\Traits\HandlesCart;
 #[Layout('layouts.customer.app')]
-#[Title('Cửa Hàng Nông Sản Sạch | Nông Trại Đất Lành')]
+#[Title('Cửa Hàng Nông Sản Sạch')]
 class ProductPage extends Component
 {
     use WithPagination;
@@ -31,11 +31,26 @@ class ProductPage extends Component
     #[Url(as: 'sale')]
     public bool $onlySale = false;
 
-    public function updatedSelectedCategory() { $this->resetPage(); }
-    public function updatedPriceRange() { $this->resetPage(); }
-    public function updatedSortBy() { $this->resetPage(); }
-    public function updatedSearch() { $this->resetPage(); }
-    public function updatedOnlySale() { $this->resetPage(); }
+    public function updatedSelectedCategory()
+    {
+        $this->resetPage();
+    }
+    public function updatedPriceRange()
+    {
+        $this->resetPage();
+    }
+    public function updatedSortBy()
+    {
+        $this->resetPage();
+    }
+    public function updatedSearch()
+    {
+        $this->resetPage();
+    }
+    public function updatedOnlySale()
+    {
+        $this->resetPage();
+    }
 
     public function resetFilters()
     {
@@ -50,9 +65,11 @@ class ProductPage extends Component
     public function render()
     {
         $categories = Category::where('is_active', true)
-            ->withCount(['products' => function ($q) {
-                $q->where('status', 'active');
-            }])
+            ->withCount([
+                'products' => function ($q) {
+                    $q->where('status', 'active');
+                }
+            ])
             ->get();
 
         $query = Product::with([
@@ -61,8 +78,8 @@ class ProductPage extends Component
                 $q->where('is_primary', true);
             }
         ])
-        ->withTotalStock()
-        ->where('status', 'active');
+            ->withTotalStock()
+            ->where('status', 'active');
 
         if (!empty($this->selectedCategory)) {
             $query->where('category_id', $this->selectedCategory);
@@ -86,25 +103,25 @@ class ProductPage extends Component
 
         match ($this->priceRange) {
             'under_50' => $query->whereRaw("({$effectivePrice}) < ?", [50000]),
-            '50_100'   => $query->whereRaw("({$effectivePrice}) BETWEEN ? AND ?", [50000, 100000]),
+            '50_100' => $query->whereRaw("({$effectivePrice}) BETWEEN ? AND ?", [50000, 100000]),
             'over_100' => $query->whereRaw("({$effectivePrice}) > ?", [100000]),
-            default    => null, // Người dùng chọn "Tất cả mức giá" thì không thêm điều kiện
+            default => null, // Người dùng chọn "Tất cả mức giá" thì không thêm điều kiện
         };
 
         // Sắp xếp theo tiêu chí người dùng chọn
         match ($this->sortBy) {
-            'price_asc'  => $query->orderByRaw("({$effectivePrice}) asc"),
+            'price_asc' => $query->orderByRaw("({$effectivePrice}) asc"),
             'price_desc' => $query->orderByRaw("({$effectivePrice}) desc"),
-            'popular'    => $query->orderBy('sold_count', 'desc'),
-            default      => $query->latest(), // Mặc định: sản phẩm mới nhất
+            'popular' => $query->orderBy('sold_count', 'desc'),
+            default => $query->latest(), // Mặc định: sản phẩm mới nhất
         };
 
         $products = $query->paginate(9);
 
         return view('livewire.customer.product-page', [
             'categories' => $categories,
-            'products'   => $products,
-            'saleCount'  => $saleCount,
+            'products' => $products,
+            'saleCount' => $saleCount,
         ]);
     }
 }

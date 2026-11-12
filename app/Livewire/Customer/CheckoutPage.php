@@ -19,7 +19,7 @@ use App\Models\Product;
 use App\Models\Payment;
 use App\Livewire\Traits\WithShippingAddress;
 
-#[Title('Thanh Toán Đơn Hàng | Nông Trại Đất Lành')]
+#[Title('Thanh Toán Đơn Hàng')]
 class CheckoutPage extends Component
 {
     use WithShippingAddress;
@@ -77,7 +77,7 @@ class CheckoutPage extends Component
             }
 
             $cart = Cart::with([
-                'items.product' => fn ($q) => $q->withTotalStock(),
+                'items.product' => fn($q) => $q->withTotalStock(),
             ])->where('user_id', $user->id)->first();
 
             if (!$cart || $cart->items()->count() === 0) {
@@ -147,15 +147,17 @@ class CheckoutPage extends Component
     {
         if ($this->isBuyNow) {
             $buyNowData = session('checkout_buy_now');
-            if (empty($buyNowData)) return collect();
+            if (empty($buyNowData))
+                return collect();
 
             $product = Product::with(['category', 'productImages'])->find($buyNowData['product_id']);
 
-            if (!$product) return collect();
+            if (!$product)
+                return collect();
 
             $item = new CartItem([
                 'product_id' => $product->id,
-                'quantity'   => (float) $buyNowData['quantity'],
+                'quantity' => (float) $buyNowData['quantity'],
             ]);
             $item->setRelation('product', $product);
 
@@ -166,7 +168,8 @@ class CheckoutPage extends Component
             ->where('user_id', Auth::id())
             ->first();
 
-        if (!$cart) return collect();
+        if (!$cart)
+            return collect();
 
         $selectedIds = array_map('intval', $this->selectedCartItemIds);
 
@@ -213,7 +216,7 @@ class CheckoutPage extends Component
         try {
 
             $productIds = $items->pluck('product_id')->toArray();
-        
+
             // Khóa các dòng sản phẩm này lại, không cho người khác mua cùng lúc
             $productsInDB = Product::whereIn('id', $productIds)
                 ->withTotalStock()
@@ -223,7 +226,7 @@ class CheckoutPage extends Component
             $subtotal = 0;
             foreach ($items as $item) {
                 $product = $productsInDB->firstWhere('id', $item->product_id);
-                
+
                 // 1. Kiểm tra trạng thái bán
                 if (!$product || $product->status !== 'active') {
                     throw new \Exception("Sản phẩm {$item->product->name} hiện không khả dụng.");
@@ -239,34 +242,34 @@ class CheckoutPage extends Component
                 $subtotal += $product->getPriceBreakdownForQuantity((int) $item->quantity)['total'];
             }
 
-            $loyaltyConfig      = $this->getLoyaltySettings();
+            $loyaltyConfig = $this->getLoyaltySettings();
             // Số tiền chi tiêu để tích được 1 điểm thưởng (VD: 10.000đ được 1 điểm)
-            $spendingPerPoint   = (int) ($loyaltyConfig['spending_per_point'] ?? 10000);
+            $spendingPerPoint = (int) ($loyaltyConfig['spending_per_point'] ?? 10000);
             // Giá trị quy đổi tiền mặt của 1 điểm khi dùng giảm giá (VD: 1 điểm = 100đ)
-            $valuePerPoint      = (int) ($loyaltyConfig['value_per_point'] ?? 100);
+            $valuePerPoint = (int) ($loyaltyConfig['value_per_point'] ?? 100);
             // Tỷ lệ giảm giá trần tối đa cho phép từ điểm thưởng (VD: tối đa 10% tiền hàng)
             $maxDiscountPercent = (float) ($loyaltyConfig['max_point_discount_percent'] ?? 10);
 
             // Số điểm thưởng khách tích lũy được từ đơn hàng này
             $earnedPoints = ($spendingPerPoint > 0) ? (int) floor($subtotal / $spendingPerPoint) : 0;
 
-            $user       = Auth::user();
+            $user = Auth::user();
             // Tổng số điểm thưởng khách hiện có trong ví
             $userPoints = (int) ($user->reward_points ?? 0);
-    
+
             $pointsUsed = 0;
-            $discount   = 0;
+            $discount = 0;
 
             if ($this->usePoints && $userPoints > 0) {
                 // Số tiền giảm tối đa (VNĐ) theo quy định chính sách trần
                 $maxDiscountAllowed = $subtotal * ($maxDiscountPercent / 100);
                 // Quy đổi số tiền giảm tối đa sang số điểm thưởng tối đa đơn này chấp nhận
-                $maxPointsAllowed   = ($valuePerPoint > 0) ? (int) floor($maxDiscountAllowed / $valuePerPoint) : 0;
+                $maxPointsAllowed = ($valuePerPoint > 0) ? (int) floor($maxDiscountAllowed / $valuePerPoint) : 0;
 
                 // Số điểm thực tế bị trừ trong ví (không vượt quá điểm khách có và không vượt trần)
                 $pointsUsed = min($userPoints, $maxPointsAllowed);
                 // Số tiền thực tế được giảm trừ vào tổng đơn
-                $discount   = $pointsUsed * $valuePerPoint;
+                $discount = $pointsUsed * $valuePerPoint;
             }
 
             $shippingFee = $this->calculateShippingFee($distance);
@@ -274,24 +277,24 @@ class CheckoutPage extends Component
 
             // Mã PayOS chuẩn 13 số
             $payosOrderCode = intval(time() . rand(100, 999));
-            $fullAddress    = $address->full_address;
+            $fullAddress = $address->full_address;
 
             $order = Order::create([
-                'order_code'           => (string) $payosOrderCode,
-                'order_type'           => 'retail',
-                'user_id'              => Auth::id(),
-                'recipient_name'       => $address->recipient_name ?? 'Khách hàng',
-                'recipient_phone'      => $address->recipient_phone ?? '',
-                'recipient_address'    => $fullAddress,
+                'order_code' => (string) $payosOrderCode,
+                'order_type' => 'retail',
+                'user_id' => Auth::id(),
+                'recipient_name' => $address->recipient_name ?? 'Khách hàng',
+                'recipient_phone' => $address->recipient_phone ?? '',
+                'recipient_address' => $fullAddress,
                 'shipping_distance_km' => $distance,
-                'shipping_fee'         => $shippingFee,
-                'subtotal'             => $subtotal,
-                'points_used'          => $pointsUsed,
-                'points_earned'        => $earnedPoints,
-                'total'                => $totalAmount,
-                'note'                 => $this->orderNote,
+                'shipping_fee' => $shippingFee,
+                'subtotal' => $subtotal,
+                'points_used' => $pointsUsed,
+                'points_earned' => $earnedPoints,
+                'total' => $totalAmount,
+                'note' => $this->orderNote,
 
-                'status'               => 'pending',
+                'status' => 'pending',
             ]);
             if ($pointsUsed > 0) {
                 $user->decrement('reward_points', $pointsUsed);
@@ -299,13 +302,13 @@ class CheckoutPage extends Component
 
             // Tạo bản ghi thanh toán ban đầu trong bảng payments
             Payment::create([
-                'order_id'         => $order->id,
-                'payment_code'     => 'PAY-' . $order->order_code,
-                'method'           => $this->paymentMethod,
-                'amount'           => $totalAmount,
-                'status'           => 'pending',
+                'order_id' => $order->id,
+                'payment_code' => 'PAY-' . $order->order_code,
+                'method' => $this->paymentMethod,
+                'amount' => $totalAmount,
+                'status' => 'pending',
                 'transaction_code' => null,
-                'paid_at'          => null,
+                'paid_at' => null,
             ]);
             // Ghi nhận lịch sử trạng thái ban đầu
             if (method_exists($order, 'statusHistories')) {
@@ -329,25 +332,27 @@ class CheckoutPage extends Component
                     ->get();
 
                 foreach ($availableBatches as $batch) {
-                    if ($remainingNeeded <= 0) break;
+                    if ($remainingNeeded <= 0)
+                        break;
 
                     $availableInBatch = max(0, (int) $batch->current_quantity - (int) ($batch->reserved_quantity ?? 0));
                     $take = min($availableInBatch, $remainingNeeded);
-                    if ($take <= 0) continue;
+                    if ($take <= 0)
+                        continue;
 
                     // Giá tính chuẩn theo từng lô: Lô có discount_percent > 0 tính giá sale, lô mới tính giá gốc
-                    $batchPrice = $batch->discount_percent > 0 
-                        ? round($item->product->price * (100 - $batch->discount_percent) / 100) 
+                    $batchPrice = $batch->discount_percent > 0
+                        ? round($item->product->price * (100 - $batch->discount_percent) / 100)
                         : (float) $item->product->price;
 
                     OrderItem::create([
-                        'order_id'     => $order->id,
-                        'product_id'   => $item->product_id,
-                        'batch_id'     => $batch->id,
+                        'order_id' => $order->id,
+                        'product_id' => $item->product_id,
+                        'batch_id' => $batch->id,
                         'product_name' => $item->product->name,
-                        'price'        => $batchPrice,
-                        'quantity'     => $take,
-                        'subtotal'     => $batchPrice * $take,
+                        'price' => $batchPrice,
+                        'quantity' => $take,
+                        'subtotal' => $batchPrice * $take,
                     ]);
 
                     // Tạm giữ kho trong 5 phút (Tăng reserved_quantity, KHÔNG trừ current_quantity, KHÔNG ghi InventoryLog)
@@ -375,12 +380,12 @@ class CheckoutPage extends Component
             );
 
             $payosData = [
-                "orderCode"   => $payosOrderCode,
-                "amount"      => (int) $totalAmount,
+                "orderCode" => $payosOrderCode,
+                "amount" => (int) $totalAmount,
                 "description" => "TT " . $payosOrderCode,
-                "returnUrl"   => route('customer.checkout.success', ['order_id' => $order->id]),
-                "cancelUrl"   => route('customer.checkout.cancel', ['order_id' => $order->id]),
-                "expiredAt"   => time() + (5 * 60),
+                "returnUrl" => route('customer.checkout.success', ['order_id' => $order->id]),
+                "cancelUrl" => route('customer.checkout.cancel', ['order_id' => $order->id]),
+                "expiredAt" => time() + (5 * 60),
             ];
 
             $response = $payOS->createPaymentLink($payosData);
@@ -413,69 +418,69 @@ class CheckoutPage extends Component
             $subtotal += $item->product->getPriceBreakdownForQuantity((int) $item->quantity)['total'];
         }
 
-        $loyaltyConfig      = $this->getLoyaltySettings();
+        $loyaltyConfig = $this->getLoyaltySettings();
         // Số tiền chi tiêu để tích được 1 điểm thưởng (VD: 10.000đ được 1 điểm)
-        $spendingPerPoint   = (int) ($loyaltyConfig['spending_per_point'] ?? 10000);
+        $spendingPerPoint = (int) ($loyaltyConfig['spending_per_point'] ?? 10000);
         // Giá trị quy đổi tiền mặt của 1 điểm khi dùng giảm giá (VD: 1 điểm = 100đ)
-        $valuePerPoint      = (int) ($loyaltyConfig['value_per_point'] ?? 100);
+        $valuePerPoint = (int) ($loyaltyConfig['value_per_point'] ?? 100);
         // Tỷ lệ giảm giá trần tối đa cho phép từ điểm thưởng (VD: tối đa 10% tiền hàng)
         $maxDiscountPercent = (float) ($loyaltyConfig['max_point_discount_percent'] ?? 10);
 
         // Số điểm thưởng khách sẽ tích lũy được từ đơn hàng này
-        $earnedPoints      = ($spendingPerPoint > 0) ? (int) floor($subtotal / $spendingPerPoint) : 0;
+        $earnedPoints = ($spendingPerPoint > 0) ? (int) floor($subtotal / $spendingPerPoint) : 0;
         // Giá trị quy đổi thành tiền mặt (VNĐ) của số điểm thưởng sắp nhận
         $earnedPointsValue = $earnedPoints * $valuePerPoint;
         // Tỷ lệ điểm thưởng nhận được trên mỗi 100.000đ mua hàng (dùng để hiển thị gợi ý trên UI)
-        $pointsPer100k     = ($spendingPerPoint > 0) ? (int) floor(100000 / $spendingPerPoint) : 0;
+        $pointsPer100k = ($spendingPerPoint > 0) ? (int) floor(100000 / $spendingPerPoint) : 0;
 
-        $user       = Auth::user();
+        $user = Auth::user();
         // Tổng số điểm thưởng khách hiện có trong ví
         $userPoints = (int) ($user->reward_points ?? 0);
 
         // Số tiền giảm tối đa (VNĐ) theo quy định chính sách trần
         $maxDiscountAllowed = $subtotal * ($maxDiscountPercent / 100);
         // Quy đổi số tiền giảm tối đa sang số điểm thưởng tối đa đơn này chấp nhận
-        $maxPointsAllowed   = ($valuePerPoint > 0) ? (int) floor($maxDiscountAllowed / $valuePerPoint) : 0;
+        $maxPointsAllowed = ($valuePerPoint > 0) ? (int) floor($maxDiscountAllowed / $valuePerPoint) : 0;
 
         // Số điểm thực tế có thể dùng cho đơn (không vượt quá điểm khách có và không vượt trần)
-        $pointsUsed   = min($userPoints, $maxPointsAllowed);
+        $pointsUsed = min($userPoints, $maxPointsAllowed);
         // Điều kiện cho phép kích hoạt checkbox dùng điểm: khách có điểm và số điểm dùng được > 0
         $canUsePoints = $userPoints > 0 && $pointsUsed > 0;
 
         // Số tiền giảm thực tế: chỉ tính khi khách tick chọn dùng điểm và thỏa điều kiện dùng điểm
         $discount = ($this->usePoints && $canUsePoints) ? ($pointsUsed * $valuePerPoint) : 0;
 
-        $shippingData       = $this->resolveShippingAddresses();
-        $addresses          = $shippingData['addresses'];
-        $address            = $shippingData['address'];
-        $distance           = $shippingData['distance'];
-        $maxDistance        = $shippingData['maxDistance'];
-        $isDistanceUnknown  = $shippingData['isDistanceUnknown'];
+        $shippingData = $this->resolveShippingAddresses();
+        $addresses = $shippingData['addresses'];
+        $address = $shippingData['address'];
+        $distance = $shippingData['distance'];
+        $maxDistance = $shippingData['maxDistance'];
+        $isDistanceUnknown = $shippingData['isDistanceUnknown'];
         $isDistanceExceeded = $shippingData['isDistanceExceeded'];
-        $shippingFee        = ($isDistanceExceeded || $isDistanceUnknown || !$address) ? 0 : $this->calculateShippingFee($distance);
+        $shippingFee = ($isDistanceExceeded || $isDistanceUnknown || !$address) ? 0 : $this->calculateShippingFee($distance);
 
         $totalAmount = max(0, $subtotal - $discount) + $shippingFee;
 
         return view('livewire.customer.checkout-page', [
-            'items'              => $items,
-            'subtotal'           => $subtotal,
-            'shippingFee'        => $shippingFee,
-            'discount'           => $discount,
-            'pointsUsed'         => $pointsUsed,
-            'userPoints'         => $userPoints,
-            'canUsePoints'       => $canUsePoints,
-            'valuePerPoint'      => $valuePerPoint,
+            'items' => $items,
+            'subtotal' => $subtotal,
+            'shippingFee' => $shippingFee,
+            'discount' => $discount,
+            'pointsUsed' => $pointsUsed,
+            'userPoints' => $userPoints,
+            'canUsePoints' => $canUsePoints,
+            'valuePerPoint' => $valuePerPoint,
             'maxDiscountPercent' => $maxDiscountPercent,
-            'totalAmount'        => $totalAmount,
-            'earnedPoints'       => $earnedPoints,
-            'earnedPointsValue'  => $earnedPointsValue,
-            'pointsPer100k'      => $pointsPer100k,
-            'distance'           => $distance,
-            'maxDistance'        => $maxDistance,
+            'totalAmount' => $totalAmount,
+            'earnedPoints' => $earnedPoints,
+            'earnedPointsValue' => $earnedPointsValue,
+            'pointsPer100k' => $pointsPer100k,
+            'distance' => $distance,
+            'maxDistance' => $maxDistance,
             'isDistanceExceeded' => $isDistanceExceeded,
-            'isDistanceUnknown'  => $isDistanceUnknown,
-            'addresses'          => $addresses,
-            'address'            => $address,
+            'isDistanceUnknown' => $isDistanceUnknown,
+            'addresses' => $addresses,
+            'address' => $address,
         ])->layout('layouts.customer.app');
     }
 }

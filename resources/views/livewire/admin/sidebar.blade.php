@@ -31,7 +31,7 @@
 
                 <div>
                     <span class="font-extrabold text-lg text-slate-900 block">
-                        GreenFarm Admin
+                        {{ $farmName }}
                     </span>
                     <span class="text-[10px] font-bold text-amber-800">
                         Chủ Nông Trại

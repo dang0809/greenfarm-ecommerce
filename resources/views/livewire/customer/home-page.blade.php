@@ -196,7 +196,8 @@
                 <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4 tracking-tight">Tra Cứu Nhật Ký Canh
                     Tác Trực Tuyến</h2>
                 <p class="text-base text-gray-600 leading-relaxed mb-10 max-w-2xl mx-auto">
-                    Mỗi bao bì sản phẩm của Đất Lành đều gắn liền với một mã lô duy nhất. Nhập mã hoặc quét QR để xem
+                    Mỗi bao bì sản phẩm của {{ $farmName }} đều gắn liền với một mã lô duy nhất. Nhập mã hoặc quét
+                    QR để xem
                     thời gian gieo trồng, bón phân và thu hoạch thực tế.
                 </p>
 

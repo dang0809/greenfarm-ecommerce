@@ -12,7 +12,7 @@ use App\Models\Certification;
 use App\Models\FarmImage;
 
 #[Layout('layouts.customer.app')]
-#[Title('Về Nông Trại | Nông Trại Đất Lành')]
+#[Title('Về Nông Trại')]
 class AboutPage extends Component
 {
     public function render()

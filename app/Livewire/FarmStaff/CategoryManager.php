@@ -23,7 +23,7 @@ use RuntimeException;
 use Throwable;
 
 #[Layout('layouts.farm-staff.app')]
-#[Title('Quản Lý Danh Mục Nông Sản | Nông Trại Đất Lành')]
+#[Title('Quản Lý Danh Mục Nông Sản')]
 class CategoryManager extends Component
 {
     use WithFileUploads, WithPagination;

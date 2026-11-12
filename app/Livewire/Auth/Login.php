@@ -11,7 +11,7 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 #[Layout('layouts.auth')]
-#[Title('Đăng Nhập Quản Trị | Nông Trại Đất Lành')]
+#[Title('Đăng Nhập Quản Trị')]
 class Login extends Component
 {
     // Thông tin tài khoản đăng nhập

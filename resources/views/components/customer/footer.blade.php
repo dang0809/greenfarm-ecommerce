@@ -6,10 +6,12 @@
             <div>
                 <a href="{{ route('home') }}" class="flex items-center gap-2 mb-5">
                     <i class="fa-solid fa-leaf text-brand-600 text-2xl"></i>
-                    <span class="font-extrabold text-2xl text-brand-800 tracking-tight">ĐẤT LÀNH</span>
+                    <span class="font-extrabold text-2xl text-brand-800 tracking-tight">{{ $farmName }}</span>
                 </a>
                 <p class="text-gray-500 text-sm leading-relaxed mb-4">
-                    Nền tảng thương mại điện tử chuyên biệt của Nông trại Đất Lành. Canh tác an toàn, minh bạch hạn sử dụng và cam kết bồi thường khi chất lượng không đúng cam kết.
+                    Nền tảng thương mại điện tử chuyên biệt của Nông trại {{ $farmName }}. Canh tác an toàn, minh
+                    bạch hạn sử
+                    dụng và cam kết bồi thường khi chất lượng không đúng cam kết.
                 </p>
             </div>
 
@@ -36,17 +38,22 @@
             <div>
                 <h4 class="font-bold text-gray-900 mb-5">Chính Sách Khách Hàng</h4>
                 <ul class="space-y-3 text-sm text-gray-500">
-                    <li><a href="#" class="hover:text-brand-600 transition-colors">Chính sách giao hàng & tính phí km</a></li>
-                    <li><a href="#" class="hover:text-brand-600 transition-colors">Quy trình bồi thường nông sản dập nát</a></li>
-                    <li><a href="#" class="hover:text-brand-600 transition-colors">Điều khoản gói giao rau định kỳ</a></li>
-                    <li><a href="#" class="hover:text-brand-600 transition-colors">Quy chế tích lũy điểm thưởng thành viên</a></li>
+                    <li><a href="#" class="hover:text-brand-600 transition-colors">Chính sách giao hàng & tính phí
+                            km</a></li>
+                    <li><a href="#" class="hover:text-brand-600 transition-colors">Quy trình bồi thường nông sản
+                            dập nát</a></li>
+                    <li><a href="#" class="hover:text-brand-600 transition-colors">Điều khoản gói giao rau định
+                            kỳ</a></li>
+                    <li><a href="#" class="hover:text-brand-600 transition-colors">Quy chế tích lũy điểm thưởng
+                            thành viên</a></li>
                 </ul>
             </div>
         </div>
 
         <!-- Dòng Copyright -->
-        <div class="border-t border-gray-200 pt-8 flex flex-col md:flex-row items-center justify-between text-xs text-gray-400 gap-3">
-            <p>&copy; 2026 Nông trại Đất Lành - Organic Farm E-commerce Platform.</p>
+        <div
+            class="border-t border-gray-200 pt-8 flex flex-col md:flex-row items-center justify-between text-xs text-gray-400 gap-3">
+            <p>&copy; 2026 Nông trại {{ $farmName }} - Organic Farm E-commerce Platform.</p>
             <p>Hệ thống thương mại điện tử chuyên biệt</p>
         </div>
     </div>

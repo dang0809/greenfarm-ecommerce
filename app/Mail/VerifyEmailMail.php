@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\User;
+use App\Models\SystemSetting;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -36,16 +37,17 @@ class VerifyEmailMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '🌱 Xác thực địa chỉ Email tài khoản Nông Trại Đất Lành',
+            subject: '🌱 Xác thực địa chỉ Email tài khoản ' . SystemSetting::farmName(),
         );
     }
 
     public function content(): Content
     {
+        $farmName = e(SystemSetting::farmName());
         return new Content(
             htmlString: '
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 16px; background-color: #ffffff;">
-                    <h2 style="color: #16a34a; text-align: center;">🌱 Nông Trại Đất Lành</h2>
+                    <h2 style="color: #16a34a; text-align: center;">🌱 ' . $farmName . '</h2>
                     <p style="font-size: 15px; color: #1f2937;">Xin chào <strong>' . htmlspecialchars($this->user->name) . '</strong>,</p>
                     <p style="font-size: 14px; color: #4b5563;">Vui lòng nhấp vào nút dưới đây để kích hoạt tài khoản của bạn:</p>
                     <div style="text-align: center; margin: 30px 0;">

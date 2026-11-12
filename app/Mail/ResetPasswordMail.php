@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
+use App\Models\SystemSetting;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -28,24 +29,25 @@ class ResetPasswordMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '🔑 Yêu cầu đặt lại mật khẩu - Nông Trại Đất Lành',
+            subject: '🔑 Yêu cầu đặt lại mật khẩu - ' . SystemSetting::farmName(),
         );
     }
 
     public function content(): Content
     {
+        $farmName = e(SystemSetting::farmName());
         return new Content(
             htmlString: '
                 <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 28px; border: 1px solid #e5e7eb; border-radius: 16px; background-color: #ffffff;">
                     <div style="text-align: center; margin-bottom: 20px;">
-                        <h2 style="color: #15803d; margin: 0; font-size: 24px; font-weight: 800;">🌱 Nông Trại Đất Lành</h2>
+                        <h2 style="color: #15803d; margin: 0; font-size: 24px; font-weight: 800;">🌱 ' . $farmName . '</h2>
                         <p style="color: #6b7280; font-size: 12px; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px;">Khôi phục tài khoản</p>
                     </div>
 
                     <p style="font-size: 15px; color: #1f2937; line-height: 1.6;">Xin chào <strong>' . htmlspecialchars($this->email) . '</strong>,</p>
 
                     <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
-                        Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn tại hệ thống Nông Trại Đất Lành. Hãy nhấp vào nút bên dưới để tạo mật khẩu mới:
+                        Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn tại hệ thống ' . $farmName . '. Hãy nhấp vào nút bên dưới để tạo mật khẩu mới:
                     </p>
 
                     <div style="text-align: center; margin: 30px 0;">
@@ -73,4 +75,3 @@ class ResetPasswordMail extends Mailable implements ShouldQueue
         );
     }
 }
-

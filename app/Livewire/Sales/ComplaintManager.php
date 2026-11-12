@@ -13,7 +13,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 
 #[Layout('layouts.sales.app')]
-#[Title('Xử Lý Khiếu Nại & Bồi Thường | Nông Trại Đất Lành')]
+#[Title('Xử Lý Khiếu Nại & Bồi Thường')]
 class ComplaintManager extends Component
 {
     use WithPagination;
@@ -38,8 +38,14 @@ class ComplaintManager extends Component
     public string $zoomImageUrl = '';
 
     // Reset phân trang khi gõ tìm kiếm hoặc đổi tab
-    public function updatingSearch(): void { $this->resetPage(); }
-    public function updatingStatusFilter(): void { $this->resetPage(); }
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+    public function updatingStatusFilter(): void
+    {
+        $this->resetPage();
+    }
 
     public function setStatusFilter(string $status): void
     {
@@ -58,9 +64,9 @@ class ComplaintManager extends Component
 
         // 2. Lấy dữ liệu và hiển thị Toast thông báo màu cam/vàng góc màn hình
         $complaintData = $payload['complaintData'] ?? [];
-        $orderCode     = $complaintData['order_code'] ?? '---';
-        $customerName  = $complaintData['customer_name'] ?? 'Khách hàng';
-        $amount        = !empty($complaintData['refund_amount'])
+        $orderCode = $complaintData['order_code'] ?? '---';
+        $customerName = $complaintData['customer_name'] ?? 'Khách hàng';
+        $amount = !empty($complaintData['refund_amount'])
             ? number_format($complaintData['refund_amount'], 0, ',', '.') . 'đ'
             : '';
 
@@ -102,8 +108,8 @@ class ComplaintManager extends Component
             ->toArray();
 
         return [
-            'all'      => array_sum($counts),
-            'pending'  => (int) ($counts['pending'] ?? 0),
+            'all' => array_sum($counts),
+            'pending' => (int) ($counts['pending'] ?? 0),
             'resolved' => (int) ($counts['resolved'] ?? 0),
             'rejected' => (int) ($counts['rejected'] ?? 0),
         ];
@@ -164,7 +170,8 @@ class ComplaintManager extends Component
      */
     public function confirmResolution(): void
     {
-        if (!$this->selectedComplaintId) return;
+        if (!$this->selectedComplaintId)
+            return;
 
         $complaint = Complaint::with('order')->find($this->selectedComplaintId);
         if (!$complaint || $complaint->status !== 'pending') {
@@ -178,11 +185,11 @@ class ComplaintManager extends Component
 
             DB::transaction(function () use ($complaint, $refundAmount) {
                 $complaint->update([
-                    'status'          => 'resolved',
-                    'refund_amount'   => $refundAmount,
-                    'resolved_by'     => Auth::id() ?? 1,
+                    'status' => 'resolved',
+                    'refund_amount' => $refundAmount,
+                    'resolved_by' => Auth::id() ?? 1,
                     'resolution_note' => trim($this->resolution_note),
-                    'updated_at'      => now(),
+                    'updated_at' => now(),
                 ]);
             });
 
@@ -203,10 +210,10 @@ class ComplaintManager extends Component
 
             DB::transaction(function () use ($complaint, $reason) {
                 $complaint->update([
-                    'status'          => 'rejected',
-                    'resolved_by'     => Auth::id() ?? 1,
+                    'status' => 'rejected',
+                    'resolved_by' => Auth::id() ?? 1,
                     'resolution_note' => $reason,
-                    'updated_at'      => now(),
+                    'updated_at' => now(),
                 ]);
             });
 
@@ -251,11 +258,11 @@ class ComplaintManager extends Component
         $complaints = $query->paginate($this->perPage);
 
         return view('livewire.sales.complaint-manager', [
-            'complaints'        => $complaints,
-            'kpiPendingCount'   => $this->kpiPendingCount,
-            'kpiRefundAmount'   => $this->kpiRefundAmount,
-            'kpiRefundCount'    => $this->kpiRefundCount,
-            'statusCounts'      => $this->statusCounts,
+            'complaints' => $complaints,
+            'kpiPendingCount' => $this->kpiPendingCount,
+            'kpiRefundAmount' => $this->kpiRefundAmount,
+            'kpiRefundCount' => $this->kpiRefundCount,
+            'statusCounts' => $this->statusCounts,
         ]);
     }
 }

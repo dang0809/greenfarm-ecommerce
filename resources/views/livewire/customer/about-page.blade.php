@@ -12,7 +12,8 @@
                 </span>
 
                 <h1 class="text-2xl sm:text-4xl font-extrabold text-gray-900 tracking-tight leading-tight mb-3">
-                    {{ $page->title ?? 'Câu Chuyện Thương Hiệu Nông Trại Đất Lành' }}
+                    {{ $page->title ?? 'Câu Chuyện Thương Hiệu Nông Trại ' . $farmName }}
+
                 </h1>
 
                 <div class="flex items-center gap-4 text-xs text-gray-400">
@@ -38,7 +39,8 @@
                     <p>
                         Nằm nép mình bên thung lũng xã Đạ Ròn, huyện Đơn Dương, tỉnh Lâm Đồng ở độ cao hơn 1.000m so với
                         mực
-                        nước biển, <strong>Nông trại Đất Lành</strong> được thiên nhiên ban tặng khí hậu quanh năm mát
+                        nước biển, <strong>Nông trại {{ $farmName }}</strong> được thiên nhiên ban tặng khí hậu
+                        quanh năm mát
                         mẻ,
                         đất bazan màu mỡ cùng mạch suối ngầm tự nhiên chảy từ chân rừng thông nguyên sinh. Chúng tôi
                         không
@@ -49,7 +51,8 @@
 
                     <h2 class="text-xl font-bold text-gray-900 mt-8 mb-3">1. Triết Lý Canh Tác Thuận Tự Nhiên</h2>
                     <p class="mb-4">
-                        Canh tác bền vững - Kiến tạo giá trị lâu dài. Mọi luống rau, giàn quả tại Đất Lành đều được chăm
+                        Canh tác bền vững - Kiến tạo giá trị lâu dài. Mọi luống rau, giàn quả tại {{ $farmName }}
+                        đều được chăm
                         sóc
                         bằng sự tử tế và kiến thức khoa học thông qua các nguyên tắc:
                     </p>
@@ -78,7 +81,8 @@
 
                     <h2 class="text-xl font-bold text-gray-900 mt-8 mb-3">2. Hồ Sơ Năng Lực & Nền Tảng Vững Chắc</h2>
                     <p class="mb-4">
-                        Đất Lành tự chủ 100% quy trình sản xuất và chuỗi cung ứng khép kín nhằm đảm bảo chất lượng nông
+                        {{ $farmName }} tự chủ 100% quy trình sản xuất và chuỗi cung ứng khép kín nhằm đảm bảo chất
+                        lượng nông
                         sản
                         tươi ngon nhất khi đến tay khách hàng:
                     </p>
@@ -123,17 +127,23 @@
                     @php
                         $imgSrc = $item->display_url;
 
+                        $imageCaption = str_replace(
+                            '[[farm_name]]',
+                            $farmName,
+                            $item->caption ?? 'Hình ảnh ' . $farmName,
+                        );
+
                         $fallbackImg = 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=800';
                     @endphp
                     <div class="relative rounded-2xl overflow-hidden shadow-sm aspect-[4/5] group bg-gray-900 cursor-pointer border border-gray-100 hover:shadow-xl transition-all"
-                        onclick="openImageLightbox('{{ $imgSrc }}', '{{ addslashes($item->caption ?? 'Hình ảnh nông trại Đất Lành') }}')">
-                        <img src="{{ $imgSrc }}" alt="{{ $item->caption ?? 'Hình ảnh nông trại' }}"
+                        onclick="openImageLightbox(@js($imgSrc), @js($imageCaption))">
+                        <img src="{{ $imgSrc }}" alt="{{ $imageCaption }}"
                             onerror="this.onerror=null; this.src='{{ $fallbackImg }}';"
                             class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-90">
                         <div
                             class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent flex flex-col justify-end p-4 text-white">
                             <h3 class="text-xs sm:text-sm font-bold leading-snug drop-shadow-sm line-clamp-2">
-                                {{ $item->caption ?? 'Khu vực nông trại' }}
+                                {{ $imageCaption }}
                             </h3>
                         </div>
                     </div>
@@ -157,14 +167,18 @@
                                 'url' => 'https://images.unsplash.com/photo-1584467735871-8e85353a8413?w=800',
                             ],
                             [
-                                'caption' => 'Cánh đồng trồng trọt sinh thái Đất Lành',
+                                'caption' => 'Cánh đồng trồng trọt sinh thái ' . $farmName,
                                 'url' => 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=800',
                             ],
                         ];
                     @endphp
                     @foreach ($defaultAlbums as $album)
+                        @php
+                            $albumUrl = $album['url'];
+                            $albumCaption = $album['caption'];
+                        @endphp
                         <div class="relative rounded-2xl overflow-hidden shadow-sm aspect-[4/5] group bg-gray-900 cursor-pointer border border-gray-100 hover:shadow-xl transition-all"
-                            onclick="openImageLightbox('{{ $album['url'] }}', '{{ addslashes($album['caption']) }}')">
+                            onclick="openImageLightbox(@js($albumUrl), @js($albumCaption))">
                             <img src="{{ $album['url'] }}" alt="{{ $album['caption'] }}"
                                 class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-90">
                             <div

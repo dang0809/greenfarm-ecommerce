@@ -8,6 +8,7 @@ use App\Models\Notification;
 use App\Models\Order;
 use App\Models\Complaint;
 use App\Models\User;
+use App\Models\SystemSetting;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -36,14 +37,14 @@ class OrderNotificationService
             // 2. Ghi thông báo Web vào bảng notifications (hiển thị quả chuông Header)
             $notification = Notification::create([
                 'user_id' => $order->user_id,
-                'type'    => 'order_paid',
-                'title'   => '🛒 Đơn hàng #' . $order->order_code . ' đã thanh toán thành công',
+                'type' => 'order_paid',
+                'title' => '🛒 Đơn hàng #' . $order->order_code . ' đã thanh toán thành công',
                 'content' => 'Đơn hàng #' . $order->order_code . ' trị giá ' . number_format($order->total, 0, ',', '.') . 'đ đã thanh toán thành công qua PayOS. Nông trại đang chuẩn bị nông sản cho bạn.',
-                'data'    => [
-                    'order_id'   => $order->id,
+                'data' => [
+                    'order_id' => $order->id,
                     'order_code' => $order->order_code,
-                    'icon'       => 'fa-receipt',
-                    'url'        => '/ho-so?tab=orders',
+                    'icon' => 'fa-receipt',
+                    'url' => '/ho-so?tab=orders',
                 ],
             ]);
 
@@ -86,15 +87,15 @@ class OrderNotificationService
             $pointsNote = $order->points_earned > 0 ? " Bạn được tích lũy +{$order->points_earned} điểm thưởng!" : '';
             $notification = Notification::create([
                 'user_id' => $order->user_id,
-                'type'    => 'order_delivered',
-                'title'   => '🎉 Giao hàng thành công đơn #' . $order->order_code,
+                'type' => 'order_delivered',
+                'title' => '🎉 Giao hàng thành công đơn #' . $order->order_code,
                 'content' => 'Đơn hàng #' . $order->order_code . ' đã được giao thành công.' . $pointsNote . ' Chúc bạn có những bữa ăn tươi ngon và an lành!',
-                'data'    => [
-                    'order_id'      => $order->id,
-                    'order_code'    => $order->order_code,
+                'data' => [
+                    'order_id' => $order->id,
+                    'order_code' => $order->order_code,
                     'points_earned' => $order->points_earned,
-                    'icon'          => 'fa-circle-check',
-                    'url'           => '/ho-so?tab=orders',
+                    'icon' => 'fa-circle-check',
+                    'url' => '/ho-so?tab=orders',
                 ],
             ]);
 
@@ -120,25 +121,27 @@ class OrderNotificationService
     {
         try {
             $complaint->loadMissing(['order', 'user']);
-            $userId    = (int) $complaint->user_id;
+            $userId = (int) $complaint->user_id;
             $orderCode = $complaint->order->order_code;
             $refundFormatted = number_format($complaint->refund_amount, 0, ',', '.') . 'đ';
             $bankInfo = trim("{$complaint->bank_name} ({$complaint->bank_account_number})");
-
+            $farmName = SystemSetting::farmName();
             // 1. Ghi thông báo Web vào bảng notifications
             $notification = Notification::create([
                 'user_id' => $userId,
-                'type'    => 'complaint_resolved',
-                'title'   => '💰 Đã hoàn tiền khiếu nại đơn #' . $orderCode,
-                'content' => 'Nông trại Đất Lành đã hoàn tất chuyển khoản ' . $refundFormatted . ' vào tài khoản ' . $bankInfo . ' của bạn. Vui lòng kiểm tra tài khoản ngân hàng.',
-                'data'    => [
-                    'order_id'      => $complaint->order_id,
-                    'order_code'    => $orderCode,
-                    'complaint_id'  => $complaint->id,
+                'type' => 'complaint_resolved',
+                'title' => '💰 Đã hoàn tiền khiếu nại đơn #' . $orderCode,
+                'content' => $farmName . ' đã hoàn tất chuyển khoản '
+                    . $refundFormatted . ' vào tài khoản ' . $bankInfo
+                    . ' của bạn. Vui lòng kiểm tra tài khoản ngân hàng.',
+                'data' => [
+                    'order_id' => $complaint->order_id,
+                    'order_code' => $orderCode,
+                    'complaint_id' => $complaint->id,
                     'refund_amount' => $complaint->refund_amount,
-                    'icon'          => 'fa-hand-holding-dollar',
-                    'toast_type'    => 'success',
-                    'url'           => '/ho-so?tab=orders',
+                    'icon' => 'fa-hand-holding-dollar',
+                    'toast_type' => 'success',
+                    'url' => '/ho-so?tab=orders',
                 ],
             ]);
 
@@ -159,24 +162,24 @@ class OrderNotificationService
     {
         try {
             $complaint->loadMissing(['order', 'user']);
-            $userId     = (int) $complaint->user_id;
-            $orderCode  = $complaint->order->order_code;
+            $userId = (int) $complaint->user_id;
+            $orderCode = $complaint->order->order_code;
             $reasonText = !empty($reason) ? $reason : ($complaint->resolution_note ?? 'Không đáp ứng điều kiện bảo hành 24h');
 
             // 1. Ghi thông báo Web vào bảng notifications
             $notification = Notification::create([
                 'user_id' => $userId,
-                'type'    => 'complaint_rejected',
-                'title'   => '❌ Khiếu nại đơn #' . $orderCode . ' không được chấp thuận',
+                'type' => 'complaint_rejected',
+                'title' => '❌ Khiếu nại đơn #' . $orderCode . ' không được chấp thuận',
                 'content' => 'Yêu cầu bồi hoàn cho đơn #' . $orderCode . ' đã bị từ chối. Lý do: "' . $reasonText . '". Nếu cần hỗ trợ thêm, vui lòng liên hệ hotline nông trại.',
-                'data'    => [
-                    'order_id'      => $complaint->order_id,
-                    'order_code'    => $orderCode,
-                    'complaint_id'  => $complaint->id,
+                'data' => [
+                    'order_id' => $complaint->order_id,
+                    'order_code' => $orderCode,
+                    'complaint_id' => $complaint->id,
                     'reject_reason' => $reasonText,
-                    'icon'          => 'fa-circle-xmark',
-                    'toast_type'    => 'error',
-                    'url'           => '/ho-so?tab=orders',
+                    'icon' => 'fa-circle-xmark',
+                    'toast_type' => 'error',
+                    'url' => '/ho-so?tab=orders',
                 ],
             ]);
 

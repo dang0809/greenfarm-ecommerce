@@ -30,7 +30,8 @@ class VipSubscriptionMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '👑 Gói Rau VIP Đất Lành đã kích hoạt thành công — Thiết lập lịch giao ngay!',
+            subject: '👑 Gói Rau VIP ' . SystemSetting::farmName()
+            . ' đã kích hoạt thành công — Thiết lập lịch giao ngay!',
         );
     }
 
@@ -46,14 +47,13 @@ class VipSubscriptionMail extends Mailable implements ShouldQueue
         return new Content(
             view: 'emails.vip_subscription',
             with: [
-                'subscription'      => $this->subscription,
-                'order'             => $this->order,
-                'packageName'       => $packageName,
+                'subscription' => $this->subscription,
+                'order' => $this->order,
+                'packageName' => $packageName,
                 'deliveryMaxWeight' => $deliveryMaxWeight,
-                'totalWeight'       => round($deliveryMaxWeight * 8, 1),
-                'contact'           => SystemSetting::contactSettings(),
+                'totalWeight' => round($deliveryMaxWeight * 8, 1),
+                'contact' => SystemSetting::contactSettings(),
             ],
         );
     }
 }
-

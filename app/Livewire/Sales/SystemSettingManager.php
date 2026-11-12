@@ -12,7 +12,7 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 #[Layout('layouts.sales.app')]
-#[Title('Cài Đặt Hệ Thống | Nông Trại Đất Lành')]
+#[Title('Cài Đặt Hệ Thống')]
 class SystemSettingManager extends Component
 {
     public string $activeTab = 'shipping';
@@ -60,7 +60,7 @@ class SystemSettingManager extends Component
         $this->ensureSales();
 
         $specs = $this->groupSpecs();
-        if (! isset($specs[$group])) {
+        if (!isset($specs[$group])) {
             return;
         }
 
@@ -219,4 +219,3 @@ class SystemSettingManager extends Component
         return view('livewire.sales.system-setting-manager');
     }
 }
-
