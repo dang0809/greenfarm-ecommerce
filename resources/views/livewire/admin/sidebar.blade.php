@@ -24,7 +24,7 @@
     <div class="flex flex-col min-h-0 flex-1">
         <div class="h-16 sm:h-20 flex items-center justify-between px-6 border-b border-slate-100 shrink-0">
 
-            <a href="{{ route('admin.accounts') }}" class="flex items-center gap-2.5">
+            <a href="{{ route('admin.accounts') }}" wire:navigate class="flex items-center gap-2.5">
                 <div class="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center">
                     <i class="fa-solid fa-crown text-amber-400"></i>
                 </div>
@@ -47,7 +47,7 @@
 
         <nav class="p-3.5 space-y-1 overflow-y-auto flex-1 custom-scrollbar">
             @foreach ($items as $item)
-                <a href="{{ route($item['route']) }}" @class([
+                <a href="{{ route($item['route']) }}" wire:navigate @class([
                     'w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition',
                     'menu-admin-active' => request()->routeIs($item['route']),
                     'menu-admin-inactive' => !request()->routeIs($item['route']),
@@ -76,10 +76,18 @@
             </div>
         </div>
 
-        <button type="button" disabled
+        <button type="button" wire:click="logout" wire:loading.attr="disabled" wire:target="logout"
             class="flex items-center justify-center gap-2 text-rose-600 w-full py-2 rounded-xl font-bold text-xs disabled:opacity-50">
+
             <i class="fa-solid fa-arrow-right-from-bracket"></i>
-            <span>Đăng xuất tài khoản</span>
+
+            <span wire:loading.remove wire:target="logout">
+                Đăng xuất tài khoản
+            </span>
+
+            <span wire:loading wire:target="logout">
+                Đang đăng xuất...
+            </span>
         </button>
     </div>
 </aside>
