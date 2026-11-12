@@ -42,9 +42,13 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 text-xs sm:text-sm">
+                    {{-- Tên thương hiệu --}}
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1.5">Tên thương hiệu nông trại <span
-                                class="text-red-500">*</span></label>
+                        <label class="block font-bold text-slate-700 mb-1.5">
+                            Tên thương hiệu nông trại
+                            <span class="text-red-500">*</span>
+                        </label>
+
                         <input type="text" id="cfg-farm-name" wire:model="farm_name"
                             class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2.5 font-semibold text-slate-900 outline-none focus:border-brand-600 focus:bg-white">
 
@@ -53,52 +57,65 @@
                         @enderror
                     </div>
 
+                    {{-- Hotline: đóng khối này trước khối Email --}}
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1.5">Hotline CSKH / Đặt hàng <span
-                                class="text-red-500">*</span></label>
+                        <label class="block font-bold text-slate-700 mb-1.5">
+                            Hotline CSKH / Đặt hàng
+                            <span class="text-red-500">*</span>
+                        </label>
+
                         <input type="text" id="cfg-farm-hotline" wire:model="hotline"
                             class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2.5 font-mono font-bold text-slate-900 outline-none focus:border-brand-600 focus:bg-white">
 
                         @error('hotline')
                             <p class="text-red-500" role="alert">{{ $message }}</p>
                         @enderror
-
-                        <div>
-                            <label class="block font-bold text-slate-700 mb-1.5">Email liên hệ chính thức <span
-                                    class="text-red-500">*</span></label>
-                            <input type="email" id="cfg-farm-email" wire:model="email"
-                                class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2.5 font-mono text-slate-800 outline-none focus:border-brand-600 focus:bg-white">
-
-                            @error('email')
-                                <p class="text-red-500" role="alert">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <div class="md:col-span-2 lg:col-span-3">
-                            <label class="block font-bold text-slate-700 mb-1.5">Địa chỉ nông trại thực tế <span
-                                    class="text-red-500">*</span></label>
-                            <input type="text" id="cfg-farm-address" wire:model="farm_address"
-                                class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-800 outline-none focus:border-brand-600 focus:bg-white">
-
-                            @error('farm_address')
-                                <p class="text-red-500" role="alert">{{ $message }}</p>
-                            @enderror
-                        </div>
                     </div>
 
-                    @error('save')
-                        <p class="text-red-500" role="alert">{{ $message }}</p>
-                    @enderror
+                    {{-- Email ngang cấp với Hotline --}}
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1.5">
+                            Email liên hệ chính thức
+                            <span class="text-red-500">*</span>
+                        </label>
 
-                    <!-- Nút lưu cấu hình -->
-                    <div class="pt-4 border-t border-slate-100 flex justify-end">
-                        <button type="button" wire:click="requestSave" wire:loading.attr="disabled"
-                            wire:target="requestSave,saveConfirmed,cancelSave"
-                            class="w-full sm:w-auto bg-brand-700 hover:bg-brand-800 text-white font-bold px-7 py-3 rounded-2xl shadow-md transition active:scale-95 flex items-center justify-center gap-2 text-xs sm:text-sm cursor-pointer">
-                            <i class="fa-solid fa-floppy-disk"></i>
-                            <span>Lưu Thông Tin Nông Trại</span>
-                        </button>
+                        <input type="email" id="cfg-farm-email" wire:model="email"
+                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2.5 font-mono text-slate-800 outline-none focus:border-brand-600 focus:bg-white">
+
+                        @error('email')
+                            <p class="text-red-500" role="alert">{{ $message }}</p>
+                        @enderror
                     </div>
+
+                    {{-- Địa chỉ chiếm toàn bộ chiều ngang grid --}}
+                    <div class="md:col-span-2 lg:col-span-3">
+                        <label class="block font-bold text-slate-700 mb-1.5">
+                            Địa chỉ nông trại thực tế
+                            <span class="text-red-500">*</span>
+                        </label>
+
+                        <input type="text" id="cfg-farm-address" wire:model="farm_address"
+                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-800 outline-none focus:border-brand-600 focus:bg-white">
+
+                        @error('farm_address')
+                            <p class="text-red-500" role="alert">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+                {{-- Grid kết thúc tại đây --}}
+
+                @error('save')
+                    <p class="text-red-500" role="alert">{{ $message }}</p>
+                @enderror
+
+                {{-- Khối nút Lưu nằm ngoài grid --}}
+                <div class="pt-4 border-t border-slate-100 flex justify-end">
+                    <button type="button" wire:click="requestSave" wire:loading.attr="disabled"
+                        wire:target="requestSave,saveConfirmed,cancelSave"
+                        class="w-full sm:w-auto bg-brand-700 hover:bg-brand-800 text-white font-bold px-7 py-3 rounded-2xl shadow-md transition active:scale-95 flex items-center justify-center gap-2 text-xs sm:text-sm cursor-pointer">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>Lưu Thông Tin Nông Trại</span>
+                    </button>
                 </div>
             </div>
 
@@ -148,3 +165,4 @@
             });
         </script>
     @endscript
+</div>
