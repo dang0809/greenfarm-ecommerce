@@ -49,11 +49,11 @@ class Login extends Component
 
         // 1. Kiểm tra Validate dữ liệu đầu vào (Chỉ đăng nhập bằng Email)
         $this->validate([
-            'email'    => 'required|email:rfc',
+            'email' => 'required|email:rfc',
             'password' => 'required|string',
         ], [
-            'email.required'    => 'Vui lòng nhập địa chỉ email tài khoản.',
-            'email.email'       => 'Địa chỉ email không đúng định dạng (VD: staff@datlanhfarm.vn).',
+            'email.required' => 'Vui lòng nhập địa chỉ email tài khoản.',
+            'email.email' => 'Địa chỉ email không đúng định dạng (VD: staff@datlanhfarm.vn).',
             'password.required' => 'Vui lòng nhập mật khẩu.',
         ]);
 
@@ -104,9 +104,10 @@ class Login extends Component
     private function getDefaultRouteByRole($user): string
     {
         return match ($user->role) {
-            'sales'      => route('sales.orders'),
+            'admin' => route('admin.accounts'),
+            'sales' => route('sales.orders'),
             'farm_staff' => route('farm-staff.farm-plot'),
-            default      => route('home'),
+            default => route('home'),
         };
     }
 
