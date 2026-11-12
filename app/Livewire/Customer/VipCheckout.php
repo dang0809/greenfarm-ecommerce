@@ -16,7 +16,7 @@ use App\Models\Address;
 use App\Livewire\Traits\WithShippingAddress;
 use PayOS\PayOS;
 
-#[Title('Thanh Toán Gói Rau VIP | Nông Trại Đất Lành')]
+#[Title('Thanh Toán Gói Rau VIP')]
 class VipCheckout extends Component
 {
     use WithShippingAddress;
@@ -116,10 +116,10 @@ class VipCheckout extends Component
             // Nếu đơn cũ có giá khác giá hiện tại vừa được cập nhật trong DB -> Hủy để tạo theo giá mới
             if ((int) $existingOrder->total !== (int) $this->price) {
                 $existingOrder->update([
-                    'status'        => 'cancelled',
+                    'status' => 'cancelled',
                     'cancel_reason' => 'Giá gói VIP đã thay đổi, cập nhật giao dịch mới',
-                    'cancelled_at'  => now(),
-                    'cancelled_by'  => 'system',
+                    'cancelled_at' => now(),
+                    'cancelled_by' => 'system',
                 ]);
                 Payment::where('order_id', $existingOrder->id)
                     ->where('status', 'pending')
@@ -156,10 +156,10 @@ class VipCheckout extends Component
 
             // Nếu đơn cũ đã quá 5 phút hoặc đã CANCELLED trên PayOS -> Hủy đơn cũ để tạo mới
             $existingOrder->update([
-                'status'        => 'cancelled',
+                'status' => 'cancelled',
                 'cancel_reason' => 'Đơn VIP hết hạn thanh toán, tạo giao dịch mới',
-                'cancelled_at'  => now(),
-                'cancelled_by'  => 'system',
+                'cancelled_at' => now(),
+                'cancelled_by' => 'system',
             ]);
             Payment::where('order_id', $existingOrder->id)
                 ->where('status', 'pending')
@@ -173,37 +173,37 @@ class VipCheckout extends Component
         try {
             // Tạo đơn hàng mua gói VIP
             $order = Order::create([
-                'user_id'           => $user->id,
-                'order_code'        => (string) $payosOrderCode,
-                'order_type'        => 'subscription',
-                'recipient_name'    => $recipientName,
-                'recipient_phone'      => $recipientPhone,
-                'recipient_address'    => $shippingAddress,
+                'user_id' => $user->id,
+                'order_code' => (string) $payosOrderCode,
+                'order_type' => 'subscription',
+                'recipient_name' => $recipientName,
+                'recipient_phone' => $recipientPhone,
+                'recipient_address' => $shippingAddress,
                 'shipping_distance_km' => $distance,
-                'subtotal'             => $this->price,
-                'shipping_fee'      => 0,
-                'total'             => $this->price,
-                'status'            => 'pending',
-                'note'              => 'Đăng ký ' . $this->packageName,
+                'subtotal' => $this->price,
+                'shipping_fee' => 0,
+                'total' => $this->price,
+                'status' => 'pending',
+                'note' => 'Đăng ký ' . $this->packageName,
             ]);
 
             // Tạo bản ghi thanh toán pending
             Payment::create([
-                'order_id'     => $order->id,
+                'order_id' => $order->id,
                 'payment_code' => 'PAY-' . $order->order_code,
-                'method'       => 'payos',
-                'amount'       => $this->price,
-                'status'       => 'pending',
+                'method' => 'payos',
+                'amount' => $this->price,
+                'status' => 'pending',
             ]);
 
             // 6. Kết nối PayOS tạo link thanh toán mới
             $payosData = [
-                "orderCode"   => $payosOrderCode,
-                "amount"      => $this->price,
+                "orderCode" => $payosOrderCode,
+                "amount" => $this->price,
                 "description" => "TT " . $payosOrderCode,
-                "returnUrl"   => route('customer.checkout.success', ['order_id' => $order->id]),
-                "cancelUrl"   => route('customer.checkout.cancel', ['order_id' => $order->id]),
-                "expiredAt"   => time() + (5 * 60),
+                "returnUrl" => route('customer.checkout.success', ['order_id' => $order->id]),
+                "cancelUrl" => route('customer.checkout.cancel', ['order_id' => $order->id]),
+                "expiredAt" => time() + (5 * 60),
             ];
 
             $response = $payOS->createPaymentLink($payosData);
@@ -242,11 +242,11 @@ class VipCheckout extends Component
         $user = Auth::user();
         $shippingData = $this->resolveShippingAddresses($user?->id);
 
-        $address            = $shippingData['address'];
-        $addresses          = $shippingData['addresses'];
-        $distance           = $shippingData['distance'];
-        $maxDistance        = $shippingData['maxDistance'];
-        $isDistanceUnknown  = $shippingData['isDistanceUnknown'];
+        $address = $shippingData['address'];
+        $addresses = $shippingData['addresses'];
+        $distance = $shippingData['distance'];
+        $maxDistance = $shippingData['maxDistance'];
+        $isDistanceUnknown = $shippingData['isDistanceUnknown'];
         $isDistanceExceeded = $shippingData['isDistanceExceeded'];
 
         if ($address && !$this->selectedAddressId) {
@@ -254,21 +254,21 @@ class VipCheckout extends Component
         }
 
         return view('livewire.customer.vip-checkout', [
-            'packageName'           => $this->packageName,
-            'price'                 => $this->price,
-            'deliveryMaxWeight'     => $this->deliveryMaxWeight,
-            'totalDeliveries'       => $this->totalDeliveries,
-            'totalWeightMonthly'    => $this->totalWeightMonthly,
-            'isEnabled'             => $this->isEnabled,
+            'packageName' => $this->packageName,
+            'price' => $this->price,
+            'deliveryMaxWeight' => $this->deliveryMaxWeight,
+            'totalDeliveries' => $this->totalDeliveries,
+            'totalWeightMonthly' => $this->totalWeightMonthly,
+            'isEnabled' => $this->isEnabled,
             'pendingSubscriptionId' => $this->pendingSubscriptionId,
-            'address'               => $address,
-            'distance'              => $distance,
-            'maxDistance'           => $maxDistance,
-            'isDistanceExceeded'    => $isDistanceExceeded,
-            'isDistanceUnknown'     => $isDistanceUnknown,
-            'addresses'             => $addresses,
-            'showAddressModal'      => $this->showAddressModal,
-            'selectedAddressId'     => $this->selectedAddressId,
+            'address' => $address,
+            'distance' => $distance,
+            'maxDistance' => $maxDistance,
+            'isDistanceExceeded' => $isDistanceExceeded,
+            'isDistanceUnknown' => $isDistanceUnknown,
+            'addresses' => $addresses,
+            'showAddressModal' => $this->showAddressModal,
+            'selectedAddressId' => $this->selectedAddressId,
         ])->layout('layouts.customer.app');
     }
 }

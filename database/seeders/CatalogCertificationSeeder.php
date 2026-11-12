@@ -58,10 +58,17 @@ class CatalogCertificationSeeder extends Seeder
         foreach ($products as $pData) {
             $imgUrl = $pData['image'];
             unset($pData['image'], $pData['stock']);
-            $product = Product::updateOrCreate(['slug' => $pData['slug']], array_merge($pData, ['status' => 'active', 'description' => 'Sản phẩm tươi sạch được canh tác theo hướng hữu cơ, thu hoạch trực tiếp tại Nông trại Đất Lành Lâm Đồng.']));
+            $product = Product::updateOrCreate(
+                ['slug' => $pData['slug']],
+                array_merge($pData, [
+                    'status' => 'active',
+                    'description' => 'Sản phẩm tươi sạch được canh tác theo hướng hữu cơ, thu hoạch trực tiếp tại [[farm_name]] Lâm Đồng.',
+                ])
+            );
 
             DB::table('product_images')->updateOrInsert(['product_id' => $product->id, 'is_primary' => true], [
-                'image' => $imgUrl, 'sort_order' => 1,
+                'image' => $imgUrl,
+                'sort_order' => 1,
             ]);
         }
     }

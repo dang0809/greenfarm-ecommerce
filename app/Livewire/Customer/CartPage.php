@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
-#[Title('Giỏ Hàng Của Bạn | Nông Trại Đất Lành')]
+#[Title('Giỏ Hàng Của Bạn')]
 class CartPage extends Component
 {
     public array $selectedItems = []; // Danh sách cart_item_id được tick chọn
@@ -36,7 +36,8 @@ class CartPage extends Component
     public function syncCartStock(): array
     {
         $cart = $this->getCart();
-        if (!$cart) return [];
+        if (!$cart)
+            return [];
 
         $messages = [];
         foreach ($cart->items as $item) {
@@ -71,10 +72,10 @@ class CartPage extends Component
         return Cart::with([
             'items.product.category',
             'items.product.productImages',
-            'items.product' => fn ($q) => $q->withTotalStock(),
+            'items.product' => fn($q) => $q->withTotalStock(),
         ])
-        ->where('user_id', Auth::id())
-        ->first();
+            ->where('user_id', Auth::id())
+            ->first();
     }
 
     // Mặc định chọn tất cả sản phẩm còn hàng khi vừa mở trang
@@ -83,7 +84,7 @@ class CartPage extends Component
         $cart = $this->getCart();
         if ($cart) {
             $this->selectedItems = $cart->items
-                ->filter(fn ($item) => (int) ($item->product?->total_stock ?? 0) > 0)
+                ->filter(fn($item) => (int) ($item->product?->total_stock ?? 0) > 0)
                 ->pluck('id')
                 ->map(fn($id) => (string) $id)
                 ->toArray();
@@ -95,11 +96,12 @@ class CartPage extends Component
     public function updatedSelectAll($value)
     {
         $cart = $this->getCart();
-        if (!$cart) return;
+        if (!$cart)
+            return;
 
         if ($value) {
             $this->selectedItems = $cart->items
-                ->filter(fn ($item) => (int) ($item->product?->total_stock ?? 0) > 0)
+                ->filter(fn($item) => (int) ($item->product?->total_stock ?? 0) > 0)
                 ->pluck('id')
                 ->map(fn($id) => (string) $id)
                 ->toArray();
@@ -112,7 +114,8 @@ class CartPage extends Component
     public function updatedSelectedItems()
     {
         $cart = $this->getCart();
-        if (!$cart) return;
+        if (!$cart)
+            return;
 
         $totalItems = $cart->items->count();
         $this->selectAll = $totalItems > 0 && count($this->selectedItems) === $totalItems;
@@ -122,7 +125,8 @@ class CartPage extends Component
     public function incrementQuantity(int $cartItemId)
     {
         $cartItem = CartItem::whereHas('cart', fn($q) => $q->where('user_id', Auth::id()))->find($cartItemId);
-        if (!$cartItem) return;
+        if (!$cartItem)
+            return;
 
         $availableStock = $this->getAvailableStock($cartItem->product_id);
 
@@ -164,7 +168,8 @@ class CartPage extends Component
     // Xóa các món đã tick chọn
     public function removeSelected()
     {
-        if (empty($this->selectedItems)) return;
+        if (empty($this->selectedItems))
+            return;
 
         CartItem::whereHas('cart', fn($q) => $q->where('user_id', Auth::id()))
             ->whereIn('id', $this->selectedItems)
@@ -224,9 +229,9 @@ class CartPage extends Component
         }
 
         return view('livewire.customer.cart-page', [
-            'items'         => $items,
-            'subtotal'      => $subtotal,
-            'total'         => $subtotal, // Tổng tiền giỏ hàng đúng bằng tạm tính
+            'items' => $items,
+            'subtotal' => $subtotal,
+            'total' => $subtotal, // Tổng tiền giỏ hàng đúng bằng tạm tính
             'selectedCount' => $selectedCount,
         ])->layout('layouts.customer.app');
     }

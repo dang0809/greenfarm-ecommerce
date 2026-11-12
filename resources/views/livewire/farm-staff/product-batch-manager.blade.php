@@ -871,7 +871,7 @@
                             <i class="fa-solid fa-leaf text-brand-600"></i>
 
                             <span class="font-extrabold text-xs tracking-wider uppercase">
-                                ĐẤT LÀNH FARM
+                                {{ $farmName }}
                             </span>
                         </div>
 

@@ -20,7 +20,7 @@ use App\Livewire\Traits\WithOrderTimeline;
 use App\Services\OrderNotificationService;
 
 #[Layout('layouts.sales.app')]
-#[Title('Quản Lý Đơn Hàng | Nông Trại Đất Lành')]
+#[Title('Quản Lý Đơn Hàng')]
 class OrderManager extends Component
 {
     use WithPagination, WithOrderTimeline;
@@ -44,9 +44,18 @@ class OrderManager extends Component
 
 
     // Reset phân trang khi thay đổi bộ lọc
-    public function updatingSearch(): void { $this->resetPage(); }
-    public function updatingStatusFilter(): void { $this->resetPage(); }
-    public function updatingTypeFilter(): void { $this->resetPage(); }
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+    public function updatingStatusFilter(): void
+    {
+        $this->resetPage();
+    }
+    public function updatingTypeFilter(): void
+    {
+        $this->resetPage();
+    }
 
     public function setStatusFilter(string $status): void
     {
@@ -72,10 +81,10 @@ class OrderManager extends Component
         $this->resetPage();
 
         // 2. Lấy dữ liệu đơn vừa nổ và hiển thị Toast màu xanh góc màn hình
-        $orderData      = $payload['orderData'] ?? [];
-        $orderCode      = $orderData['order_code'] ?? '';
-        $customerName   = $orderData['recipient_name'] ?? 'Khách hàng';
-        $totalFormatted = !empty($orderData['total']) 
+        $orderData = $payload['orderData'] ?? [];
+        $orderCode = $orderData['order_code'] ?? '';
+        $customerName = $orderData['recipient_name'] ?? 'Khách hàng';
+        $totalFormatted = !empty($orderData['total'])
             ? number_format($orderData['total'], 0, ',', '.') . 'đ'
             : '';
 
@@ -99,9 +108,9 @@ class OrderManager extends Component
     public function getStatusCountsProperty(): array
     {
         $counts = Order::where(function ($q) {
-                $q->whereHas('payment', fn($p) => $p->where('status', 'success'))
-                  ->orWhere('total', 0);
-            })
+            $q->whereHas('payment', fn($p) => $p->where('status', 'success'))
+                ->orWhere('total', 0);
+        })
             ->where('order_type', '!=', 'subscription')
             ->selectRaw('status, count(*) as aggregate')
             ->groupBy('status')
@@ -109,12 +118,12 @@ class OrderManager extends Component
             ->toArray();
 
         return [
-            'all'        => array_sum($counts),
-            'pending'    => (int) ($counts['pending'] ?? 0),
+            'all' => array_sum($counts),
+            'pending' => (int) ($counts['pending'] ?? 0),
             'processing' => (int) ($counts['processing'] ?? 0),
-            'shipped'    => (int) ($counts['shipped'] ?? 0),
-            'delivered'  => (int) ($counts['delivered'] ?? 0),
-            'cancelled'  => (int) ($counts['cancelled'] ?? 0),
+            'shipped' => (int) ($counts['shipped'] ?? 0),
+            'delivered' => (int) ($counts['delivered'] ?? 0),
+            'cancelled' => (int) ($counts['cancelled'] ?? 0),
         ];
     }
 
@@ -124,15 +133,15 @@ class OrderManager extends Component
     protected function getFilteredOrdersQuery()
     {
         $query = Order::with([
-                'items.product',
-                'items.batch',
-                'payment',
-                'user',
-            ])
+            'items.product',
+            'items.batch',
+            'payment',
+            'user',
+        ])
             // CHỈ HIỆN ĐƠN ĐÃ THANH TOÁN THÀNH CÔNG (HOẶC ĐƠN BÙ 0Đ)
             ->where(function ($q) {
                 $q->whereHas('payment', fn($p) => $p->where('status', 'success'))
-                  ->orWhere('total', 0);
+                    ->orWhere('total', 0);
             })
             // Ẩn hóa đơn mua gói VIP (quản lý riêng ở SubscriptionManager)
             ->where('order_type', '!=', 'subscription')
@@ -234,7 +243,7 @@ class OrderManager extends Component
             $order->statusHistories()->create([
                 'old_status' => $oldStatus,
                 'new_status' => 'shipped',
-                'changed_by' => Auth::id() ?? $order->user_id ,
+                'changed_by' => Auth::id() ?? $order->user_id,
             ]);
         });
 
@@ -319,7 +328,8 @@ class OrderManager extends Component
      */
     public function confirmCancelOrder(): void
     {
-        if (!$this->cancelOrderId) return;
+        if (!$this->cancelOrderId)
+            return;
 
         $reason = trim($this->cancelReason);
         if (empty($reason)) {
@@ -340,10 +350,10 @@ class OrderManager extends Component
             $oldStatus = $lockedOrder->status;
 
             $lockedOrder->update([
-                'status'        => 'cancelled',
+                'status' => 'cancelled',
                 'cancel_reason' => $reason,
-                'cancelled_by'  => 'sales',
-                'cancelled_at'  => now(),
+                'cancelled_by' => 'sales',
+                'cancelled_at' => now(),
             ]);
 
             if ($lockedOrder->order_type === 'retail' && $lockedOrder->payment?->status === 'success') {
@@ -357,10 +367,10 @@ class OrderManager extends Component
                     ProductBatch::where('id', $item->batch_id)->increment('current_quantity', $item->quantity);
 
                     InventoryLog::create([
-                        'batch_id'   => $item->batch_id,
-                        'type'       => 'return_cancel',
-                        'quantity'   => $item->quantity,
-                        'note'       => "Hoàn kho do NVBH hủy đơn #{$lockedOrder->order_code}: {$reason}",
+                        'batch_id' => $item->batch_id,
+                        'type' => 'return_cancel',
+                        'quantity' => $item->quantity,
+                        'note' => "Hoàn kho do NVBH hủy đơn #{$lockedOrder->order_code}: {$reason}",
                         'created_by' => Auth::id() ?? $lockedOrder->user_id ?? 1,
                     ]);
                 }
@@ -382,7 +392,7 @@ class OrderManager extends Component
             if ($lockedOrder->deliverySchedule) {
                 $lockedOrder->deliverySchedule->update([
                     'order_id' => null,
-                    'status'   => 'pending',
+                    'status' => 'pending',
                 ]);
             }
 
@@ -409,9 +419,9 @@ class OrderManager extends Component
         $orders = $this->getFilteredOrdersQuery()->paginate($this->perPage);
 
         return view('livewire.sales.order-manager', [
-            'orders'       => $orders,
+            'orders' => $orders,
             'statusCounts' => $this->statusCounts,
-            'contact'      => SystemSetting::contactSettings(),
+            'contact' => SystemSetting::contactSettings(),
         ]);
     }
 }

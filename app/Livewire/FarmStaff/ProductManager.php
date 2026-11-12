@@ -23,7 +23,7 @@ use RuntimeException;
 use Throwable;
 
 #[Layout('layouts.farm-staff.app')]
-#[Title('Quản Lý Sản Phẩm Nông Sản | Nông Trại Đất Lành')]
+#[Title('Quản Lý Sản Phẩm Nông Sản')]
 class ProductManager extends Component
 {
     use WithFileUploads, WithPagination;

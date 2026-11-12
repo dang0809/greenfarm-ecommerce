@@ -6,7 +6,7 @@ use Livewire\Component;
 use Livewire\Attributes\Title;
 use App\Models\ProductBatch;
 
-#[Title('Nhật Ký Canh Tác Lô Hàng | Nông Trại Đất Lành')]
+#[Title('Nhật Ký Canh Tác Lô Hàng')]
 class TraceabilityDetail extends Component
 {
     public string $batchCode;
@@ -24,11 +24,11 @@ class TraceabilityDetail extends Component
             'plantingBatch.farmPlot',
             'plantingBatch.traceabilityEvents'
         ])
-        ->where('batch_code', $this->batchCode)
-        ->first();
+            ->where('batch_code', $this->batchCode)
+            ->first();
 
         return view('livewire.customer.traceability-detail', [
-            'productBatch'  => $productBatch,
+            'productBatch' => $productBatch,
             'plantingBatch' => $productBatch?->plantingBatch,
         ])->layout('layouts.customer.app');
     }

@@ -2,19 +2,19 @@
 
     <!-- Thông báo Alert -->
     @if (session()->has('success'))
-    <div
-        class="mb-6 p-4 bg-green-50 border border-green-200 text-green-800 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-between">
-        <span><i class="fa-solid fa-circle-check mr-2 text-green-600"></i> {{ session('success') }}</span>
-        <button type="button" class="text-green-600" onclick="this.parentElement.remove()">✕</button>
-    </div>
+        <div
+            class="mb-6 p-4 bg-green-50 border border-green-200 text-green-800 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-between">
+            <span><i class="fa-solid fa-circle-check mr-2 text-green-600"></i> {{ session('success') }}</span>
+            <button type="button" class="text-green-600" onclick="this.parentElement.remove()">✕</button>
+        </div>
     @endif
 
     @if (session()->has('error'))
-    <div
-        class="mb-6 p-4 bg-red-50 border border-red-200 text-red-800 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-between">
-        <span><i class="fa-solid fa-circle-exclamation mr-2 text-red-600"></i> {{ session('error') }}</span>
-        <button type="button" class="text-red-600" onclick="this.parentElement.remove()">✕</button>
-    </div>
+        <div
+            class="mb-6 p-4 bg-red-50 border border-red-200 text-red-800 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-between">
+            <span><i class="fa-solid fa-circle-exclamation mr-2 text-red-600"></i> {{ session('error') }}</span>
+            <button type="button" class="text-red-600" onclick="this.parentElement.remove()">✕</button>
+        </div>
     @endif
 
     <!-- KHỐI THÔNG TIN SẢN PHẨM CHÍNH -->
@@ -29,29 +29,29 @@
                         class="absolute top-4 left-4 z-10 bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-sm">
                         -{{ round((($product->price - $product->sale_price) / $product->price) * 100) }}% Flash Sale
                     </span>
-                    @endif
-                    <img src="{{ $selectedImage }}" alt="{{ $product->name }}"
-                        class="w-full h-full object-cover transition-transform duration-500 hover:scale-105">
+                @endif
+                <img src="{{ $selectedImage }}" alt="{{ $product->name }}"
+                    class="w-full h-full object-cover transition-transform duration-500 hover:scale-105">
             </div>
 
             <!-- Thư viện ảnh thu nhỏ -->
             @php
-            $productImages = $product->productImages;
+                $productImages = $product->productImages;
             @endphp
             @if ($productImages && $productImages->count() > 1)
-            <div class="grid grid-cols-4 gap-3 sm:gap-4">
-                @foreach ($productImages as $imgObj)
-                @php
-                $imgUrl = $imgObj->url ?? '';
-                @endphp
-                @if ($imgUrl !== '')
-                <button type="button" wire:click="selectImage('{{ $imgUrl }}')"
-                    class="thumb-btn border-2 {{ $selectedImage === $imgUrl ? 'border-brand-600' : 'border-transparent' }} rounded-2xl overflow-hidden aspect-square bg-white shadow-sm p-0.5 hover:border-brand-300 transition-colors">
-                    <img src="{{ $imgUrl }}" class="w-full h-full object-cover rounded-xl">
-                </button>
-                @endif
-                @endforeach
-            </div>
+                <div class="grid grid-cols-4 gap-3 sm:gap-4">
+                    @foreach ($productImages as $imgObj)
+                        @php
+                            $imgUrl = $imgObj->url ?? '';
+                        @endphp
+                        @if ($imgUrl !== '')
+                            <button type="button" wire:click="selectImage('{{ $imgUrl }}')"
+                                class="thumb-btn border-2 {{ $selectedImage === $imgUrl ? 'border-brand-600' : 'border-transparent' }} rounded-2xl overflow-hidden aspect-square bg-white shadow-sm p-0.5 hover:border-brand-300 transition-colors">
+                                <img src="{{ $imgUrl }}" class="w-full h-full object-cover rounded-xl">
+                            </button>
+                        @endif
+                    @endforeach
+                </div>
             @endif
         </div>
 
@@ -65,8 +65,7 @@
             <div class="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-gray-500 mb-6">
                 <div class="flex items-center text-amber-400">
                     <i class="fa-solid fa-star"></i>
-                    <span
-                        class="text-gray-800 font-bold ml-1.5">{{ number_format($avgRating, 1) }}</span>
+                    <span class="text-gray-800 font-bold ml-1.5">{{ number_format($avgRating, 1) }}</span>
                     <button type="button" wire:click="switchTab('reviews')"
                         class="text-gray-400 font-medium ml-1 hover:text-brand-600">({{ $reviewCount }}
                         nhận xét)</button>
@@ -76,15 +75,15 @@
                 <span>•</span>
 
                 @if ($totalStock > 0)
-                <span
-                    class="text-brand-700 bg-brand-50 border border-brand-200 px-2.5 py-0.5 rounded-md font-bold flex items-center gap-1.5">
-                    <span class="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse"></span> Còn hàng (Kho:
-                    {{ $totalStock }} {{ $product->unit ?? 'kg' }})
-                </span>
+                    <span
+                        class="text-brand-700 bg-brand-50 border border-brand-200 px-2.5 py-0.5 rounded-md font-bold flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse"></span> Còn hàng (Kho:
+                        {{ $totalStock }} {{ $product->unit ?? 'kg' }})
+                    </span>
                 @else
-                <span class="text-red-700 bg-red-50 border border-red-200 px-2.5 py-0.5 rounded-md font-bold">
-                    Hết hàng
-                </span>
+                    <span class="text-red-700 bg-red-50 border border-red-200 px-2.5 py-0.5 rounded-md font-bold">
+                        Hết hàng
+                    </span>
                 @endif
             </div>
 
@@ -95,41 +94,41 @@
                         class="text-3xl sm:text-4xl font-black text-brand-700 leading-none">{{ number_format($product->sale_price, 0, ',', '.') }}đ</span>
                     <span
                         class="text-gray-400 text-base sm:text-lg line-through mb-0.5">{{ number_format($product->price, 0, ',', '.') }}đ</span>
-                    @else
+                @else
                     <span
                         class="text-3xl sm:text-4xl font-black text-brand-700 leading-none">{{ number_format($product->price, 0, ',', '.') }}đ</span>
-                    @endif
-                    <span class="text-gray-500 text-sm font-medium mb-0.5">/ {{ $product->unit ?? 'kg' }}</span>
+                @endif
+                <span class="text-gray-500 text-sm font-medium mb-0.5">/ {{ $product->unit ?? 'kg' }}</span>
             </div>
 
             <!-- LÔ HÀNG VÀ TRUY XUẤT NGUỒN GỐC (FEFO) -->
             @if ($currentBatch)
-            <div
-                class="bg-white border border-brand-200/80 rounded-2xl p-4 sm:p-5 mb-8 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <div class="flex items-center gap-2 mb-1.5">
-                        <i class="fa-solid fa-qrcode text-brand-600 text-base"></i>
-                        <span class="text-xs font-bold text-gray-900 uppercase tracking-wide">Lô xuất kho hiện
-                            tại</span>
+                <div
+                    class="bg-white border border-brand-200/80 rounded-2xl p-4 sm:p-5 mb-8 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1.5">
+                            <i class="fa-solid fa-qrcode text-brand-600 text-base"></i>
+                            <span class="text-xs font-bold text-gray-900 uppercase tracking-wide">Lô xuất kho hiện
+                                tại</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="text-[11px] font-mono font-bold text-brand-700 bg-brand-50 border border-brand-200 px-2 py-0.5 rounded">
+                                {{ $currentBatch->batch_code }}
+                            </span>
+                            @if ($currentBatch->manufactured_date)
+                                <span class="text-xs text-gray-500 border-l border-gray-200 pl-2">Ngày SX:
+                                    {{ \Carbon\Carbon::parse($currentBatch->manufactured_date)->format('d/m/Y') }}</span>
+                            @endif
+                        </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <span
-                            class="text-[11px] font-mono font-bold text-brand-700 bg-brand-50 border border-brand-200 px-2 py-0.5 rounded">
-                            {{ $currentBatch->batch_code }}
-                        </span>
-                        @if($currentBatch->manufactured_date)
-                        <span class="text-xs text-gray-500 border-l border-gray-200 pl-2">Ngày SX:
-                            {{ \Carbon\Carbon::parse($currentBatch->manufactured_date)->format('d/m/Y') }}</span>
-                        @endif
-                    </div>
-                </div>
 
-                <a href="{{ route('customer.traceability.detail', ['batch' => $currentBatch->batch_code]) }}"
-                    class="shrink-0 inline-flex items-center justify-center gap-1.5 text-xs font-bold text-brand-700 hover:text-brand-800 bg-brand-50 hover:bg-brand-100 px-4 py-2.5 rounded-xl transition-colors border border-brand-100 w-full sm:w-auto">
-                    <span>Xem nhật ký canh tác</span>
-                    <i class="fa-solid fa-arrow-right text-[10px]"></i>
-                </a>
-            </div>
+                    <a href="{{ route('customer.traceability.detail', ['batch' => $currentBatch->batch_code]) }}"
+                        class="shrink-0 inline-flex items-center justify-center gap-1.5 text-xs font-bold text-brand-700 hover:text-brand-800 bg-brand-50 hover:bg-brand-100 px-4 py-2.5 rounded-xl transition-colors border border-brand-100 w-full sm:w-auto">
+                        <span>Xem nhật ký canh tác</span>
+                        <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                    </a>
+                </div>
             @endif
 
             <!-- FORM ĐẶT HÀNG -->
@@ -138,21 +137,22 @@
                     <span class="text-sm font-bold text-gray-800">Số lượng:</span>
                     <div
                         class="flex items-center border border-gray-200 rounded-2xl bg-white shadow-sm overflow-hidden h-11 w-32">
-                        <button type="button" wire:click="decrementQuantity" @disabled($quantity <=1 || $totalStock <=0)
+                        <button type="button" wire:click="decrementQuantity" @disabled($quantity <= 1 || $totalStock <= 0)
                             class="w-10 h-full text-gray-500 hover:bg-gray-50 hover:text-brand-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-500 cursor-pointer">
                             <i class="fa-solid fa-minus text-xs"></i>
                         </button>
 
-                        <input type="number" wire:model.live="quantity" min="1" max="{{ $totalStock }}" readonly
+                        <input type="number" wire:model.live="quantity" min="1" max="{{ $totalStock }}"
+                            readonly
                             class="w-full h-full text-center font-bold text-gray-900 bg-transparent outline-none text-sm select-none cursor-default [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
 
-                        <button type="button" wire:click="incrementQuantity" @disabled($quantity>= $totalStock ||
-                            $totalStock <= 0)
-                                class="w-10 h-full text-gray-500 hover:bg-gray-50 hover:text-brand-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-500 cursor-pointer">
-                                <i class="fa-solid fa-plus text-xs"></i>
+                        <button type="button" wire:click="incrementQuantity" @disabled($quantity >= $totalStock || $totalStock <= 0)
+                            class="w-10 h-full text-gray-500 hover:bg-gray-50 hover:text-brand-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-500 cursor-pointer">
+                            <i class="fa-solid fa-plus text-xs"></i>
                         </button>
                     </div>
-                    <span class="text-xs text-gray-400">Tối đa {{ $totalStock + 0 }} {{ $product->unit ?? 'kg' }}</span>
+                    <span class="text-xs text-gray-400">Tối đa {{ $totalStock + 0 }}
+                        {{ $product->unit ?? 'kg' }}</span>
                 </div>
 
                 <div class="flex flex-col sm:flex-row gap-3">
@@ -183,7 +183,8 @@
     </div>
 
     <!-- TABS: MÔ TẢ & ĐÁNH GIÁ -->
-    <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden mb-16 scroll-mt-24" id="reviews">
+    <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden mb-16 scroll-mt-24"
+        id="reviews">
         <div class="flex border-b border-gray-100">
             <button type="button" wire:click="switchTab('desc')"
                 class="flex-1 py-4 sm:py-5 text-center font-bold text-xs sm:text-sm {{ $activeTab === 'desc' ? 'text-brand-600 border-b-2 border-brand-600 bg-gray-50/40' : 'text-gray-500 border-b-2 border-transparent hover:text-brand-600' }}">
@@ -196,175 +197,197 @@
         </div>
 
         @if ($activeTab === 'desc')
-        <div class="p-6 sm:p-10 text-gray-600 leading-relaxed text-sm sm:text-base space-y-4">
-            {!! $product->description !!}
-        </div>
+            <div class="p-6 sm:p-10 text-gray-600 leading-relaxed text-sm sm:text-base space-y-4">
+                {!! str_replace('[[farm_name]]', e($farmName), $product->description ?? '') !!}
+            </div>
         @endif
 
         @if ($activeTab === 'reviews')
-        <div class="p-6 sm:p-10">
-            <div class="flex flex-col sm:flex-row items-center gap-6 pb-8 border-b border-gray-100 mb-8">
-                <div class="text-center sm:text-left shrink-0">
-                    <div class="text-5xl font-black text-brand-600">
-                        {{ number_format($avgRating, 1) }}<span
-                            class="text-2xl text-gray-400">/5</span></div>
-                    <div class="flex items-center text-amber-400 text-sm mt-1 justify-center sm:justify-start">
-                        @for ($i = 1; $i <= 5; $i++)
-                            <i class="fa-solid fa-star {{ $i <= round($avgRating) ? 'text-amber-400' : 'text-gray-200' }}"></i>
-                        @endfor
-                    </div>
-                    <p class="text-xs text-gray-400 mt-1">Dựa trên {{ $reviewCount }} đánh giá thực tế</p>
-                </div>
-            </div>
-
-            @auth
-            @if ($this->unreviewedOrderItem)
-            <div class="bg-gray-50/70 border border-gray-200/80 rounded-2xl p-5 sm:p-6 mb-8">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-gray-200/60">
-                    <h4 class="text-sm sm:text-base font-bold text-gray-900 flex items-center gap-2">
-                        <i class="fa-regular fa-pen-to-square text-brand-600"></i> Viết Đánh Giá Của Bạn
-                    </h4>
-                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-xl self-start sm:self-auto">
-                        <i class="fa-solid fa-badge-check text-emerald-600"></i> Đã nhận hàng từ Nông trại
-                    </span>
-                </div>
-
-                <form wire:submit.prevent="submitReview" class="space-y-4">
-                    <div class="flex flex-wrap items-center gap-3">
-                        <span class="text-xs font-bold text-gray-700">Mức độ hài lòng:</span>
-                        <div class="flex items-center gap-1.5 text-lg text-amber-400 cursor-pointer select-none">
+            <div class="p-6 sm:p-10">
+                <div class="flex flex-col sm:flex-row items-center gap-6 pb-8 border-b border-gray-100 mb-8">
+                    <div class="text-center sm:text-left shrink-0">
+                        <div class="text-5xl font-black text-brand-600">
+                            {{ number_format($avgRating, 1) }}<span class="text-2xl text-gray-400">/5</span></div>
+                        <div class="flex items-center text-amber-400 text-sm mt-1 justify-center sm:justify-start">
                             @for ($i = 1; $i <= 5; $i++)
-                                <button type="button" wire:click="$set('rating', {{ $i }})"
-                                    class="transition-transform hover:scale-110 p-0.5">
-                                    <i class="fa-solid fa-star {{ $i <= $rating ? 'text-amber-400' : 'text-gray-300' }}"></i>
-                                </button>
+                                <i
+                                    class="fa-solid fa-star {{ $i <= round($avgRating) ? 'text-amber-400' : 'text-gray-200' }}"></i>
                             @endfor
                         </div>
-                        <span class="text-xs font-bold text-amber-600">
-                            {{ $rating }} sao - 
-                            @if($rating == 5) Tuyệt vời!
-                            @elseif($rating == 4) Rất tốt
-                            @elseif($rating == 3) Bình thường
-                            @elseif($rating == 2) Chưa hài lòng
-                            @else Rất thất vọng
-                            @endif
-                        </span>
+                        <p class="text-xs text-gray-400 mt-1">Dựa trên {{ $reviewCount }} đánh giá thực tế</p>
                     </div>
+                </div>
 
-                    <div>
-                        <textarea wire:model="content" rows="3"
-                            placeholder="Chia sẻ cảm nhận về độ tươi giòn, quy cách đóng gói và thời gian giao nhận..."
-                            class="w-full bg-white border border-gray-200 rounded-2xl p-3.5 text-xs sm:text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all resize-none shadow-xs"></textarea>
-                        @error('content') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
-                    </div>
-
-                    <!-- Upload ảnh thực tế lên Cloudflare R2 -->
-                    <div class="space-y-2">
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-                            <label class="inline-flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-600 hover:text-brand-600 transition-colors">
-                                <i class="fa-solid fa-camera text-brand-600 text-sm"></i>
-                                <span>Thêm ảnh thực tế nhận hàng (Tối đa 5 ảnh)</span>
-                                <input type="file" wire:model="reviewPhotos" multiple accept="image/*" class="hidden">
-                            </label>
-
-                            <button type="submit" wire:loading.attr="disabled"
-                                class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs sm:text-sm shadow-sm transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50 cursor-pointer">
-                                <span wire:loading.remove wire:target="submitReview">
-                                    <i class="fa-regular fa-paper-plane text-xs mr-1"></i> Gửi đánh giá
+                @auth
+                    @if ($this->unreviewedOrderItem)
+                        <div class="bg-gray-50/70 border border-gray-200/80 rounded-2xl p-5 sm:p-6 mb-8">
+                            <div
+                                class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-gray-200/60">
+                                <h4 class="text-sm sm:text-base font-bold text-gray-900 flex items-center gap-2">
+                                    <i class="fa-regular fa-pen-to-square text-brand-600"></i> Viết Đánh Giá Của Bạn
+                                </h4>
+                                <span
+                                    class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-xl self-start sm:self-auto">
+                                    <i class="fa-solid fa-badge-check text-emerald-600"></i> Đã nhận hàng từ Nông trại
                                 </span>
-                                <span wire:loading wire:target="submitReview">
-                                    <i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang tải lên...
-                                </span>
-                            </button>
-                        </div>
+                            </div>
 
-                        <!-- Khung Preview ảnh đã chọn trước khi gửi -->
-                        @if (!empty($reviewPhotos))
-                            <div class="flex flex-wrap gap-2.5 pt-2">
-                                @foreach ($reviewPhotos as $index => $photo)
-                                    <div class="relative group">
-                                        <img src="{{ $photo->temporaryUrl() }}" class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover border border-brand-200 shadow-2xs">
-                                        <button type="button" wire:click="removePhoto({{ $index }})"
-                                            title="Xóa ảnh này"
-                                            class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 hover:bg-rose-600 text-white rounded-full flex items-center justify-center text-[10px] shadow-sm transition">
-                                            <i class="fa-solid fa-xmark"></i>
+                            <form wire:submit.prevent="submitReview" class="space-y-4">
+                                <div class="flex flex-wrap items-center gap-3">
+                                    <span class="text-xs font-bold text-gray-700">Mức độ hài lòng:</span>
+                                    <div
+                                        class="flex items-center gap-1.5 text-lg text-amber-400 cursor-pointer select-none">
+                                        @for ($i = 1; $i <= 5; $i++)
+                                            <button type="button" wire:click="$set('rating', {{ $i }})"
+                                                class="transition-transform hover:scale-110 p-0.5">
+                                                <i
+                                                    class="fa-solid fa-star {{ $i <= $rating ? 'text-amber-400' : 'text-gray-300' }}"></i>
+                                            </button>
+                                        @endfor
+                                    </div>
+                                    <span class="text-xs font-bold text-amber-600">
+                                        {{ $rating }} sao -
+                                        @if ($rating == 5)
+                                            Tuyệt vời!
+                                        @elseif($rating == 4)
+                                            Rất tốt
+                                        @elseif($rating == 3)
+                                            Bình thường
+                                        @elseif($rating == 2)
+                                            Chưa hài lòng
+                                        @else
+                                            Rất thất vọng
+                                        @endif
+                                    </span>
+                                </div>
+
+                                <div>
+                                    <textarea wire:model="content" rows="3"
+                                        placeholder="Chia sẻ cảm nhận về độ tươi giòn, quy cách đóng gói và thời gian giao nhận..."
+                                        class="w-full bg-white border border-gray-200 rounded-2xl p-3.5 text-xs sm:text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all resize-none shadow-xs"></textarea>
+                                    @error('content')
+                                        <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span>
+                                    @enderror
+                                </div>
+
+                                <!-- Upload ảnh thực tế lên Cloudflare R2 -->
+                                <div class="space-y-2">
+                                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                                        <label
+                                            class="inline-flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-600 hover:text-brand-600 transition-colors">
+                                            <i class="fa-solid fa-camera text-brand-600 text-sm"></i>
+                                            <span>Thêm ảnh thực tế nhận hàng (Tối đa 5 ảnh)</span>
+                                            <input type="file" wire:model="reviewPhotos" multiple accept="image/*"
+                                                class="hidden">
+                                        </label>
+
+                                        <button type="submit" wire:loading.attr="disabled"
+                                            class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs sm:text-sm shadow-sm transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50 cursor-pointer">
+                                            <span wire:loading.remove wire:target="submitReview">
+                                                <i class="fa-regular fa-paper-plane text-xs mr-1"></i> Gửi đánh giá
+                                            </span>
+                                            <span wire:loading wire:target="submitReview">
+                                                <i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang tải lên...
+                                            </span>
                                         </button>
                                     </div>
-                                @endforeach
-                            </div>
-                        @endif
 
-                        @error('reviewPhotos') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
-                        @error('reviewPhotos.*') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
-                    </div>
-                </form>
-            </div>
-            @endif
-            @endauth
+                                    <!-- Khung Preview ảnh đã chọn trước khi gửi -->
+                                    @if (!empty($reviewPhotos))
+                                        <div class="flex flex-wrap gap-2.5 pt-2">
+                                            @foreach ($reviewPhotos as $index => $photo)
+                                                <div class="relative group">
+                                                    <img src="{{ $photo->temporaryUrl() }}"
+                                                        class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover border border-brand-200 shadow-2xs">
+                                                    <button type="button" wire:click="removePhoto({{ $index }})"
+                                                        title="Xóa ảnh này"
+                                                        class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 hover:bg-rose-600 text-white rounded-full flex items-center justify-center text-[10px] shadow-sm transition">
+                                                        <i class="fa-solid fa-xmark"></i>
+                                                    </button>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @endif
 
-            <div class="space-y-6">
-                @forelse ($reviews as $review)
-                <div wire:key="product-review-{{ $review->id }}" class="border-b border-gray-100 pb-6 last:border-0 last:pb-0">
-                    <div class="flex items-start gap-3.5 mb-2.5">
-                        @if ($review->user?->avatar_url)
-                            <img src="{{ $review->user->avatar_url }}"
-                                alt="{{ $review->user->name ?? 'Khách hàng' }}"
-                                class="w-10 h-10 rounded-full object-cover border border-brand-200 shrink-0">
-                        @else
-                            <div
-                                class="w-10 h-10 rounded-full bg-brand-100 text-brand-700 font-bold flex items-center justify-center shrink-0 text-sm">
-                                {{ mb_strtoupper(mb_substr($review->user->name ?? 'K', 0, 1)) }}
-                            </div>
-                        @endif
-                        <div class="flex-1">
-                            <div class="flex items-center justify-between">
-                                <h5 class="font-bold text-gray-900 text-sm">{{ $review->user->name ?? 'Khách hàng' }}
-                                </h5>
-                                <span
-                                    class="text-[11px] text-gray-400">{{ \Carbon\Carbon::parse($review->created_at)->format('d/m/Y') }}</span>
-                            </div>
-                            <div class="flex items-center gap-1.5 text-amber-400 text-xs mt-0.5">
-                                @for ($i = 1; $i <= 5; $i++) <i
-                                    class="fa-solid fa-star {{ $i <= $review->rating ? 'text-amber-400' : 'text-gray-200' }}">
-                                    </i>
-                                    @endfor
-                                    <span
-                                        class="text-[10px] text-brand-600 bg-brand-50 px-2 py-0.5 rounded font-bold ml-1">Đã
-                                        mua hàng</span>
-                            </div>
+                                    @error('reviewPhotos')
+                                        <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span>
+                                    @enderror
+                                    @error('reviewPhotos.*')
+                                        <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span>
+                                    @enderror
+                                </div>
+                            </form>
                         </div>
-                    </div>
-
-                    <p class="text-xs sm:text-sm text-gray-600 leading-relaxed mb-3">
-                        {{ $review->content ?? $review->comment }}
-                    </p>
-
-                    @if ($review->images && $review->images->count() > 0)
-                    <div class="flex flex-wrap gap-2.5">
-                        @foreach ($review->images as $revImg)
-                        @php
-                            $revImgUrl = $revImg->url;
-                        @endphp
-                        @if ($revImgUrl)
-                            <img src="{{ $revImgUrl }}" @click="previewImage = '{{ $revImgUrl }}'"
-                                title="Nhấn để xem ảnh phóng to"
-                                class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover border border-gray-200 cursor-pointer hover:opacity-85 transition-all hover:scale-105 transform duration-200 shadow-2xs">
-                        @endif
-                        @endforeach
-                    </div>
                     @endif
-                </div>
-                @empty
-                <p class="text-xs text-gray-400 text-center py-6">Chưa có đánh giá nào cho sản phẩm này.</p>
-                @endforelse
-            </div>
+                @endauth
 
-            @if ($reviews->hasPages())
-                <div class="mt-8 pt-6 border-t border-gray-100">
-                    {{ $reviews->links(data: ['scrollTo' => '#reviews']) }}
+                <div class="space-y-6">
+                    @forelse ($reviews as $review)
+                        <div wire:key="product-review-{{ $review->id }}"
+                            class="border-b border-gray-100 pb-6 last:border-0 last:pb-0">
+                            <div class="flex items-start gap-3.5 mb-2.5">
+                                @if ($review->user?->avatar_url)
+                                    <img src="{{ $review->user->avatar_url }}"
+                                        alt="{{ $review->user->name ?? 'Khách hàng' }}"
+                                        class="w-10 h-10 rounded-full object-cover border border-brand-200 shrink-0">
+                                @else
+                                    <div
+                                        class="w-10 h-10 rounded-full bg-brand-100 text-brand-700 font-bold flex items-center justify-center shrink-0 text-sm">
+                                        {{ mb_strtoupper(mb_substr($review->user->name ?? 'K', 0, 1)) }}
+                                    </div>
+                                @endif
+                                <div class="flex-1">
+                                    <div class="flex items-center justify-between">
+                                        <h5 class="font-bold text-gray-900 text-sm">
+                                            {{ $review->user->name ?? 'Khách hàng' }}
+                                        </h5>
+                                        <span
+                                            class="text-[11px] text-gray-400">{{ \Carbon\Carbon::parse($review->created_at)->format('d/m/Y') }}</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5 text-amber-400 text-xs mt-0.5">
+                                        @for ($i = 1; $i <= 5; $i++)
+                                            <i
+                                                class="fa-solid fa-star {{ $i <= $review->rating ? 'text-amber-400' : 'text-gray-200' }}">
+                                            </i>
+                                        @endfor
+                                        <span
+                                            class="text-[10px] text-brand-600 bg-brand-50 px-2 py-0.5 rounded font-bold ml-1">Đã
+                                            mua hàng</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p class="text-xs sm:text-sm text-gray-600 leading-relaxed mb-3">
+                                {{ $review->content ?? $review->comment }}
+                            </p>
+
+                            @if ($review->images && $review->images->count() > 0)
+                                <div class="flex flex-wrap gap-2.5">
+                                    @foreach ($review->images as $revImg)
+                                        @php
+                                            $revImgUrl = $revImg->url;
+                                        @endphp
+                                        @if ($revImgUrl)
+                                            <img src="{{ $revImgUrl }}"
+                                                @click="previewImage = '{{ $revImgUrl }}'"
+                                                title="Nhấn để xem ảnh phóng to"
+                                                class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover border border-gray-200 cursor-pointer hover:opacity-85 transition-all hover:scale-105 transform duration-200 shadow-2xs">
+                                        @endif
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
+                    @empty
+                        <p class="text-xs text-gray-400 text-center py-6">Chưa có đánh giá nào cho sản phẩm này.</p>
+                    @endforelse
                 </div>
-            @endif
-        </div>
+
+                @if ($reviews->hasPages())
+                    <div class="mt-8 pt-6 border-t border-gray-100">
+                        {{ $reviews->links(data: ['scrollTo' => '#reviews']) }}
+                    </div>
+                @endif
+            </div>
         @endif
     </div>
 
@@ -380,26 +403,28 @@
 
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3.5 sm:gap-6">
             @foreach ($relatedProducts as $related)
-            @php
-            $relImgUrl = $related->cover_image_url
-                ?? 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?w=600';
+                @php
+                    $relImgUrl =
+                        $related->cover_image_url ??
+                        'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?w=600';
 
-            // Tính tồn kho thực tế của sản phẩm tương tự
-            $relStock = (int) ($related->total_stock ?? 0);
-            $isRelOutOfStock = $relStock <= 0; @endphp <div
-                class="bg-white rounded-3xl border border-gray-100 hover:border-brand-200 hover:shadow-lg transition-all duration-300 group flex flex-col relative overflow-hidden">
+                    // Tính tồn kho thực tế của sản phẩm tương tự
+                    $relStock = (int) ($related->total_stock ?? 0);
+                $isRelOutOfStock = $relStock <= 0; @endphp <div
+                    class="bg-white rounded-3xl border border-gray-100 hover:border-brand-200 hover:shadow-lg transition-all duration-300 group flex flex-col relative overflow-hidden">
 
-                <!-- Nhãn Tạm Hết Hàng hoặc Flash Sale -->
-                @if($isRelOutOfStock)
-                <span
-                    class="absolute top-3 left-3 z-20 bg-gray-900/80 backdrop-blur-xs text-white text-[10px] sm:text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-sm">
-                    Tạm Hết Hàng
-                </span>
-                @elseif($related->sale_price && $related->sale_price < $related->price)
-                    <span
-                        class="absolute top-3 left-3 z-10 bg-red-500 text-white text-[10px] sm:text-[11px] font-bold px-2 sm:px-2.5 py-1 rounded-lg shadow-sm">
-                        -{{ round((($related->price - $related->sale_price) / $related->price) * 100) }}% Flash Sale
-                    </span>
+                    <!-- Nhãn Tạm Hết Hàng hoặc Flash Sale -->
+                    @if ($isRelOutOfStock)
+                        <span
+                            class="absolute top-3 left-3 z-20 bg-gray-900/80 backdrop-blur-xs text-white text-[10px] sm:text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-sm">
+                            Tạm Hết Hàng
+                        </span>
+                    @elseif($related->sale_price && $related->sale_price < $related->price)
+                        <span
+                            class="absolute top-3 left-3 z-10 bg-red-500 text-white text-[10px] sm:text-[11px] font-bold px-2 sm:px-2.5 py-1 rounded-lg shadow-sm">
+                            -{{ round((($related->price - $related->sale_price) / $related->price) * 100) }}% Flash
+                            Sale
+                        </span>
                     @endif
 
                     <!-- Ảnh sản phẩm: vẫn cho click vào xem chi tiết -->
@@ -408,13 +433,13 @@
                         <img src="{{ $relImgUrl }}" alt="{{ $related->name }}"
                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 {{ $isRelOutOfStock ? 'grayscale opacity-75' : '' }}">
 
-                        @if($isRelOutOfStock)
-                        <div class="absolute inset-0 bg-gray-900/10 flex items-center justify-center">
-                            <span
-                                class="bg-white/90 backdrop-blur-xs text-gray-800 text-xs font-extrabold px-3 py-1.5 rounded-xl shadow-xs border border-gray-200">
-                                Hết hàng
-                            </span>
-                        </div>
+                        @if ($isRelOutOfStock)
+                            <div class="absolute inset-0 bg-gray-900/10 flex items-center justify-center">
+                                <span
+                                    class="bg-white/90 backdrop-blur-xs text-gray-800 text-xs font-extrabold px-3 py-1.5 rounded-xl shadow-xs border border-gray-200">
+                                    Hết hàng
+                                </span>
+                            </div>
                         @endif
                     </a>
 
@@ -441,25 +466,25 @@
 
                             <!-- Nút Thêm Giỏ Hàng: Vô hiệu hóa nếu tạm hết hàng -->
                             @auth
-                            @if($isRelOutOfStock)
-                            <button type="button" disabled
-                                class="bg-gray-200 text-gray-400 w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center cursor-not-allowed"
-                                title="Sản phẩm tạm hết hàng">
-                                <i class="fa-solid fa-ban text-xs sm:text-sm"></i>
-                            </button>
-                            @else
-                            <button type="button" wire:click="addToCart({{ $related->id }}, 1)"
-                                class="bg-gray-900 hover:bg-brand-600 text-white w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-colors shadow-md active:scale-95"
-                                title="Thêm vào giỏ">
-                                <i class="fa-solid fa-plus text-xs sm:text-sm"></i>
-                            </button>
-                            @endif
+                                @if ($isRelOutOfStock)
+                                    <button type="button" disabled
+                                        class="bg-gray-200 text-gray-400 w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center cursor-not-allowed"
+                                        title="Sản phẩm tạm hết hàng">
+                                        <i class="fa-solid fa-ban text-xs sm:text-sm"></i>
+                                    </button>
+                                @else
+                                    <button type="button" wire:click="addToCart({{ $related->id }}, 1)"
+                                        class="bg-gray-900 hover:bg-brand-600 text-white w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-colors shadow-md active:scale-95"
+                                        title="Thêm vào giỏ">
+                                        <i class="fa-solid fa-plus text-xs sm:text-sm"></i>
+                                    </button>
+                                @endif
                             @endauth
                         </div>
                     </div>
+                </div>
+            @endforeach
         </div>
-        @endforeach
-    </div>
     </div>
 
     <!-- MODAL POPUP XEM ẢNH ĐÁNH GIÁ PHÓNG TO -->

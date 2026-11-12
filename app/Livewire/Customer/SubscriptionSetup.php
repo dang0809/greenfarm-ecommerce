@@ -14,7 +14,7 @@ use App\Models\Category;
 use App\Models\DeliverySchedule;
 use App\Models\SystemSetting;
 use App\Livewire\Traits\WithShippingAddress;
-#[Title('Thiết Lập Lịch & Theo Dõi Gói VIP | Nông Trại Đất Lành')]
+#[Title('Thiết Lập Lịch & Theo Dõi Gói VIP')]
 class SubscriptionSetup extends Component
 {
     use WithShippingAddress;
@@ -115,7 +115,8 @@ class SubscriptionSetup extends Component
                     if (is_array($v)) {
                         $pId = $v['product_id'] ?? null;
                         $q = $v['quantity'] ?? 1;
-                        if ($pId) $items[(int) $pId] = (int) $q;
+                        if ($pId)
+                            $items[(int) $pId] = (int) $q;
                     }
                 }
                 $dateObj = new \DateTime($s->delivery_date);
@@ -125,10 +126,10 @@ class SubscriptionSetup extends Component
 
                 $this->schedulePlan[] = [
                     'delivery_order' => $s->delivery_order,
-                    'date_label'     => $code . ' (' . $dateObj->format('d/m') . ')',
-                    'delivery_date'  => $s->delivery_date->format('Y-m-d'),
-                    'status'         => $s->status ?? 'pending',
-                    'items'          => $items,
+                    'date_label' => $code . ' (' . $dateObj->format('d/m') . ')',
+                    'delivery_date' => $s->delivery_date->format('Y-m-d'),
+                    'status' => $s->status ?? 'pending',
+                    'items' => $items,
                 ];
             }
         } else {
@@ -158,8 +159,8 @@ class SubscriptionSetup extends Component
             if (in_array($dayOfWeek, $daysArray)) {
                 $weekdayObj = collect($this->weekdays)->firstWhere('dayIndex', $dayOfWeek);
                 $dates[] = [
-                    'code'          => $weekdayObj['code'],
-                    'date_label'    => $weekdayObj['code'] . ' (' . $current->format('d/m') . ')',
+                    'code' => $weekdayObj['code'],
+                    'date_label' => $weekdayObj['code'] . ' (' . $current->format('d/m') . ')',
                     'delivery_date' => $current->format('Y-m-d'),
                 ];
             }
@@ -182,18 +183,18 @@ class SubscriptionSetup extends Component
             foreach ($calculatedDates as $idx => $d) {
                 $this->schedulePlan[] = [
                     'delivery_order' => $idx + 1,
-                    'date_label'     => $d['date_label'],
-                    'delivery_date'  => $d['delivery_date'],
-                    'status'         => 'pending',
-                    'items'          => [],
-                    'weight'         => 0.0,
+                    'date_label' => $d['date_label'],
+                    'delivery_date' => $d['delivery_date'],
+                    'status' => 'pending',
+                    'items' => [],
+                    'weight' => 0.0,
                 ];
             }
         } else {
             // Nhánh 2: Đã có kế hoạch -> Chỉ cập nhật lại ngày giao mới, giữ nguyên rau đã chọn
             foreach ($this->schedulePlan as $idx => &$plan) {
                 if (isset($calculatedDates[$idx])) {
-                    $plan['date_label']    = $calculatedDates[$idx]['date_label'];
+                    $plan['date_label'] = $calculatedDates[$idx]['date_label'];
                     $plan['delivery_date'] = $calculatedDates[$idx]['delivery_date'];
                 }
             }
@@ -209,7 +210,8 @@ class SubscriptionSetup extends Component
      */
     public function toggleDaySelection(int $dayIdx)
     {
-        if ($this->isLocked) return;
+        if ($this->isLocked)
+            return;
 
         if (in_array($dayIdx, $this->selectedDayIndexes)) {
             // Người dùng muốn bỏ chọn ngày này
@@ -293,10 +295,12 @@ class SubscriptionSetup extends Component
      */
     public function updateQty(int $veggieId, int $delta)
     {
-        if ($this->isLocked) return;
+        if ($this->isLocked)
+            return;
 
         $tabIndex = array_search($this->activeTab, array_column($this->schedulePlan, 'delivery_order'));
-        if ($tabIndex === false) return;
+        if ($tabIndex === false)
+            return;
 
         $currentItems = $this->schedulePlan[$tabIndex]['items'] ?? [];
         $currentWeight = $this->calculateDeliveryWeight($currentItems);
@@ -348,7 +352,8 @@ class SubscriptionSetup extends Component
      */
     public function copyMenuToAllDeliveries()
     {
-        if ($this->isLocked) return;
+        if ($this->isLocked)
+            return;
 
         $currentPlan = collect($this->schedulePlan)->firstWhere('delivery_order', $this->activeTab);
         if (!$currentPlan || empty($currentPlan['items'])) {
@@ -375,7 +380,8 @@ class SubscriptionSetup extends Component
      */
     public function confirmAndLockSchedule()
     {
-        if ($this->isLocked || !$this->subscription) return;
+        if ($this->isLocked || !$this->subscription)
+            return;
 
         // 1. Kiểm tra ngày giao: Phải chọn đúng 2 ngày trong tuần
         if (count($this->selectedDayIndexes) !== 2) {
@@ -395,7 +401,7 @@ class SubscriptionSetup extends Component
         // 3. VALIDATE BẮT BUỘC: CẢ 8 ĐỢT ĐỀU PHẢI CHỌN ĐỦ ĐÚNG ĐỊNH MỨC CÂN NẶNG
         foreach ($this->schedulePlan as $plan) {
             $weight = $this->calculateDeliveryWeight($plan['items']);
-            
+
             // Nếu đợt rỗng chưa có món nào
             if ($weight <= 0) {
                 $this->activeTab = $plan['delivery_order'];
@@ -415,7 +421,8 @@ class SubscriptionSetup extends Component
         $dayCodes = [];
         foreach ($this->selectedDayIndexes as $dIdx) {
             $wObj = collect($this->weekdays)->firstWhere('dayIndex', $dIdx);
-            if ($wObj) $dayCodes[] = $wObj['code'];
+            if ($wObj)
+                $dayCodes[] = $wObj['code'];
         }
         $deliveryDaysStr = implode(',', $dayCodes);
 
@@ -427,7 +434,8 @@ class SubscriptionSetup extends Component
         $allPlanProdIds = [];
         foreach ($this->schedulePlan as $plan) {
             foreach (($plan['items'] ?? []) as $pId => $qty) {
-                if ((int) $qty > 0) $allPlanProdIds[] = (int) $pId;
+                if ((int) $qty > 0)
+                    $allPlanProdIds[] = (int) $pId;
             }
         }
         $productsKeyed = !empty($allPlanProdIds)
@@ -439,11 +447,11 @@ class SubscriptionSetup extends Component
             DB::transaction(function () use ($recipientName, $recipientPhone, $recipientAddress, $deliveryDaysStr, $productsKeyed) {
                 // A. Cập nhật hợp đồng Subscription trong DB (chuyển sang 'active')
                 $this->subscription->update([
-                    'recipient_name'    => $recipientName,
-                    'recipient_phone'   => $recipientPhone,
+                    'recipient_name' => $recipientName,
+                    'recipient_phone' => $recipientPhone,
                     'recipient_address' => $recipientAddress,
-                    'delivery_days'     => $deliveryDaysStr,
-                    'status'            => 'active',
+                    'delivery_days' => $deliveryDaysStr,
+                    'status' => 'active',
                 ]);
 
                 // B. Lưu lịch trình 8 đợt vào bảng DeliverySchedule
@@ -455,11 +463,11 @@ class SubscriptionSetup extends Component
                             $prod = $productsKeyed->get($pId);
                             $itemWeight = $prod?->weight_kg ?? 0.5;
                             $formattedItems[] = [
-                                'product_id'   => (int) $pId,
+                                'product_id' => (int) $pId,
                                 'product_name' => $prod?->name ?? "Rau hữu cơ #$pId",
-                                'quantity'     => $q,
-                                'unit'         => $prod?->unit ?? 'kg',
-                                'weight'       => round($q * $itemWeight, 2),
+                                'quantity' => $q,
+                                'unit' => $prod?->unit ?? 'kg',
+                                'weight' => round($q * $itemWeight, 2),
                             ];
                         }
                     }
@@ -467,12 +475,12 @@ class SubscriptionSetup extends Component
                     DeliverySchedule::updateOrCreate(
                         [
                             'subscription_id' => $this->subscription->id,
-                            'delivery_order'  => $plan['delivery_order'],
+                            'delivery_order' => $plan['delivery_order'],
                         ],
                         [
-                            'delivery_date'   => $plan['delivery_date'],
-                            'items'           => $formattedItems,
-                            'status'          => 'pending',
+                            'delivery_date' => $plan['delivery_date'],
+                            'items' => $formattedItems,
+                            'status' => 'pending',
                         ]
                     );
                 }
@@ -507,11 +515,11 @@ class SubscriptionSetup extends Component
         $user = Auth::user();
         $shippingData = $this->resolveShippingAddresses($user?->id);
 
-        $addresses                = $shippingData['addresses'];
-        $currentAddress           = $shippingData['address'];
-        $currentDist              = $shippingData['distance'];
-        $maxDistance              = $shippingData['maxDistance'];
-        $isCurrentAddressUnknown  = $shippingData['isDistanceUnknown'];
+        $addresses = $shippingData['addresses'];
+        $currentAddress = $shippingData['address'];
+        $currentDist = $shippingData['distance'];
+        $maxDistance = $shippingData['maxDistance'];
+        $isCurrentAddressUnknown = $shippingData['isDistanceUnknown'];
         $isCurrentAddressExceeded = $shippingData['isDistanceExceeded'];
 
         // 2. Query Sản phẩm CHUẨN FEFO (chỉ lấy sản phẩm còn hàng trong các lô active và còn hạn sử dụng)
@@ -521,12 +529,12 @@ class SubscriptionSetup extends Component
                 $q->where('is_primary', true);
             }
         ])
-        ->withTotalStock()
-        ->where('status', 'active')
-        ->whereHas('category', function ($query) {
-            $query->where('is_active', true);
-        })
-        ->having('total_stock', '>', 0); // CHỈ HIỆN SẢN PHẨM CÒN HÀNG TRONG KHO
+            ->withTotalStock()
+            ->where('status', 'active')
+            ->whereHas('category', function ($query) {
+                $query->where('is_active', true);
+            })
+            ->having('total_stock', '>', 0); // CHỈ HIỆN SẢN PHẨM CÒN HÀNG TRONG KHO
 
         if ($this->selectedCategory) {
             $productQuery->where('category_id', $this->selectedCategory);
@@ -544,14 +552,14 @@ class SubscriptionSetup extends Component
                 ?? 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300';
 
             return [
-                'id'         => $p->id,
-                'name'       => $p->name,
-                'slug'       => $p->slug,
-                'image'      => $imgUrl,
-                'stock'      => (int) ($p->total_stock ?? 0),
-                'unit'       => $p->unit ?? 'kg',
+                'id' => $p->id,
+                'name' => $p->name,
+                'slug' => $p->slug,
+                'image' => $imgUrl,
+                'stock' => (int) ($p->total_stock ?? 0),
+                'unit' => $p->unit ?? 'kg',
                 'unit_label' => $p->unit ?? 'kg',
-                'weight'     => $p->weight_kg,
+                'weight' => $p->weight_kg,
             ];
         })->toArray();
 
@@ -564,10 +572,10 @@ class SubscriptionSetup extends Component
         // Lấy thông tin đợt giao hiện đang được chọn hiển thị
         $currentDelivery = collect($this->schedulePlan)->firstWhere('delivery_order', $this->activeTab) ?? ($this->schedulePlan[0] ?? [
             'delivery_order' => 1,
-            'date_label'     => 'Đợt 1',
-            'items'          => [],
-            'weight'         => 0.0,
-            'status'         => 'pending',
+            'date_label' => 'Đợt 1',
+            'items' => [],
+            'weight' => 0.0,
+            'status' => 'pending',
         ]);
 
         $currentWeight = $this->calculateDeliveryWeight($currentDelivery['items'] ?? []);
@@ -589,13 +597,14 @@ class SubscriptionSetup extends Component
                 $rawItems = $ds->items ?? [];
                 foreach ($rawItems as $it) {
                     $pId = $it['product_id'] ?? null;
-                    if ($pId) $allProdIds[] = (int) $pId;
+                    if ($pId)
+                        $allProdIds[] = (int) $pId;
                 }
             }
 
             // Thực hiện đúng 1 câu query duy nhất lấy thông tin kèm ảnh của tất cả sản phẩm,
             // dùng keyBy('id') để biến mảng thành dạng [product_id => ProductModel], giúp truy xuất cực nhanh O(1)
-            $productsKeyed = !empty($allProdIds) 
+            $productsKeyed = !empty($allProdIds)
                 ? Product::with('productImages')->whereIn('id', array_unique($allProdIds))->get()->keyBy('id')
                 : collect();
 
@@ -613,58 +622,58 @@ class SubscriptionSetup extends Component
                     $imgUrl = $prod?->cover_image_url
                         ?? 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=100';
 
-                    $itemWeight = isset($it['weight']) ? (float)$it['weight'] : round($q * ($prod?->weight_kg ?? 0.5), 2);
+                    $itemWeight = isset($it['weight']) ? (float) $it['weight'] : round($q * ($prod?->weight_kg ?? 0.5), 2);
                     $itemsDetail[] = [
-                        'name'     => $it['product_name'] ?? $prod?->name ?? 'Rau hữu cơ',
+                        'name' => $it['product_name'] ?? $prod?->name ?? 'Rau hữu cơ',
                         'quantity' => $q,
-                        'unit'     => $it['unit'] ?? $prod?->unit ?? 'kg',
-                        'weight'   => $itemWeight,
-                        'image'    => $imgUrl,
-                        'slug'     => $prod?->slug ?? '',
+                        'unit' => $it['unit'] ?? $prod?->unit ?? 'kg',
+                        'weight' => $itemWeight,
+                        'image' => $imgUrl,
+                        'slug' => $prod?->slug ?? '',
                     ];
                     $w += $itemWeight;
                 }
 
                 $lockedSchedules[] = [
-                    'order'       => $ds->delivery_order,
-                    'date'        => $ds->delivery_date?->format('d/m/Y') ?? (string)$ds->delivery_date,
+                    'order' => $ds->delivery_order,
+                    'date' => $ds->delivery_date?->format('d/m/Y') ?? (string) $ds->delivery_date,
                     'day_of_week' => $ds->delivery_date?->format('l') ?? '',
-                    'status'      => $ds->status ?? 'pending',
-                    'total_weight'=> round($w, 1),
-                    'items'       => $itemsDetail,
+                    'status' => $ds->status ?? 'pending',
+                    'total_weight' => round($w, 1),
+                    'items' => $itemsDetail,
                 ];
             }
         }
 
         $categories = Category::query()
-        ->where('is_active', true)
-        ->get(['id', 'name']);
+            ->where('is_active', true)
+            ->get(['id', 'name']);
 
         return view('livewire.customer.subscription-setup', [
-            'isLocked'                 => $this->isLocked,
-            'selectedDayIndexes'       => $this->selectedDayIndexes,
-            'schedulePlan'             => $this->schedulePlan,
-            'activeTab'                => $this->activeTab,
-            'weekdays'                 => $this->weekdays,
-            'showAddressModal'         => $this->showAddressModal,
-            'selectedAddressId'        => $this->selectedAddressId,
-            'addresses'                => $addresses,
-            'address'                  => $currentAddress,
-            'distance'                 => $currentDist,
-            'isDistanceUnknown'        => $isCurrentAddressUnknown,
-            'currentAddress'           => $currentAddress,
-            'veggieCatalog'            => $veggieCatalog,
-            'currentDelivery'          => $currentDelivery,
-            'currentWeight'            => $currentWeight,
-            'maxWeightTarget'          => $this->maxWeightTarget,
-            'categories'               => $categories,
-            'selectedCategory'         => $this->selectedCategory,
-            'searchVeggie'             => $this->searchVeggie,
-            'lockedSchedules'          => $lockedSchedules,
-            'deliveredCount'           => (int) ($this->subscription?->deliverySchedules()->where('status', 'delivered')->count() ?? 0),
-            'maxDistance'              => $maxDistance,
+            'isLocked' => $this->isLocked,
+            'selectedDayIndexes' => $this->selectedDayIndexes,
+            'schedulePlan' => $this->schedulePlan,
+            'activeTab' => $this->activeTab,
+            'weekdays' => $this->weekdays,
+            'showAddressModal' => $this->showAddressModal,
+            'selectedAddressId' => $this->selectedAddressId,
+            'addresses' => $addresses,
+            'address' => $currentAddress,
+            'distance' => $currentDist,
+            'isDistanceUnknown' => $isCurrentAddressUnknown,
+            'currentAddress' => $currentAddress,
+            'veggieCatalog' => $veggieCatalog,
+            'currentDelivery' => $currentDelivery,
+            'currentWeight' => $currentWeight,
+            'maxWeightTarget' => $this->maxWeightTarget,
+            'categories' => $categories,
+            'selectedCategory' => $this->selectedCategory,
+            'searchVeggie' => $this->searchVeggie,
+            'lockedSchedules' => $lockedSchedules,
+            'deliveredCount' => (int) ($this->subscription?->deliverySchedules()->where('status', 'delivered')->count() ?? 0),
+            'maxDistance' => $maxDistance,
             'isCurrentAddressExceeded' => $isCurrentAddressExceeded,
-            'hotline'                  => SystemSetting::contactSettings()['hotline'],
+            'hotline' => SystemSetting::contactSettings()['hotline'],
         ])->layout('layouts.customer.app');
     }
 }

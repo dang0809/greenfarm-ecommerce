@@ -33,14 +33,17 @@ class OrderNotificationMail extends Mailable implements ShouldQueue
      */
     public function envelope(): Envelope
     {
+        $farmName = SystemSetting::farmName();
+
         $subject = match ($this->type) {
-            'delivered' => '🎉 Đơn hàng #' . $this->order->order_code . ' đã được giao thành công - Nông Trại Đất Lành',
-            default     => '🌱 Xác nhận đơn hàng #' . $this->order->order_code . ' đã thanh toán thành công - Nông Trại Đất Lành',
+            'delivered' => '🎉 Đơn hàng #' . $this->order->order_code
+                . ' đã được giao thành công - ' . $farmName,
+
+            default => '🌱 Xác nhận đơn hàng #' . $this->order->order_code
+                . ' đã thanh toán thành công - ' . $farmName,
         };
 
-        return new Envelope(
-            subject: $subject,
-        );
+        return new Envelope(subject: $subject);
     }
 
     /**
@@ -51,8 +54,8 @@ class OrderNotificationMail extends Mailable implements ShouldQueue
         return new Content(
             view: 'emails.order_notification',
             with: [
-                'order'   => $this->order,
-                'type'    => $this->type,
+                'order' => $this->order,
+                'type' => $this->type,
                 'contact' => SystemSetting::contactSettings(),
             ],
         );

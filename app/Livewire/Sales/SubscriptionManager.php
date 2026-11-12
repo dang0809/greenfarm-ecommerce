@@ -10,7 +10,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 
 #[Layout('layouts.sales.app')]
-#[Title('Quản Lý Gói Rau Định Kỳ VIP | Nông Trại Đất Lành')]
+#[Title('Quản Lý Gói Rau Định Kỳ VIP')]
 class SubscriptionManager extends Component
 {
     use WithPagination;
@@ -50,9 +50,9 @@ class SubscriptionManager extends Component
     public function getStatusCountsProperty(): array
     {
         return [
-            'all'       => Subscription::count(),
-            'active'    => Subscription::where('status', 'active')->count(),
-            'today'     => Subscription::whereHas('deliverySchedules', function ($q) {
+            'all' => Subscription::count(),
+            'active' => Subscription::where('status', 'active')->count(),
+            'today' => Subscription::whereHas('deliverySchedules', function ($q) {
                 $q->where('status', 'processing');
             })->count(),
             'completed' => Subscription::where('status', 'completed')->count(),
@@ -115,22 +115,22 @@ class SubscriptionManager extends Component
                 $totalWeight += $weight;
 
                 $itemsDetail[] = [
-                    'name'     => $it['product_name'] ?? $prod?->name ?? 'Rau hữu cơ',
+                    'name' => $it['product_name'] ?? $prod?->name ?? 'Rau hữu cơ',
                     'quantity' => $qty,
-                    'unit'     => $it['unit'] ?? $prod?->unit ?? 'kg',
-                    'weight'   => $weight,
-                    'image'    => $imgUrl,
+                    'unit' => $it['unit'] ?? $prod?->unit ?? 'kg',
+                    'weight' => $weight,
+                    'image' => $imgUrl,
                 ];
             }
 
             $this->enrichedSchedules[] = [
-                'order'         => $s->delivery_order,
-                'date'          => $s->delivery_date?->format('d/m/Y') ?? 'Chưa đặt',
-                'day_of_week'   => $s->delivery_date?->format('l') ?? '',
-                'status'        => $s->status ?? 'pending',
-                'order_code'    => $s->order?->order_code ?? null,
-                'total_weight'  => round($totalWeight, 1),
-                'items'         => $itemsDetail,
+                'order' => $s->delivery_order,
+                'date' => $s->delivery_date?->format('d/m/Y') ?? 'Chưa đặt',
+                'day_of_week' => $s->delivery_date?->format('l') ?? '',
+                'status' => $s->status ?? 'pending',
+                'order_code' => $s->order?->order_code ?? null,
+                'total_weight' => round($totalWeight, 1),
+                'items' => $itemsDetail,
             ];
         }
 
@@ -189,7 +189,7 @@ class SubscriptionManager extends Component
         return view('livewire.sales.subscription-manager', [
             'subscriptions' => $subscriptions,
             'vipOrderCodes' => $vipOrderCodes,
-            'statusCounts'  => $this->statusCounts,
+            'statusCounts' => $this->statusCounts,
         ]);
     }
 }

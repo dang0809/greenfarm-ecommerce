@@ -12,7 +12,7 @@ use Livewire\Component;
 use App\Livewire\Traits\HandlesCart;
 use App\Models\Banner;
 #[Layout('layouts.customer.app')]
-#[Title('Nông Trại Đất Lành | Nông Sản Sạch Tự Trồng - Tự Bán')]
+#[Title('Nông Sản Sạch Tự Trồng - Tự Bán')]
 class HomePage extends Component
 {
     use HandlesCart;

@@ -20,7 +20,7 @@ use Throwable;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 #[Layout('layouts.farm-staff.app')]
-#[Title('Quản Lý Lô Nông Sản (FEFO) | Nông Trại Đất Lành')]
+#[Title('Quản Lý Lô Nông Sản (FEFO)')]
 class ProductBatchManager extends Component
 {
     use WithPagination;

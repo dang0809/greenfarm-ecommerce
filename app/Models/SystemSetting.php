@@ -21,18 +21,42 @@ class SystemSetting extends Model
         'group',
     ];
 
+    public const DEFAULT_FARM_NAME = 'Nông Trại Sinh Thái Đất Lành - GreenFarm';
+
     public static function contactSettings(): array
     {
         return Cache::rememberForever('system_contact_settings', function () {
-            $settings = self::where('group', 'contact')->pluck('value', 'key');
+            $settings = self::where('group', 'contact')
+                ->pluck('value', 'key');
 
             return [
-                'hotline'        => $settings['hotline'] ?? '0987.654.321',
-                'email'          => $settings['email'] ?? 'lienhe@datlanhfarm.vn',
-                'farm_address'   => $settings['farm_address'] ?? 'Số 86 đường Lê Thánh Tôn, Phường Sài Gòn, Quận 1, Thành phố Hồ Chí Minh',
-                'farm_latitude'  => (float) ($settings['farm_latitude'] ?? 10.7769),
+                'farm_name' => $settings['farm_name'] ?? self::DEFAULT_FARM_NAME,
+
+                'hotline' => $settings['hotline'] ?? '0987.654.321',
+
+                'email' => $settings['email'] ?? 'lienhe@datlanhfarm.vn',
+
+                'farm_address' => $settings['farm_address']
+                    ?? 'Số 86 đường Lê Thánh Tôn, Phường Sài Gòn, Quận 1, Thành phố Hồ Chí Minh',
+
+                'farm_latitude' => (float) ($settings['farm_latitude'] ?? 10.7769),
+
                 'farm_longitude' => (float) ($settings['farm_longitude'] ?? 106.7009),
             ];
         });
+    }
+
+    public static function farmName(): string
+    {
+        $value = (string) (
+            self::contactSettings()['farm_name'] ?? self::DEFAULT_FARM_NAME
+        );
+
+        // Chuẩn hóa khoảng trắng, loại xuống dòng khi dùng trong tiêu đề email.
+        $value = trim(preg_replace('/\s+/u', ' ', $value) ?? '');
+
+        return $value !== ''
+            ? $value
+            : self::DEFAULT_FARM_NAME;
     }
 }

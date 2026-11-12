@@ -22,7 +22,7 @@ use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
 #[Layout('layouts.farm-staff.app')]
-#[Title('Quản Lý Luống Đất & Canh Tác | Nông Trại Đất Lành')]
+#[Title('Quản Lý Luống Đất & Canh Tác')]
 class FarmPlotManager extends Component
 {
     use WithFileUploads;

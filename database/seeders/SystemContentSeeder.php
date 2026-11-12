@@ -18,7 +18,7 @@ class SystemContentSeeder extends Seeder
             ['key' => 'farm_address', 'value' => 'Số 86 đường Lê Thánh Tôn, Phường Sài Gòn, Quận 1, Thành phố Hồ Chí Minh', 'group' => 'contact'],
             ['key' => 'farm_latitude', 'value' => '10.7769', 'group' => 'contact'],   // Vĩ độ kho/nông trại
             ['key' => 'farm_longitude', 'value' => '106.7009', 'group' => 'contact'], // Kinh độ kho/nông trại
-            
+
             ['key' => 'max_shipping_distance_km', 'value' => '25', 'group' => 'shipping'],
             // 3. Nhóm Gói thành viên / Đăng ký
             // 3. Nhóm Gói thành viên / Đăng ký VIP
@@ -65,8 +65,8 @@ class SystemContentSeeder extends Seeder
         $pages = [
             [
                 'slug' => 'cau-chuyen-thuong-hieu',
-                'title' => 'Câu Chuyện Thương Hiệu Nông Trại Đất Lành',
-                'content' => '<p>Đất Lành khởi nguồn từ khát vọng mang đến nguồn rau củ quả thuần khiết nhất...</p>',
+                'title' => 'Câu Chuyện Thương Hiệu [[farm_name]]',
+                'content' => '<p>[[farm_name]] khởi nguồn từ khát vọng mang đến nguồn rau củ quả thuần khiết nhất...</p>',
                 'created_at' => now(),
             ],
             [

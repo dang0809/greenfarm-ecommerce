@@ -23,7 +23,7 @@ class OrderDetail extends Component
             ->firstOrFail();
 
         $this->order_code = $order->order_code;
-        $this->orderId    = $order->id;
+        $this->orderId = $order->id;
     }
 
     public function render()
@@ -37,21 +37,21 @@ class OrderDetail extends Component
             'complaint',
             'deliverySchedule.subscription',
         ])
-        ->where('user_id', Auth::id())
-        ->where('order_code', $this->order_code)
-        ->firstOrFail();
+            ->where('user_id', Auth::id())
+            ->where('order_code', $this->order_code)
+            ->firstOrFail();
 
         $deliveredHistory = $order->statusHistories?->firstWhere('new_status', 'delivered');
         $deliveredAt = $deliveredHistory ? $deliveredHistory->created_at : $order->updated_at;
         $canRefund = ($order->status === 'delivered' && $order->order_type === 'retail' && !$order->complaint && $deliveredAt && $deliveredAt->diffInHours(now()) < 24);
 
         return view('livewire.customer.order-detail', [
-            'order'              => $order,
-            'canRefund'          => $canRefund,
+            'order' => $order,
+            'canRefund' => $canRefund,
             'showComplaintModal' => $this->showComplaintModal,
-            'timeline'           => $this->getOrderTimeline($order),
+            'timeline' => $this->getOrderTimeline($order),
         ])->layout('layouts.customer.app', [
-            'title' => "Chi Tiết Đơn Hàng #{$order->order_code} | Nông Trại Đất Lành"
-        ]);
+                    'title' => "Chi Tiết Đơn Hàng #{$order->order_code}"
+                ]);
     }
 }

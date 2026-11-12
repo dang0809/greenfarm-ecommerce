@@ -11,7 +11,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 
 #[Layout('layouts.sales.app')]
-#[Title('Quản Lý Xả Hàng Nông Sản | Nông Trại Đất Lành')]
+#[Title('Quản Lý Xả Hàng Nông Sản')]
 class ClearanceManager extends Component
 {
     use WithPagination;
@@ -150,9 +150,9 @@ class ClearanceManager extends Component
     {
         // 1. Query cơ sở: Lô active, còn tồn kho khả dụng, hạn dùng trong vòng 2 ngày (<= 48h)
         $baseQuery = ProductBatch::with([
-                'plantingBatch.product.productImages',
-                'plantingBatch.product.category'
-            ])
+            'plantingBatch.product.productImages',
+            'plantingBatch.product.category'
+        ])
             ->where('status', 'active')
             ->where('current_quantity', '>', 0)
             ->whereDate('expiry_date', '>=', today())
@@ -178,7 +178,7 @@ class ClearanceManager extends Component
             ->get();
 
         $activeSaleCount = $activeSaleBatches->count();
-        $activeSaleQty   = (int) $activeSaleBatches->sum(fn($b) => $b->available_quantity);
+        $activeSaleQty = (int) $activeSaleBatches->sum(fn($b) => $b->available_quantity);
 
         // Số liệu cho các Tabs
         $notSaleCount = (clone $baseQuery)->where('discount_percent', 0)->count();
@@ -197,9 +197,9 @@ class ClearanceManager extends Component
         if ($rawSearch !== '') {
             $query->where(function ($q) use ($rawSearch) {
                 $q->where('batch_code', 'like', "%{$rawSearch}%")
-                  ->orWhereHas('plantingBatch.product', function ($sub) use ($rawSearch) {
-                      $sub->where('name', 'like', "%{$rawSearch}%");
-                  });
+                    ->orWhereHas('plantingBatch.product', function ($sub) use ($rawSearch) {
+                        $sub->where('name', 'like', "%{$rawSearch}%");
+                    });
             });
         }
 
@@ -207,13 +207,13 @@ class ClearanceManager extends Component
         $batches = $query->orderBy('expiry_date', 'asc')->paginate($this->perPage);
 
         return view('livewire.sales.clearance-manager', [
-            'batches'           => $batches,
-            'urgentCount'       => $urgentCount,
-            'nearCount'         => $nearCount,
-            'totalCount'        => $totalCount,
-            'activeSaleCount'   => $activeSaleCount,
-            'activeSaleQty'     => $activeSaleQty,
-            'notSaleCount'      => $notSaleCount,
+            'batches' => $batches,
+            'urgentCount' => $urgentCount,
+            'nearCount' => $nearCount,
+            'totalCount' => $totalCount,
+            'activeSaleCount' => $activeSaleCount,
+            'activeSaleQty' => $activeSaleQty,
+            'notSaleCount' => $notSaleCount,
         ]);
     }
 }

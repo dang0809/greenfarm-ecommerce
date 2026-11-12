@@ -20,7 +20,7 @@ use RuntimeException;
 use Throwable;
 
 #[Layout('layouts.farm-staff.app')]
-#[Title('Hồ Sơ Kiểm Định & Chứng Nhận | Nông Trại Đất Lành')]
+#[Title('Hồ Sơ Kiểm Định & Chứng Nhận')]
 class CertificationManager extends Component
 {
     use WithFileUploads;
