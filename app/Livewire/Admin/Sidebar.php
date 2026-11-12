@@ -6,6 +6,11 @@ use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 class Sidebar extends Component
 {
+    public function requestLogout(): void
+    {
+        $this->dispatch('confirm-admin-logout')->self();
+    }
+
     public function logout(): void
     {
         Auth::guard('web')->logout();
