@@ -33,6 +33,10 @@ use App\Livewire\Sales\SubscriptionManager;
 use App\Livewire\Sales\ComplaintManager;
 use App\Livewire\Sales\ClearanceManager;
 use App\Livewire\Sales\SystemSettingManager;
+// Import Admin Components
+use App\Livewire\Admin\AccountManager;
+use App\Livewire\Admin\BannerManager;
+use App\Livewire\Admin\SettingManager;
 /*
 |--------------------------------------------------------------------------
 | 1. PUBLIC ROUTES (Ai cũng xem được - Không cần đăng nhập)
@@ -58,19 +62,19 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
     $user = User::findOrFail($id);
 
     // 1. Kiểm tra SHA-1 hash email
-    if (! hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
+    if (!hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
         session()->flash('error', 'Link xác thực không hợp lệ!');
         return redirect()->route('home');
     }
 
     // 2. Kiểm tra chữ ký bảo mật (Hạn 60 phút)
-    if (! $request->hasValidSignature()) {
+    if (!$request->hasValidSignature()) {
         session()->flash('error', 'Link xác thực đã hết hạn!');
         return redirect()->route('home');
     }
-        
+
     // 3. Kích hoạt tài khoản: đổi status thành 'active'
-    if (! $user->hasVerifiedEmail()) {
+    if (!$user->hasVerifiedEmail()) {
         $user->markEmailAsVerified();
         $user->update(['status' => 'active']);
     }
@@ -90,7 +94,7 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
 |--------------------------------------------------------------------------
 */
 Route::middleware(['role:customer'])->group(function () {
-    
+
     // Trang Thanh toán gói VIP
     Route::get('/goi-vip/thanh-toan', VipCheckout::class)->name('customer.vip.checkout');
     Route::get('/goi-vip/thiet-lap-lich', SubscriptionSetup::class)->name('customer.vip.setup');
@@ -112,8 +116,8 @@ Route::middleware(['role:customer'])->group(function () {
 */
 Route::middleware(['role:farm_staff'])->prefix('nhan-vien-nong-trai')->name('farm-staff.')->group(function () {
     Route::get('/', function () {
-            return redirect()->route('farm-staff.farm-plot');
-        })->name('dashboard');
+        return redirect()->route('farm-staff.farm-plot');
+    })->name('dashboard');
     Route::get('/luong-dat', FarmPlotManager::class)->name('farm-plot');
     Route::get('/lo-nong-san', ProductBatchManager::class)->name('product-batch');
     Route::get('/giay-chung-nhan', CertificationManager::class)->name('certification');
@@ -135,4 +139,19 @@ Route::middleware(['role:sales'])->prefix('nhan-vien-ban-hang')->name('sales.')-
     Route::get('/goi-dinh-ky', SubscriptionManager::class)->name('subscriptions');
     Route::get('/cai-dat', SystemSettingManager::class)->name('settings');
     Route::get('/ho-so', ProfileManager::class)->name('profile');
+});
+
+Route::middleware(['role:admin'])->prefix('quan-tri')->name('admin.')->group(function () {
+    Route::get('/', function () {
+        return redirect()->route('admin.accounts');
+    })->name('dashboard');
+
+    Route::get('/tai-khoan', AccountManager::class)
+        ->name('accounts');
+
+    Route::get('/banner', BannerManager::class)
+        ->name('banners');
+
+    Route::get('/cau-hinh-he-thong', SettingManager::class)
+        ->name('settings');
 });

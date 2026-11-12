@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Builder;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -55,8 +56,8 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return [
             'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
-            'reward_points'     => 'integer',
+            'password' => 'hashed',
+            'reward_points' => 'integer',
         ];
     }
 
@@ -100,6 +101,23 @@ class User extends Authenticatable implements MustVerifyEmail
     public function notifications(): HasMany
     {
         return $this->hasMany(Notification::class);
+    }
+
+    public function scopeSearch(Builder $query, string $search): Builder
+    {
+        $search = trim($search);
+
+        if ($search === '') {
+            return $query;
+        }
+
+        $term = '%' . $search . '%';
+
+        return $query->where(function (Builder $query) use ($term) {
+            $query->where('name', 'like', $term)
+                ->orWhere('email', 'like', $term)
+                ->orWhere('phone', 'like', $term);
+        });
     }
 
     public function getAvatarUrlAttribute(): ?string
