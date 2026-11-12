@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
@@ -55,6 +57,27 @@ class BannerManager extends Component
     public int $fileInputKey = 0;
 
     #[Locked]
+    public ?int $editingId = null;
+
+    #[Locked]
+    public ?string $editingVersion = null;
+
+    #[Locked]
+    public ?string $currentImagePath = null;
+
+    #[Locked]
+    public ?string $currentImageUrl = null;
+
+    #[Locked]
+    public string $originalPageHtml = '';
+
+    #[Locked]
+    public string $originalPageText = '';
+
+    #[Locked]
+    public array $pendingAction = [];
+
+    #[Locked]
     public ?string $modal = null;
 
     #[Locked]
@@ -77,10 +100,33 @@ class BannerManager extends Component
         );
     }
 
-    public function updated(): void
+    public function updated(string $property): void
     {
         // Dữ liệu thay đổi thì xác nhận trước đó không còn hiệu lực.
         $this->cancelConfirmation();
+
+        $fields = [
+            'banner.title',
+            'banner.description',
+            'banner.button_text',
+            'banner.link',
+            'banner.sort_order',
+            'banner.status',
+            'bannerFile',
+
+            'page.title',
+            'page.slug',
+            'page.content',
+
+            'farm.caption',
+            'farm.sort_order',
+            'farmFile',
+        ];
+
+        if (in_array($property, $fields, true)) {
+            // Chỉ xóa lỗi của trường vừa thay đổi.
+            $this->resetValidation($property);
+        }
     }
 
     private function assertR2Configured(): void
@@ -188,6 +234,9 @@ class BannerManager extends Component
 
     public function openForm(string $type): void
     {
+        if ($this->pendingAction || $this->confirmationHash !== null) {
+            return;
+        }
         abort_unless(
             in_array($type, ['banner', 'page', 'farm-image'], true),
             404
@@ -203,6 +252,343 @@ class BannerManager extends Component
         $this->cancelConfirmation();
     }
 
+    private function modelClass(string $type): string
+    {
+        return match ($type) {
+            'banner' => Banner::class,
+            'page' => Page::class,
+            'farm-image' => FarmImage::class,
+            default => abort(404),
+        };
+    }
+
+    private function getRecord(
+        string $type,
+        int $id,
+        bool $lock = false
+    ): ?Model {
+        $class = $this->modelClass($type);
+        $query = $class::query();
+
+        if ($lock) {
+            $query->lockForUpdate();
+        }
+
+        return $query->find($id);
+    }
+
+    private function recordVersion(Model $record): string
+    {
+        return hash(
+            'sha256',
+            json_encode(
+                $record->getRawOriginal(),
+                JSON_THROW_ON_ERROR
+            )
+        );
+    }
+
+    private function ensureCurrent(?Model $record): void
+    {
+        if (
+            !$record
+            || $this->editingVersion !== $this->recordVersion($record)
+        ) {
+            throw ValidationException::withMessages([
+                'save' =>
+                    'Bản ghi đã thay đổi hoặc bị xóa. Vui lòng đóng và mở lại form.',
+            ]);
+        }
+    }
+
+    private function normalizeText(string $text): string
+    {
+        return trim(str_replace(["\r\n", "\r"], "\n", $text));
+    }
+
+    private function pageText(string $html): string
+    {
+        $text = preg_replace(
+            '#<br\s*/?>\r?\n?#i',
+            "\n",
+            $html
+        ) ?? $html;
+
+        $text = preg_replace(
+            '#</(?:p|div|li|h[1-6])\s*>#i',
+            "\n",
+            $text
+        ) ?? $text;
+
+        return $this->normalizeText(
+            html_entity_decode(
+                strip_tags($text),
+                ENT_QUOTES | ENT_HTML5,
+                'UTF-8'
+            )
+        );
+    }
+
+    public function openEdit(string $type, int $id): void
+    {
+        if ($this->pendingAction || $this->confirmationHash !== null) {
+            return;
+        }
+
+        $record = $this->getRecord($type, $id);
+
+        if (!$record) {
+            $this->notify('info', 'Nội dung không còn tồn tại.');
+            return;
+        }
+
+        $this->resetForms();
+
+        $this->modal = $type;
+        $this->editingId = (int) $record->id;
+        $this->editingVersion = $this->recordVersion($record);
+
+        if ($type === 'banner') {
+            $this->banner = [
+                'title' => (string) $record->title,
+                'description' => (string) $record->description,
+                'button_text' => (string) $record->button_text,
+                'link' => (string) $record->link,
+                'sort_order' => (string) $record->sort_order,
+                'status' => (string) $record->status,
+            ];
+
+            $this->currentImagePath = $record->image;
+            $this->currentImageUrl = $record->image_url;
+        } elseif ($type === 'page') {
+            $this->originalPageHtml = (string) $record->content;
+            $this->originalPageText = $this->pageText(
+                $this->originalPageHtml
+            );
+
+            $this->page = [
+                'title' => (string) $record->title,
+                'slug' => (string) $record->slug,
+                'content' => $this->originalPageText,
+            ];
+        } else {
+            $this->farm = [
+                'caption' => (string) $record->caption,
+                'sort_order' => (string) $record->sort_order,
+            ];
+
+            $this->currentImagePath = $record->image_url;
+            $this->currentImageUrl = $record->display_url;
+        }
+    }
+
+    public function requestToggleStatus(int $id): void
+    {
+        $this->requestAction('status', 'banner', $id);
+    }
+
+    public function requestDelete(string $type, int $id): void
+    {
+        $this->requestAction('delete', $type, $id);
+    }
+
+    private function requestAction(
+        string $kind,
+        string $type,
+        int $id
+    ): void {
+        if (
+            $this->modal !== null
+            || $this->pendingAction
+            || $this->confirmationHash !== null
+        ) {
+            return;
+        }
+
+        abort_unless(
+            $id > 0 && (
+                ($kind === 'status' && $type === 'banner')
+                || (
+                    $kind === 'delete'
+                    && in_array($type, ['banner', 'farm-image'], true)
+                )
+            ),
+            422
+        );
+
+        $record = $this->getRecord($type, $id);
+
+        if (!$record) {
+            $this->notify('info', 'Nội dung không còn tồn tại.');
+            return;
+        }
+
+        if (
+            $kind === 'status'
+            && !in_array($record->status, ['active', 'inactive'], true)
+        ) {
+            $this->notify('error', 'Trạng thái banner không hợp lệ.');
+            return;
+        }
+
+        $to = $kind === 'status'
+            ? ($record->status === 'active' ? 'inactive' : 'active')
+            : null;
+
+        $this->pendingAction = [
+            'kind' => $kind,
+            'type' => $type,
+            'id' => $id,
+            'version' => $this->recordVersion($record),
+            'to' => $to,
+        ];
+
+        $this->dispatch(
+            'confirm-content-action',
+            kind: $kind,
+            name: (string) (
+                $type === 'banner'
+                ? $record->title
+                : $record->caption
+            ),
+            enabling: $to === 'active'
+        )->self();
+    }
+
+    public function cancelAction(): void
+    {
+        $this->pendingAction = [];
+    }
+
+    public function saveAction(): void
+    {
+        $pending = $this->pendingAction;
+        $this->pendingAction = [];
+
+        if (!$pending) {
+            return;
+        }
+
+        try {
+            $result = DB::transaction(function () use ($pending) {
+                $record = $this->getRecord(
+                    $pending['type'],
+                    $pending['id'],
+                    true
+                );
+
+                if (!$record) {
+                    return [
+                        'saved' => false,
+                        'status' => null,
+                        'path' => null,
+                    ];
+                }
+
+                if (
+                    $this->recordVersion($record)
+                    !== $pending['version']
+                ) {
+                    return [
+                        'saved' => false,
+                        'status' => $pending['type'] === 'banner'
+                            ? $record->status
+                            : null,
+                        'path' => null,
+                    ];
+                }
+
+                if ($pending['kind'] === 'status') {
+                    $record->status = $pending['to'];
+
+                    if (!$record->saveOrFail()) {
+                        throw new RuntimeException(
+                            'Không lưu được trạng thái.'
+                        );
+                    }
+
+                    return [
+                        'saved' => true,
+                        'status' => $record->status,
+                        'path' => null,
+                    ];
+                }
+
+                $column = $pending['type'] === 'banner'
+                    ? 'image'
+                    : 'image_url';
+
+                $path = $record->getRawOriginal($column);
+
+                if (!$record->delete()) {
+                    throw new RuntimeException(
+                        'Không xóa được bản ghi.'
+                    );
+                }
+
+                return [
+                    'saved' => true,
+                    'status' => null,
+                    'path' => $path,
+                ];
+            });
+        } catch (Throwable $exception) {
+            report($exception);
+
+            $this->notify(
+                'error',
+                'Thao tác chưa hoàn tất. Vui lòng thử lại.'
+            );
+
+            return;
+        }
+
+        // Đồng bộ theo trạng thái thật, kể cả khi phát hiện dữ liệu đã đổi.
+        if (
+            $pending['type'] === 'banner'
+            && $result['status'] !== null
+        ) {
+            $this->dispatch(
+                'banner-status-updated',
+                id: (int) $pending['id'],
+                status: $result['status']
+            );
+        }
+
+        if (!$result['saved']) {
+            $this->notify(
+                'info',
+                'Bản ghi đã thay đổi hoặc bị xóa. Vui lòng thao tác lại.'
+            );
+
+            return;
+        }
+
+        if ($pending['kind'] === 'delete') {
+            $this->deleteManagedImage($result['path']);
+        }
+
+        $this->notify(
+            'success',
+            $pending['kind'] === 'delete'
+            ? 'Đã xóa nội dung.'
+            : (
+                $pending['to'] === 'active'
+                ? 'Đã bật hiển thị banner.'
+                : 'Đã tạm ẩn banner.'
+            )
+        );
+    }
+
+    private function notify(string $icon, string $title): void
+    {
+        $this->dispatch(
+            'swal',
+            icon: $icon,
+            title: $title
+        );
+    }
+
     private function resetForms(): void
     {
         $this->reset([
@@ -211,9 +597,15 @@ class BannerManager extends Component
             'farm',
             'bannerFile',
             'farmFile',
+            'editingId',
+            'editingVersion',
+            'currentImagePath',
+            'currentImageUrl',
+            'originalPageHtml',
+            'originalPageText',
+            'pendingAction',
         ]);
 
-        // Chỉ thay key khi bắt đầu form mới hoặc lưu thành công.
         $this->fileInputKey++;
 
         $this->resetValidation();
@@ -227,10 +619,41 @@ class BannerManager extends Component
         $this->confirmationHash = null;
     }
 
+    private function imagePreviewUrl(): ?string
+    {
+        $file = $this->selectedFile($this->modal ?? '');
+
+        if ($file === null) {
+            return $this->currentImageUrl;
+        }
+
+        try {
+            $validator = Validator::make(
+                ['file' => $file],
+                [
+                    'file' => [
+                        'image',
+                        'mimes:jpg,jpeg,png,webp',
+                        'max:5120',
+                    ],
+                ]
+            );
+
+            return $validator->passes()
+                ? $file->temporaryUrl()
+                : null;
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
     private function validatedData(string $type): array
     {
         $imageRules = [
-            'required',
+            $this->editingId === null || !$this->currentImagePath
+            ? 'required'
+            : 'nullable',
+
             'image',
             'mimes:jpg,jpeg,png,webp',
             'max:5120',
@@ -303,7 +726,7 @@ class BannerManager extends Component
                     'string',
                     'max:255',
                     'regex:/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/',
-                    Rule::unique('pages', 'slug'),
+                    Rule::unique('pages', 'slug')->ignore($this->editingId),
                 ],
                 'page.content' => [
                     'required',
@@ -402,23 +825,92 @@ class BannerManager extends Component
         }
 
         if ($type === 'page') {
-            /*
-             * Textarea hiện nhận văn bản thuần.
-             * AboutPage đang xuất nội dung bằng {!! !!},
-             * vì vậy escape trước khi lưu và giữ xuống dòng.
-             */
-            $payload['content'] = nl2br(e($payload['content']));
+            $text = $this->normalizeText($payload['content']);
 
-            // Bảo đảm phù hợp giới hạn cột TEXT hiện tại trên MySQL.
+            $payload['content'] = $this->editingId !== null
+                && $text === $this->normalizeText($this->originalPageText)
+                ? $this->originalPageHtml
+                : nl2br(e($text));
+
             if (strlen($payload['content']) > 65535) {
                 throw ValidationException::withMessages([
-                    'page.content' =>
-                        'Nội dung quá dài sau khi định dạng. Vui lòng rút ngắn.',
+                    'page.content' => 'Nội dung quá dài sau khi định dạng.',
                 ]);
             }
         }
 
         return $payload;
+    }
+
+    private function imageHasChanges(
+        string $type,
+        Model $record
+    ): bool {
+        $file = $this->selectedFile($type);
+
+        if ($file === null) {
+            return false;
+        }
+
+        $column = $type === 'banner' ? 'image' : 'image_url';
+
+        $path = trim(
+            (string) $record->getRawOriginal($column)
+        );
+
+        // URL ngoài: chọn file mới được hiểu là thay nguồn ảnh.
+        if ($path === '' || preg_match('#\Ahttps?://#i', $path)) {
+            return true;
+        }
+
+        try {
+            $diskName = Str::startsWith($path, [
+                'content/banners/',
+                'content/farm-images/',
+            ]) ? self::IMAGE_DISK : 'public';
+
+            $disk = Storage::disk($diskName);
+
+            if (!$disk->exists($path)) {
+                return true;
+            }
+
+            $old = $disk->get($path);
+            $new = $file->get();
+
+            if (!is_string($old) || !is_string($new)) {
+                throw new RuntimeException(
+                    'Không đọc được ảnh để so sánh.'
+                );
+            }
+
+            return !hash_equals(
+                hash('sha256', $old),
+                hash('sha256', $new)
+            );
+        } catch (Throwable $exception) {
+            report($exception);
+
+            throw ValidationException::withMessages([
+                $type === 'banner' ? 'bannerFile' : 'farmFile'
+                => 'Không thể so sánh ảnh hiện tại. Vui lòng thử lại.',
+            ]);
+        }
+    }
+
+    private function hasChanges(
+        string $type,
+        Model $record,
+        array $data
+    ): bool {
+        $copy = clone $record;
+        $copy->fill($data);
+
+        return $copy->isDirty(array_keys($data))
+            || (
+                $type !== 'page'
+                && $this->imageHasChanges($type, $record)
+            );
     }
 
     private function selectedFile(string $type)
@@ -457,7 +949,13 @@ class BannerManager extends Component
         return hash_hmac(
             'sha256',
             json_encode(
-                [$type, $data, $checksum],
+                [
+                    $type,
+                    $this->editingId,
+                    $this->editingVersion,
+                    $data,
+                    $checksum,
+                ],
                 JSON_THROW_ON_ERROR
             ),
             (string) config('app.key')
@@ -476,16 +974,34 @@ class BannerManager extends Component
         $this->cancelConfirmation();
         $this->resetValidation();
 
-        // Validate trước. Nếu sai, Livewire hiển thị lỗi và dừng.
+        // Validate trước khi mở SweetAlert xác nhận.
         $data = $this->validatedData($type);
+
+        if ($this->editingId !== null) {
+            $record = $this->getRecord(
+                $type,
+                $this->editingId
+            );
+
+            $this->ensureCurrent($record);
+
+            if (!$this->hasChanges($type, $record, $data)) {
+                $this->notify(
+                    'info',
+                    'Không có sự thay đổi nào.'
+                );
+
+                return;
+            }
+        }
 
         $this->confirmationHash = $this->signature($type, $data);
         $this->pendingType = $type;
 
-        // Bước này chưa ghi database hoặc lưu ảnh chính thức.
         $this->dispatch(
             'confirm-content-save',
-            type: $type
+            type: $type,
+            editing: $this->editingId !== null
         )->self();
     }
 
@@ -501,7 +1017,6 @@ class BannerManager extends Component
             return;
         }
 
-        // Kiểm tra lại dữ liệu trước khi ghi.
         $data = $this->validatedData($type);
 
         if (
@@ -514,7 +1029,7 @@ class BannerManager extends Component
 
             $this->addError(
                 'save',
-                'Dữ liệu đã thay đổi. Vui lòng nhấn Lưu và xác nhận lại.'
+                'Dữ liệu đã đổi. Vui lòng nhấn Lưu và xác nhận lại.'
             );
 
             return;
@@ -522,26 +1037,50 @@ class BannerManager extends Component
 
         $this->cancelConfirmation();
 
+        $editing = $this->editingId !== null;
         $newPath = null;
+        $oldPath = null;
+        $savedRecord = null;
 
         try {
-            if ($type !== 'page') {
-                $column = $type === 'banner'
-                    ? 'image'
-                    : 'image_url';
+            $changed = DB::transaction(function () use ($type, $data, $editing, &$newPath, &$oldPath, &$savedRecord) {
+                if ($editing) {
+                    $record = $this->getRecord(
+                        $type,
+                        $this->editingId,
+                        true
+                    );
 
-                $data[$column] = $this->uploadImageToR2(
-                    $type,
-                    $newPath
-                );
-            }
+                    $this->ensureCurrent($record);
 
-            DB::transaction(function () use ($type, $data) {
-                $record = match ($type) {
-                    'banner' => new Banner(),
-                    'page' => new Page(),
-                    'farm-image' => new FarmImage(),
-                };
+                    if (!$this->hasChanges($type, $record, $data)) {
+                        return false;
+                    }
+                } else {
+                    $class = $this->modelClass($type);
+                    $record = new $class();
+                }
+
+                $replaceImage = $type !== 'page'
+                    && (
+                        !$editing
+                        || $this->imageHasChanges($type, $record)
+                    );
+
+                if ($replaceImage) {
+                    $column = $type === 'banner'
+                        ? 'image'
+                        : 'image_url';
+
+                    $oldPath = $editing
+                        ? $record->getRawOriginal($column)
+                        : null;
+
+                    $data[$column] = $this->uploadImageToR2(
+                        $type,
+                        $newPath
+                    );
+                }
 
                 $record->fill($data);
 
@@ -550,7 +1089,15 @@ class BannerManager extends Component
                         'Không lưu được bản ghi.'
                     );
                 }
+
+                $savedRecord = $record;
+
+                return true;
             });
+        } catch (ValidationException $exception) {
+            $this->deleteManagedImage($newPath);
+
+            throw $exception;
         } catch (UniqueConstraintViolationException $exception) {
             $this->deleteManagedImage($newPath);
 
@@ -558,9 +1105,7 @@ class BannerManager extends Component
 
             $this->addError(
                 $type === 'page' ? 'page.slug' : 'save',
-                $type === 'page'
-                ? 'Đường dẫn vừa được sử dụng. Hãy chọn đường dẫn khác.'
-                : 'Dữ liệu bị trùng. Vui lòng kiểm tra lại.'
+                'Dữ liệu vừa bị trùng. Vui lòng kiểm tra lại.'
             );
 
             return;
@@ -571,26 +1116,37 @@ class BannerManager extends Component
 
             $this->addError(
                 'save',
-                'Không thể lưu dữ liệu hoặc tải ảnh lên R2. Vui lòng thử lại.'
+                'Không thể lưu nội dung. Vui lòng thử lại.'
             );
 
             return;
         }
 
-        $message = match ($type) {
-            'banner' => 'Thêm banner thành công.',
-            'page' => 'Thêm trang nội dung thành công.',
-            'farm-image' => 'Tải ảnh nông trại thành công.',
-        };
+        if (!$changed) {
+            $this->notify('info', 'Không có sự thay đổi nào.');
+            return;
+        }
+
+        // Database đã commit mới dọn ảnh cũ.
+        $this->deleteManagedImage($oldPath);
+
+        // Đồng bộ toggle cả khi trạng thái được sửa từ form.
+        if ($type === 'banner') {
+            $this->dispatch(
+                'banner-status-updated',
+                id: (int) $savedRecord->id,
+                status: $savedRecord->status
+            );
+        }
 
         $this->modal = null;
         $this->resetForms();
 
-        // Database đã lưu thành công mới thông báo.
-        $this->dispatch(
-            'swal',
-            icon: 'success',
-            title: $message
+        $this->notify(
+            'success',
+            $editing
+            ? 'Cập nhật nội dung thành công.'
+            : 'Thêm nội dung thành công.'
         );
     }
 
@@ -608,6 +1164,7 @@ class BannerManager extends Component
             'farmImages' => FarmImage::orderBy('sort_order')
                 ->orderBy('id')
                 ->get(),
+            'imagePreviewUrl' => $this->imagePreviewUrl(),
         ]);
     }
 }

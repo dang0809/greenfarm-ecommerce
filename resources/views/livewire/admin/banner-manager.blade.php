@@ -1,9 +1,10 @@
 <div x-data="{ tab: 'banners', confirming: false }" x-on:content-confirm-state="confirming = $event.detail.busy"
     x-on:keydown.escape.window="
-        if (!confirming && $wire.modal) $wire.closeModal()
-    "
+    if (!confirming && !Swal.isVisible() && $wire.modal) {
+        $wire.closeModal();
+    }
+"
     class="flex flex-1 min-h-0 flex-col overflow-hidden">
-
     <!-- Header -->
     <header
         class="min-h-[4.5rem] sm:h-20 bg-white/95 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-8 shrink-0 z-20 gap-3">
@@ -144,16 +145,58 @@
                                     </td>
 
                                     <td class="px-4 py-3 text-center">
-                                        <span @class([
-                                            'rounded-full px-2 py-1 text-xs font-bold',
-                                            'bg-emerald-50 text-emerald-700' => $item->status === 'active',
-                                            'bg-slate-100 text-slate-500' => $item->status !== 'active',
-                                        ])>
-                                            {{ $item->status === 'active' ? 'Hiển thị' : 'Tạm ẩn' }}
-                                        </span>
+                                        <div wire:key="banner-status-{{ $item->id }}" x-data="{ enabled: @js($item->status === 'active') }"
+                                            x-on:banner-status-updated.window="
+            if (Number($event.detail.id) === {{ $item->id }}) {
+                enabled = $event.detail.status === 'active';
+            }
+        "
+                                            class="inline-flex items-center">
+                                            <button type="button" role="switch"
+                                                wire:click="requestToggleStatus({{ $item->id }})"
+                                                wire:loading.attr="disabled"
+                                                wire:target="requestToggleStatus,saveAction,cancelAction"
+                                                x-bind:disabled="confirming" x-bind:aria-checked="enabled.toString()"
+                                                x-bind:title="enabled
+                                                    ?
+                                                    'Đang hiển thị - Gạt để tắt' :
+                                                    'Đang ẩn - Gạt để bật'"
+                                                x-bind:class="enabled ? 'bg-brand-600' : 'bg-slate-200'"
+                                                aria-label="Trạng thái banner {{ $item->title }}"
+                                                class="relative inline-flex h-5 w-9 items-center rounded-full
+                transition-colors duration-300
+                focus:outline-none focus:ring-2 focus:ring-brand-500
+                focus:ring-offset-2 disabled:opacity-60
+                disabled:cursor-not-allowed cursor-pointer">
+                                                <span aria-hidden="true"
+                                                    x-bind:class="enabled
+                                                        ?
+                                                        'translate-x-[18px] border-white' :
+                                                        'translate-x-0.5 border-slate-300'"
+                                                    class="inline-block h-4 w-4 rounded-full border bg-white
+                    shadow transition-transform duration-300 ease-in-out"></span>
+                                            </button>
+                                        </div>
                                     </td>
 
-                                    <td class="px-4 py-3 text-right text-slate-400">—</td>
+                                    <td class="py-3 px-4 pr-6 text-right space-x-1.5">
+                                        <button type="button" wire:click="openEdit('banner', {{ $item->id }})"
+                                            wire:loading.attr="disabled" x-bind:disabled="confirming"
+                                            class="p-2 rounded-xl bg-slate-100 text-slate-700
+            hover:text-brand-700 hover:bg-brand-50 transition"
+                                            title="Chỉnh sửa banner">
+                                            <i class="fa-regular fa-pen-to-square"></i>
+                                        </button>
+
+                                        <button type="button"
+                                            wire:click="requestDelete('banner', {{ $item->id }})"
+                                            wire:loading.attr="disabled" x-bind:disabled="confirming"
+                                            class="p-2 rounded-xl bg-slate-100 text-slate-400
+            hover:text-rose-600 hover:bg-rose-50 transition"
+                                            title="Xóa banner">
+                                            <i class="fa-regular fa-trash-can"></i>
+                                        </button>
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
@@ -175,7 +218,8 @@
                 <div
                     class="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
                     <div>
-                        <h3 class="font-extrabold text-sm sm:text-base text-slate-900">Các Trang Giới Thiệu & Chính Sách
+                        <h3 class="font-extrabold text-sm sm:text-base text-slate-900">Các Trang Giới Thiệu & Chính
+                            Sách
                         </h3>
                         <p class="text-xs text-slate-400 mt-0.5">Quản lý nội dung bài viết "Câu chuyện thương hiệu",
                             "Chính sách đổi trả", "Quy trình canh tác"</p>
@@ -220,7 +264,17 @@
                                         {{ $item->updated_at?->format('d/m/Y H:i') ?? '—' }}
                                     </td>
 
-                                    <td class="px-4 py-3 text-right text-slate-400">—</td>
+                                    <td class="py-3.5 px-4 pr-6 text-right">
+                                        <button type="button" wire:click="openEdit('page', {{ $item->id }})"
+                                            wire:loading.attr="disabled" x-bind:disabled="confirming"
+                                            class="p-2 rounded-xl bg-slate-100 text-slate-700
+            hover:text-brand-700 hover:bg-brand-50 transition
+            font-bold text-xs"
+                                            title="Chỉnh sửa nội dung">
+                                            <i class="fa-regular fa-pen-to-square mr-1"></i>
+                                            Soạn thảo
+                                        </button>
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
@@ -276,6 +330,24 @@
                                 <p class="text-xs text-slate-400">
                                     Thứ tự: {{ $item->sort_order }}
                                 </p>
+                                <div
+                                    class="pt-2 border-t border-slate-200/60
+    flex items-center justify-between text-xs">
+                                    <button type="button" wire:click="openEdit('farm-image', {{ $item->id }})"
+                                        wire:loading.attr="disabled" x-bind:disabled="confirming"
+                                        class="text-brand-700 hover:text-brand-800
+            font-bold flex items-center gap-1">
+                                        <i class="fa-regular fa-pen-to-square"></i>
+                                        Sửa
+                                    </button>
+
+                                    <button type="button"
+                                        wire:click="requestDelete('farm-image', {{ $item->id }})"
+                                        wire:loading.attr="disabled" x-bind:disabled="confirming"
+                                        class="text-slate-400 hover:text-rose-600 transition" title="Xóa ảnh">
+                                        <i class="fa-regular fa-trash-can"></i>
+                                    </button>
+                                </div>
                             </figcaption>
                         </figure>
                     @empty
@@ -301,8 +373,8 @@
                         <i class="fa-solid fa-images"></i>
                     </div>
                     <div>
-                        <h4 class="font-extrabold text-slate-900 text-base" id="modal-banner-title">Thêm Banner Quảng
-                            Cáo Mới</h4>
+                        <h4 class="font-extrabold text-slate-900 text-base" id="modal-banner-title">
+                            {{ $editingId ? 'Chỉnh Sửa Banner' : 'Thêm Banner Quảng Cáo Mới' }}</h4>
                         <p class="text-[11px] text-slate-400">Cập nhật vào hệ thống banner trang chủ</p>
                     </div>
                 </div>
@@ -316,7 +388,7 @@
                     <div>
                         <label class="block font-bold text-slate-700 mb-1">Tiêu đề banner <span
                                 class="text-red-500">*</span></label>
-                        <input type="text" id="bn-title" required wire:model="banner.title"
+                        <input type="text" id="bn-title" required wire:model.live.debounce.300ms="banner.title"
                             placeholder="VD: Nông Sản Sạch Minh Bạch Nguồn Gốc Blockchain"
                             class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2 text-sm outline-none focus:border-brand-600 font-bold">
                         @error('banner.title')
@@ -325,8 +397,9 @@
                     </div>
 
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">Đoạn mô tả ngắn</label>
-                        <textarea id="bn-desc" rows="2" wire:model="banner.description"
+                        <label class="block font-bold text-slate-700 mb-1">Đoạn mô tả ngắn<span
+                                class="text-red-500">*</span></label>
+                        <textarea id="bn-desc" required rows="2" wire:model.live.debounce.300ms="banner.description"
                             placeholder="VD: Canh tác tự nhiên tại thung lũng Đạ Ròn, cam kết không hóa chất độc hại..."
                             class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl p-2.5 outline-none focus:border-brand-600 resize-none font-medium"></textarea>
                         @error('banner.description')
@@ -336,8 +409,11 @@
 
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block font-bold text-slate-700 mb-1">Chữ trên nút bấm</label>
-                            <input type="text" id="bn-btn-text" wire:model="banner.button_text"
+                            <label class="block font-bold text-slate-700 mb-1">Chữ trên nút bấm
+                                <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="bn-btn-text" required
+                                wire:model.live.debounce.300ms="banner.button_text"
                                 placeholder="VD: Khám Phá Ngay, Mua Ngay"
                                 class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600 font-semibold">
                             @error('banner.button_text')
@@ -345,8 +421,11 @@
                             @enderror
                         </div>
                         <div>
-                            <label class="block font-bold text-slate-700 mb-1">Đường dẫn liên kết</label>
-                            <input type="text" id="bn-link" wire:model="banner.link" placeholder="/san-pham"
+                            <label class="block font-bold text-slate-700 mb-1">Đường dẫn liên kết
+                                <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="bn-link" required
+                                wire:model.live.debounce.300ms="banner.link" placeholder="/san-pham"
                                 class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono outline-none focus:border-brand-600">
                             @error('banner.link')
                                 <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
@@ -356,17 +435,21 @@
 
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block font-bold text-slate-700 mb-1">Thứ tự hiển thị</label>
-                            <input type="number" id="bn-sort" wire:model="banner.sort_order" min="1"
-                                required
+                            <label class="block font-bold text-slate-700 mb-1">Thứ tự hiển thị
+                                <span class="text-red-500">*</span>
+                            </label>
+                            <input type="number" id="bn-sort" wire:model.live.debounce.300ms="banner.sort_order"
+                                min="1" required
                                 class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold outline-none focus:border-brand-600">
                             @error('banner.sort_order')
                                 <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
                         <div>
-                            <label class="block font-bold text-slate-700 mb-1">Trạng thái phát hành</label>
-                            <select id="bn-status" wire:model="banner.status"
+                            <label class="block font-bold text-slate-700 mb-1">Trạng thái phát hành
+                                <span class="text-red-500">*</span>
+                            </label>
+                            <select id="bn-status" required wire:model.live="banner.status"
                                 class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-semibold outline-none focus:border-brand-600">
                                 <option value="active">Hiển thị</option>
                                 <option value="inactive">Tạm ẩn</option>
@@ -380,14 +463,28 @@
                     <!-- Tải ảnh Banner -->
                     <div>
                         <label class="block font-bold text-slate-700 mb-1">Hình ảnh banner (Khuyên dùng: 1920x600
-                            px)</label>
+                            px) @if ($editingId === null || !$currentImagePath)
+                                <span class="text-red-500">*</span>
+                            @endif
+                        </label>
                         <input type="file" id="bn-file" wire:model="bannerFile"
                             wire:key="banner-file-{{ $fileInputKey }}" accept="image/jpeg,image/png,image/webp"
-                            class="w-full text-xs text-slate-500">
+                            @required($editingId === null || !$currentImagePath)
+                            class="w-full text-xs text-slate-500
+    file:mr-3 file:py-1.5 file:px-3 file:rounded-xl
+    file:border-0 file:bg-brand-50 file:text-brand-700 cursor-pointer">
 
                         @error('bannerFile')
                             <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                         @enderror
+
+                        @if ($imagePreviewUrl && $modal === 'banner')
+                            <div id="bn-preview-box" class="mt-2">
+                                <img id="bn-preview-img" src="{{ $imagePreviewUrl }}" alt="Ảnh banner"
+                                    class="w-full h-28 object-cover rounded-xl
+                border border-slate-200 shadow-xs">
+                            </div>
+                        @endif
 
                         <span wire:loading wire:target="bannerFile" class="text-xs text-slate-500">
                             Đang tải ảnh tạm...
@@ -428,7 +525,8 @@
                         <i class="fa-solid fa-file-lines"></i>
                     </div>
                     <div>
-                        <h4 class="font-extrabold text-slate-900 text-base" id="modal-page-title">Chỉnh Sửa Trang Tĩnh
+                        <h4 class="font-extrabold text-slate-900 text-base" id="modal-page-title">
+                            {{ $editingId ? 'Chỉnh Sửa Trang Tĩnh' : 'Thêm Trang Mới' }}
                         </h4>
                         <p class="text-[11px] text-slate-400">Quản trị các trang giới thiệu và chính sách</p>
                     </div>
@@ -446,7 +544,7 @@
                         <div>
                             <label class="block font-bold text-slate-700 mb-1">Tiêu đề trang <span
                                     class="text-red-500">*</span></label>
-                            <input type="text" id="pg-title" wire:model="page.title" required
+                            <input type="text" id="pg-title" wire:model.live.debounce.300ms="page.title" required
                                 placeholder="VD: Câu Chuyện Thương Hiệu"
                                 class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2 text-sm outline-none focus:border-brand-600 font-bold">
                             @error('page.title')
@@ -456,7 +554,7 @@
                         <div>
                             <label class="block font-bold text-slate-700 mb-1">Đường dẫn URL <span
                                     class="text-red-500">*</span></label>
-                            <input type="text" id="pg-slug" wire:model="page.slug" required
+                            <input type="text" id="pg-slug" wire:model.live.debounce.300ms="page.slug" required
                                 placeholder="cau-chuyen-thuong-hieu"
                                 class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2 font-mono outline-none text-slate-600">
                             @error('page.slug')
@@ -468,7 +566,7 @@
                     <div>
                         <label class="block font-bold text-slate-700 mb-1">Nội dung chi tiết bài viết <span
                                 class="text-red-500">*</span></label>
-                        <textarea id="pg-content" wire:model="page.content" rows="8" required
+                        <textarea id="pg-content" wire:model.live.debounce.300ms="page.content" rows="8" required
                             placeholder="Nhập văn bản giới thiệu, cam kết chất lượng, quy định chính sách..."
                             class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl p-3 font-mono text-xs outline-none focus:border-brand-600 focus:bg-white resize-none"></textarea>
                         @error('page.content')
@@ -506,7 +604,8 @@
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div class="flex items-center gap-2">
                     <i class="fa-solid fa-camera text-brand-700 text-lg"></i>
-                    <h4 class="font-extrabold text-slate-900 text-sm" id="modal-farm-image-title">Tải Ảnh Nông Trại
+                    <h4 class="font-extrabold text-slate-900 text-sm" id="modal-farm-image-title">
+                        {{ $editingId ? 'Sửa Ảnh Nông Trại' : 'Tải Ảnh Nông Trại Mới' }}
                         Mới</h4>
                 </div>
                 <button type="button" x-on:click="if (!confirming) $wire.closeModal()"
@@ -521,7 +620,7 @@
                     <div>
                         <label class="block font-bold text-slate-700 mb-1">Chú thích bức ảnh <span
                                 class="text-red-500">*</span></label>
-                        <input type="text" id="fi-caption" wire:model="farm.caption" required
+                        <input type="text" id="fi-caption" wire:model.live.debounce.300ms="farm.caption" required
                             placeholder="VD: Hệ thống tưới nhỏ giọt công nghệ Israel"
                             class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold outline-none focus:border-brand-600">
                         @error('farm.caption')
@@ -530,8 +629,11 @@
                     </div>
 
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">Thứ tự sắp xếp</label>
-                        <input type="number" id="fi-sort" wire:model="farm.sort_order" min="1" required
+                        <label class="block font-bold text-slate-700 mb-1">Thứ tự sắp xếp
+                            <span class="text-red-500">*</span>
+                        </label>
+                        <input type="number" id="fi-sort" wire:model.live.debounce.300ms="farm.sort_order"
+                            min="1" required
                             class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold outline-none focus:border-brand-600">
                         @error('farm.sort_order')
                             <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
@@ -539,14 +641,27 @@
                     </div>
 
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">Chọn ảnh thực tế hiện trường</label>
+                        <label class="block font-bold text-slate-700 mb-1">Chọn ảnh thực tế hiện trường
+                            <span class="text-red-500">*</span>
+                        </label>
                         <input type="file" id="fi-file" wire:model="farmFile"
                             wire:key="farm-file-{{ $fileInputKey }}" accept="image/jpeg,image/png,image/webp"
-                            class="w-full text-xs text-slate-500">
+                            @required($editingId === null || !$currentImagePath)
+                            class="w-full text-xs text-slate-500
+    file:mr-3 file:py-1.5 file:px-3 file:rounded-xl
+    file:border-0 file:bg-brand-50 file:text-brand-700 cursor-pointer">
 
                         @error('farmFile')
                             <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                         @enderror
+
+                        @if ($imagePreviewUrl && $modal === 'farm-image')
+                            <div id="fi-preview-box" class="mt-2">
+                                <img id="fi-preview-img" src="{{ $imagePreviewUrl }}" alt="Ảnh nông trại"
+                                    class="w-full h-32 object-cover rounded-xl
+                border border-slate-200 shadow-xs">
+                            </div>
+                        @endif
 
                         <span wire:loading wire:target="farmFile" class="text-xs text-slate-500">
                             Đang tải ảnh tạm...
@@ -588,16 +703,8 @@
             );
         }
 
-        $wire.on('confirm-content-save', async ({
-            type
-        }) => {
+        async function confirmAction(options, save, cancel) {
             if (confirming) return;
-
-            const titles = {
-                banner: 'Xác nhận lưu banner?',
-                page: 'Xác nhận lưu nội dung trang?',
-                'farm-image': 'Xác nhận lưu ảnh nông trại?'
-            };
 
             confirming = true;
             setConfirming(true);
@@ -605,8 +712,6 @@
             try {
                 const result = await Swal.fire({
                     icon: 'question',
-                    title: titles[type],
-                    text: 'Dữ liệu đã hợp lệ. Bạn có muốn lưu?',
                     showCancelButton: true,
                     confirmButtonText: 'Xác nhận',
                     cancelButtonText: 'Hủy',
@@ -614,14 +719,14 @@
                     cancelButtonColor: '#64748b',
                     reverseButtons: true,
                     allowOutsideClick: false,
-                    allowEscapeKey: false
+                    allowEscapeKey: false,
+                    ...options
                 });
 
                 if (result.isConfirmed) {
-                    await $wire.saveConfirmed();
+                    await save();
                 } else {
-                    // Chỉ bỏ trạng thái xác nhận, giữ nguyên form.
-                    await $wire.cancelConfirmation();
+                    await cancel();
                 }
             } catch (error) {
                 await Swal.fire({
@@ -633,6 +738,54 @@
                 confirming = false;
                 setConfirming(false);
             }
+        }
+
+        $wire.on('confirm-content-save', ({
+            type,
+            editing
+        }) => {
+            const names = {
+                banner: 'banner',
+                page: 'trang nội dung',
+                'farm-image': 'ảnh nông trại'
+            };
+
+            return confirmAction({
+                    title: (
+                        editing ?
+                        'Xác nhận cập nhật ' :
+                        'Xác nhận thêm '
+                    ) + names[type] + '?'
+                },
+                () => $wire.saveConfirmed(),
+                () => $wire.cancelConfirmation());
+        });
+
+        $wire.on('confirm-content-action', ({
+            kind,
+            name,
+            enabling
+        }) => {
+            return confirmAction({
+                    icon: kind === 'delete' ? 'warning' : 'question',
+
+                    title: kind === 'delete' ?
+                        'Xóa nội dung này?' : (
+                            enabling ?
+                            'Bật hiển thị banner?' :
+                            'Tạm ẩn banner?'
+                        ),
+
+                    text: name,
+
+                    confirmButtonText: kind === 'delete' ?
+                        'Đồng ý xóa' : 'Xác nhận',
+
+                    confirmButtonColor: kind === 'delete' ?
+                        '#dc2626' : '#15803d'
+                },
+                () => $wire.saveAction(),
+                () => $wire.cancelAction());
         });
     </script>
 @endscript
