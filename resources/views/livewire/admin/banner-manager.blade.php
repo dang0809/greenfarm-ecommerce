@@ -1,7 +1,10 @@
-<div x-data="{ tab: 'banners', modal: null }" x-on:keydown.escape.window="modal = null"
+<div x-data="{ tab: 'banners', confirming: false }" x-on:content-confirm-state="confirming = $event.detail.busy"
+    x-on:keydown.escape.window="
+        if (!confirming && $wire.modal) $wire.closeModal()
+    "
     class="flex flex-1 min-h-0 flex-col overflow-hidden">
 
-    <!-- Header Topbar Responsive: ĐÃ BỎ TIÊU ĐỀ DÀI VÀ BỎ NÚT TRÊN HEADER XUỐNG -->
+    <!-- Header -->
     <header
         class="min-h-[4.5rem] sm:h-20 bg-white/95 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-8 shrink-0 z-20 gap-3">
         <div class="flex items-center gap-3 min-w-0">
@@ -42,7 +45,7 @@
                     <i class="fa-solid fa-images"></i>
                     <span>Banner Quảng Cáo Trang Chủ</span>
                     <span class="text-xs font-bold bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full"
-                        id="badge-banners-count">0</span>
+                        id="badge-banners-count">{{ $banners->count() }}</span>
                 </button>
                 <button type="button" id="tab-btn-pages" x-on:click="tab = 'pages'"
                     x-bind:class="tab === 'pages'
@@ -53,7 +56,7 @@
                     <i class="fa-solid fa-file-lines"></i>
                     <span>Trang Tĩnh & Câu Chuyện Thương Hiệu</span>
                     <span class="text-xs font-bold bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full"
-                        id="badge-pages-count">0</span>
+                        id="badge-pages-count">{{ $pages->count() }}</span>
                 </button>
                 <button type="button" id="tab-btn-farm_images" x-on:click="tab = 'farm_images'"
                     x-bind:class="tab === 'farm_images'
@@ -64,7 +67,7 @@
                     <i class="fa-solid fa-photo-film"></i>
                     <span>Bộ Sưu Tập Ảnh Nông Trại</span>
                     <span class="text-xs font-bold bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full"
-                        id="badge-farm-images-count">0</span>
+                        id="badge-farm-images-count">{{ $farmImages->count() }}</span>
                 </button>
             </div>
         </div>
@@ -89,7 +92,7 @@
                             class="text-xs font-bold text-slate-500 bg-white border border-slate-200 px-3 py-2 rounded-xl hidden md:inline font-mono">
                             Chuẩn ảnh: 1920 &times; 600 px
                         </span>
-                        <button type="button" x-on:click="modal = 'banner'"
+                        <button type="button" wire:click="openForm('banner')"
                             class="bg-brand-700 hover:bg-brand-800 text-white font-bold text-xs sm:text-sm px-4 py-2 rounded-xl transition shadow-sm flex items-center gap-2 active:scale-95 cursor-pointer">
                             <i class="fa-solid fa-plus"></i>
                             <span>Thêm Banner Mới</span>
@@ -113,11 +116,52 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 font-medium" id="banners-tbody">
-                            <tr>
-                                <td colspan="8" class="px-6 py-12 text-center text-slate-400">
-                                    Chưa có banner.
-                                </td>
-                            </tr>
+                            @forelse ($banners as $item)
+                                <tr wire:key="banner-row-{{ $item->id }}">
+                                    <td class="px-4 py-3">
+                                        <img src="{{ $item->image_url }}" alt="{{ $item->title }}"
+                                            class="h-14 w-36 rounded-lg object-cover">
+                                    </td>
+
+                                    <td class="px-4 py-3">
+                                        {{ $item->title }}
+                                    </td>
+
+                                    <td class="px-4 py-3">
+                                        {{ \Illuminate\Support\Str::limit($item->description, 70) }}
+                                    </td>
+
+                                    <td class="px-4 py-3">
+                                        {{ $item->button_text }}
+                                    </td>
+
+                                    <td class="px-4 py-3 font-mono">
+                                        {{ $item->link }}
+                                    </td>
+
+                                    <td class="px-4 py-3 text-center">
+                                        {{ $item->sort_order }}
+                                    </td>
+
+                                    <td class="px-4 py-3 text-center">
+                                        <span @class([
+                                            'rounded-full px-2 py-1 text-xs font-bold',
+                                            'bg-emerald-50 text-emerald-700' => $item->status === 'active',
+                                            'bg-slate-100 text-slate-500' => $item->status !== 'active',
+                                        ])>
+                                            {{ $item->status === 'active' ? 'Hiển thị' : 'Tạm ẩn' }}
+                                        </span>
+                                    </td>
+
+                                    <td class="px-4 py-3 text-right text-slate-400">—</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="8" class="px-6 py-12 text-center text-slate-400">
+                                        Chưa có banner.
+                                    </td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>
@@ -138,10 +182,10 @@
                     </div>
 
                     <!-- Nút Thêm Trang Mới đưa xuống đây -->
-                    <button type="button" x-on:click="modal = 'page'"
+                    <button type="button" wire:click="openForm('page')"
                         class="bg-brand-700 hover:bg-brand-800 text-white font-bold text-xs sm:text-sm px-4 py-2 rounded-xl transition shadow-sm flex items-center gap-2 active:scale-95 cursor-pointer self-start sm:self-auto">
                         <i class="fa-solid fa-plus"></i>
-                        <span>+ Thêm Trang Mới</span>
+                        <span>Thêm Trang Mới</span>
                     </button>
                 </div>
 
@@ -158,11 +202,33 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 font-medium" id="pages-tbody">
-                            <tr>
-                                <td colspan="5" class="px-6 py-12 text-center text-slate-400">
-                                    Chưa có trang nội dung.
-                                </td>
-                            </tr>
+                            @forelse ($pages as $item)
+                                <tr wire:key="page-row-{{ $item->id }}">
+                                    <td class="px-4 py-3 font-bold">
+                                        {{ $item->title }}
+                                    </td>
+
+                                    <td class="px-4 py-3 font-mono">
+                                        {{ $item->slug }}
+                                    </td>
+
+                                    <td class="px-4 py-3">
+                                        {{ \Illuminate\Support\Str::limit(html_entity_decode(strip_tags($item->content), ENT_QUOTES, 'UTF-8'), 100) }}
+                                    </td>
+
+                                    <td class="px-4 py-3 font-mono">
+                                        {{ $item->updated_at?->format('d/m/Y H:i') ?? '—' }}
+                                    </td>
+
+                                    <td class="px-4 py-3 text-right text-slate-400">—</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="px-6 py-12 text-center text-slate-400">
+                                        Chưa có trang nội dung.
+                                    </td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>
@@ -185,10 +251,10 @@
                     </div>
 
                     <!-- Nút Tải Ảnh Vườn -->
-                    <button type="button" x-on:click="modal = 'farm-image'"
+                    <button type="button" wire:click="openForm('farm-image')"
                         class="bg-brand-700 hover:bg-brand-800 text-white font-bold text-xs sm:text-sm px-4 py-2 rounded-xl transition shadow-sm flex items-center gap-1.5 self-start sm:self-auto active:scale-95 cursor-pointer">
                         <i class="fa-solid fa-upload"></i>
-                        <span>+ Tải Thêm Ảnh Vườn</span>
+                        <span>Tải Thêm Ảnh Vườn</span>
                     </button>
                 </div>
 
@@ -196,16 +262,35 @@
                 <div id="farm-gallery-grid"
                     class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
 
-                    <p class="col-span-full py-12 text-center text-sm text-slate-400">
-                        Chưa có ảnh nông trại.
-                    </p>
+                    @forelse ($farmImages as $item)
+                        <figure wire:key="farm-image-{{ $item->id }}"
+                            class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                            <img src="{{ $item->display_url }}" alt="{{ $item->caption }}"
+                                class="h-44 w-full object-cover">
+
+                            <figcaption class="space-y-1 p-3">
+                                <p class="text-sm font-semibold text-slate-800">
+                                    {{ $item->caption }}
+                                </p>
+
+                                <p class="text-xs text-slate-400">
+                                    Thứ tự: {{ $item->sort_order }}
+                                </p>
+                            </figcaption>
+                        </figure>
+                    @empty
+                        <p class="col-span-full py-12 text-center text-sm text-slate-400">
+                            Chưa có ảnh nông trại.
+                        </p>
+                    @endforelse
                 </div>
             </div>
         </div>
 
     </div>
     <!-- MODAL 1: THÊM / SỬA BANNER TRANG CHỦ -->
-    <div id="modal-banner-form" x-cloak x-show="modal === 'banner'" x-on:click.self="modal = null"
+    <div id="modal-banner-form" x-cloak x-show="$wire.modal === 'banner'"
+        x-on:click.self="if (!confirming) $wire.closeModal()"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
         <div
             class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-lg shadow-2xl p-5 sm:p-7 max-h-[92vh] overflow-y-auto custom-scrollbar border border-slate-100 space-y-4">
@@ -221,78 +306,118 @@
                         <p class="text-[11px] text-slate-400">Cập nhật vào hệ thống banner trang chủ</p>
                     </div>
                 </div>
-                <button type="button" x-on:click="modal = null" class="text-slate-400 hover:text-slate-600"><i
-                        class="fa-solid fa-xmark"></i></button>
+                <button type="button" x-on:click="if (!confirming) $wire.closeModal()"
+                    class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
-            <form x-on:submit.prevent="" class="space-y-3.5 text-xs">
-                <input type="hidden" id="bn-id">
-
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Tiêu đề banner <span
-                            class="text-red-500">*</span></label>
-                    <input type="text" id="bn-title" required
-                        placeholder="VD: Nông Sản Sạch Minh Bạch Nguồn Gốc Blockchain"
-                        class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2 text-sm outline-none focus:border-brand-600 font-bold">
-                </div>
-
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Đoạn mô tả ngắn</label>
-                    <textarea id="bn-desc" rows="2"
-                        placeholder="VD: Canh tác tự nhiên tại thung lũng Đạ Ròn, cam kết không hóa chất độc hại..."
-                        class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl p-2.5 outline-none focus:border-brand-600 resize-none font-medium"></textarea>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
+            {{-- Form banner --}}
+            <form wire:submit="requestSave('banner')" novalidate class="space-y-3.5 text-xs">
+                <fieldset :disabled="confirming" class="space-y-3.5">
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">Chữ trên nút bấm</label>
-                        <input type="text" id="bn-btn-text" placeholder="VD: Khám Phá Ngay, Mua Ngay"
-                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600 font-semibold">
+                        <label class="block font-bold text-slate-700 mb-1">Tiêu đề banner <span
+                                class="text-red-500">*</span></label>
+                        <input type="text" id="bn-title" required wire:model="banner.title"
+                            placeholder="VD: Nông Sản Sạch Minh Bạch Nguồn Gốc Blockchain"
+                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2 text-sm outline-none focus:border-brand-600 font-bold">
+                        @error('banner.title')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">Đường dẫn liên kết</label>
-                        <input type="text" id="bn-link" placeholder="/shop, /subscription"
-                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono outline-none focus:border-brand-600">
-                    </div>
-                </div>
 
-                <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">Thứ tự hiển thị</label>
-                        <input type="number" id="bn-sort" min="1" value="1" required
-                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold outline-none focus:border-brand-600">
+                        <label class="block font-bold text-slate-700 mb-1">Đoạn mô tả ngắn</label>
+                        <textarea id="bn-desc" rows="2" wire:model="banner.description"
+                            placeholder="VD: Canh tác tự nhiên tại thung lũng Đạ Ròn, cam kết không hóa chất độc hại..."
+                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl p-2.5 outline-none focus:border-brand-600 resize-none font-medium"></textarea>
+                        @error('banner.description')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Chữ trên nút bấm</label>
+                            <input type="text" id="bn-btn-text" wire:model="banner.button_text"
+                                placeholder="VD: Khám Phá Ngay, Mua Ngay"
+                                class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600 font-semibold">
+                            @error('banner.button_text')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Đường dẫn liên kết</label>
+                            <input type="text" id="bn-link" wire:model="banner.link" placeholder="/san-pham"
+                                class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono outline-none focus:border-brand-600">
+                            @error('banner.link')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Thứ tự hiển thị</label>
+                            <input type="number" id="bn-sort" wire:model="banner.sort_order" min="1"
+                                required
+                                class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold outline-none focus:border-brand-600">
+                            @error('banner.sort_order')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Trạng thái phát hành</label>
+                            <select id="bn-status" wire:model="banner.status"
+                                class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-semibold outline-none focus:border-brand-600">
+                                <option value="active">Hiển thị</option>
+                                <option value="inactive">Tạm ẩn</option>
+                            </select>
+                            @error('banner.status')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <!-- Tải ảnh Banner -->
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">Trạng thái phát hành</label>
-                        <select id="bn-status"
-                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-semibold outline-none focus:border-brand-600">
-                            <option value="active">Hiển thị</option>
-                            <option value="inactive">Tạm ẩn</option>
-                        </select>
+                        <label class="block font-bold text-slate-700 mb-1">Hình ảnh banner (Khuyên dùng: 1920x600
+                            px)</label>
+                        <input type="file" id="bn-file" wire:model="bannerFile"
+                            wire:key="banner-file-{{ $fileInputKey }}" accept="image/jpeg,image/png,image/webp"
+                            class="w-full text-xs text-slate-500">
+
+                        @error('bannerFile')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
+
+                        <span wire:loading wire:target="bannerFile" class="text-xs text-slate-500">
+                            Đang tải ảnh tạm...
+                        </span>
                     </div>
-                </div>
 
-                <!-- Tải ảnh Banner -->
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Hình ảnh banner (Khuyên dùng: 1920x600
-                        px)</label>
-                    <input type="file" id="bn-file" accept="image/*"
-                        class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-brand-50 file:text-brand-700 cursor-pointer">
-                </div>
-
-                <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
-                    <button type="button" x-on:click="modal = null"
-                        class="px-4 py-2 rounded-xl border text-slate-600 font-bold hover:bg-slate-50">Hủy</button>
-                    <button type="submit" disabled
-                        class="bg-brand-700 hover:bg-brand-800 text-white font-bold px-5 py-2 rounded-xl shadow-sm transition active:scale-95">Lưu
-                        Banner</button>
-                </div>
+                    <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
+                        <button type="button" x-on:click="if (!confirming) $wire.closeModal()"
+                            class="px-4 py-2 rounded-xl border text-slate-600 font-bold hover:bg-slate-50">Hủy</button>
+                        <button type="submit" wire:loading.attr="disabled"
+                            wire:target="requestSave,saveConfirmed,bannerFile,farmFile"
+                            class="bg-brand-700 hover:bg-brand-800 text-white font-bold
+        px-5 py-2 rounded-xl shadow-sm transition
+        disabled:opacity-50 disabled:cursor-not-allowed">
+                            Lưu Banner
+                        </button>
+                    </div>
+                    @error('save')
+                        <p class="text-xs font-semibold text-red-600">
+                            {{ $message }}
+                        </p>
+                    @enderror
+                </fieldset>
             </form>
         </div>
     </div>
 
     <!-- MODAL 2: THÊM / SỬA TRANG TĨNH -->
-    <div id="modal-page-form" x-cloak x-show="modal === 'page'" x-on:click.self="modal = null"
+    <div id="modal-page-form" x-cloak x-show="$wire.modal === 'page'"
+        x-on:click.self="if (!confirming) $wire.closeModal()"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
         <div
             class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-2xl shadow-2xl p-5 sm:p-7 max-h-[92vh] overflow-y-auto custom-scrollbar border border-slate-100 space-y-4">
@@ -308,49 +433,73 @@
                         <p class="text-[11px] text-slate-400">Quản trị các trang giới thiệu và chính sách</p>
                     </div>
                 </div>
-                <button type="button" x-on:click="modal = null" class="text-slate-400 hover:text-slate-600"><i
-                        class="fa-solid fa-xmark"></i></button>
+                <button type="button" x-on:click="if (!confirming) $wire.closeModal()"
+                    class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
-            <form x-on:submit.prevent="" class="space-y-3.5 text-xs">
-                <input type="hidden" id="pg-id">
+            {{-- Form trang --}}
+            <form wire:submit="requestSave('page')" novalidate class="space-y-3.5 text-xs">
+                <fieldset :disabled="confirming" class="space-y-3.5">
+                    <input type="hidden" id="pg-id">
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">Tiêu đề trang <span
-                                class="text-red-500">*</span></label>
-                        <input type="text" id="pg-title" required placeholder="VD: Câu Chuyện Thương Hiệu"
-                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2 text-sm outline-none focus:border-brand-600 font-bold">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Tiêu đề trang <span
+                                    class="text-red-500">*</span></label>
+                            <input type="text" id="pg-title" wire:model="page.title" required
+                                placeholder="VD: Câu Chuyện Thương Hiệu"
+                                class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2 text-sm outline-none focus:border-brand-600 font-bold">
+                            @error('page.title')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Đường dẫn URL <span
+                                    class="text-red-500">*</span></label>
+                            <input type="text" id="pg-slug" wire:model="page.slug" required
+                                placeholder="cau-chuyen-thuong-hieu"
+                                class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2 font-mono outline-none text-slate-600">
+                            @error('page.slug')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
                     </div>
+
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">Đường dẫn URL <span
+                        <label class="block font-bold text-slate-700 mb-1">Nội dung chi tiết bài viết <span
                                 class="text-red-500">*</span></label>
-                        <input type="text" id="pg-slug" required placeholder="cau-chuyen-thuong-hieu"
-                            class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2 font-mono outline-none text-slate-600">
+                        <textarea id="pg-content" wire:model="page.content" rows="8" required
+                            placeholder="Nhập văn bản giới thiệu, cam kết chất lượng, quy định chính sách..."
+                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl p-3 font-mono text-xs outline-none focus:border-brand-600 focus:bg-white resize-none"></textarea>
+                        @error('page.content')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
-                </div>
 
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Nội dung chi tiết bài viết <span
-                            class="text-red-500">*</span></label>
-                    <textarea id="pg-content" rows="8" required
-                        placeholder="Nhập văn bản giới thiệu, cam kết chất lượng, quy định chính sách..."
-                        class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl p-3 font-mono text-xs outline-none focus:border-brand-600 focus:bg-white resize-none"></textarea>
-                </div>
-
-                <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
-                    <button type="button" x-on:click="modal = null"
-                        class="px-4 py-2 rounded-xl border text-slate-600 font-bold hover:bg-slate-50">Hủy</button>
-                    <button type="submit" disabled
-                        class="bg-brand-700 hover:bg-brand-800 text-white font-bold px-5 py-2 rounded-xl shadow-sm transition active:scale-95">Lưu
-                        Nội Dung Trang</button>
-                </div>
+                    <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
+                        <button type="button" x-on:click="if (!confirming) $wire.closeModal()"
+                            class="px-4 py-2 rounded-xl border text-slate-600 font-bold hover:bg-slate-50">Hủy</button>
+                        <button type="submit" wire:loading.attr="disabled"
+                            wire:target="requestSave,saveConfirmed,bannerFile,farmFile"
+                            class="bg-brand-700 hover:bg-brand-800 text-white font-bold
+        px-5 py-2 rounded-xl shadow-sm transition
+        disabled:opacity-50 disabled:cursor-not-allowed">
+                            Lưu Nội Dung Trang
+                        </button>
+                    </div>
+                    @error('save')
+                        <p class="text-xs font-semibold text-red-600">
+                            {{ $message }}
+                        </p>
+                    @enderror
+                </fieldset>
             </form>
         </div>
     </div>
 
     <!-- MODAL 3: THÊM / SỬA ẢNH NÔNG TRẠI -->
-    <div id="modal-farm-image-form" x-cloak x-show="modal === 'farm-image'" x-on:click.self="modal = null"
+    <div id="modal-farm-image-form" x-cloak x-show="$wire.modal === 'farm-image'"
+        x-on:click.self="if (!confirming) $wire.closeModal()"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
         <div
             class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-md shadow-2xl p-5 sm:p-6 border border-slate-100 space-y-4">
@@ -360,41 +509,130 @@
                     <h4 class="font-extrabold text-slate-900 text-sm" id="modal-farm-image-title">Tải Ảnh Nông Trại
                         Mới</h4>
                 </div>
-                <button type="button" x-on:click="modal = null" class="text-slate-400 hover:text-slate-600"><i
-                        class="fa-solid fa-xmark"></i></button>
+                <button type="button" x-on:click="if (!confirming) $wire.closeModal()"
+                    class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
-            <form x-on:submit.prevent="" class="space-y-3.5 text-xs">
-                <input type="hidden" id="fi-id">
+            {{-- Form ảnh nông trại --}}
+            <form wire:submit="requestSave('farm-image')" novalidate class="space-y-3.5 text-xs">
+                <fieldset :disabled="confirming" class="space-y-3.5">
+                    <input type="hidden" id="fi-id">
 
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Chú thích bức ảnh <span
-                            class="text-red-500">*</span></label>
-                    <input type="text" id="fi-caption" required
-                        placeholder="VD: Hệ thống tưới nhỏ giọt công nghệ Israel"
-                        class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold outline-none focus:border-brand-600">
-                </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Chú thích bức ảnh <span
+                                class="text-red-500">*</span></label>
+                        <input type="text" id="fi-caption" wire:model="farm.caption" required
+                            placeholder="VD: Hệ thống tưới nhỏ giọt công nghệ Israel"
+                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold outline-none focus:border-brand-600">
+                        @error('farm.caption')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
 
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Thứ tự sắp xếp</label>
-                    <input type="number" id="fi-sort" min="1" value="1" required
-                        class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold outline-none focus:border-brand-600">
-                </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Thứ tự sắp xếp</label>
+                        <input type="number" id="fi-sort" wire:model="farm.sort_order" min="1" required
+                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold outline-none focus:border-brand-600">
+                        @error('farm.sort_order')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
 
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Chọn ảnh thực tế hiện trường</label>
-                    <input type="file" id="fi-file" accept="image/*"
-                        class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-brand-50 file:text-brand-700 cursor-pointer">
-                </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Chọn ảnh thực tế hiện trường</label>
+                        <input type="file" id="fi-file" wire:model="farmFile"
+                            wire:key="farm-file-{{ $fileInputKey }}" accept="image/jpeg,image/png,image/webp"
+                            class="w-full text-xs text-slate-500">
 
-                <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
-                    <button type="button" x-on:click="modal = null"
-                        class="px-4 py-2 rounded-xl border text-slate-600 font-bold hover:bg-slate-50">Hủy</button>
-                    <button type="submit" disabled
-                        class="bg-brand-700 hover:bg-brand-800 text-white font-bold px-5 py-2 rounded-xl shadow-sm transition active:scale-95">Lưu
-                        Ảnh Vườn</button>
-                </div>
+                        @error('farmFile')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
+
+                        <span wire:loading wire:target="farmFile" class="text-xs text-slate-500">
+                            Đang tải ảnh tạm...
+                        </span>
+                    </div>
+
+                    <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
+                        <button type="button" x-on:click="if (!confirming) $wire.closeModal()"
+                            class="px-4 py-2 rounded-xl border text-slate-600 font-bold hover:bg-slate-50">Hủy</button>
+                        <button type="submit" wire:loading.attr="disabled"
+                            wire:target="requestSave,saveConfirmed,bannerFile,farmFile"
+                            class="bg-brand-700 hover:bg-brand-800 text-white font-bold
+        px-5 py-2 rounded-xl shadow-sm transition
+        disabled:opacity-50 disabled:cursor-not-allowed">
+                            Lưu Ảnh Vườn
+                        </button>
+                    </div>
+                    @error('save')
+                        <p class="text-xs font-semibold text-red-600">
+                            {{ $message }}
+                        </p>
+                    @enderror
+                </fieldset>
             </form>
         </div>
     </div>
 </div>
+@script
+    <script>
+        let confirming = false;
+
+        function setConfirming(busy) {
+            $wire.$el.dispatchEvent(
+                new CustomEvent('content-confirm-state', {
+                    detail: {
+                        busy
+                    }
+                })
+            );
+        }
+
+        $wire.on('confirm-content-save', async ({
+            type
+        }) => {
+            if (confirming) return;
+
+            const titles = {
+                banner: 'Xác nhận lưu banner?',
+                page: 'Xác nhận lưu nội dung trang?',
+                'farm-image': 'Xác nhận lưu ảnh nông trại?'
+            };
+
+            confirming = true;
+            setConfirming(true);
+
+            try {
+                const result = await Swal.fire({
+                    icon: 'question',
+                    title: titles[type],
+                    text: 'Dữ liệu đã hợp lệ. Bạn có muốn lưu?',
+                    showCancelButton: true,
+                    confirmButtonText: 'Xác nhận',
+                    cancelButtonText: 'Hủy',
+                    confirmButtonColor: '#15803d',
+                    cancelButtonColor: '#64748b',
+                    reverseButtons: true,
+                    allowOutsideClick: false,
+                    allowEscapeKey: false
+                });
+
+                if (result.isConfirmed) {
+                    await $wire.saveConfirmed();
+                } else {
+                    // Chỉ bỏ trạng thái xác nhận, giữ nguyên form.
+                    await $wire.cancelConfirmation();
+                }
+            } catch (error) {
+                await Swal.fire({
+                    icon: 'error',
+                    title: 'Yêu cầu chưa hoàn tất',
+                    text: 'Vui lòng kiểm tra kết nối và thử lại.'
+                });
+            } finally {
+                confirming = false;
+                setConfirming(false);
+            }
+        });
+    </script>
+@endscript

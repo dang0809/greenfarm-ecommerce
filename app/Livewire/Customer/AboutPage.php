@@ -9,6 +9,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use App\Models\Certification;
+use App\Models\FarmImage;
 
 #[Layout('layouts.customer.app')]
 #[Title('Về Nông Trại | Nông Trại Đất Lành')]
@@ -20,19 +21,20 @@ class AboutPage extends Component
         $page = Page::where('slug', 'cau-chuyen-thuong-hieu')->first();
 
         // 2. Lấy hình ảnh từ bảng `farm_images` (sắp xếp theo cột `sort_order`)
-        $farmImages = DB::table('farm_images')
-            ->orderBy('sort_order', 'asc')
+        $farmImages = FarmImage::query()
+            ->orderBy('sort_order')
+            ->orderBy('id')
             ->get();
 
         // 3. Lấy danh sách chứng nhận từ bảng `certifications` (lọc trạng thái 'active')
         $certifications = Certification::query()
-        ->where('status', 'active')
-        ->where(function ($query) {
-            $query->whereNull('expiry_date')
-                ->orWhereDate('expiry_date', '>=', today());
-        })
-        ->orderBy('id')
-        ->get();
+            ->where('status', 'active')
+            ->where(function ($query) {
+                $query->whereNull('expiry_date')
+                    ->orWhereDate('expiry_date', '>=', today());
+            })
+            ->orderBy('id')
+            ->get();
 
         return view('livewire.customer.about-page', [
             'page' => $page,

@@ -25,59 +25,81 @@
 
             <div class="content-body">
                 @if ($page && $page->content)
-                {!! $page->content !!}
+                    {!! $page->content !!}
                 @else
-                <blockquote>
-                    "Chúng tôi là một nông trại nông nghiệp sạch, với sứ mệnh mang đến những sản phẩm tươi ngon, an toàn
-                    và minh bạch đến từng bữa ăn của gia đình Việt. Canh tác tử tế là khởi đầu của một cuộc sống khỏe
-                    mạnh."
-                </blockquote>
+                    <blockquote>
+                        "Chúng tôi là một nông trại nông nghiệp sạch, với sứ mệnh mang đến những sản phẩm tươi ngon, an
+                        toàn
+                        và minh bạch đến từng bữa ăn của gia đình Việt. Canh tác tử tế là khởi đầu của một cuộc sống
+                        khỏe
+                        mạnh."
+                    </blockquote>
 
-                <p>
-                    Nằm nép mình bên thung lũng xã Đạ Ròn, huyện Đơn Dương, tỉnh Lâm Đồng ở độ cao hơn 1.000m so với mực
-                    nước biển, <strong>Nông trại Đất Lành</strong> được thiên nhiên ban tặng khí hậu quanh năm mát mẻ,
-                    đất bazan màu mỡ cùng mạch suối ngầm tự nhiên chảy từ chân rừng thông nguyên sinh. Chúng tôi không
-                    xem nông nghiệp là ngành sản xuất công nghiệp đơn thuần, mà là sự tôn trọng đối với đất mẹ và trách
-                    nhiệm với sức khỏe thế hệ mai sau.
-                </p>
+                    <p>
+                        Nằm nép mình bên thung lũng xã Đạ Ròn, huyện Đơn Dương, tỉnh Lâm Đồng ở độ cao hơn 1.000m so với
+                        mực
+                        nước biển, <strong>Nông trại Đất Lành</strong> được thiên nhiên ban tặng khí hậu quanh năm mát
+                        mẻ,
+                        đất bazan màu mỡ cùng mạch suối ngầm tự nhiên chảy từ chân rừng thông nguyên sinh. Chúng tôi
+                        không
+                        xem nông nghiệp là ngành sản xuất công nghiệp đơn thuần, mà là sự tôn trọng đối với đất mẹ và
+                        trách
+                        nhiệm với sức khỏe thế hệ mai sau.
+                    </p>
 
-                <h2 class="text-xl font-bold text-gray-900 mt-8 mb-3">1. Triết Lý Canh Tác Thuận Tự Nhiên</h2>
-                <p class="mb-4">
-                    Canh tác bền vững - Kiến tạo giá trị lâu dài. Mọi luống rau, giàn quả tại Đất Lành đều được chăm sóc
-                    bằng sự tử tế và kiến thức khoa học thông qua các nguyên tắc:
-                </p>
-                <ul class="list-disc pl-6 space-y-2 mb-6 text-gray-700">
-                    <li><strong>Tôn trọng đất và nguồn nước:</strong> Giữ gìn độ phì nhiêu màu mỡ của đất bằng cách luân
-                        canh cây họ đậu và bổ sung mùn trùn quế định kỳ. Bảo vệ nguồn suối ngầm tầng sâu 80m không bị
-                        xâm nhiễm hóa chất.</li>
-                    <li><strong>Ưu tiên phương pháp canh tác an toàn (Nguyên tắc 5 Không):</strong> Tuyệt đối không phân
-                        bón hóa học, không thuốc trừ sâu tổng hợp, không giống biến đổi gen (Non-GMO), không chất kích
-                        thích sinh trưởng và không chất bảo quản sau thu hoạch.</li>
-                    <li><strong>Theo dõi sát sao quá trình sinh trưởng:</strong> Ứng dụng công nghệ nhà màng Israel và
-                        hệ thống tưới nhỏ giọt tự động nhằm kiểm soát nhiệt độ, độ ẩm và sức khỏe cây trồng suốt mùa vụ.
-                    </li>
-                    <li><strong>Minh bạch nhật ký và nguồn gốc:</strong> Mọi giai đoạn bón mùn, chăm bón và thời gian
-                        thu hái thực tế đều được kỹ sư số hóa gán vào mã lô (Batch Code), cho phép người tiêu dùng tra
-                        cứu chi tiết qua mã QR.</li>
-                </ul>
+                    <h2 class="text-xl font-bold text-gray-900 mt-8 mb-3">1. Triết Lý Canh Tác Thuận Tự Nhiên</h2>
+                    <p class="mb-4">
+                        Canh tác bền vững - Kiến tạo giá trị lâu dài. Mọi luống rau, giàn quả tại Đất Lành đều được chăm
+                        sóc
+                        bằng sự tử tế và kiến thức khoa học thông qua các nguyên tắc:
+                    </p>
+                    <ul class="list-disc pl-6 space-y-2 mb-6 text-gray-700">
+                        <li><strong>Tôn trọng đất và nguồn nước:</strong> Giữ gìn độ phì nhiêu màu mỡ của đất bằng cách
+                            luân
+                            canh cây họ đậu và bổ sung mùn trùn quế định kỳ. Bảo vệ nguồn suối ngầm tầng sâu 80m không
+                            bị
+                            xâm nhiễm hóa chất.</li>
+                        <li><strong>Ưu tiên phương pháp canh tác an toàn (Nguyên tắc 5 Không):</strong> Tuyệt đối không
+                            phân
+                            bón hóa học, không thuốc trừ sâu tổng hợp, không giống biến đổi gen (Non-GMO), không chất
+                            kích
+                            thích sinh trưởng và không chất bảo quản sau thu hoạch.</li>
+                        <li><strong>Theo dõi sát sao quá trình sinh trưởng:</strong> Ứng dụng công nghệ nhà màng Israel
+                            và
+                            hệ thống tưới nhỏ giọt tự động nhằm kiểm soát nhiệt độ, độ ẩm và sức khỏe cây trồng suốt mùa
+                            vụ.
+                        </li>
+                        <li><strong>Minh bạch nhật ký và nguồn gốc:</strong> Mọi giai đoạn bón mùn, chăm bón và thời
+                            gian
+                            thu hái thực tế đều được kỹ sư số hóa gán vào mã lô (Batch Code), cho phép người tiêu dùng
+                            tra
+                            cứu chi tiết qua mã QR.</li>
+                    </ul>
 
-                <h2 class="text-xl font-bold text-gray-900 mt-8 mb-3">2. Hồ Sơ Năng Lực & Nền Tảng Vững Chắc</h2>
-                <p class="mb-4">
-                    Đất Lành tự chủ 100% quy trình sản xuất và chuỗi cung ứng khép kín nhằm đảm bảo chất lượng nông sản
-                    tươi ngon nhất khi đến tay khách hàng:
-                </p>
-                <ul class="list-disc pl-6 space-y-2 mb-6 text-gray-700">
-                    <li><strong>Diện tích canh tác:</strong> 12 hecta đất trồng đạt chuẩn nông nghiệp sạch và nhà màng
-                        chống côn trùng công nghệ cao.</li>
-                    <li><strong>Nhóm nông sản chính:</strong> Hơn 15 chủng loại nông sản tươi gồm rau ăn lá (cải bó xôi,
-                        xà lách mỡ, cải xoăn kale), củ quả theo mùa (cà chua cherry, khoai lang mật), nấm tươi tự nhiên
-                        và trái cây nhiệt đới.</li>
-                    <li><strong>Quy trình sản xuất 3 giai đoạn:</strong> Kiểm soát chặt chẽ từ khâu Gieo trồng hạt giống
-                        hữu cơ &rarr; Thu hoạch thủ công lúc 5:00 sáng &rarr; Sơ chế, đóng gói túi Kraft thoáng khí và
-                        bảo quản lạnh.</li>
-                    <li><strong>Đóng gói & Giao nhận hỏa tốc:</strong> 100% nông sản được giao nhanh bằng thùng xốp cách
-                        nhiệt trong 2H nội thành, giữ trọn độ tươi giòn tự nhiên và bảo vệ rau củ khỏi dập nát.</li>
-                </ul>
+                    <h2 class="text-xl font-bold text-gray-900 mt-8 mb-3">2. Hồ Sơ Năng Lực & Nền Tảng Vững Chắc</h2>
+                    <p class="mb-4">
+                        Đất Lành tự chủ 100% quy trình sản xuất và chuỗi cung ứng khép kín nhằm đảm bảo chất lượng nông
+                        sản
+                        tươi ngon nhất khi đến tay khách hàng:
+                    </p>
+                    <ul class="list-disc pl-6 space-y-2 mb-6 text-gray-700">
+                        <li><strong>Diện tích canh tác:</strong> 12 hecta đất trồng đạt chuẩn nông nghiệp sạch và nhà
+                            màng
+                            chống côn trùng công nghệ cao.</li>
+                        <li><strong>Nhóm nông sản chính:</strong> Hơn 15 chủng loại nông sản tươi gồm rau ăn lá (cải bó
+                            xôi,
+                            xà lách mỡ, cải xoăn kale), củ quả theo mùa (cà chua cherry, khoai lang mật), nấm tươi tự
+                            nhiên
+                            và trái cây nhiệt đới.</li>
+                        <li><strong>Quy trình sản xuất 3 giai đoạn:</strong> Kiểm soát chặt chẽ từ khâu Gieo trồng hạt
+                            giống
+                            hữu cơ &rarr; Thu hoạch thủ công lúc 5:00 sáng &rarr; Sơ chế, đóng gói túi Kraft thoáng khí
+                            và
+                            bảo quản lạnh.</li>
+                        <li><strong>Đóng gói & Giao nhận hỏa tốc:</strong> 100% nông sản được giao nhanh bằng thùng xốp
+                            cách
+                            nhiệt trong 2H nội thành, giữ trọn độ tươi giòn tự nhiên và bảo vệ rau củ khỏi dập nát.</li>
+                    </ul>
                 @endif
             </div>
         </article>
@@ -98,51 +120,60 @@
 
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                 @forelse ($farmImages as $item)
-                @php
-                $imgSrc = (!empty($item->image_url) && str_starts_with($item->image_url, 'http'))
-                ? $item->image_url
-                : asset('storage/' . ($item->image_url ?? ''));
+                    @php
+                        $imgSrc = $item->display_url;
 
-                $fallbackImg = 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=800';
-                @endphp
-                <div class="relative rounded-2xl overflow-hidden shadow-sm aspect-[4/5] group bg-gray-900 cursor-pointer border border-gray-100 hover:shadow-xl transition-all"
-                    onclick="openImageLightbox('{{ $imgSrc }}', '{{ addslashes($item->caption ?? 'Hình ảnh nông trại Đất Lành') }}')">
-                    <img src="{{ $imgSrc }}" alt="{{ $item->caption ?? 'Hình ảnh nông trại' }}"
-                        onerror="this.onerror=null; this.src='{{ $fallbackImg }}';"
-                        class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-90">
-                    <div
-                        class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent flex flex-col justify-end p-4 text-white">
-                        <h3 class="text-xs sm:text-sm font-bold leading-snug drop-shadow-sm line-clamp-2">
-                            {{ $item->caption ?? 'Khu vực nông trại' }}
-                        </h3>
+                        $fallbackImg = 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=800';
+                    @endphp
+                    <div class="relative rounded-2xl overflow-hidden shadow-sm aspect-[4/5] group bg-gray-900 cursor-pointer border border-gray-100 hover:shadow-xl transition-all"
+                        onclick="openImageLightbox('{{ $imgSrc }}', '{{ addslashes($item->caption ?? 'Hình ảnh nông trại Đất Lành') }}')">
+                        <img src="{{ $imgSrc }}" alt="{{ $item->caption ?? 'Hình ảnh nông trại' }}"
+                            onerror="this.onerror=null; this.src='{{ $fallbackImg }}';"
+                            class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-90">
+                        <div
+                            class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent flex flex-col justify-end p-4 text-white">
+                            <h3 class="text-xs sm:text-sm font-bold leading-snug drop-shadow-sm line-clamp-2">
+                                {{ $item->caption ?? 'Khu vực nông trại' }}
+                            </h3>
+                        </div>
                     </div>
-                </div>
                 @empty
-                @php
-                $defaultAlbums = [
-                ['caption' => 'Hệ thống nhà màng A1 canh tác hữu cơ', 'url' =>
-                'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=800'],
-                ['caption' => 'Hệ thống tưới nhỏ giọt tự động Israel', 'url' =>
-                'https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?w=800'],
-                ['caption' => 'Khu vực thu hoạch & phân loại rau quả', 'url' =>
-                'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800'],
-                ['caption' => 'Quy trình sơ chế & đóng gói túi Kraft', 'url' =>
-                'https://images.unsplash.com/photo-1584467735871-8e85353a8413?w=800'],
-                ['caption' => 'Cánh đồng trồng trọt sinh thái Đất Lành', 'url' =>
-                'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=800'],
-                ];
-                @endphp
-                @foreach ($defaultAlbums as $album)
-                <div class="relative rounded-2xl overflow-hidden shadow-sm aspect-[4/5] group bg-gray-900 cursor-pointer border border-gray-100 hover:shadow-xl transition-all"
-                    onclick="openImageLightbox('{{ $album['url'] }}', '{{ addslashes($album['caption']) }}')">
-                    <img src="{{ $album['url'] }}" alt="{{ $album['caption'] }}"
-                        class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-90">
-                    <div
-                        class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent flex flex-col justify-end p-4 text-white">
-                        <h3 class="text-xs sm:text-sm font-bold leading-snug line-clamp-2">{{ $album['caption'] }}</h3>
-                    </div>
-                </div>
-                @endforeach
+                    @php
+                        $defaultAlbums = [
+                            [
+                                'caption' => 'Hệ thống nhà màng A1 canh tác hữu cơ',
+                                'url' => 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=800',
+                            ],
+                            [
+                                'caption' => 'Hệ thống tưới nhỏ giọt tự động Israel',
+                                'url' => 'https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?w=800',
+                            ],
+                            [
+                                'caption' => 'Khu vực thu hoạch & phân loại rau quả',
+                                'url' => 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800',
+                            ],
+                            [
+                                'caption' => 'Quy trình sơ chế & đóng gói túi Kraft',
+                                'url' => 'https://images.unsplash.com/photo-1584467735871-8e85353a8413?w=800',
+                            ],
+                            [
+                                'caption' => 'Cánh đồng trồng trọt sinh thái Đất Lành',
+                                'url' => 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=800',
+                            ],
+                        ];
+                    @endphp
+                    @foreach ($defaultAlbums as $album)
+                        <div class="relative rounded-2xl overflow-hidden shadow-sm aspect-[4/5] group bg-gray-900 cursor-pointer border border-gray-100 hover:shadow-xl transition-all"
+                            onclick="openImageLightbox('{{ $album['url'] }}', '{{ addslashes($album['caption']) }}')">
+                            <img src="{{ $album['url'] }}" alt="{{ $album['caption'] }}"
+                                class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-90">
+                            <div
+                                class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent flex flex-col justify-end p-4 text-white">
+                                <h3 class="text-xs sm:text-sm font-bold leading-snug line-clamp-2">
+                                    {{ $album['caption'] }}</h3>
+                            </div>
+                        </div>
+                    @endforeach
                 @endforelse
             </div>
         </section>
@@ -166,29 +197,27 @@
             <div class="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-xs relative">
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-6">
                     @forelse ($certifications as $cert)
-                    @php
-                    $storedPath = trim((string) ($cert->image ?? ''));
+                        @php
+                            $storedPath = trim((string) ($cert->image ?? ''));
 
-                    $certUrl = $cert->image_url;
+                            $certUrl = $cert->image_url;
 
-                    $filePath = parse_url($storedPath, PHP_URL_PATH);
+                            $filePath = parse_url($storedPath, PHP_URL_PATH);
 
-                    $isPdf = is_string($filePath)
-                    && strtolower(
-                    pathinfo($filePath, PATHINFO_EXTENSION)
-                    ) === 'pdf';
+                            $isPdf =
+                                is_string($filePath) && strtolower(pathinfo($filePath, PATHINFO_EXTENSION)) === 'pdf';
 
-                    $expiryFormatted = $cert->expiry_date
-                    ? 'Còn hiệu lực đến '
-                    . $cert->expiry_date->format('d/m/Y')
-                    : 'Vô thời hạn';
-                    @endphp
+                            $expiryFormatted = $cert->expiry_date
+                                ? 'Còn hiệu lực đến ' . $cert->expiry_date->format('d/m/Y')
+                                : 'Vô thời hạn';
+                        @endphp
 
-                    <a wire:key="about-certification-{{ $cert->id }}" href="{{ $certUrl ?? '#' }}"
-                        data-cert-name="{{ $cert->name }}" data-cert-code="{{ $cert->code }}"
-                        data-cert-description="{{ $cert->description ?? '' }}" data-cert-url="{{ $certUrl ?? '' }}"
-                        data-cert-is-pdf="{{ $isPdf ? '1' : '0' }}"
-                        target="{{ $isPdf && $certUrl ? '_blank' : '_self' }}" rel="noopener noreferrer" onclick="
+                        <a wire:key="about-certification-{{ $cert->id }}" href="{{ $certUrl ?? '#' }}"
+                            data-cert-name="{{ $cert->name }}" data-cert-code="{{ $cert->code }}"
+                            data-cert-description="{{ $cert->description ?? '' }}"
+                            data-cert-url="{{ $certUrl ?? '' }}" data-cert-is-pdf="{{ $isPdf ? '1' : '0' }}"
+                            target="{{ $isPdf && $certUrl ? '_blank' : '_self' }}" rel="noopener noreferrer"
+                            onclick="
         if (
             this.dataset.certIsPdf === '1'
             && this.dataset.certUrl
@@ -210,48 +239,50 @@
         );
 
         return false;
-    " class="flex flex-col text-center group cursor-pointer">
+    "
+                            class="flex flex-col text-center group cursor-pointer">
 
-                        <div
-                            class="p-2.5 rounded-2xl bg-gray-50 border border-gray-200 mb-3 aspect-[3/4] flex items-center justify-center overflow-hidden group-hover:border-brand-500 group-hover:shadow-md transition-all">
-                            @if ($isPdf && $certUrl)
-                            <div class="text-center text-gray-500">
-                                <i class="fa-regular fa-file-pdf text-3xl"></i>
+                            <div
+                                class="p-2.5 rounded-2xl bg-gray-50 border border-gray-200 mb-3 aspect-[3/4] flex items-center justify-center overflow-hidden group-hover:border-brand-500 group-hover:shadow-md transition-all">
+                                @if ($isPdf && $certUrl)
+                                    <div class="text-center text-gray-500">
+                                        <i class="fa-regular fa-file-pdf text-3xl"></i>
 
-                                <p class="text-xs sm:text-sm mt-2">
-                                    Xem bản scan PDF
-                                </p>
-                            </div>
-                            @elseif ($certUrl)
-                            <img src="{{ $certUrl }}" alt="{{ $cert->name }}" onerror="
+                                        <p class="text-xs sm:text-sm mt-2">
+                                            Xem bản scan PDF
+                                        </p>
+                                    </div>
+                                @elseif ($certUrl)
+                                    <img src="{{ $certUrl }}" alt="{{ $cert->name }}"
+                                        onerror="
                                     this.hidden = true;
                                     this.nextElementSibling.hidden = false;
                                 "
-                                class="w-full h-full object-cover rounded-xl group-hover:scale-105 transition-transform duration-300">
+                                        class="w-full h-full object-cover rounded-xl group-hover:scale-105 transition-transform duration-300">
 
-                            <span hidden class="text-xs text-gray-500">
-                                Không tải được bản scan
+                                    <span hidden class="text-xs text-gray-500">
+                                        Không tải được bản scan
+                                    </span>
+                                @else
+                                    <span class="text-xs text-gray-500">
+                                        Chưa có bản scan
+                                    </span>
+                                @endif
+                            </div>
+
+                            <span
+                                class="text-xs sm:text-sm font-bold text-gray-900 block truncate group-hover:text-brand-600 transition-colors">
+                                {{ $cert->name }}
                             </span>
-                            @else
-                            <span class="text-xs text-gray-500">
-                                Chưa có bản scan
+
+                            <span class="text-[11px] text-gray-500 font-medium mt-1">
+                                {{ $expiryFormatted }}
                             </span>
-                            @endif
-                        </div>
-
-                        <span
-                            class="text-xs sm:text-sm font-bold text-gray-900 block truncate group-hover:text-brand-600 transition-colors">
-                            {{ $cert->name }}
-                        </span>
-
-                        <span class="text-[11px] text-gray-500 font-medium mt-1">
-                            {{ $expiryFormatted }}
-                        </span>
-                    </a>
+                        </a>
                     @empty
-                    <p class="col-span-full text-center text-xs sm:text-sm text-gray-500">
-                        Hiện chưa có chứng nhận còn hiệu lực được công bố.
-                    </p>
+                        <p class="col-span-full text-center text-xs sm:text-sm text-gray-500">
+                            Hiện chưa có chứng nhận còn hiệu lực được công bố.
+                        </p>
                     @endforelse
                 </div>
             </div>
@@ -312,84 +343,84 @@
 
     <!-- SCRIPT JS ĐIỀU KHIỂN LIGHTBOX -->
     <script>
-    (() => {
-        const byId = (id) => document.getElementById(id);
+        (() => {
+            const byId = (id) => document.getElementById(id);
 
-        window.openCertModal = (title, code, description, imageUrl) => {
-            const modal = byId('cert-modal');
+            window.openCertModal = (title, code, description, imageUrl) => {
+                const modal = byId('cert-modal');
 
-            if (!modal) return;
+                if (!modal) return;
 
-            byId('cert-modal-title').textContent = title ?? '';
-            byId('cert-modal-code').textContent = code ?
-                'Số hiệu: ' + code :
-                '';
-            byId('cert-modal-desc').textContent = description ?? '';
-            byId('cert-modal-img').src = imageUrl;
+                byId('cert-modal-title').textContent = title ?? '';
+                byId('cert-modal-code').textContent = code ?
+                    'Số hiệu: ' + code :
+                    '';
+                byId('cert-modal-desc').textContent = description ?? '';
+                byId('cert-modal-img').src = imageUrl;
 
-            modal.dataset.previousOverflow = document.body.style.overflow;
+                modal.dataset.previousOverflow = document.body.style.overflow;
 
-            modal.classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-        };
-
-        window.closeCertModal = () => {
-            const modal = byId('cert-modal');
-
-            if (!modal) return;
-
-            modal.classList.add('hidden');
-            byId('cert-modal-img').removeAttribute('src');
-
-            document.body.style.overflow =
-                modal.dataset.previousOverflow ?? '';
-        };
-
-        window.openImageLightbox = (imageUrl, title) => {
-            const modal = byId('image-lightbox-modal');
-
-            if (!modal) return;
-
-            byId('lightbox-img').src = imageUrl;
-            byId('lightbox-title').textContent = title ?? '';
-
-            modal.dataset.previousOverflow = document.body.style.overflow;
-
-            modal.classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-        };
-
-        window.closeImageLightbox = () => {
-            const modal = byId('image-lightbox-modal');
-
-            if (!modal) return;
-
-            modal.classList.add('hidden');
-            byId('lightbox-img').removeAttribute('src');
-
-            document.body.style.overflow =
-                modal.dataset.previousOverflow ?? '';
-        };
-
-        const certModal = byId('cert-modal');
-
-        if (certModal) {
-            certModal.onclick = (event) => {
-                if (event.target === certModal) {
-                    window.closeCertModal();
-                }
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
             };
-        }
 
-        const imageModal = byId('image-lightbox-modal');
+            window.closeCertModal = () => {
+                const modal = byId('cert-modal');
 
-        if (imageModal) {
-            imageModal.onclick = (event) => {
-                if (event.target === imageModal) {
-                    window.closeImageLightbox();
-                }
+                if (!modal) return;
+
+                modal.classList.add('hidden');
+                byId('cert-modal-img').removeAttribute('src');
+
+                document.body.style.overflow =
+                    modal.dataset.previousOverflow ?? '';
             };
-        }
-    })();
+
+            window.openImageLightbox = (imageUrl, title) => {
+                const modal = byId('image-lightbox-modal');
+
+                if (!modal) return;
+
+                byId('lightbox-img').src = imageUrl;
+                byId('lightbox-title').textContent = title ?? '';
+
+                modal.dataset.previousOverflow = document.body.style.overflow;
+
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            };
+
+            window.closeImageLightbox = () => {
+                const modal = byId('image-lightbox-modal');
+
+                if (!modal) return;
+
+                modal.classList.add('hidden');
+                byId('lightbox-img').removeAttribute('src');
+
+                document.body.style.overflow =
+                    modal.dataset.previousOverflow ?? '';
+            };
+
+            const certModal = byId('cert-modal');
+
+            if (certModal) {
+                certModal.onclick = (event) => {
+                    if (event.target === certModal) {
+                        window.closeCertModal();
+                    }
+                };
+            }
+
+            const imageModal = byId('image-lightbox-modal');
+
+            if (imageModal) {
+                imageModal.onclick = (event) => {
+                    if (event.target === imageModal) {
+                        window.closeImageLightbox();
+                    }
+                };
+            }
+        })();
     </script>
 </div>
