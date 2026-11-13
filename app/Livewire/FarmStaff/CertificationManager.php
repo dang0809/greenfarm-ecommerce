@@ -84,7 +84,6 @@ class CertificationManager extends Component
         $this->editingId = $cert->id;
         $this->name = $cert->name;
         $this->code = $cert->code;
-
         $this->status = $cert->effective_status;
 
         $this->issuedDate = $cert->issued_date?->toDateString() ?? '';
@@ -92,7 +91,7 @@ class CertificationManager extends Component
         $this->description = (string) ($cert->description ?? '');
 
         $this->currentFileUrl = $cert->image_url;
-        $this->currentIsPdf = $this->isPdf($cert->image);
+        $this->currentIsPdf = $cert->is_pdf;
 
         $this->showForm = true;
     }
@@ -177,6 +176,7 @@ class CertificationManager extends Component
             'code.max' => 'Mã quản lý tối đa 50 ký tự.',
             'code.unique' => 'Mã quản lý đã tồn tại.',
 
+            'status.required' => 'Vui lòng chọn trạng thái.',
             'status.in' => 'Trạng thái không hợp lệ.',
 
             'issuedDate.required' => 'Vui lòng chọn ngày cấp.',
