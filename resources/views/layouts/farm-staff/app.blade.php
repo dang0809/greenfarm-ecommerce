@@ -141,12 +141,16 @@
 
     <body x-data="{}"
         x-on:swal.window="Swal.fire({
+        heightAuto: false,
+        scrollbarPadding: false,
         icon: $event.detail.icon ?? 'success',
         title: $event.detail.title ?? '',
         text: $event.detail.text ?? '',
         confirmButtonColor: '#15803d'
     })"
         x-on:farm-preview-image.window="Swal.fire({
+        heightAuto: false,
+        scrollbarPadding: false,
         imageUrl: $event.detail.src,
         imageAlt: 'Ảnh nhật ký canh tác',
         showConfirmButton: false,
