@@ -1,5 +1,5 @@
 <?php
-
+namespace App\Livewire\Admin;
 use App\Models\User;
 
 use Illuminate\Database\UniqueConstraintViolationException;
