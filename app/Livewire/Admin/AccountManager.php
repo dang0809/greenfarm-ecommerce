@@ -31,6 +31,7 @@ class AccountManager extends Component
 
     private const ROLES = [
         'admin',
+        'farm_owner',
         'farm_staff',
         'sales',
         'customer',
@@ -1124,6 +1125,7 @@ class AccountManager extends Component
 
             'internal' => $countRoles([
                 'admin',
+                'farm_owner',
                 'farm_staff',
                 'sales',
             ]),
@@ -1155,7 +1157,7 @@ class AccountManager extends Component
                 $this->tab === 'internal',
                 fn($query) => $query->whereIn(
                     'role',
-                    ['admin', 'farm_staff', 'sales']
+                    ['admin', 'farm_owner', 'farm_staff', 'sales']
                 )
             )
             ->when(

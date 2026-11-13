@@ -39,6 +39,8 @@ use App\Livewire\Admin\BannerManager;
 use App\Livewire\Admin\SettingManager;
 // Import FarmOwner Components
 use App\Livewire\FarmOwner\DashboardManager;
+use App\Livewire\FarmOwner\CustomerManager;
+use App\Livewire\FarmOwner\ProductBatchDetail;
 /*
 |--------------------------------------------------------------------------
 | 1. PUBLIC ROUTES (Ai cũng xem được - Không cần đăng nhập)
@@ -158,6 +160,32 @@ Route::middleware(['role:admin'])->prefix('quan-tri')->name('admin.')->group(fun
         ->name('settings');
 });
 
-Route::middleware(['role:admin'])->prefix('chu-trang-trai')->name('farm-owner.')->group(function () {
-    Route::get('/', DashboardManager::class)->name('dashboard');
+Route::middleware(['role:farm_owner'])->prefix('chu-trang-trai')->name('farm-owner.')->group(function () {
+    Route::get('/', DashboardManager::class)
+        ->name('dashboard');
+
+    Route::get(
+        '/khach-hang',
+        CustomerManager::class
+    )->name('customers');
+
+    Route::get(
+        '/san-pham',
+        \App\Livewire\FarmOwner\ProductManager::class
+    )->name('products');
+
+    Route::get(
+        '/san-pham/{product}',
+        \App\Livewire\FarmOwner\ProductDetail::class
+    )->whereNumber('product')->name('products.show');
+
+    Route::get(
+        '/lo-nong-san',
+        \App\Livewire\FarmOwner\ProductBatchManager::class
+    )->name('batches');
+
+    Route::get(
+        '/lo-nong-san/{batch}',
+        ProductBatchDetail::class
+    )->whereNumber('batch')->name('batches.show');
 });

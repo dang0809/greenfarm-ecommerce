@@ -29,7 +29,6 @@
         <nav class="p-3.5 space-y-1 overflow-y-auto flex-1 custom-scrollbar">
             @foreach ($items as $item)
                 <a wire:key="farm-owner-menu-{{ $item['route'] }}" href="{{ $item['url'] ?? '#' }}"
-                    @if (!$item['url']) wire:click.prevent="unavailable" @endif
                     @class([
                         'w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm transition-all text-left whitespace-nowrap',
                         'font-bold menu-admin-active' => $item['active'],
@@ -58,7 +57,7 @@
                 </p>
 
                 <p class="text-[10px] sm:text-[11px] text-amber-700 font-bold truncate">
-                    Chủ Trang Trại (Admin Master)
+                    Chủ Trang Trại
                 </p>
             </div>
         </div>
