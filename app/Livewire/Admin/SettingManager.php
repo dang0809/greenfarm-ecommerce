@@ -55,81 +55,6 @@ class SettingManager extends Component
         }
     }
 
-    protected function rules(): array
-    {
-        return [
-            'farm_name' => [
-                'bail',
-                'required',
-                'string',
-                'max:255',
-            ],
-
-            'hotline' => [
-                'bail',
-                'required',
-                'string',
-                'max:50',
-
-                function (string $attribute, mixed $value, \Closure $fail): void {
-                    // Chỉ chuẩn hóa để kiểm tra, không sửa ô nhập.
-                    $phone = preg_replace('/[\s().-]+/u', '', $value);
-
-                    if (preg_match('/^\+?[0-9]{6,15}$/D', $phone ?? '') !== 1) {
-                        $fail(
-                            'Hotline phải có 6–15 chữ số; có thể dùng dấu + ở đầu, khoảng trắng, dấu chấm, gạch ngang hoặc ngoặc.'
-                        );
-                    }
-                },
-            ],
-
-            'email' => [
-                'bail',
-                'required',
-                'string',
-                'email',
-                'max:255',
-            ],
-
-            'farm_address' => [
-                'bail',
-                'required',
-                'string',
-                'max:500',
-            ],
-        ];
-    }
-
-    protected function messages(): array
-    {
-        return [
-            'required' => 'Vui lòng nhập :attribute.',
-            'string' => ':attribute phải là chuỗi ký tự.',
-            'email' => 'Email liên hệ không đúng định dạng.',
-            'max' => ':attribute không được vượt quá :max ký tự.',
-        ];
-    }
-
-    protected function validationAttributes(): array
-    {
-        return [
-            'farm_name' => 'tên thương hiệu nông trại',
-            'hotline' => 'hotline',
-            'email' => 'email liên hệ',
-            'farm_address' => 'địa chỉ nông trại',
-        ];
-    }
-
-    private function validatedSettings(): array
-    {
-        // Chỉ trim dữ liệu trả về, giữ nguyên dữ liệu trên form
-        // trong lúc người dùng đang cân nhắc Xác nhận / Hủy.
-        return array_map(
-            static fn(string $value): string => trim($value),
-            $this->validate()
-        );
-    }
-
     // Bước 1: validate rồi mới yêu cầu mở SweetAlert.
     public function requestSave(): void
     {
@@ -229,6 +154,82 @@ class SettingManager extends Component
             icon: 'success',
             title: 'Lưu thành công',
             text: 'Đã cập nhật thông tin nông trại.'
+        );
+    }
+
+    // Validate dữ liệu
+    protected function rules(): array
+    {
+        return [
+            'farm_name' => [
+                'bail',
+                'required',
+                'string',
+                'max:255',
+            ],
+
+            'hotline' => [
+                'bail',
+                'required',
+                'string',
+                'max:50',
+
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    // Chỉ chuẩn hóa để kiểm tra, không sửa ô nhập.
+                    $phone = preg_replace('/[\s().-]+/u', '', $value);
+
+                    if (preg_match('/^\+?[0-9]{6,15}$/D', $phone ?? '') !== 1) {
+                        $fail(
+                            'Hotline phải có 6–15 chữ số; có thể dùng dấu + ở đầu, khoảng trắng, dấu chấm, gạch ngang hoặc ngoặc.'
+                        );
+                    }
+                },
+            ],
+
+            'email' => [
+                'bail',
+                'required',
+                'string',
+                'email',
+                'max:255',
+            ],
+
+            'farm_address' => [
+                'bail',
+                'required',
+                'string',
+                'max:500',
+            ],
+        ];
+    }
+
+    protected function messages(): array
+    {
+        return [
+            'required' => 'Vui lòng nhập :attribute.',
+            'string' => ':attribute phải là chuỗi ký tự.',
+            'email' => 'Email liên hệ không đúng định dạng.',
+            'max' => ':attribute không được vượt quá :max ký tự.',
+        ];
+    }
+
+    protected function validationAttributes(): array
+    {
+        return [
+            'farm_name' => 'tên thương hiệu nông trại',
+            'hotline' => 'hotline',
+            'email' => 'email liên hệ',
+            'farm_address' => 'địa chỉ nông trại',
+        ];
+    }
+
+    private function validatedSettings(): array
+    {
+        // Chỉ trim dữ liệu trả về, giữ nguyên dữ liệu trên form
+        // trong lúc người dùng đang cân nhắc Xác nhận / Hủy.
+        return array_map(
+            static fn(string $value): string => trim($value),
+            $this->validate()
         );
     }
 

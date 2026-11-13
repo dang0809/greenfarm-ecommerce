@@ -1,25 +1,26 @@
 <?php
 
-namespace App\Livewire\Admin;
-
 use App\Models\User;
+
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
-use Livewire\WithPagination;
-use Illuminate\Support\Facades\Storage;
 use Livewire\WithFileUploads;
+use Livewire\WithPagination;
+
 use RuntimeException;
 use Throwable;
 
@@ -118,6 +119,32 @@ class AccountManager extends Component
         $this->resetPasswordConfirmationHash = null;
     }
 
+    public function updatedResetPassword(): void
+    {
+        // Nếu sửa mật khẩu sau khi đã mở SweetAlert thì phải xác nhận lại.
+        $this->resetPasswordConfirmationHash = null;
+    }
+
+    public function updatedNewAvatar(): void
+    {
+        $this->confirmationHash = null;
+
+        try {
+            $this->validateOnly(
+                'newAvatar',
+                ['newAvatar' => $this->avatarRules()],
+                $this->avatarMessages()
+            );
+        } catch (ValidationException $exception) {
+            // Không tạo preview cho tệp không hợp lệ.
+            $this->reset('newAvatar');
+            $this->avatarInputKey++;
+
+            throw $exception;
+        }
+    }
+
+    // Bộ lọc danh sách
     public function setTab(string $tab): void
     {
         if (
@@ -149,6 +176,7 @@ class AccountManager extends Component
         $this->resetPage();
     }
 
+    // Tạo và sửa tài khoản, avatar
     public function openCreate(): void
     {
         $this->closeResetPassword();
@@ -180,355 +208,26 @@ class AccountManager extends Component
         $this->resetForm();
     }
 
-    public function openResetPassword(int $id): void
+    public function generateRandomPassword(): void
     {
-        $user = User::find($id);
-
-        if (!$user) {
-            $this->notify('error', 'Tài khoản không còn tồn tại.');
-
+        if (!$this->showUserModal || $this->editingId !== null) {
             return;
         }
 
-        $this->closeUserModal();
-        $this->resetPasswordForm();
-
-        $this->resetUserId = $user->id;
-        $this->resetUserName = $user->name;
-        $this->resetUserEmail = $user->email;
-        $this->showPasswordModal = true;
+        $this->password = Str::password(10) . '@Farm';
+        $this->confirmationHash = null;
+        $this->resetValidation('password');
     }
 
-    public function closeResetPassword(): void
+    public function cancelAvatar(): void
     {
-        $this->resetPasswordForm();
-    }
+        // Chỉ bỏ ảnh đang chọn; ảnh hiện tại trong DB vẫn được giữ.
+        $this->reset('newAvatar');
 
-    private function resetPasswordForm(): void
-    {
-        $this->reset([
-            'showPasswordModal',
-            'resetUserId',
-            'resetUserName',
-            'resetUserEmail',
-            'resetPassword',
-            'resetPasswordConfirmationHash',
-        ]);
-
-        $this->resetValidation();
-    }
-
-    private function validatedResetPassword(): string
-    {
-        return $this->validate([
-            'resetPassword' => [
-                'required',
-                'string',
-                'min:8',
-                'max:72',
-            ],
-        ], [
-            'resetPassword.required' => 'Vui lòng nhập mật khẩu mới.',
-            'resetPassword.min' => 'Mật khẩu mới phải có ít nhất 8 ký tự.',
-            'resetPassword.max' => 'Mật khẩu mới tối đa 72 ký tự.',
-        ])['resetPassword'];
-    }
-
-    private function resetPasswordSignature(string $password): string
-    {
-        return hash_hmac(
-            'sha256',
-            json_encode(
-                [$this->resetUserId, $password],
-                JSON_THROW_ON_ERROR
-            ),
-            (string) config('app.key')
-        );
-    }
-
-    public function updatedResetPassword(): void
-    {
-        // Nếu sửa mật khẩu sau khi đã mở SweetAlert thì phải xác nhận lại.
-        $this->resetPasswordConfirmationHash = null;
-    }
-
-    public function requestResetPassword(): void
-    {
-        if (
-            !$this->showPasswordModal
-            || !$this->resetUserId
-        ) {
-            return;
-        }
-
-        $this->resetPasswordConfirmationHash = null;
-
-        // Validate trước khi hiển thị SweetAlert.
-        $password = $this->validatedResetPassword();
-
-        $user = User::find($this->resetUserId);
-
-        if (!$user) {
-            $this->notify('error', 'Tài khoản không còn tồn tại.');
-
-            return;
-        }
-
-        if (Hash::check($password, (string) $user->password)) {
-            $this->notify(
-                'info',
-                'Mật khẩu mới giống mật khẩu hiện tại.'
-            );
-
-            return;
-        }
-
-        $this->resetPasswordConfirmationHash =
-            $this->resetPasswordSignature($password);
-
-        $this->dispatch(
-            'confirm-password-reset',
-            name: $user->name
-        )->self();
-    }
-
-    public function cancelResetPassword(): void
-    {
-        // Hủy SweetAlert nhưng giữ nguyên modal và mật khẩu đã nhập.
-        $this->resetPasswordConfirmationHash = null;
-    }
-
-    public function saveResetPassword(): void
-    {
-        if (
-            !$this->showPasswordModal
-            || !$this->resetUserId
-        ) {
-            return;
-        }
-
-        // Validate lại trước khi lưu.
-        $password = $this->validatedResetPassword();
-
-        if (
-            $this->resetPasswordConfirmationHash === null
-            || !hash_equals(
-                $this->resetPasswordConfirmationHash,
-                $this->resetPasswordSignature($password)
-            )
-        ) {
-            $this->resetPasswordConfirmationHash = null;
-
-            $this->notify(
-                'info',
-                'Dữ liệu đã thay đổi. Vui lòng nhấn xác nhận lại.'
-            );
-
-            return;
-        }
-
-        $this->resetPasswordConfirmationHash = null;
-
-        try {
-            $saved = DB::transaction(function () use ($password) {
-                $user = User::whereKey($this->resetUserId)
-                    ->lockForUpdate()
-                    ->firstOrFail();
-
-                if (Hash::check($password, (string) $user->password)) {
-                    return false;
-                }
-
-                // User model đã cast password => hashed.
-                $user->password = $password;
-                $user->saveOrFail();
-
-                return true;
-            });
-        } catch (Throwable $exception) {
-            report($exception);
-
-            $this->addError(
-                'resetPassword',
-                'Không thể đặt lại mật khẩu. Vui lòng thử lại.'
-            );
-
-            return;
-        }
-
-        if (!$saved) {
-            $this->notify(
-                'info',
-                'Mật khẩu mới giống mật khẩu hiện tại.'
-            );
-
-            return;
-        }
-
-        $this->closeResetPassword();
-
-        $this->notify(
-            'success',
-            'Đặt lại mật khẩu thành công.'
-        );
-    }
-
-    private function resetForm(): void
-    {
-        $this->reset([
-            'showUserModal',
-            'editingId',
-            'confirmationHash',
-            'name',
-            'email',
-            'phone',
-            'password',
-            'role',
-            'rewardPoints',
-            'newAvatar',
-            'currentAvatarUrl',
-        ]);
-
-        // Đổi key để trình duyệt xóa lựa chọn trong input file.
         $this->avatarInputKey++;
+        $this->confirmationHash = null;
 
-        $this->resetValidation();
-    }
-
-    private function validatedData(): array
-    {
-        $this->name = trim($this->name);
-        $this->email = strtolower(trim($this->email));
-
-        // Chấp nhận nhập số điện thoại có khoảng trắng, dấu chấm/gạch.
-        $this->phone = preg_replace(
-            '/[\s.\-]+/u',
-            '',
-            trim($this->phone)
-        ) ?? '';
-
-        if ($this->editingId === null) {
-            $this->rewardPoints = $this->role === 'customer'
-                ? trim($this->rewardPoints)
-                : '0';
-        }
-
-        $data = $this->validate([
-            'newAvatar' => $this->avatarRules(),
-            'name' => ['required', 'string', 'max:255'],
-
-            'email' => [
-                'required',
-                'email:rfc',
-                'max:255',
-                Rule::unique('users', 'email')
-                    ->ignore($this->editingId),
-            ],
-
-            'phone' => [
-                'required',
-                'string',
-                'regex:/^0[35789][0-9]{8}$/',
-            ],
-
-            'password' => $this->editingId === null
-                ? ['required', 'string', 'min:8', 'max:72']
-                : ['exclude'],
-
-            'role' => [
-                'required',
-                Rule::in(self::ROLES),
-            ],
-
-            'rewardPoints' => $this->editingId === null
-                ? [
-                    'required',
-                    'integer',
-                    'min:0',
-                    'max:2147483647',
-                ]
-                : ['exclude'],
-        ], [
-            ...$this->avatarMessages(),
-            'required' => 'Vui lòng nhập :attribute.',
-
-            'name.max' => 'Họ tên tối đa 255 ký tự.',
-
-            'email.email' => 'Email không đúng định dạng.',
-            'email.max' => 'Email tối đa 255 ký tự.',
-            'email.unique' => 'Email đã được sử dụng.',
-
-            'phone.regex' => 'Số điện thoại gồm 10 số, bắt đầu bằng 03, 05, 07, 08 hoặc 09.',
-
-            'password.min' => 'Mật khẩu phải có ít nhất 8 ký tự.',
-            'password.max' => 'Mật khẩu tối đa 72 ký tự.',
-
-            'role.in' => 'Vai trò không hợp lệ.',
-
-            'rewardPoints.integer' => 'Điểm thưởng phải là số nguyên.',
-            'rewardPoints.min' => 'Điểm thưởng không được âm.',
-            'rewardPoints.max' => 'Điểm thưởng tối đa 2147483647.',
-        ], [
-            'name' => 'họ tên',
-            'email' => 'email',
-            'phone' => 'số điện thoại',
-            'password' => 'mật khẩu',
-            'role' => 'vai trò',
-            'rewardPoints' => 'điểm thưởng',
-        ]);
-
-        if (
-            $this->editingId === (int) Auth::id()
-            && $data['role'] !== 'admin'
-        ) {
-            throw ValidationException::withMessages([
-                'role' => 'Bạn không thể tự hạ quyền tài khoản đang đăng nhập.',
-            ]);
-        }
-
-        $payload = [
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'phone' => $data['phone'],
-            'role' => $data['role'],
-        ];
-
-        if ($this->editingId === null) {
-            $payload['password'] = $data['password'];
-            $payload['reward_points'] = (int) $data['rewardPoints'];
-        }
-
-        return $payload;
-    }
-
-    private function hasChanges(User $user, array $data): bool
-    {
-        $copy = clone $user;
-
-        $copy->fill(Arr::except($data, ['password']));
-
-        return $copy->isDirty([
-            'name',
-            'email',
-            'phone',
-            'role',
-        ]) || $this->avatarHasChanges($user);
-    }
-
-    private function signature(array $data): string
-    {
-        return hash_hmac(
-            'sha256',
-            json_encode(
-                [
-                    $this->editingId,
-                    $data,
-                    $this->avatarChecksum(),
-                ],
-                JSON_THROW_ON_ERROR
-            ),
-            (string) config('app.key')
-        );
+        $this->resetValidation('newAvatar');
     }
 
     public function requestSaveAccount(): void
@@ -704,15 +403,29 @@ class AccountManager extends Component
         );
     }
 
-    public function generateRandomPassword(): void
+    // Đặt lại mật khẩu nhanh
+    public function openResetPassword(int $id): void
     {
-        if (!$this->showUserModal || $this->editingId !== null) {
+        $user = User::find($id);
+
+        if (!$user) {
+            $this->notify('error', 'Tài khoản không còn tồn tại.');
+
             return;
         }
 
-        $this->password = Str::password(10) . '@Farm';
-        $this->confirmationHash = null;
-        $this->resetValidation('password');
+        $this->closeUserModal();
+        $this->resetPasswordForm();
+
+        $this->resetUserId = $user->id;
+        $this->resetUserName = $user->name;
+        $this->resetUserEmail = $user->email;
+        $this->showPasswordModal = true;
+    }
+
+    public function closeResetPassword(): void
+    {
+        $this->resetPasswordForm();
     }
 
     public function setPresetPassword(): void
@@ -726,6 +439,128 @@ class AccountManager extends Component
         $this->resetValidation('resetPassword');
     }
 
+    public function requestResetPassword(): void
+    {
+        if (
+            !$this->showPasswordModal
+            || !$this->resetUserId
+        ) {
+            return;
+        }
+
+        $this->resetPasswordConfirmationHash = null;
+
+        // Validate trước khi hiển thị SweetAlert.
+        $password = $this->validatedResetPassword();
+
+        $user = User::find($this->resetUserId);
+
+        if (!$user) {
+            $this->notify('error', 'Tài khoản không còn tồn tại.');
+
+            return;
+        }
+
+        if (Hash::check($password, (string) $user->password)) {
+            $this->notify(
+                'info',
+                'Mật khẩu mới giống mật khẩu hiện tại.'
+            );
+
+            return;
+        }
+
+        $this->resetPasswordConfirmationHash =
+            $this->resetPasswordSignature($password);
+
+        $this->dispatch(
+            'confirm-password-reset',
+            name: $user->name
+        )->self();
+    }
+
+    public function cancelResetPassword(): void
+    {
+        // Hủy SweetAlert nhưng giữ nguyên modal và mật khẩu đã nhập.
+        $this->resetPasswordConfirmationHash = null;
+    }
+
+    public function saveResetPassword(): void
+    {
+        if (
+            !$this->showPasswordModal
+            || !$this->resetUserId
+        ) {
+            return;
+        }
+
+        // Validate lại trước khi lưu.
+        $password = $this->validatedResetPassword();
+
+        if (
+            $this->resetPasswordConfirmationHash === null
+            || !hash_equals(
+                $this->resetPasswordConfirmationHash,
+                $this->resetPasswordSignature($password)
+            )
+        ) {
+            $this->resetPasswordConfirmationHash = null;
+
+            $this->notify(
+                'info',
+                'Dữ liệu đã thay đổi. Vui lòng nhấn xác nhận lại.'
+            );
+
+            return;
+        }
+
+        $this->resetPasswordConfirmationHash = null;
+
+        try {
+            $saved = DB::transaction(function () use ($password) {
+                $user = User::whereKey($this->resetUserId)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                if (Hash::check($password, (string) $user->password)) {
+                    return false;
+                }
+
+                // User model đã cast password => hashed.
+                $user->password = $password;
+                $user->saveOrFail();
+
+                return true;
+            });
+        } catch (Throwable $exception) {
+            report($exception);
+
+            $this->addError(
+                'resetPassword',
+                'Không thể đặt lại mật khẩu. Vui lòng thử lại.'
+            );
+
+            return;
+        }
+
+        if (!$saved) {
+            $this->notify(
+                'info',
+                'Mật khẩu mới giống mật khẩu hiện tại.'
+            );
+
+            return;
+        }
+
+        $this->closeResetPassword();
+
+        $this->notify(
+            'success',
+            'Đặt lại mật khẩu thành công.'
+        );
+    }
+
+    // Khóa/ mở khóa tài khoản
     public function requestToggleStatus(int $id): void
     {
         $this->pendingStatus = [];
@@ -821,6 +656,7 @@ class AccountManager extends Component
         );
     }
 
+    // Chỉnh điểm tích lũy
     public function requestQuickPoints(int $id): void
     {
         $this->pendingPoints = [];
@@ -956,6 +792,209 @@ class AccountManager extends Component
         return $result;
     }
 
+    // Form tài khoản
+    private function resetForm(): void
+    {
+        $this->reset([
+            'showUserModal',
+            'editingId',
+            'confirmationHash',
+            'name',
+            'email',
+            'phone',
+            'password',
+            'role',
+            'rewardPoints',
+            'newAvatar',
+            'currentAvatarUrl',
+        ]);
+
+        // Đổi key để trình duyệt xóa lựa chọn trong input file.
+        $this->avatarInputKey++;
+
+        $this->resetValidation();
+    }
+
+    private function validatedData(): array
+    {
+        $this->name = trim($this->name);
+        $this->email = strtolower(trim($this->email));
+
+        // Chấp nhận nhập số điện thoại có khoảng trắng, dấu chấm/gạch.
+        $this->phone = preg_replace(
+            '/[\s.\-]+/u',
+            '',
+            trim($this->phone)
+        ) ?? '';
+
+        if ($this->editingId === null) {
+            $this->rewardPoints = $this->role === 'customer'
+                ? trim($this->rewardPoints)
+                : '0';
+        }
+
+        $data = $this->validate([
+            'newAvatar' => $this->avatarRules(),
+            'name' => ['required', 'string', 'max:255'],
+
+            'email' => [
+                'required',
+                'email:rfc',
+                'max:255',
+                Rule::unique('users', 'email')
+                    ->ignore($this->editingId),
+            ],
+
+            'phone' => [
+                'required',
+                'string',
+                'regex:/^0[35789][0-9]{8}$/',
+            ],
+
+            'password' => $this->editingId === null
+                ? ['required', 'string', 'min:8', 'max:72']
+                : ['exclude'],
+
+            'role' => [
+                'required',
+                Rule::in(self::ROLES),
+            ],
+
+            'rewardPoints' => $this->editingId === null
+                ? [
+                    'required',
+                    'integer',
+                    'min:0',
+                    'max:2147483647',
+                ]
+                : ['exclude'],
+        ], [
+            ...$this->avatarMessages(),
+            'required' => 'Vui lòng nhập :attribute.',
+
+            'name.max' => 'Họ tên tối đa 255 ký tự.',
+
+            'email.email' => 'Email không đúng định dạng.',
+            'email.max' => 'Email tối đa 255 ký tự.',
+            'email.unique' => 'Email đã được sử dụng.',
+
+            'phone.regex' => 'Số điện thoại gồm 10 số, bắt đầu bằng 03, 05, 07, 08 hoặc 09.',
+
+            'password.min' => 'Mật khẩu phải có ít nhất 8 ký tự.',
+            'password.max' => 'Mật khẩu tối đa 72 ký tự.',
+
+            'role.in' => 'Vai trò không hợp lệ.',
+
+            'rewardPoints.integer' => 'Điểm thưởng phải là số nguyên.',
+            'rewardPoints.min' => 'Điểm thưởng không được âm.',
+            'rewardPoints.max' => 'Điểm thưởng tối đa 2147483647.',
+        ], [
+            'name' => 'họ tên',
+            'email' => 'email',
+            'phone' => 'số điện thoại',
+            'password' => 'mật khẩu',
+            'role' => 'vai trò',
+            'rewardPoints' => 'điểm thưởng',
+        ]);
+
+        if (
+            $this->editingId === (int) Auth::id()
+            && $data['role'] !== 'admin'
+        ) {
+            throw ValidationException::withMessages([
+                'role' => 'Bạn không thể tự hạ quyền tài khoản đang đăng nhập.',
+            ]);
+        }
+
+        $payload = [
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'phone' => $data['phone'],
+            'role' => $data['role'],
+        ];
+
+        if ($this->editingId === null) {
+            $payload['password'] = $data['password'];
+            $payload['reward_points'] = (int) $data['rewardPoints'];
+        }
+
+        return $payload;
+    }
+
+    private function hasChanges(User $user, array $data): bool
+    {
+        $copy = clone $user;
+
+        $copy->fill(Arr::except($data, ['password']));
+
+        return $copy->isDirty([
+            'name',
+            'email',
+            'phone',
+            'role',
+        ]) || $this->avatarHasChanges($user);
+    }
+
+    private function signature(array $data): string
+    {
+        return hash_hmac(
+            'sha256',
+            json_encode(
+                [
+                    $this->editingId,
+                    $data,
+                    $this->avatarChecksum(),
+                ],
+                JSON_THROW_ON_ERROR
+            ),
+            (string) config('app.key')
+        );
+    }
+
+    // Helper form tài khoản
+    private function resetPasswordForm(): void
+    {
+        $this->reset([
+            'showPasswordModal',
+            'resetUserId',
+            'resetUserName',
+            'resetUserEmail',
+            'resetPassword',
+            'resetPasswordConfirmationHash',
+        ]);
+
+        $this->resetValidation();
+    }
+
+    private function validatedResetPassword(): string
+    {
+        return $this->validate([
+            'resetPassword' => [
+                'required',
+                'string',
+                'min:8',
+                'max:72',
+            ],
+        ], [
+            'resetPassword.required' => 'Vui lòng nhập mật khẩu mới.',
+            'resetPassword.min' => 'Mật khẩu mới phải có ít nhất 8 ký tự.',
+            'resetPassword.max' => 'Mật khẩu mới tối đa 72 ký tự.',
+        ])['resetPassword'];
+    }
+
+    private function resetPasswordSignature(string $password): string
+    {
+        return hash_hmac(
+            'sha256',
+            json_encode(
+                [$this->resetUserId, $password],
+                JSON_THROW_ON_ERROR
+            ),
+            (string) config('app.key')
+        );
+    }
+
+    // Helper avatar
     private function avatarRules(): array
     {
         return [
@@ -974,59 +1013,6 @@ class AccountManager extends Component
             'newAvatar.mimes' => 'Chỉ chấp nhận JPG, JPEG, PNG hoặc WEBP.',
             'newAvatar.max' => 'Ảnh đại diện tối đa 2 MB.',
         ];
-    }
-
-    public function updatedNewAvatar(): void
-    {
-        $this->confirmationHash = null;
-
-        try {
-            $this->validateOnly(
-                'newAvatar',
-                ['newAvatar' => $this->avatarRules()],
-                $this->avatarMessages()
-            );
-        } catch (ValidationException $exception) {
-            // Không tạo preview cho tệp không hợp lệ.
-            $this->reset('newAvatar');
-            $this->avatarInputKey++;
-
-            throw $exception;
-        }
-    }
-
-    public function cancelAvatar(): void
-    {
-        // Chỉ bỏ ảnh đang chọn; ảnh hiện tại trong DB vẫn được giữ.
-        $this->reset('newAvatar');
-
-        $this->avatarInputKey++;
-        $this->confirmationHash = null;
-
-        $this->resetValidation('newAvatar');
-    }
-
-    private function avatarChecksum(): ?string
-    {
-        if ($this->newAvatar === null) {
-            return null;
-        }
-
-        try {
-            $contents = $this->newAvatar->get();
-
-            if (!is_string($contents)) {
-                throw new RuntimeException('Không đọc được ảnh đã chọn.');
-            }
-
-            return hash('sha256', $contents);
-        } catch (Throwable $exception) {
-            report($exception);
-
-            throw ValidationException::withMessages([
-                'newAvatar' => 'Không đọc được ảnh đã chọn. Vui lòng chọn lại.',
-            ]);
-        }
     }
 
     private function avatarHasChanges(User $user): bool
@@ -1066,6 +1052,29 @@ class AccountManager extends Component
 
             throw ValidationException::withMessages([
                 'newAvatar' => 'Không thể kiểm tra ảnh hiện tại. Vui lòng thử lại.',
+            ]);
+        }
+    }
+
+    private function avatarChecksum(): ?string
+    {
+        if ($this->newAvatar === null) {
+            return null;
+        }
+
+        try {
+            $contents = $this->newAvatar->get();
+
+            if (!is_string($contents)) {
+                throw new RuntimeException('Không đọc được ảnh đã chọn.');
+            }
+
+            return hash('sha256', $contents);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            throw ValidationException::withMessages([
+                'newAvatar' => 'Không đọc được ảnh đã chọn. Vui lòng chọn lại.',
             ]);
         }
     }
