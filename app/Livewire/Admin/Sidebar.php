@@ -2,8 +2,9 @@
 
 namespace App\Livewire\Admin;
 
-use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Component;
+
 class Sidebar extends Component
 {
     public function requestLogout(): void
