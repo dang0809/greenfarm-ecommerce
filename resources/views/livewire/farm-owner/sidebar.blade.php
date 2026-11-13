@@ -62,10 +62,62 @@
             </div>
         </div>
 
-        <button type="button" wire:click="logout" wire:loading.attr="disabled" wire:target="logout"
-            class="flex items-center justify-center space-x-2 text-rose-600 hover:bg-rose-50 transition w-full py-2 rounded-xl font-bold text-xs">
-            <i class="fa-solid fa-arrow-right-from-bracket"></i>
-            <span>Đăng xuất tài khoản</span>
+        <button type="button" wire:click="requestLogout" wire:loading.attr="disabled"
+            wire:target="requestLogout,logout"
+            class="flex items-center justify-center space-x-2 text-rose-600 hover:bg-rose-50 transition w-full py-2 rounded-xl font-bold text-xs disabled:opacity-50 disabled:cursor-wait">
+            <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
+
+            <span wire:loading.remove wire:target="logout">
+                Đăng xuất tài khoản
+            </span>
+
+            <span wire:loading wire:target="logout">
+                Đang đăng xuất...
+            </span>
         </button>
     </div>
 </aside>
+@script
+    <script>
+        let confirmingLogout = false;
+
+        $wire.on('confirm-farm-owner-logout', async () => {
+            if (confirmingLogout) return;
+
+            confirmingLogout = true;
+
+            try {
+                const result = await Swal.fire({
+                    heightAuto: false,
+                    icon: 'question',
+                    title: 'Xác nhận đăng xuất?',
+                    text: 'Bạn có muốn đăng xuất khỏi tài khoản hiện tại?',
+                    showCancelButton: true,
+                    confirmButtonText: 'Xác nhận',
+                    cancelButtonText: 'Hủy',
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#64748b',
+                    reverseButtons: true,
+                    focusCancel: true,
+                    allowOutsideClick: false
+                });
+
+                if (result.isConfirmed) {
+                    // đăng xuất, ghi flash và chuyển về login.
+                    await $wire.logout();
+                }
+            } catch (error) {
+                await Swal.fire({
+                    heightAuto: false,
+                    icon: 'error',
+                    title: 'Chưa hoàn tất đăng xuất',
+                    text: 'Vui lòng tải lại trang để kiểm tra và thử lại.',
+                    confirmButtonText: 'Đóng',
+                    confirmButtonColor: '#15803d'
+                });
+            } finally {
+                confirmingLogout = false;
+            }
+        });
+    </script>
+@endscript

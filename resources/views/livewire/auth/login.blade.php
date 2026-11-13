@@ -19,12 +19,14 @@
             <h1 class="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">Đăng Nhập Quản Trị</h1>
         </div>
 
-        <!-- Khối Thông Báo Lỗi Toàn Cục / Session Flash -->
-        @if (session()->has('error'))
-            <div
-                class="p-3.5 mb-5 text-xs font-semibold text-rose-800 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-2.5 animate-in fade-in duration-200">
-                <i class="fa-solid fa-circle-exclamation text-rose-600 text-sm shrink-0"></i>
-                <span>{{ session('error') }}</span>
+        <!-- Thông báo thành công -->
+        @if (session()->has('success'))
+            <div x-data="{ visible: true }" x-init="setTimeout(() => visible = false, 1000)" x-show="visible" x-transition.opacity.duration.300ms
+                role="status"
+                class="p-3.5 mb-5 text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start gap-2.5">
+                <i class="fa-solid fa-circle-check text-emerald-600 text-sm shrink-0" aria-hidden="true"></i>
+
+                <span>{{ session('success') }}</span>
             </div>
         @endif
 

@@ -31,6 +31,11 @@ class Sidebar extends Component
         $this->activeRoute = request()->route()?->getName() ?? '';
     }
 
+    public function requestLogout(): void
+    {
+        $this->dispatch('confirm-farm-owner-logout')->self();
+    }
+
     public function logout(): void
     {
         Auth::guard('web')->logout();
@@ -38,7 +43,13 @@ class Sidebar extends Component
         request()->session()->invalidate();
         request()->session()->regenerateToken();
 
-        $this->redirectRoute('login');
+        // Ghi flash sau khi đã xóa session cũ.
+        session()->flash(
+            'success',
+            'Đã đăng xuất tài khoản thành công!'
+        );
+
+        $this->redirectRoute('login', navigate: true);
     }
 
     public function render()
