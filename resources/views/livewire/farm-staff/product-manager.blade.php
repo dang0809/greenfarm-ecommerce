@@ -1,4 +1,5 @@
-<div x-data="{ confirmingProduct: false }" x-on:product-confirm-state="confirmingProduct = $event.detail.busy">
+<div x-data="{ confirmingProduct: false }" x-on:product-confirm-state="confirmingProduct = $event.detail.busy"
+    class="flex flex-1 min-h-0 min-w-0 flex-col overflow-hidden">
     <!-- Header-->
     <header
         class="min-h-[4.5rem] sm:h-20 bg-white/95 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-8 shrink-0 z-20 gap-3">
@@ -26,7 +27,8 @@
         </div>
     </header>
 
-    <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 custom-scrollbar pb-28 sm:pb-12">
+    <div
+        class="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 custom-scrollbar pb-28 sm:pb-12">
 
         <!-- Thanh Công Cụ & Bộ Lọc -->
         <div
