@@ -1,6 +1,6 @@
 <?php
 namespace App\Livewire\FarmStaff;
-
+use Illuminate\Database\Eloquent\Builder;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImage;
@@ -437,6 +437,8 @@ class ProductManager extends Component
         $this->reset('imageUploads');
         $this->imageInputKey++;
         $this->resetValidation('imageUploads');
+
+        $this->dispatch('product-images-ready');
     }
 
     // Các trang khách hàng còn gọi hai API static này.
@@ -640,17 +642,21 @@ class ProductManager extends Component
 
         $this->validateImageOrder($product);
 
-        if (
-            $product !== null
-            && !$product->isDirty()
-            && $this->galleryHasNoChanges($product)
-        ) {
-            $this->notify('info', 'Không có thay đổi nào.');
+        if ($product !== null) {
+            // Bắt buộc fill dữ liệu form trước khi kiểm tra isDirty().
+            $product->fill($data);
 
-            return;
+            if (
+                !$product->isDirty()
+                && $this->galleryHasNoChanges($product)
+            ) {
+                $this->notify('info', 'Không có thay đổi nào.');
+
+                return;
+            }
         }
 
-        $this->dispatch('confirm-product-save');
+        $this->dispatch('confirm-product-save')->self();
     }
 
     public function saveProduct(): void

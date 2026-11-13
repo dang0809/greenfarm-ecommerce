@@ -248,17 +248,26 @@
 
     <!-- MODAL THÊM / SỬA SẢN PHẨM -->
     <div id="modal-product" wire:key="product-modal-{{ $editingId ?? 'new' }}" x-data="{ uploadingImage: false }"
+        x-on:product-images-ready="uploadingImage = false"
         x-on:livewire-upload-start="
-        if ($event.detail.property === 'imageUploads') uploadingImage = true
+        if ($event.detail.property === 'imageUploads') {
+            uploadingImage = true
+        }
     "
         x-on:livewire-upload-finish="
-        if ($event.detail.property === 'imageUploads') uploadingImage = false
+        if ($event.detail.property === 'imageUploads') {
+            uploadingImage = false
+        }
     "
         x-on:livewire-upload-error="
-        if ($event.detail.property === 'imageUploads') uploadingImage = false
+        if ($event.detail.property === 'imageUploads') {
+            uploadingImage = false
+        }
     "
         x-on:livewire-upload-cancel="
-        if ($event.detail.property === 'imageUploads') uploadingImage = false
+        if ($event.detail.property === 'imageUploads') {
+            uploadingImage = false
+        }
     "
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs {{ $showModal ? '' : 'hidden' }} p-3 sm:p-4">
 
@@ -270,16 +279,17 @@
                     {{ $editingId ? 'Sửa Sản Phẩm: ' . $name : 'Thêm Sản Phẩm Nông Sản Mới' }}
                 </h3>
 
-                <button type="button" wire:click="closeModal" x-bind:disabled="uploadingImage"
-                    wire:loading.attr="disabled" wire:target="requestSaveProduct,saveProduct,closeModal"
-                    class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center cursor-pointer">
+                <button type="button" wire:click="closeModal" x-bind:disabled="uploadingImage || confirmingProduct"
+                    wire:loading.attr="disabled"
+                    wire:target="imageUploads,moveImage,removeImage,requestSaveProduct,saveProduct,closeModal"
+                    class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center cursor-pointer disabled:opacity-50">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
             <form wire:submit="$js.submitProduct" novalidate
                 x-on:submit.capture="
-        if (uploadingImage || confirmingProduct) {
+        if (confirmingProduct) {
             $event.preventDefault();
             $event.stopImmediatePropagation();
         }
@@ -511,11 +521,16 @@
                         Hủy
                     </button>
 
-                    <button type="submit" x-bind:disabled="uploadingImage || confirmingProduct"
-                        wire:loading.attr="disabled"
+                    <button type="submit" x-bind:disabled="confirmingProduct" wire:loading.attr="disabled"
                         wire:target="imageUploads,moveImage,removeImage,requestSaveProduct,saveProduct,closeModal"
                         class="bg-brand-700 hover:bg-brand-800 text-white font-bold px-5 py-2 rounded-xl transition cursor-pointer disabled:opacity-50 disabled:cursor-wait">
-                        Lưu Sản phẩm
+                        <span wire:loading.remove wire:target="requestSaveProduct,saveProduct">
+                            Lưu Sản phẩm
+                        </span>
+
+                        <span wire:loading wire:target="requestSaveProduct,saveProduct">
+                            Đang lưu...
+                        </span>
                     </button>
                 </div>
             </form>
@@ -592,8 +607,7 @@
                         scrollbarPadding: false,
                         icon: 'question',
                         title: $wire.editingId !== null ?
-                            'Xác nhận cập nhật sản phẩm?' :
-                            'Xác nhận thêm sản phẩm?',
+                            'Xác nhận cập nhật sản phẩm?' : 'Xác nhận thêm sản phẩm?',
                         text: 'Bạn có muốn lưu thông tin và thứ tự ảnh sản phẩm?',
                         showCancelButton: true,
                         confirmButtonText: 'Xác nhận',
