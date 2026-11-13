@@ -201,9 +201,9 @@
                 <div
                     class="flex justify-between items-center mb-4 sm:mb-5 border-b border-gray-100 pb-3 sticky top-0 bg-white z-10">
                     <div class="min-w-0">
-                        <h3 class="text-base sm:text-xl font-extrabold text-gray-900 truncate" id="modal-form-title">
-                            Đăng
-                            Giấy Kiểm Định Mới</h3>
+                        <h3 id="modal-form-title" class="text-base sm:text-xl font-extrabold text-gray-900 truncate">
+                            {{ $editingId !== null ? 'Cập nhật giấy kiểm định' : 'Đăng giấy kiểm định mới' }}
+                        </h3>
                     </div>
                     <button type="button" wire:click="closeForm" wire:loading.attr="disabled"
                         wire:target="requestSave,save,newFile"
@@ -212,114 +212,196 @@
                     </button>
                 </div>
 
-                <form wire:submit="requestSave" class="space-y-3.5 sm:space-y-4 text-xs sm:text-sm">
-                    @if ($errors->any())
-                        <div role="alert">
-                            @foreach ($errors->all() as $message)
-                                <p class="text-red-500">{{ $message }}</p>
-                            @endforeach
+                <form wire:submit="requestSave" novalidate class="space-y-3.5 sm:space-y-4 text-xs sm:text-sm">
+                    {{-- Lỗi chung khi lưu file hoặc database --}}
+                    @error('form')
+                        <div role="alert"
+                            class="rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
+                            {{ $message }}
                         </div>
-                    @endif
+                    @enderror
+
+                    {{-- Tên chứng nhận --}}
                     <div>
-                        <label class="block font-bold text-gray-700 mb-1">Tên chứng nhận chuẩn<span
-                                class="text-red-500">*</span></label>
-                        <input type="text" id="cert-name" wire:model="name" maxlength="255" required
+                        <label for="cert-name" class="block font-bold text-gray-700 mb-1">
+                            Tên chứng nhận chuẩn
+                            <span class="text-red-500">*</span>
+                        </label>
+
+                        <input type="text" id="cert-name" wire:model="name" maxlength="255" aria-required="true"
                             placeholder="VD: VietGAP Trồng Trọt, Test mẫu đất T10..."
-                            class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl sm:rounded-2xl px-3.5 py-2 sm:py-2.5 outline-none focus:border-brand-500 font-semibold text-xs sm:text-sm">
+                            class="w-full bg-[#FAFAF8] border @error('name') border-red-400 @else border-gray-200 @enderror rounded-xl sm:rounded-2xl px-3.5 py-2 sm:py-2.5 outline-none focus:border-brand-500 font-semibold text-xs sm:text-sm">
+
+                        @error('name')
+                            <p role="alert" class="mt-1 text-xs font-semibold text-red-600">
+                                {{ $message }}
+                            </p>
+                        @enderror
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {{-- Mã chứng nhận --}}
                         <div>
-                            <label class="block font-bold text-gray-700 mb-1">Mã chứng nhận <span
-                                    class="text-red-500">*</span></label>
-                            <input type="text" id="cert-code" wire:model="code" maxlength="50" required
-                                placeholder="VD: vietgap, soil-test-2026..."
-                                class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl sm:rounded-2xl px-3.5 py-2 sm:py-2.5 outline-none focus:border-brand-500 font-mono text-xs uppercase">
+                            <label for="cert-code" class="block font-bold text-gray-700 mb-1">
+                                Mã chứng nhận
+                                <span class="text-red-500">*</span>
+                            </label>
+
+                            <input type="text" id="cert-code" wire:model="code" maxlength="50"
+                                aria-required="true" placeholder="VD: vietgap, soil-test-2026..."
+                                class="w-full bg-[#FAFAF8] border @error('code') border-red-400 @else border-gray-200 @enderror rounded-xl sm:rounded-2xl px-3.5 py-2 sm:py-2.5 outline-none focus:border-brand-500 font-mono text-xs uppercase">
+
+                            @error('code')
+                                <p role="alert" class="mt-1 text-xs font-semibold text-red-600">
+                                    {{ $message }}
+                                </p>
+                            @enderror
                         </div>
+
+                        {{-- Trạng thái --}}
                         <div>
-                            <label class="block font-bold text-gray-700 mb-1">Trạng thái<span
-                                    class="text-red-500">*</span></label>
-                            <select id="cert-status" wire:model="status" required
-                                class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl sm:rounded-2xl px-3.5 py-2 sm:py-2.5 outline-none focus:border-brand-500 font-semibold text-xs cursor-pointer">
+                            <label for="cert-status" class="block font-bold text-gray-700 mb-1">
+                                Trạng thái
+                                <span class="text-red-500">*</span>
+                            </label>
+
+                            <select id="cert-status" wire:model="status" aria-required="true"
+                                class="w-full bg-[#FAFAF8] border @error('status') border-red-400 @else border-gray-200 @enderror rounded-xl sm:rounded-2xl px-3.5 py-2 sm:py-2.5 outline-none focus:border-brand-500 font-semibold text-xs cursor-pointer">
                                 <option value="active">Còn hiệu lực</option>
                                 <option value="expired">Hết hiệu lực</option>
                             </select>
+
+                            @error('status')
+                                <p role="alert" class="mt-1 text-xs font-semibold text-red-600">
+                                    {{ $message }}
+                                </p>
+                            @enderror
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {{-- Ngày cấp --}}
                         <div>
-                            <label class="block font-bold text-gray-700 mb-1">Ngày cấp<span
-                                    class="text-red-500">*</span></label>
-                            <input type="date" id="cert-issued" wire:model="issuedDate" required
-                                class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl sm:rounded-2xl px-3.5 py-2 sm:py-2.5 outline-none focus:border-brand-500 font-mono text-xs">
+                            <label for="cert-issued" class="block font-bold text-gray-700 mb-1">
+                                Ngày cấp
+                                <span class="text-red-500">*</span>
+                            </label>
+
+                            <input type="date" id="cert-issued" wire:model="issuedDate" aria-required="true"
+                                class="w-full bg-[#FAFAF8] border @error('issuedDate') border-red-400 @else border-gray-200 @enderror rounded-xl sm:rounded-2xl px-3.5 py-2 sm:py-2.5 outline-none focus:border-brand-500 font-mono text-xs">
+
+                            @error('issuedDate')
+                                <p role="alert" class="mt-1 text-xs font-semibold text-red-600">
+                                    {{ $message }}
+                                </p>
+                            @enderror
                         </div>
+
+                        {{-- Ngày hết hạn --}}
                         <div>
-                            <label class="block font-bold text-gray-700 mb-1">Ngày hết hạn</label>
+                            <label for="cert-expiry" class="block font-bold text-gray-700 mb-1">
+                                Ngày hết hạn
+                            </label>
+
                             <input type="date" id="cert-expiry" wire:model="expiryDate"
-                                class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl sm:rounded-2xl px-3.5 py-2 sm:py-2.5 outline-none focus:border-brand-500 font-mono text-xs">
-                            <span class="text-[10px] text-gray-400 mt-0.5 block italic">Bỏ trống nếu vô thời hạn</span>
+                                class="w-full bg-[#FAFAF8] border @error('expiryDate') border-red-400 @else border-gray-200 @enderror rounded-xl sm:rounded-2xl px-3.5 py-2 sm:py-2.5 outline-none focus:border-brand-500 font-mono text-xs">
+
+                            <span class="text-[10px] text-gray-400 mt-0.5 block italic">
+                                Bỏ trống nếu vô thời hạn
+                            </span>
+
+                            @error('expiryDate')
+                                <p role="alert" class="mt-1 text-xs font-semibold text-red-600">
+                                    {{ $message }}
+                                </p>
+                            @enderror
                         </div>
                     </div>
 
+                    {{-- Chi tiết --}}
                     <div>
-                        <label class="block font-bold text-gray-700 mb-1">Chi tiết<span
-                                class="text-red-500">*</span></label>
-                        <textarea id="cert-desc" wire:model="description" maxlength="10000" rows="3" required
+                        <label for="cert-desc" class="block font-bold text-gray-700 mb-1">
+                            Chi tiết
+                            <span class="text-red-500">*</span>
+                        </label>
+
+                        <textarea id="cert-desc" wire:model="description" maxlength="10000" rows="3" aria-required="true"
                             placeholder="Ghi nhận tóm tắt chỉ số kiểm định, hàm lượng kim loại nặng..."
-                            class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl sm:rounded-2xl p-3 outline-none focus:border-brand-500 text-xs font-medium resize-none"></textarea>
+                            class="w-full bg-[#FAFAF8] border @error('description') border-red-400 @else border-gray-200 @enderror rounded-xl sm:rounded-2xl p-3 outline-none focus:border-brand-500 text-xs font-medium resize-none"></textarea>
+
+                        @error('description')
+                            <p role="alert" class="mt-1 text-xs font-semibold text-red-600">
+                                {{ $message }}
+                            </p>
+                        @enderror
                     </div>
 
+                    {{-- Bản scan --}}
                     <div>
-                        <label class="block font-bold text-gray-700 mb-1">Bản scan JPG/PDF kết quả <span
-                                class="text-red-500">*</span></label>
+                        <label for="cert-file" class="block font-bold text-gray-700 mb-1">
+                            Bản scan JPG, JPEG, PNG, WEBP hoặc PDF
+
+                            @if ($currentFileUrl === null)
+                                <span class="text-red-500">*</span>
+                            @endif
+                        </label>
+
                         <input type="file" id="cert-file" wire:model="newFile"
                             wire:key="certification-file-{{ $fileInputKey }}" accept=".jpg,.jpeg,.png,.webp,.pdf"
                             class="w-full text-xs text-gray-500 file:mr-3 file:py-1.5 sm:file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 cursor-pointer">
 
-                        <p wire:loading wire:target="newFile">
+                        @error('newFile')
+                            <p role="alert" class="mt-1 text-xs font-semibold text-red-600">
+                                {{ $message }}
+                            </p>
+                        @enderror
+
+                        <p class="mt-1 text-[10px] text-gray-400">
+                            Dung lượng tối đa 5 MB.
+                            @if ($currentFileUrl !== null)
+                                Không chọn tệp mới nếu muốn giữ bản scan hiện tại.
+                            @endif
+                        </p>
+
+                        <p wire:loading wire:target="newFile" class="mt-1 text-xs text-brand-700">
                             Đang tải bản scan...
                         </p>
 
                         @if ($uploadFileName !== null)
-                            <div id="upload-preview-box" class="mt-2.5">
+                            <div class="mt-2.5">
                                 @if ($uploadPreviewUrl !== null)
-                                    <img id="upload-preview-img" src="{{ $uploadPreviewUrl }}" alt="Bản scan mới"
+                                    <img src="{{ $uploadPreviewUrl }}" alt="Bản scan mới"
                                         class="w-full h-32 sm:h-40 object-cover rounded-xl border border-gray-200 shadow-xs">
                                 @else
-                                    <p>
-                                        <i class="fa-solid fa-file-pdf"></i>
+                                    <p class="text-xs text-gray-600">
+                                        <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
                                         Tệp đã chọn: {{ $uploadFileName }}
                                     </p>
                                 @endif
                             </div>
                         @elseif ($currentFileUrl !== null)
-                            <div id="upload-preview-box" class="mt-2.5">
+                            <div class="mt-2.5">
                                 @if ($currentIsPdf)
-                                    <a href="{{ $currentFileUrl }}" target="_blank" rel="noopener noreferrer">
-                                        <i class="fa-solid fa-file-pdf"></i>
+                                    <a href="{{ $currentFileUrl }}" target="_blank" rel="noopener noreferrer"
+                                        class="text-brand-700 font-semibold">
+                                        <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
                                         Xem bản PDF hiện tại
                                     </a>
                                 @else
-                                    <img id="upload-preview-img" src="{{ $currentFileUrl }}" alt="Bản scan hiện tại"
+                                    <img src="{{ $currentFileUrl }}" alt="Bản scan hiện tại"
                                         class="w-full h-32 sm:h-40 object-cover rounded-xl border border-gray-200 shadow-xs">
                                 @endif
                             </div>
                         @endif
-                        <div id="upload-preview-box" class="mt-2.5 hidden">
-                            <img id="upload-preview-img" src=""
-                                class="w-full h-32 sm:h-40 object-cover rounded-xl border border-gray-200 shadow-xs">
-                        </div>
                     </div>
 
                     <div class="pt-2">
                         <button type="submit" wire:loading.attr="disabled" wire:target="requestSave,save,newFile"
-                            class="w-full bg-brand-700 hover:bg-brand-800 text-white font-bold py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl shadow-md transition active:scale-95 text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer">
-
-                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            class="w-full bg-brand-700 hover:bg-brand-800 text-white font-bold py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl shadow-md transition active:scale-95 text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-wait">
+                            <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i>
 
                             <span wire:loading.remove wire:target="requestSave,save,newFile">
-                                Lưu & Công Bố Giấy Kiểm Định
+                                {{ $editingId !== null ? 'Lưu cập nhật giấy kiểm định' : 'Lưu & Công bố giấy kiểm định' }}
                             </span>
 
                             <span wire:loading wire:target="requestSave,save,newFile">
@@ -457,6 +539,8 @@
 
             try {
                 const result = await Swal.fire({
+                    heightAuto: false,
+                    scrollbarPadding: false,
                     showCancelButton: true,
                     cancelButtonText: 'Hủy',
                     cancelButtonColor: '#6b7280',
@@ -468,13 +552,16 @@
                 if (result.isConfirmed) {
                     await action();
                 }
-
-                // Hủy: không lưu, không đóng form, không reset file.
             } catch (error) {
+                // Livewire đã đưa lỗi validation về từng trường.
+                if (error?.status === 422 || error?.errors) return;
+
                 await Swal.fire({
+                    heightAuto: false,
+                    scrollbarPadding: false,
                     icon: 'error',
                     title: 'Yêu cầu chưa hoàn tất',
-                    text: 'Kiểm tra dữ liệu trên form hoặc kết nối rồi thử lại.',
+                    text: 'Vui lòng kiểm tra kết nối và thử lại.',
                     confirmButtonColor: '#15803d'
                 });
             } finally {
@@ -511,4 +598,3 @@
         });
     </script>
 @endscript
-</div>
