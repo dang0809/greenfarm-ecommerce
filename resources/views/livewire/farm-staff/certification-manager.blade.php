@@ -1,5 +1,5 @@
 <div>
-    <!-- Flash Message Thông báo -->
+    {{-- Hiển thị thông báo thành công được truyền qua session --}}
     @if (session()->has('success'))
         <div
             class="fixed top-24 right-5 z-50 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs sm:text-sm font-bold shadow-lg flex items-center justify-between gap-3">
@@ -8,7 +8,7 @@
         </div>
     @endif
 
-    <!-- Header -->
+    {{-- Hiển thị tiêu đề hồ sơ kiểm định và thao tác đăng giấy chứng nhận mới --}}
     <header
         class="min-h-[4.5rem] sm:h-20 bg-white/95 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-4 sm:px-8 relative z-10 shrink-0 gap-3">
         <div class="flex items-center gap-3 min-w-0">
@@ -32,11 +32,11 @@
         </button>
     </header>
 
-    <!-- Main -->
+    {{-- Hiển thị khu vực quản lý và danh sách giấy chứng nhận --}}
     <div
         class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 relative z-10 space-y-4 sm:space-y-6 custom-scrollbar h-[calc(100dvh-5rem)]">
 
-        <!-- THANH TÌM KIẾM & BỘ LỌC TRẠNG THÁI -->
+        {{-- Tìm kiếm giấy chứng nhận và lọc theo hiệu lực thực tế. --}}
         <div
             class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
             <div class="relative w-full md:w-80">
@@ -66,9 +66,10 @@
             </div>
         </div>
 
-        <!-- DANH SÁCH CHỨNG CHỈ -->
+        {{-- Hiển thị giấy kiểm định, bản scan, ngày hiệu lực và thao tác quản lý --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 pb-12" id="cert-cards-container">
 
+            {{-- Xác định badge theo hiệu lực thực tế của giấy kiểm định. --}}
             @forelse ($certifications as $cert)
                 @php
                     $isActive = $cert->effective_status === 'active';
@@ -191,7 +192,7 @@
 
     </div>
 
-    <!-- MODAL 1: FORM ĐĂNG / SỬA GIẤY KIỂM ĐỊNH -->
+    {{-- Hiển thị biểu mẫu tạo, cập nhật giấy kiểm định và tải bản scan. --}}
     @if ($showForm)
         <div id="modal-form"
             wire:key="certification-form-{{ $editingId !== null ? 'Cập Nhật Giấy Kiểm Định' : 'Đăng Giấy Kiểm Định Mới' }}"
@@ -213,7 +214,7 @@
                 </div>
 
                 <form wire:submit="requestSave" novalidate class="space-y-3.5 sm:space-y-4 text-xs sm:text-sm">
-                    {{-- Lỗi chung khi lưu file hoặc database --}}
+                    {{-- Hiển thị lỗi chung khi lưu thông tin hoặc bản scan thất bại. --}}
                     @error('form')
                         <div role="alert"
                             class="rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
@@ -221,7 +222,7 @@
                         </div>
                     @enderror
 
-                    {{-- Tên chứng nhận --}}
+                    {{-- Nhập tên giấy kiểm định và hiển thị lỗi dữ liệu --}}
                     <div>
                         <label for="cert-name" class="block font-bold text-gray-700 mb-1">
                             Tên chứng nhận chuẩn
@@ -240,7 +241,7 @@
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {{-- Mã chứng nhận --}}
+                        {{-- Nhập mã giấy kiểm định và hiển thị lỗi dữ liệu --}}
                         <div>
                             <label for="cert-code" class="block font-bold text-gray-700 mb-1">
                                 Mã chứng nhận
@@ -258,7 +259,7 @@
                             @enderror
                         </div>
 
-                        {{-- Trạng thái --}}
+                        {{-- Chọn trạng thái lưu của giấy kiểm định --}}
                         <div>
                             <label for="cert-status" class="block font-bold text-gray-700 mb-1">
                                 Trạng thái
@@ -280,7 +281,7 @@
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {{-- Ngày cấp --}}
+                        {{-- Nhập ngày cấp và hiển thị lỗi dữ liệu --}}
                         <div>
                             <label for="cert-issued" class="block font-bold text-gray-700 mb-1">
                                 Ngày cấp
@@ -297,7 +298,7 @@
                             @enderror
                         </div>
 
-                        {{-- Ngày hết hạn --}}
+                        {{-- Nhập ngày hết hạn hoặc để trống khi giấy không có hạn sử dụng --}}
                         <div>
                             <label for="cert-expiry" class="block font-bold text-gray-700 mb-1">
                                 Ngày hết hạn
@@ -318,7 +319,7 @@
                         </div>
                     </div>
 
-                    {{-- Chi tiết --}}
+                    {{-- Nhập nội dung mô tả giấy kiểm định --}}
                     <div>
                         <label for="cert-desc" class="block font-bold text-gray-700 mb-1">
                             Chi tiết
@@ -336,7 +337,7 @@
                         @enderror
                     </div>
 
-                    {{-- Bản scan --}}
+                    {{-- Chọn bản scan, hiển thị trạng thái tải và bản xem trước --}}
                     <div>
                         <label for="cert-file" class="block font-bold text-gray-700 mb-1">
                             Bản scan JPG, JPEG, PNG, WEBP hoặc PDF
@@ -414,7 +415,7 @@
         </div>
     @endif
 
-    <!-- MODAL 2: XEM BẢN SCAN PHÓNG TO -->
+    {{-- Mở bản scan giấy kiểm định đang được chọn --}}
     @if ($scanCertification)
         <div id="modal-scan" wire:key="certification-scan-{{ $scanCertification->id }}"
             class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/80 backdrop-blur-xs p-3 sm:p-4">
@@ -424,7 +425,7 @@
                max-h-[92dvh] overflow-hidden flex flex-col
                shadow-2xl border border-gray-100">
 
-                <!-- Header của modal -->
+                {{-- Hiển thị thông tin giấy kiểm định và nút đóng bản scan --}}
                 <div
                     class="shrink-0 flex items-start justify-between gap-3
                    border-b border-gray-100 p-4 sm:p-6">
@@ -451,7 +452,7 @@
                     </button>
                 </div>
 
-                <!-- Hiển thị bản scan -->
+                {{-- Hiển thị bản scan dạng ảnh hoặc PDF và xử lý trường hợp thiếu tệp --}}
                 <div
                     class="flex-1 min-h-0 overflow-y-auto
                    rounded-xl sm:rounded-2xl bg-gray-50
@@ -498,7 +499,7 @@
                     @endif
                 </div>
 
-                <!-- Footer của modal -->
+                {{-- Hiển thị thông tin bổ sung và các thao tác với bản scan --}}
                 <div
                     class="shrink-0 border-t border-gray-100
                    p-4 sm:p-5 flex flex-col items-stretch gap-3
@@ -528,6 +529,7 @@
     @endif
 </div>
 
+{{-- Xác nhận lưu, xóa giấy kiểm định và giữ thông báo validation tại từng trường. --}}
 @script
     <script>
         let confirming = false;

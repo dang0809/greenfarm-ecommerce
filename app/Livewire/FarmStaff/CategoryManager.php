@@ -72,175 +72,6 @@ class CategoryManager extends Component
         $this->resetPage();
     }
 
-    private function getImageDisk(): string
-    {
-        return config('filesystems.disks.r2.key') ? 'r2' : 'public';
-    }
-
-    public function createCategory(): void
-    {
-        $this->resetForm();
-        $this->showModal = true;
-    }
-
-    public function editCategory(int $id): void
-    {
-        $category = Category::findOrFail($id);
-
-        $this->resetForm();
-
-        $this->editingId = $category->id;
-        $this->name = $category->name;
-        $this->slug = $category->slug;
-        $this->status = $category->is_active
-            ? 'active'
-            : 'hidden';
-
-        $this->currentImageUrl = $category->image_url;
-        $this->showModal = true;
-    }
-
-    private function validatedData(): array
-    {
-        $this->resetValidation();
-
-        $name = trim($this->name);
-        $slug = trim($this->slug);
-
-        if ($slug === '') {
-            $slug = Str::slug($name);
-        }
-
-        // Kiểm tra thông tin trước bước yêu cầu ảnh.
-        $rules = $this->rules();
-        unset($rules['newImage']);
-
-        $validated = Validator::make([
-            'name' => $name,
-            'slug' => $slug,
-            'status' => $this->status,
-        ], $rules, $this->messages())->validate();
-
-        if ($this->newImage !== null) {
-            $this->validateOnly('newImage');
-        }
-
-        return [
-            'name' => $validated['name'],
-            'slug' => $validated['slug'],
-            'is_active' => $validated['status'] === 'active',
-        ];
-    }
-
-    private function hasCategoryChanges(Category $category, array $data): bool
-    {
-        $current = [
-            'name' => trim((string) $category->name),
-            'slug' => trim((string) $category->slug),
-            'is_active' => (bool) $category->is_active,
-        ];
-
-        return $current !== $data
-            || $this->hasImageChanges($category);
-    }
-
-    private function hasImageChanges(Category $category): bool
-    {
-        if ($this->newImage === null) {
-            return false;
-        }
-
-        if (!$this->newImage instanceof TemporaryUploadedFile) {
-            return true;
-        }
-
-        $path = (string) $category->image;
-
-        // Chỉ so sánh ảnh đã lưu trong thư mục quản lý của chức năng.
-        if (!$this->isManagedImagePath($path)) {
-            return true;
-        }
-
-        try {
-            $disk = Storage::disk($this->getImageDisk());
-
-            if (!$disk->exists($path)) {
-                return true;
-            }
-
-            // Chọn lại ảnh có cùng nội dung không tính là thay đổi.
-            return !hash_equals(
-                hash('sha256', $disk->get($path)),
-                hash('sha256', $this->newImage->get())
-            );
-        } catch (Throwable $exception) {
-            report($exception);
-
-            return true;
-        }
-    }
-
-    public function requestSaveCategory(): void
-    {
-        if (!$this->showModal) {
-            return;
-        }
-
-        $data = $this->validatedData();
-
-        $category = $this->editingId !== null
-            ? Category::findOrFail($this->editingId)
-            : null;
-
-        // Kiểm tra ảnh trong database.
-        // Nếu chưa có ảnh, validation required sẽ báo lỗi.
-        // Nếu đã có ảnh, không bắt buộc chọn ảnh mới.
-        $this->validateImageForSave($category);
-
-        if (
-            $category !== null
-            && !$this->hasCategoryChanges($category, $data)
-        ) {
-            $this->notify(
-                'info',
-                'Chưa có sự thay đổi nào.'
-            );
-
-            return;
-        }
-
-        // Chưa ghi database ở bước này.
-        $this->dispatch(
-            'confirm-category-save',
-            editing: $this->editingId !== null
-        )->self();
-    }
-
-    public function requestDeleteCategory(int $id): void
-    {
-        $category = Category::find($id);
-
-        if (!$category) {
-            $this->resetPage();
-            $this->notify('error', 'Danh mục không còn tồn tại.');
-
-            return;
-        }
-
-        // Chưa xóa ở bước này.
-        $this->dispatch(
-            'confirm-category-delete',
-            id: $category->id,
-            name: $category->name
-        )->self();
-    }
-
-    public function closeModal(): void
-    {
-        $this->showModal = false;
-        $this->resetForm();
-    }
-
     public function updatedName(): void
     {
         // Tự động cập nhật slug theo tên ở form thêm và sửa.
@@ -250,34 +81,20 @@ class CategoryManager extends Component
         $this->resetValidation('slug');
     }
 
-    private function imageRules(bool $required): array
+    public function updatedNewImage(): void
     {
-        return [
-            'bail',
-            $required ? 'required' : 'nullable',
-            'file',
-            'image',
-            'mimes:jpg,jpeg,png,webp',
-            'max:2048',
-        ];
+        try {
+            $this->validateOnly('newImage');
+        } catch (ValidationException $exception) {
+            // Không để Blade tạo temporaryUrl() cho file không hợp lệ.
+            $this->reset('newImage');
+            $this->imageInputKey++;
+
+            throw $exception;
+        }
     }
 
-    private function validateImageForSave(?Category $category): void
-    {
-        $hasExistingImage = $category !== null
-            && trim((string) $category->image) !== '';
-
-        Validator::make(
-            ['newImage' => $this->newImage],
-            [
-                'newImage' => $this->imageRules(
-                    !$hasExistingImage
-                ),
-            ],
-            $this->messages()
-        )->validate();
-    }
-
+    // Validate dữ liệu
     protected function rules(): array
     {
         return [
@@ -328,17 +145,127 @@ class CategoryManager extends Component
         ];
     }
 
-    public function updatedNewImage(): void
+    private function imageRules(bool $required): array
     {
-        try {
-            $this->validateOnly('newImage');
-        } catch (ValidationException $exception) {
-            // Không để Blade tạo temporaryUrl() cho file không hợp lệ.
-            $this->reset('newImage');
-            $this->imageInputKey++;
+        return [
+            'bail',
+            $required ? 'required' : 'nullable',
+            'file',
+            'image',
+            'mimes:jpg,jpeg,png,webp',
+            'max:2048',
+        ];
+    }
 
-            throw $exception;
+    private function validatedData(): array
+    {
+        $this->resetValidation();
+
+        $name = trim($this->name);
+        $slug = trim($this->slug);
+
+        if ($slug === '') {
+            $slug = Str::slug($name);
         }
+
+        // Kiểm tra thông tin trước bước yêu cầu ảnh.
+        $rules = $this->rules();
+        unset($rules['newImage']);
+
+        $validated = Validator::make([
+            'name' => $name,
+            'slug' => $slug,
+            'status' => $this->status,
+        ], $rules, $this->messages())->validate();
+
+        return [
+            'name' => $validated['name'],
+            'slug' => $validated['slug'],
+            'is_active' => $validated['status'] === 'active',
+        ];
+    }
+
+    private function validateImageForSave(?Category $category): void
+    {
+        $hasExistingImage = $category !== null
+            && trim((string) $category->image) !== '';
+
+        Validator::make(
+            ['newImage' => $this->newImage],
+            [
+                'newImage' => $this->imageRules(
+                    !$hasExistingImage
+                ),
+            ],
+            $this->messages()
+        )->validate();
+    }
+
+    // Modal form
+    public function createCategory(): void
+    {
+        $this->resetForm();
+        $this->showModal = true;
+    }
+
+    public function editCategory(int $id): void
+    {
+        $category = Category::findOrFail($id);
+
+        $this->resetForm();
+
+        $this->editingId = $category->id;
+        $this->name = $category->name;
+        $this->slug = $category->slug;
+        $this->status = $category->is_active
+            ? 'active'
+            : 'hidden';
+
+        $this->currentImageUrl = $category->image_url;
+        $this->showModal = true;
+    }
+
+    public function closeModal(): void
+    {
+        $this->showModal = false;
+        $this->resetForm();
+    }
+
+    // Lưu
+    public function requestSaveCategory(): void
+    {
+        if (!$this->showModal) {
+            return;
+        }
+
+        $data = $this->validatedData();
+
+        $category = $this->editingId !== null
+            ? Category::findOrFail($this->editingId)
+            : null;
+
+        // Kiểm tra ảnh trong database.
+        // Nếu chưa có ảnh, validation required sẽ báo lỗi.
+        // Nếu đã có ảnh, không bắt buộc chọn ảnh mới.
+        $this->validateImageForSave($category);
+
+        if (
+            $category !== null
+            && !$this->hasCategoryChanges($category, $data)
+        ) {
+            $this->notify(
+                'info',
+                'Chưa có sự thay đổi nào.'
+            );
+
+            return;
+        }
+
+        // Chưa ghi database ở bước này.
+        $this->dispatch(
+            'confirm-category-save',
+            editing: $this->editingId !== null
+        )->self();
     }
 
     public function saveCategory(): void
@@ -482,6 +409,26 @@ class CategoryManager extends Component
         );
     }
 
+    // Xóa
+    public function requestDeleteCategory(int $id): void
+    {
+        $category = Category::find($id);
+
+        if (!$category) {
+            $this->resetPage();
+            $this->notify('error', 'Danh mục không còn tồn tại.');
+
+            return;
+        }
+
+        // Chưa xóa ở bước này.
+        $this->dispatch(
+            'confirm-category-delete',
+            id: $category->id,
+            name: $category->name
+        )->self();
+    }
+
     public function deleteCategory(int $id): void
     {
         $oldPath = null;
@@ -538,6 +485,61 @@ class CategoryManager extends Component
         $this->resetPage();
 
         $this->notify('success', 'Đã xóa danh mục!');
+    }
+
+    // So sánh sự thay đổi dữ liệu
+    private function hasCategoryChanges(Category $category, array $data): bool
+    {
+        $current = [
+            'name' => trim((string) $category->name),
+            'slug' => trim((string) $category->slug),
+            'is_active' => (bool) $category->is_active,
+        ];
+
+        return $current !== $data
+            || $this->hasImageChanges($category);
+    }
+
+    private function hasImageChanges(Category $category): bool
+    {
+        if ($this->newImage === null) {
+            return false;
+        }
+
+        if (!$this->newImage instanceof TemporaryUploadedFile) {
+            return true;
+        }
+
+        $path = (string) $category->image;
+
+        // Chỉ so sánh ảnh đã lưu trong thư mục quản lý của chức năng.
+        if (!$this->isManagedImagePath($path)) {
+            return true;
+        }
+
+        try {
+            $disk = Storage::disk($this->getImageDisk());
+
+            if (!$disk->exists($path)) {
+                return true;
+            }
+
+            // Chọn lại ảnh có cùng nội dung không tính là thay đổi.
+            return !hash_equals(
+                hash('sha256', $disk->get($path)),
+                hash('sha256', $this->newImage->get())
+            );
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return true;
+        }
+    }
+
+    // Lưu trữ ảnh
+    private function getImageDisk(): string
+    {
+        return config('filesystems.disks.r2.key') ? 'r2' : 'public';
     }
 
     private function isManagedImagePath(?string $path): bool

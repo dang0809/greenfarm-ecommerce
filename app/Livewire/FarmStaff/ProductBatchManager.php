@@ -51,22 +51,6 @@ class ProductBatchManager extends Component
         $this->staff();
     }
 
-    private function staff(): User
-    {
-        // Workspace hiện tại đang dùng guard web cho Farm Staff.
-        $id = Auth::guard('web')->id();
-        $user = $id ? User::find($id) : null;
-
-        abort_unless(
-            $user
-            && $user->role === 'farm_staff'
-            && $user->status === 'active',
-            403
-        );
-
-        return $user;
-    }
-
     public function updated($property): void
     {
         if (
@@ -80,6 +64,84 @@ class ProductBatchManager extends Component
         }
     }
 
+    // Validate dữ liệu
+    private function validatedInput(): array
+    {
+        abort_unless(
+            $this->batchId
+            && in_array(
+                $this->modal,
+                ['spoilage', 'stock', 'expiry', 'status'],
+                true
+            ),
+            422
+        );
+
+        $this->note = trim($this->note);
+
+        $rules = [
+            'note' => ['required', 'string', 'max:1000'],
+        ];
+
+        if ($this->modal === 'spoilage') {
+            // Chỉ validate số lượng nhập tay với xuất hủy thông thường.
+            if (!$this->destroyAll) {
+                $rules['quantity'] = [
+                    'required',
+                    'integer',
+                    'min:1',
+                    'max:2147483647',
+                ];
+            }
+        } elseif ($this->modal === 'stock') {
+            $rules['quantity'] = [
+                'required',
+                'integer',
+                'min:0',
+                'max:2147483647',
+            ];
+        } elseif ($this->modal === 'expiry') {
+            $rules['expiry'] = [
+                'required',
+                'date_format:Y-m-d',
+            ];
+        } elseif ($this->modal === 'status') {
+            $rules['newStatus'] = [
+                'required',
+                Rule::in([
+                    'active',
+                    'suspended',
+                    'pending_recalled',
+                ]),
+            ];
+        }
+
+        return $this->validate($rules, [
+            'note.required' => 'Vui lòng nhập lý do thực hiện.',
+            'note.max' => 'Lý do tối đa 1.000 ký tự.',
+
+            'quantity.required' => 'Vui lòng nhập số lượng.',
+            'quantity.integer' => 'Số lượng phải là số nguyên theo đơn vị bán.',
+            'quantity.min' => 'Số lượng chưa đạt giá trị tối thiểu.',
+            'quantity.max' => 'Số lượng vượt giới hạn lưu trữ.',
+
+            'expiry.required' => 'Vui lòng chọn hạn sử dụng.',
+            'expiry.date_format' => 'Hạn sử dụng không hợp lệ.',
+
+            'newStatus.in' => 'Trạng thái không hợp lệ.',
+        ]);
+    }
+
+    private function reject(
+        string $field,
+        string $message
+    ): never {
+        throw ValidationException::withMessages([
+            $field => $message,
+        ]);
+    }
+
+    // Bộ lọc lô hàng
     public function resetFilters(): void
     {
         $this->reset([
@@ -91,6 +153,7 @@ class ProductBatchManager extends Component
         $this->resetPage();
     }
 
+    // Modal
     public function openModal(string $mode, int $id): void
     {
         abort_unless(
@@ -198,73 +261,7 @@ class ProductBatchManager extends Component
         $this->resetValidation();
     }
 
-    private function validatedInput(): array
-    {
-        abort_unless(
-            $this->batchId
-            && in_array(
-                $this->modal,
-                ['spoilage', 'stock', 'expiry', 'status'],
-                true
-            ),
-            422
-        );
-
-        $this->note = trim($this->note);
-
-        $rules = [
-            'note' => ['required', 'string', 'max:1000'],
-        ];
-
-        if ($this->modal === 'spoilage') {
-            // Chỉ validate số lượng nhập tay với xuất hủy thông thường.
-            if (!$this->destroyAll) {
-                $rules['quantity'] = [
-                    'required',
-                    'integer',
-                    'min:1',
-                    'max:2147483647',
-                ];
-            }
-        } elseif ($this->modal === 'stock') {
-            $rules['quantity'] = [
-                'required',
-                'integer',
-                'min:0',
-                'max:2147483647',
-            ];
-        } elseif ($this->modal === 'expiry') {
-            $rules['expiry'] = [
-                'required',
-                'date_format:Y-m-d',
-            ];
-        } elseif ($this->modal === 'status') {
-            $rules['newStatus'] = [
-                'required',
-                Rule::in([
-                    'active',
-                    'suspended',
-                    'pending_recalled',
-                ]),
-            ];
-        }
-
-        return $this->validate($rules, [
-            'note.required' => 'Vui lòng nhập lý do thực hiện.',
-            'note.max' => 'Lý do tối đa 1.000 ký tự.',
-
-            'quantity.required' => 'Vui lòng nhập số lượng.',
-            'quantity.integer' => 'Số lượng phải là số nguyên theo đơn vị bán.',
-            'quantity.min' => 'Số lượng chưa đạt giá trị tối thiểu.',
-            'quantity.max' => 'Số lượng vượt giới hạn lưu trữ.',
-
-            'expiry.required' => 'Vui lòng chọn hạn sử dụng.',
-            'expiry.date_format' => 'Hạn sử dụng không hợp lệ.',
-
-            'newStatus.in' => 'Trạng thái không hợp lệ.',
-        ]);
-    }
-
+    // Lưu thay đổi của kho
     public function requestSave(): void
     {
         $this->resetValidation('form');
@@ -272,15 +269,6 @@ class ProductBatchManager extends Component
 
         // Chưa cập nhật DB ở bước yêu cầu xác nhận.
         $this->dispatch('confirm-batch-change')->self();
-    }
-
-    private function reject(
-        string $field,
-        string $message
-    ): never {
-        throw ValidationException::withMessages([
-            $field => $message,
-        ]);
     }
 
     public function saveChange(): void
@@ -702,6 +690,22 @@ class ProductBatchManager extends Component
             'stockChange' => $stockChange,
             'expiryChange' => $expiryChange,
         ];
+    }
+
+    private function staff(): User
+    {
+        // Workspace hiện tại đang dùng guard web cho Farm Staff.
+        $id = Auth::guard('web')->id();
+        $user = $id ? User::find($id) : null;
+
+        abort_unless(
+            $user
+            && $user->role === 'farm_staff'
+            && $user->status === 'active',
+            403
+        );
+
+        return $user;
     }
 
     public function render()

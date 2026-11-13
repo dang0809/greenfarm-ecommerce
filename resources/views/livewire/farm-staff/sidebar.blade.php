@@ -1,7 +1,7 @@
 <aside id="sidebar"
     class="fixed inset-y-0 left-0 z-50 w-64 h-[100dvh] min-h-0 bg-white border-r border-gray-100 flex flex-col justify-between shrink-0 overflow-hidden shadow-soft transition-transform duration-300 -translate-x-full lg:translate-x-0 lg:static">
     <div class="flex flex-col flex-1 min-h-0">
-        <!-- Logo -->
+        {{-- Hiển thị nhận diện nông trại, liên kết trang luống đất và nút đóng menu di động --}}
         <div class="h-20 flex items-center justify-between px-6 border-b border-gray-100 shrink-0">
             <a href="{{ route('farm-staff.farm-plot') }}" wire:navigate class="flex items-center gap-2.5">
                 <div
@@ -22,7 +22,7 @@
             </button>
         </div>
 
-        <!-- Menu Điều Hướng -->
+        {{-- Hiển thị các chức năng quản lý và đánh dấu mục theo route hiện tại --}}
         <nav class="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3.5 space-y-1.5 mt-6 pb-3">
             <a href="{{ route('farm-staff.farm-plot') }}" wire:navigate
                 class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all {{ request()->routeIs('farm-staff.farm-plot') ? 'menu-active' : 'menu-inactive' }} text-left">
@@ -57,7 +57,7 @@
         </nav>
     </div>
 
-    <!-- User Footer & Đăng xuất -->
+    {{-- Hiển thị thông tin tài khoản đang đăng nhập và các thao tác tài khoản --}}
     <div class="p-4 border-t border-gray-100 bg-white shrink-0">
         <a href="{{ route('farm-staff.profile') }}" wire:navigate
             class="flex items-center space-x-3 bg-brand-50/70 hover:bg-brand-100/70 p-3 rounded-2xl border border-brand-100 mb-3 transition-colors group cursor-pointer"
@@ -83,7 +83,7 @@
             </div>
         </a>
 
-        <!-- Nút Đăng xuất -->
+        {{-- Yêu cầu xác nhận đăng xuất và hiển thị trạng thái đang xử lý --}}
         <button type="button" wire:click="requestLogout" wire:loading.attr="disabled"
             wire:target="requestLogout,logout"
             class="flex items-center space-x-3 text-red-600 hover:bg-red-50 transition w-full px-4 py-2.5 rounded-xl font-bold text-xs cursor-pointer disabled:opacity-50 disabled:cursor-wait">
@@ -102,6 +102,7 @@
         </button>
     </div>
 </aside>
+{{-- Xác nhận đăng xuất, chặn yêu cầu lặp và báo lỗi khi chưa hoàn tất. --}}
 @script
     <script>
         let confirmingLogout = false;

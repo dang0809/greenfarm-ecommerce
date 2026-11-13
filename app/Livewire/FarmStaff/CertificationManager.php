@@ -65,67 +65,20 @@ class CertificationManager extends Component
         );
     }
 
-    public function openCreate(): void
+    public function updatedNewFile(): void
     {
-        $this->closeScan();
-        $this->resetForm();
+        try {
+            $this->validateOnly('newFile');
+        } catch (ValidationException $exception) {
+            // Không tạo preview cho file không hợp lệ.
+            $this->reset('newFile');
+            $this->fileInputKey++;
 
-        $this->issuedDate = today()->toDateString();
-        $this->showForm = true;
+            throw $exception;
+        }
     }
 
-    public function openEdit(int $id): void
-    {
-        $cert = Certification::findOrFail($id);
-
-        $this->closeScan();
-        $this->resetForm();
-
-        $this->editingId = $cert->id;
-        $this->name = $cert->name;
-        $this->code = $cert->code;
-        $this->status = $cert->effective_status;
-
-        $this->issuedDate = $cert->issued_date?->toDateString() ?? '';
-        $this->expiryDate = $cert->expiry_date?->toDateString() ?? '';
-        $this->description = (string) ($cert->description ?? '');
-
-        $this->currentFileUrl = $cert->image_url;
-        $this->currentIsPdf = $cert->is_pdf;
-
-        $this->showForm = true;
-    }
-
-    public function closeForm(): void
-    {
-        $this->showForm = false;
-        $this->resetForm();
-    }
-
-    public function openScan(int $id): void
-    {
-        Certification::findOrFail($id);
-
-        $this->closeForm();
-        $this->scanId = $id;
-    }
-
-    public function closeScan(): void
-    {
-        $this->scanId = null;
-    }
-
-    private function fileRules(): array
-    {
-        return [
-            'bail',
-            $this->currentFileUrl === null ? 'required' : 'nullable',
-            'file',
-            'mimes:jpg,jpeg,png,webp,pdf',
-            'max:5120',
-        ];
-    }
-
+    // Validate dữ liệu
     protected function rules(): array
     {
         return [
@@ -196,17 +149,15 @@ class CertificationManager extends Component
         ];
     }
 
-    public function updatedNewFile(): void
+    private function fileRules(): array
     {
-        try {
-            $this->validateOnly('newFile');
-        } catch (ValidationException $exception) {
-            // Không tạo preview cho file không hợp lệ.
-            $this->reset('newFile');
-            $this->fileInputKey++;
-
-            throw $exception;
-        }
+        return [
+            'bail',
+            $this->currentFileUrl === null ? 'required' : 'nullable',
+            'file',
+            'mimes:jpg,jpeg,png,webp,pdf',
+            'max:5120',
+        ];
     }
 
     private function validatedPayload(): array
@@ -237,73 +188,45 @@ class CertificationManager extends Component
         ];
     }
 
-    private function hasChanges(
-        Certification $cert,
-        array $data
-    ): bool {
-        $current = [
-            'name' => trim((string) $cert->name),
-            'code' => trim((string) $cert->code),
-
-            'description' => str_replace(
-                ["\r\n", "\r"],
-                "\n",
-                trim((string) $cert->description)
-            ),
-
-            'issued_date' => $cert->issued_date?->toDateString(),
-            'expiry_date' => $cert->expiry_date?->toDateString(),
-
-            // So sánh theo trạng thái đang hiển thị trên form.
-            'status' => $cert->effective_status,
-        ];
-
-        return $current !== $data
-            || $this->scanHasChanged($cert);
-    }
-
-    private function getFileDisk(): string
+    // Modal form
+    public function openCreate(): void
     {
-        return config('filesystems.disks.r2.key') ? 'r2' : 'public';
+        $this->closeScan();
+        $this->resetForm();
+
+        $this->issuedDate = today()->toDateString();
+        $this->showForm = true;
     }
 
-    private function scanHasChanged(Certification $cert): bool
+    public function openEdit(int $id): void
     {
-        if ($this->newFile === null) {
-            return false;
-        }
+        $cert = Certification::findOrFail($id);
 
-        $path = (string) $cert->image;
+        $this->closeScan();
+        $this->resetForm();
 
-        // Với URL bên ngoài, chọn file upload là thay bản scan.
-        if (
-            !preg_match(
-                '#\Acertifications/[A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp|pdf)\z#i',
-                $path
-            )
-        ) {
-            return true;
-        }
+        $this->editingId = $cert->id;
+        $this->name = $cert->name;
+        $this->code = $cert->code;
+        $this->status = $cert->effective_status;
 
-        try {
-            $disk = Storage::disk($this->getFileDisk());
+        $this->issuedDate = $cert->issued_date?->toDateString() ?? '';
+        $this->expiryDate = $cert->expiry_date?->toDateString() ?? '';
+        $this->description = (string) ($cert->description ?? '');
 
-            if (!$disk->exists($path)) {
-                return true;
-            }
+        $this->currentFileUrl = $cert->image_url;
+        $this->currentIsPdf = $cert->is_pdf;
 
-            // Chọn lại file cùng nội dung không tính là thay đổi.
-            return !hash_equals(
-                hash('sha256', $disk->get($path)),
-                hash('sha256', $this->newFile->get())
-            );
-        } catch (Throwable $exception) {
-            report($exception);
-
-            return true;
-        }
+        $this->showForm = true;
     }
 
+    public function closeForm(): void
+    {
+        $this->showForm = false;
+        $this->resetForm();
+    }
+
+    // Lưu
     public function requestSave(): void
     {
         if (!$this->showForm) {
@@ -433,6 +356,8 @@ class CertificationManager extends Component
             : 'Đã thêm giấy kiểm định!'
         );
     }
+
+    // Xóa
     public function requestDelete(int $id): void
     {
         $cert = Certification::findOrFail($id);
@@ -494,17 +419,99 @@ class CertificationManager extends Component
         );
     }
 
+    // Xem scan
+    public function openScan(int $id): void
+    {
+        Certification::findOrFail($id);
+
+        $this->closeForm();
+        $this->scanId = $id;
+    }
+
+    public function closeScan(): void
+    {
+        $this->scanId = null;
+    }
+
+    // So sánh sự thay đổi dữ liệu
+    private function hasChanges(Certification $cert, array $data): bool
+    {
+        $current = [
+            'name' => trim((string) $cert->name),
+            'code' => trim((string) $cert->code),
+
+            'description' => str_replace(
+                ["\r\n", "\r"],
+                "\n",
+                trim((string) $cert->description)
+            ),
+
+            'issued_date' => $cert->issued_date?->toDateString(),
+            'expiry_date' => $cert->expiry_date?->toDateString(),
+
+            // So sánh theo trạng thái đang hiển thị trên form.
+            'status' => $cert->effective_status,
+        ];
+
+        return $current !== $data
+            || $this->scanHasChanged($cert);
+    }
+
+    private function scanHasChanged(Certification $cert): bool
+    {
+        if ($this->newFile === null) {
+            return false;
+        }
+
+        $path = (string) $cert->image;
+
+        // Với URL bên ngoài, chọn file upload là thay bản scan.
+        if (!$this->isManagedFilePath($path)) {
+            return true;
+        }
+
+        try {
+            $disk = Storage::disk($this->getFileDisk());
+
+            if (!$disk->exists($path)) {
+                return true;
+            }
+
+            // Chọn lại file cùng nội dung không tính là thay đổi.
+            return !hash_equals(
+                hash('sha256', $disk->get($path)),
+                hash('sha256', $this->newFile->get())
+            );
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return true;
+        }
+    }
+
+    // Lưu trữ
+    private function getFileDisk(): string
+    {
+        return config('filesystems.disks.r2.key') ? 'r2' : 'public';
+    }
+
+    /**
+     * Kiểm tra đường dẫn bản scan thuộc thư mục do chức năng này quản lý.
+     */
+    private function isManagedFilePath(?string $path): bool
+    {
+        return $path !== null
+            && preg_match(
+                '#\Acertifications/[A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp|pdf)\z#i',
+                $path
+            ) === 1;
+    }
+
     private function deleteManagedFile(?string $path): void
     {
         // Chỉ xóa file trong thư mục do chức năng này quản lý.
         // Bỏ qua URL ngoài và đường dẫn thư mục khác.
-        if (
-            !$path
-            || !preg_match(
-                '#\Acertifications/[A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp|pdf)\z#i',
-                $path
-            )
-        ) {
+        if (!$this->isManagedFilePath($path)) {
             return;
         }
 
@@ -566,11 +573,7 @@ class CertificationManager extends Component
             ->orderByDesc('id')
             ->get();
 
-        // Chuẩn bị dữ liệu cho modal xem bản scan.
-        $scanModel = $this->scanId
-            ? Certification::find($this->scanId)
-            : null;
-
+        // Lấy chứng nhận đang được chọn để hiển thị bản scan
         $scanCertification = $this->scanId
             ? Certification::find($this->scanId)
             : null;

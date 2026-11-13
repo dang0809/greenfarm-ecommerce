@@ -35,6 +35,7 @@
 }" x-on:farm-confirm-state="confirmingFarm = $event.detail.busy"
     x-on:livewire-upload-start="uploadingFarmPhoto = true" x-on:livewire-upload-finish="uploadingFarmPhoto = false"
     x-on:livewire-upload-error="uploadingFarmPhoto = false" x-on:livewire-upload-cancel="uploadingFarmPhoto = false">
+    {{-- Hiển thị tiêu đề theo luống đang chọn và thao tác tạo luống mới --}}
     <header
         class="min-h-[4.5rem] sm:h-20 bg-white/95 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-4 sm:px-8 relative z-10 shrink-0 gap-3">
         <div class="flex items-center gap-3 min-w-0">
@@ -69,7 +70,7 @@
                 {{ $message }}
             </p>
         @enderror
-        <!-- ================= DANH SÁCH LUỐNG ================= -->
+        {{-- Hiển thị danh sách luống, bộ lọc và thao tác theo hiện trạng từng luống --}}
         @unless ($this->selectedPlot)
             <div class="space-y-4 sm:space-y-6">
                 <div
@@ -100,6 +101,7 @@
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 pb-12">
+                    {{-- Tính trạng thái luống và điều kiện cải tạo, xuống giống --}}
                     @forelse ($this->plots as $plot)
                         @php
                             $batch = $plot->activeBatch();
@@ -187,7 +189,7 @@
 
                 running = true;
                 seconds = 3;
-
+            {{-- Đếm ngược và gửi yêu cầu hoàn tất cải tạo luống từ danh sách --}}
                 const timer = setInterval(() => {
                     seconds--;
 
@@ -237,7 +239,7 @@
             </div>
         @endunless
 
-        <!-- CHI TIẾT LUỐNG -->
+        {{-- Hiển thị luống đang chọn cùng vụ trồng đang xem --}}
         @if ($this->selectedPlot)
             @php
                 $plot = $this->selectedPlot;
@@ -252,7 +254,7 @@
                     </button>
                 </div>
 
-                <!-- THÔNG TIN LUỐNG ĐẤT VÀ VỤ ĐANG TRỒNG -->
+                {{-- Hiển thị hiện trạng luống, vụ hiện tại và thao tác cải tạo, xuống giống --}}
                 <div class="bg-white rounded-3xl border border-gray-100 p-4 sm:p-6 shadow-sm space-y-4">
                     <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                         <div class="min-w-0">
@@ -292,7 +294,7 @@
                                 </b>
                             </p>
                         </div>
-
+                        {{-- Đếm ngược và thực hiện cải tạo luống từ màn hình chi tiết --}}
                         @if (!$this->currentBatch && in_array($plot->status, ['empty', 'maintenance'], true))
                             <div wire:key="maintenance-detail-{{ $plot->id }}" x-data="{ running: false, seconds: 3 }">
                                 <button type="button" x-bind:disabled="running || confirmingFarm"
@@ -334,7 +336,7 @@
                             </button>
                         @endif
                     </div>
-
+                    {{-- Hiển thị lịch sử các vụ trồng và cho phép chọn vụ để xem dữ liệu --}}
                     @if ($batch)
                         <div class="border-t border-gray-100 pt-4 space-y-1.5">
                             <p class="text-[11px] uppercase text-gray-400 font-bold">
@@ -434,7 +436,7 @@
                 @endif
 
                 @if ($batch)
-                    <!-- TABS -->
+                    {{-- Chuyển giữa nhật ký canh tác và danh sách lô thu hoạch --}}
                     <div
                         class="bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft overflow-hidden">
                         <div
@@ -450,7 +452,7 @@
                             </button>
                         </div>
 
-                        <!-- TAB NHẬT KÝ -->
+                        {{-- Hiển thị nhật ký chăm sóc, ảnh minh chứng và thao tác ghi nhật ký --}}
                         @if ($activeTab === 'timeline')
                             <div class="p-4 sm:p-6 lg:p-8 space-y-5">
                                 <div
@@ -469,7 +471,7 @@
                                     @endif
                                 </div>
 
-                                <div
+                                <div {{-- Phân biệt sự kiện thu hoạch để chọn màu trên dòng thời gian --}}
                                     class="space-y-4 relative before:absolute before:inset-0 before:left-3.5 before:w-0.5 before:bg-gray-100">
                                     @forelse ($this->timelineEvents as $event)
                                         @php
@@ -499,8 +501,8 @@
                                                         {{ $event->description }}
                                                     </p>
                                                 @endif
-                                                @if ($event->image)
-                                                    <img src="{{ str_starts_with($event->image, 'http') ? $event->image : asset('storage/' . $event->image) }}"
+                                                @if ($event->image_url)
+                                                    <img src="{{ $event->image_url }}"
                                                         x-on:click="$dispatch('farm-preview-image', { src: $el.src })"
                                                         class="w-24 h-24 rounded-xl object-cover border mt-2 cursor-pointer hover:scale-105 transition"
                                                         alt="Ảnh minh chứng">
@@ -514,7 +516,7 @@
                             </div>
                         @endif
 
-                        <!-- TAB LÔ HÀNG THU HOẠCH -->
+                        {{-- Hiển thị các lô thu hoạch và thao tác tạo lô mới khi đủ điều kiện --}}
                         @if ($activeTab === 'harvests')
                             <div class="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
                                 <div
@@ -552,6 +554,7 @@
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-gray-100 font-medium">
+                                            {{-- Xác định lô thu hoạch đã quá hạn để hiển thị cảnh báo --}}
                                             @forelse ($this->harvestBatches as $hb)
                                                 @php
                                                     $isExpired = $hb->expiry_date?->isBefore(today()) ?? false;
@@ -605,7 +608,7 @@
 
     </div>
 
-    <!-- Modal Tạo Luống Đất -->
+    {{-- Hiển thị biểu mẫu tạo luống và xác nhận trước khi lưu --}}
     @if ($showCreatePlotModal)
         <div wire:key="create-farm-plot-modal"
             class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4">
@@ -689,7 +692,7 @@
         </div>
     @endif
 
-    <!-- Modal Xuống Giống -->
+    {{-- Hiển thị biểu mẫu xuống giống, ngày gieo và ảnh minh chứng --}}
     @if ($showSowModal)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4">
             <div
@@ -840,7 +843,7 @@
         </div>
     @endif
 
-    <!-- Modal Ghi Nhật Ký -->
+    {{-- Hiển thị biểu mẫu nhật ký với các trường theo hoạt động canh tác --}}
     @if ($showLogModal)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4">
             <div
@@ -863,6 +866,7 @@
         }
     "
                     class="space-y-4 text-xs sm:text-sm">
+                    {{-- Xây dựng các trường nhập theo loại hoạt động canh tác --}}
                     <fieldset x-bind:disabled="confirmingFarm" wire:loading.attr="disabled"
                         wire:target="requestSaveLog,saveLog" class="space-y-4">
 
@@ -1031,7 +1035,7 @@
         </div>
     @endif
 
-    <!-- MODAL THU HOẠCH & TẠO LÔ KHO MỚI -->
+    {{-- Ghi nhận thu hoạch, tạo lô kho và chọn tiếp tục hoặc kết thúc vụ --}}
     @if ($showHarvestModal)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4">
             <div
@@ -1186,7 +1190,7 @@
     @script
         <script>
             let confirmationOpen = false;
-
+            // 	Điều phối xác nhận tạo luống, xuống giống, ghi nhật ký và thu hoạch
             const operations = {
                 create: {
                     title: 'Xác nhận tạo luống đất?',

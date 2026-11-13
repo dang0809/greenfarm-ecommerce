@@ -94,10 +94,9 @@
                                     {{ $event->description }}
                                 </p>
 
-                                @if ($event->image)
+                                @if ($event->image_url)
                                     <div class="flex gap-2 sm:gap-3 mb-4">
-                                        <img src="{{ str_starts_with($event->image, 'http') ? $event->image : asset('storage/' . $event->image) }}"
-                                            alt="{{ $event->event_name }}"
+                                        <img src="{{ $event->image_url }}" alt="{{ $event->event_name }}"
                                             class="w-24 h-24 sm:w-32 sm:h-32 rounded-xl object-cover border border-gray-200">
                                     </div>
                                 @endif

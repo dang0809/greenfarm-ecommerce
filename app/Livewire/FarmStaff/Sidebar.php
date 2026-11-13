@@ -16,7 +16,9 @@ class Sidebar extends Component
         $this->dispatch('confirm-farm-staff-logout')->self();
     }
 
-    // Hàm xử lý đăng xuất
+    /**
+     * Đăng xuất và hủy phiên làm việc sau khi người dùng xác nhận.
+     */
     public function logout()
     {
         Auth::logout();

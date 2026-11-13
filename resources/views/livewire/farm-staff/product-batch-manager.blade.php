@@ -13,7 +13,8 @@
                     ($selectedBatch->current_quantity <= 0 ||
                         $selectedBatch->status === 'recalled' ||
                         ($destroyAll ? $blockedForRecall : $selectedBatch->available_quantity <= 0))));
-    @endphp <!-- Header -->
+    @endphp
+    {{-- Hiển thị tiêu đề quản lý lô nông sản, ngày hiện tại và nút mở menu di động --}}
     <header
         class="min-h-[4.5rem] sm:h-20 bg-white/95 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-4 sm:px-8 relative z-10 shrink-0 gap-3">
         <div class="flex items-center gap-3 min-w-0">
@@ -40,11 +41,11 @@
         </div>
     </header>
 
-    <!-- Main -->
+    {{-- Hiển thị thống kê và danh sách lô nông sản trong kho --}}
     <div
         class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 relative z-10 space-y-5 sm:space-y-6 custom-scrollbar pb-28 sm:pb-12 h-[calc(100dvh-5rem)]">
 
-        <!-- Thống kê -->
+        {{-- Tổng hợp lô tồn kho, cận hạn, hết hạn và lượng xuất hủy theo đơn vị. --}}
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
             <div class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft">
                 <div class="flex items-center justify-between mb-1.5 sm:mb-2">
@@ -164,7 +165,7 @@
             </div>
         </div>
 
-        <!-- Bảng và bộ lọc -->
+        {{-- Tìm kiếm, lọc lô nông sản và hiển thị thao tác được phép cho từng lô --}}
         <div class="bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft overflow-hidden space-y-4">
 
             <div
@@ -229,7 +230,7 @@
                     </thead>
 
                     <tbody class="divide-y divide-gray-100 font-medium whitespace-nowrap">
-
+                        {{-- Tính trạng thái hiển thị và quyền thao tác cho từng lô --}}
                         @forelse ($batches as $batch)
                             @php
                                 $rowProduct = $batch->plantingBatch?->product;
@@ -391,7 +392,7 @@
         </div>
     </div>
 
-    <!-- Modal xuất hủy / kiểm kê / HSD / trạng thái -->
+    {{-- Hiển thị biểu mẫu xuất hủy, kiểm kê, sửa hạn dùng hoặc đổi trạng thái --}}
     @if ($selectedBatch && in_array($modal, ['spoilage', 'stock', 'expiry', 'status'], true))
         @php
             [$modalId, $modalTitle, $modalIcon, $submitLabel, $submitClass] = match ($modal) {
@@ -606,7 +607,7 @@
         </div>
     @endif
 
-    <!-- Modal chi tiết -->
+    {{-- Hiển thị thông tin chi tiết lô nông sản và các nhật ký liên quan --}}
     @if ($selectedBatch && $modal === 'detail')
         <div id="modal-detail" wire:key="batch-detail-{{ $selectedBatch->id }}"
             class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 overflow-hidden">
@@ -698,7 +699,7 @@
                     </div>
                 </div>
 
-                <!-- Nhật ký kho -->
+                {{-- Hiển thị lịch sử biến động kho, chuyển trạng thái và nội dung thao tác --}}
                 <div class="flex flex-1 min-h-0 flex-col gap-2.5 overflow-hidden">
                     <h4
                         class="shrink-0 text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
@@ -706,6 +707,7 @@
                         Lịch sử biến động kho
                     </h4>
 
+                    {{-- Định dạng loại biến động, chiều tăng giảm và nội dung nhật ký kho --}}
                     <div class="flex-1 min-h-0 space-y-2 overflow-y-auto overscroll-contain custom-scrollbar pr-2">
                         @forelse ($selectedBatch->inventoryLogs as $log)
                             @php
@@ -753,11 +755,11 @@
                                             HSD: {{ $display['expiryChange'] }}
                                         </p>
                                     @endif
-
+                                    {{-- Tách nội dung nhật ký thành từng dòng để hiển thị an toàn bằng Blade --}}
+                                    {{-- Chuẩn bị mảng trước, tránh biểu thức dài trong @foreach --}}
                                     @php
                                         $reason = (string) ($display['reason'] ?? '');
 
-                                        // Chuẩn bị mảng trước, tránh biểu thức dài trong @foreach.
                                         $reasonLines = preg_split('/\R/u', $reason) ?: [$reason];
                                     @endphp
 
@@ -773,14 +775,14 @@
                                         @endforeach
                                     </p>
 
-                                    <!-- ngày giờ thực hiện -->
+                                    {{-- Hiển thị thời điểm thực hiện và người tạo nhật ký kho --}}
                                     <span class="text-[10px] text-slate-400 font-mono">
                                         {{ $log->created_at?->format('d/m/Y H:i') }}
                                         · {{ $log->creator?->name ?? '—' }}
                                     </span>
                                 </div>
 
-                                <!-- hiển thị số lượng -->
+                                {{-- Hiển thị biến động và số lượng theo đơn vị sản phẩm --}}
                                 <span class="font-mono font-black {{ $logColor }} text-xs sm:text-sm">
                                     @if ($log->quantity !== 0)
                                         {{ $sign }}{{ number_format(abs((int) $log->quantity), 0, ',', '.') }}
@@ -798,7 +800,7 @@
                     </div>
                 </div>
 
-                <!-- Nhật ký canh tác -->
+                {{-- Hiển thị nhật ký canh tác của vụ trồng tạo ra lô nông sản --}}
                 <div class="flex flex-1 min-h-0 flex-col gap-2.5 overflow-hidden pt-3 border-t border-slate-100">
                     <h4
                         class="shrink-0 text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
@@ -806,10 +808,10 @@
                         Nhật ký canh tác gốc
                     </h4>
 
-                    <!-- Khối cuộn riêng -->
+                    {{-- Giới hạn chiều cao và cho phép cuộn riêng nhật ký canh tác --}}
                     <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain custom-scrollbar px-2 py-1">
 
-                        <!-- Timeline nằm bên trong khối cuộn -->
+                        {{-- Hiển thị các sự kiện canh tác theo dòng thời gian --}}
                         <div
                             class="space-y-3 relative before:absolute before:inset-0 before:left-3 before:w-0.5 before:bg-slate-100">
                             @forelse ($selectedBatch->plantingBatch?->traceabilityEvents ?? collect() as $event)
@@ -843,7 +845,7 @@
         </div>
     @endif
 
-    <!-- Modal QR và in tem -->
+    {{-- Hiển thị tem QR truy xuất và cho phép in khi ảnh QR đã tải thành công --}}
     @if ($selectedBatch && $modal === 'qr' && $qrUrl)
         @teleport('body')
             <div id="farm-print-root" wire:key="batch-qr-{{ $selectedBatch->id }}" x-data="{ qrReady: false, qrFailed: false }"
@@ -922,7 +924,7 @@
             </div>
         @endteleport
     @endif
-
+    {{-- Xác nhận thay đổi lô và khóa thao tác trong khi xử lý --}}
     @script
         <script>
             let confirming = false;
