@@ -1,7 +1,6 @@
 <?php
 namespace App\Livewire\Admin;
 use App\Models\User;
-
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
