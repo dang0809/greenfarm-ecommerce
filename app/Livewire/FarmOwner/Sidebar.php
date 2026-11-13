@@ -26,7 +26,6 @@ class Sidebar extends Component
         );
     }
 
-
     public function mount(): void
     {
         $this->activeRoute = request()->route()?->getName() ?? '';

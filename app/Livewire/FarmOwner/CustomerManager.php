@@ -12,11 +12,6 @@ class CustomerManager extends Component
 
     public string $search = '';
 
-    public function updatedSearch(): void
-    {
-        $this->resetPage();
-    }
-
     public function boot(): void
     {
         $owner = Auth::id()
@@ -30,6 +25,11 @@ class CustomerManager extends Component
             403,
             'Bạn không có quyền truy cập khu vực chủ trang trại.'
         );
+    }
+
+    public function updatedSearch(): void
+    {
+        $this->resetPage();
     }
 
     public function render()

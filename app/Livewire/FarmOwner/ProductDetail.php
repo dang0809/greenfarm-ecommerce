@@ -15,11 +15,6 @@ class ProductDetail extends Component
     #[Locked]
     public int $productId;
 
-    public function mount(Product $product): void
-    {
-        $this->productId = $product->id;
-    }
-
     public function boot(): void
     {
         $owner = Auth::id()
@@ -33,6 +28,11 @@ class ProductDetail extends Component
             403,
             'Bạn không có quyền truy cập khu vực chủ trang trại.'
         );
+    }
+
+    public function mount(Product $product): void
+    {
+        $this->productId = $product->id;
     }
 
     public function render()

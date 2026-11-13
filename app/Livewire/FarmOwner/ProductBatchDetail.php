@@ -17,11 +17,6 @@ class ProductBatchDetail extends Component
     #[Locked]
     public int $batchId;
 
-    public function mount(int $batch): void
-    {
-        $this->batchId = (int) ProductBatch::findOrFail($batch)->id;
-    }
-
     public function boot(): void
     {
         $owner = Auth::id()
@@ -35,6 +30,11 @@ class ProductBatchDetail extends Component
             403,
             'Bạn không có quyền truy cập khu vực chủ trang trại.'
         );
+    }
+
+    public function mount(int $batch): void
+    {
+        $this->batchId = (int) ProductBatch::findOrFail($batch)->id;
     }
 
     public function render()
