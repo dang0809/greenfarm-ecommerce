@@ -1,10 +1,12 @@
 <?php
 namespace App\Livewire\FarmStaff;
-
+use Illuminate\Database\Eloquent\Builder;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\User;
+use Illuminate\Support\Facades\Validator;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Auth;
@@ -19,6 +21,7 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
+
 use RuntimeException;
 use Throwable;
 
@@ -53,9 +56,28 @@ class ProductManager extends Component
     public string $min_growth_days = '';
     public string $status = 'active';
 
-    // Ảnh chính.
-    public $newImage = null;
-    public ?string $currentImageUrl = null;
+    public array $imageUploads = [];
+
+    /**
+     * Danh sách token theo thứ tự hiển thị:
+     * old:12 hoặc new:uuid
+     */
+    #[Locked]
+    public array $imageOrder = [];
+
+    /**
+     * Ảnh cũ của sản phẩm đang sửa.
+     */
+    #[Locked]
+    public array $existingImages = [];
+
+    /**
+     * Ảnh mới đã upload, key là UUID.
+     *
+     * @var array<string, TemporaryUploadedFile>
+     */
+    public array $newImages = [];
+
     public int $imageInputKey = 0;
 
     protected $validationAttributes = [
@@ -69,8 +91,9 @@ class ProductManager extends Component
         'weight_kg' => 'khối lượng',
         'description' => 'mô tả',
         'status' => 'trạng thái',
-        'newImage' => 'ảnh chính',
         'min_growth_days' => 'số ngày thu hoạch',
+        'imageUploads' => 'ảnh sản phẩm',
+        'imageOrder' => 'thứ tự ảnh sản phẩm',
     ];
 
     public function mount(): void
@@ -130,9 +153,14 @@ class ProductManager extends Component
     {
         $this->staff();
 
-        $product = Product::with('coverImage')->findOrFail($id);
+        $product = Product::with([
+            'productImages' => fn($query) => $query
+                ->orderBy('sort_order')
+                ->orderBy('id'),
+        ])->findOrFail($id);
 
         $this->resetForm();
+
         $this->editingId = $product->id;
 
         foreach ([
@@ -151,7 +179,24 @@ class ProductManager extends Component
         }
 
         $this->category_id = (string) $product->category_id;
-        $this->currentImageUrl = $product->cover_image_url;
+
+        $this->existingImages = $product->productImages
+            ->mapWithKeys(fn(ProductImage $image) => [
+                (string) $image->id => [
+                    'id' => $image->id,
+                    'url' => $image->url,
+                    'image' => $image->image,
+                    'sort_order' => $image->sort_order,
+                    'is_primary' => $image->is_primary,
+                ],
+            ])
+            ->all();
+
+        $this->imageOrder = $product->productImages
+            ->map(fn(ProductImage $image) => 'old:' . $image->id)
+            ->values()
+            ->all();
+
         $this->showModal = true;
     }
 
@@ -184,32 +229,6 @@ class ProductManager extends Component
         $this->slug = $name === trim((string) $product->name)
             ? (string) $product->slug
             : Str::slug($name);
-    }
-
-    private function productImageRules(bool $required): array
-    {
-        return [
-            'bail',
-            $required ? 'required' : 'nullable',
-            'file',
-            'image',
-            'mimes:jpg,jpeg,png,webp',
-            'max:2048',
-        ];
-    }
-
-    private function validateProductImage(?Product $product): void
-    {
-        // Kiểm tra ảnh đang lưu trong database.
-        $hasImage = $product !== null
-            && $product->exists
-            && $product->productImages()
-                ->whereRaw("TRIM(image) <> ''")
-                ->exists();
-
-        $this->validateOnly('newImage', [
-            'newImage' => $this->productImageRules(!$hasImage),
-        ]);
     }
 
     protected function rules(): array
@@ -294,7 +313,16 @@ class ProductManager extends Component
                 Rule::in(['active', 'hidden']),
             ],
 
-            'newImage' => $this->productImageRules(false),
+            'imageOrder' => [
+                'array',
+            ],
+
+            'imageUploads' => [
+                'array',
+                'max:10',
+            ],
+
+            'imageUploads.*' => $this->imageRules(),
         ];
     }
 
@@ -330,35 +358,87 @@ class ProductManager extends Component
             'min_growth_days.max' =>
                 'Số ngày thu hoạch tối đa là 10.000 ngày.',
 
-            'newImage.image' => 'Tệp được chọn không phải ảnh hợp lệ.',
-            'newImage.mimes' => 'Chỉ chấp nhận JPG, JPEG, PNG hoặc WEBP.',
-            'newImage.max' => 'Ảnh chính không được vượt quá 2 MB.',
-            'newImage.required' => 'Vui lòng tải ảnh sản phẩm lên trước khi lưu.',
-            'newImage.file' => 'Tệp tải lên không hợp lệ.',
+            'imageOrder.array' =>
+                'Danh sách thứ tự ảnh không hợp lệ.',
+
+            'imageUploads.array' =>
+                'Danh sách ảnh không hợp lệ.',
+
+            'imageUploads.max' =>
+                'Mỗi sản phẩm chỉ được có tối đa 10 ảnh.',
+
+            'imageUploads.*.image' =>
+                'Tệp được chọn không phải ảnh hợp lệ.',
+
+            'imageUploads.*.mimes' =>
+                'Chỉ chấp nhận JPG, JPEG, PNG hoặc WEBP.',
+
+            'imageUploads.*.max' =>
+                'Mỗi ảnh không được vượt quá 2 MB.',
+
+            'imageUploads.*.file' =>
+                'Tệp tải lên không hợp lệ.',
         ];
     }
 
-    public function updatedNewImage(): void
+    private function imageRules(): array
+    {
+        return [
+            'bail',
+            'file',
+            'image',
+            'mimes:jpg,jpeg,png,webp',
+            'max:2048',
+        ];
+    }
+
+    public function updatedImageUploads(): void
     {
         $this->staff();
 
         try {
-            $this->validateOnly('newImage');
+            $this->validate([
+                'imageUploads' => ['array', 'max:10'],
+                'imageUploads.*' => $this->imageRules(),
+            ], [
+                'imageUploads.max' => 'Mỗi lần chỉ được chọn tối đa 10 ảnh.',
+                'imageUploads.*.image' => 'Tệp được chọn không phải ảnh hợp lệ.',
+                'imageUploads.*.mimes' => 'Chỉ chấp nhận JPG, JPEG, PNG hoặc WEBP.',
+                'imageUploads.*.max' => 'Mỗi ảnh không được vượt quá 2 MB.',
+            ]);
         } catch (ValidationException $exception) {
-            $this->reset('newImage');
+            $this->reset('imageUploads');
             $this->imageInputKey++;
 
             throw $exception;
         }
-    }
 
-    public function cancelNewImage(): void
-    {
-        $this->staff();
+        $uploads = array_values($this->imageUploads);
 
-        $this->reset('newImage');
+        if (count($this->imageOrder) + count($uploads) > 10) {
+            $this->addError(
+                'imageUploads',
+                'Mỗi sản phẩm chỉ được có tối đa 10 ảnh.'
+            );
+
+            $this->reset('imageUploads');
+            $this->imageInputKey++;
+
+            return;
+        }
+
+        foreach ($uploads as $file) {
+            $key = 'new:' . (string) Str::uuid();
+
+            $this->newImages[$key] = $file;
+            $this->imageOrder[] = $key;
+        }
+
+        $this->reset('imageUploads');
         $this->imageInputKey++;
-        $this->resetValidation('newImage');
+        $this->resetValidation('imageUploads');
+
+        $this->dispatch('product-images-ready');
     }
 
     // Các trang khách hàng còn gọi hai API static này.
@@ -406,6 +486,144 @@ class ProductManager extends Component
         ];
     }
 
+    private function validateImageOrder(
+        ?Product $product = null,
+        ?array $currentImageIds = null
+    ): void {
+        $count = count($this->imageOrder);
+
+        if ($count < 1) {
+            throw ValidationException::withMessages([
+                'imageOrder' => 'Vui lòng chọn ít nhất một ảnh sản phẩm.',
+            ]);
+        }
+
+        if ($count > 10) {
+            throw ValidationException::withMessages([
+                'imageOrder' => 'Mỗi sản phẩm chỉ được có tối đa 10 ảnh.',
+            ]);
+        }
+
+        $currentImageIds ??= $product
+            ? $product->productImages()->pluck('id')->map(fn($id) => (int) $id)->all()
+            : [];
+
+        $seenOldIds = [];
+        $seenNewKeys = [];
+
+        foreach ($this->imageOrder as $token) {
+            if (str_starts_with($token, 'old:')) {
+                $id = (int) substr($token, 4);
+
+                if (
+                    $id <= 0
+                    || !in_array($id, $currentImageIds, true)
+                    || in_array($id, $seenOldIds, true)
+                ) {
+                    throw ValidationException::withMessages([
+                        'imageOrder' => 'Thứ tự ảnh cũ không hợp lệ. Vui lòng tải lại sản phẩm.',
+                    ]);
+                }
+
+                $seenOldIds[] = $id;
+
+                continue;
+            }
+
+            if (str_starts_with($token, 'new:')) {
+                if (
+                    !isset($this->newImages[$token])
+                    || !($this->newImages[$token] instanceof TemporaryUploadedFile)
+                    || in_array($token, $seenNewKeys, true)
+                ) {
+                    throw ValidationException::withMessages([
+                        'imageOrder' => 'Có ảnh mới không hợp lệ trong danh sách.',
+                    ]);
+                }
+
+                Validator::make(
+                    ['image' => $this->newImages[$token]],
+                    ['image' => $this->imageRules()]
+                )->validate();
+
+                $seenNewKeys[] = $token;
+
+                continue;
+            }
+
+            throw ValidationException::withMessages([
+                'imageOrder' => 'Danh sách thứ tự ảnh không hợp lệ.',
+            ]);
+        }
+
+        $newKeysInOrder = collect($this->imageOrder)
+            ->filter(fn(string $token) => str_starts_with($token, 'new:'))
+            ->values()
+            ->all();
+
+        if (array_diff(array_keys($this->newImages), $newKeysInOrder)) {
+            throw ValidationException::withMessages([
+                'imageOrder' => 'Danh sách ảnh mới chưa được sắp xếp hợp lệ.',
+            ]);
+        }
+    }
+
+    public function moveImage(int $index, int $direction): void
+    {
+        $this->staff();
+
+        if (!in_array($direction, [-1, 1], true)) {
+            return;
+        }
+
+        $targetIndex = $index + $direction;
+
+        if (
+            !isset($this->imageOrder[$index])
+            || !isset($this->imageOrder[$targetIndex])
+        ) {
+            return;
+        }
+
+        [$this->imageOrder[$index], $this->imageOrder[$targetIndex]] = [
+            $this->imageOrder[$targetIndex],
+            $this->imageOrder[$index],
+        ];
+    }
+
+    public function removeImage(int $index): void
+    {
+        $this->staff();
+
+        $token = $this->imageOrder[$index] ?? null;
+
+        if ($token === null) {
+            return;
+        }
+
+        if (str_starts_with($token, 'new:')) {
+            unset($this->newImages[$token]);
+        }
+
+        unset($this->imageOrder[$index]);
+        $this->imageOrder = array_values($this->imageOrder);
+    }
+
+    private function galleryHasNoChanges(Product $product): bool
+    {
+        $currentOrder = $product->productImages
+            ->sortBy([
+                ['sort_order', 'asc'],
+                ['id', 'asc'],
+            ])
+            ->map(fn(ProductImage $image) => 'old:' . $image->id)
+            ->values()
+            ->all();
+
+        return $currentOrder === $this->imageOrder
+            && $this->newImages === [];
+    }
+
     public function requestSaveProduct(): void
     {
         $this->staff();
@@ -415,26 +633,30 @@ class ProductManager extends Component
         }
 
         $this->resetValidation('form');
+
         $data = $this->validatedData();
 
         $product = $this->editingId !== null
-            ? Product::findOrFail($this->editingId)
+            ? Product::with('productImages')->findOrFail($this->editingId)
             : null;
 
-        // Kiểm tra ảnh trước khi kiểm tra dữ liệu "không thay đổi".
-        $this->validateProductImage($product);
+        $this->validateImageOrder($product);
 
         if ($product !== null) {
+            // Bắt buộc fill dữ liệu form trước khi kiểm tra isDirty().
             $product->fill($data);
 
-            if (!$product->isDirty() && $this->newImage === null) {
+            if (
+                !$product->isDirty()
+                && $this->galleryHasNoChanges($product)
+            ) {
                 $this->notify('info', 'Không có thay đổi nào.');
 
                 return;
             }
         }
 
-        $this->dispatch('confirm-product-save');
+        $this->dispatch('confirm-product-save')->self();
     }
 
     public function saveProduct(): void
@@ -444,114 +666,129 @@ class ProductManager extends Component
         // Kiểm tra lại khi người dùng nhấn Xác nhận.
         $data = $this->validatedData();
 
-        $newPath = null;
-        $oldPath = null;
+        $newPaths = [];
+        $removedPaths = [];
         $wasEditing = $this->editingId !== null;
 
         try {
-            $saved = DB::transaction(function () use ($data, &$newPath, &$oldPath) {
+            $saved = DB::transaction(function () use (&$newPaths, &$removedPaths, $data) {
                 $product = $this->editingId === null
                     ? new Product()
-                    : Product::lockForUpdate()
+                    : Product::query()
+                        ->lockForUpdate()
                         ->findOrFail($this->editingId);
 
-                $this->validateProductImage($product->exists ? $product : null);
+                $currentImages = $product->productImages()
+                    ->lockForUpdate()
+                    ->orderBy('sort_order')
+                    ->orderBy('id')
+                    ->get();
+
+                $this->validateImageOrder(
+                    $product->exists ? $product : null,
+                    $currentImages->pluck('id')
+                        ->map(fn($id) => (int) $id)
+                        ->all()
+                );
 
                 $product->fill($data);
 
-                if (
-                    $product->exists
-                    && !$product->isDirty()
-                    && $this->newImage === null
-                ) {
-                    return false;
-                }
-
                 if (!$product->save()) {
-                    throw new RuntimeException(
-                        'Không lưu được sản phẩm.'
-                    );
+                    throw new RuntimeException('Không lưu được sản phẩm.');
                 }
 
-                if ($this->newImage !== null) {
-                    $diskName = self::getImageDisk();
-                    $newPath = $this->newImage->store(
+                $oldIdsInOrder = collect($this->imageOrder)
+                    ->filter(fn(string $token) => str_starts_with($token, 'old:'))
+                    ->map(fn(string $token) => (int) substr($token, 4))
+                    ->values()
+                    ->all();
+
+                $currentById = $currentImages->keyBy('id');
+
+                foreach ($currentImages as $currentImage) {
+                    if (!in_array($currentImage->id, $oldIdsInOrder, true)) {
+                        $removedPaths[] = $currentImage->image;
+                        $currentImage->delete();
+                    }
+                }
+
+                foreach ($this->imageOrder as $index => $token) {
+                    $sortOrder = $index + 1;
+                    $isPrimary = $index === 0;
+
+                    if (str_starts_with($token, 'old:')) {
+                        $imageId = (int) substr($token, 4);
+                        $image = $currentById->get($imageId);
+
+                        if (!$image) {
+                            throw new RuntimeException(
+                                'Không tìm thấy ảnh cũ của sản phẩm.'
+                            );
+                        }
+
+                        $image->update([
+                            'sort_order' => $sortOrder,
+                            'is_primary' => $isPrimary,
+                        ]);
+
+                        continue;
+                    }
+
+                    $file = $this->newImages[$token] ?? null;
+
+                    if (!$file instanceof TemporaryUploadedFile) {
+                        throw new RuntimeException('Ảnh mới không hợp lệ.');
+                    }
+
+                    $path = $file->store(
                         "products/{$product->id}",
-                        $diskName
+                        self::getImageDisk()
                     );
 
                     if (
-                        !is_string($newPath)
-                        || $newPath === ''
-                        || !Storage::disk($diskName)->exists($newPath)
+                        !is_string($path)
+                        || $path === ''
+                        || !Storage::disk(self::getImageDisk())->exists($path)
                     ) {
-                        throw new RuntimeException(
-                            'Không lưu được ảnh sản phẩm.'
-                        );
+                        throw new RuntimeException('Không lưu được ảnh sản phẩm.');
                     }
 
-                    $cover = $product->coverImage()
-                        ->lockForUpdate()
-                        ->first();
+                    $newPaths[] = $path;
 
-                    $oldPath = $cover?->image;
-
-                    $cover ??= $product->productImages()->make();
-
-                    $cover->fill([
-                        'image' => $newPath,
-                        'is_primary' => true,
-                        'sort_order' => 0,
+                    ProductImage::create([
+                        'product_id' => $product->id,
+                        'image' => $path,
+                        'sort_order' => $sortOrder,
+                        'is_primary' => $isPrimary,
                     ]);
-
-                    if (!$cover->save()) {
-                        throw new RuntimeException(
-                            'Không lưu được dữ liệu ảnh.'
-                        );
-                    }
-
-                    // Đảm bảo các ảnh khác không còn là ảnh chính.
-                    $product->productImages()
-                        ->where('id', '<>', $cover->id)
-                        ->where('is_primary', true)
-                        ->update(['is_primary' => false]);
                 }
 
                 return true;
             });
         } catch (ValidationException $exception) {
-            $this->deleteManagedImage($newPath);
+            foreach ($newPaths as $path) {
+                $this->deleteManagedImage($path);
+            }
+
             throw $exception;
-        } catch (UniqueConstraintViolationException $exception) {
-            $this->deleteManagedImage($newPath);
-
-            $this->addError(
-                'form',
-                'SKU hoặc slug vừa được sử dụng. Vui lòng kiểm tra lại.'
-            );
-
-            return;
         } catch (Throwable $exception) {
-            $this->deleteManagedImage($newPath);
+            foreach ($newPaths as $path) {
+                $this->deleteManagedImage($path);
+            }
 
             report($exception);
 
             $this->addError(
                 'form',
-                'Không thể lưu sản phẩm. Vui lòng thử lại.'
+                'Không thể lưu sản phẩm và ảnh. Vui lòng thử lại.'
             );
 
             return;
         }
 
-        if (!$saved) {
-            $this->notify('info', 'Không có thay đổi nào.');
-
-            return;
+        foreach ($removedPaths as $path) {
+            $this->deleteManagedImage($path);
         }
-
-        // DB đã commit; chỉ dọn ảnh không còn được tham chiếu.
-        $this->deleteManagedImage($oldPath);
 
         $this->closeModal();
         $this->resetPage();
@@ -559,8 +796,8 @@ class ProductManager extends Component
         $this->notify(
             'success',
             $wasEditing
-            ? 'Đã cập nhật sản phẩm!'
-            : 'Đã thêm sản phẩm!'
+            ? 'Đã cập nhật sản phẩm và thứ tự ảnh!'
+            : 'Đã thêm sản phẩm cùng gallery ảnh!'
         );
     }
 
@@ -750,8 +987,10 @@ class ProductManager extends Component
             'description',
             'min_growth_days',
             'status',
-            'newImage',
-            'currentImageUrl',
+            'imageUploads',
+            'imageOrder',
+            'existingImages',
+            'newImages',
         ]);
 
         $this->imageInputKey++;
