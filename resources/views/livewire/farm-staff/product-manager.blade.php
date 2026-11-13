@@ -1,6 +1,6 @@
 <div x-data="{ confirmingProduct: false }" x-on:product-confirm-state="confirmingProduct = $event.detail.busy"
     class="flex flex-1 min-h-0 min-w-0 flex-col overflow-hidden">
-    <!-- Header-->
+    {{-- Hiển thị tiêu đề quản lý sản phẩm và nút mở menu di động --}}
     <header
         class="min-h-[4.5rem] sm:h-20 bg-white/95 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-8 shrink-0 z-20 gap-3">
         <div class="flex items-center gap-3 min-w-0">
@@ -30,7 +30,7 @@
     <div
         class="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 custom-scrollbar pb-28 sm:pb-12">
 
-        <!-- Thanh Công Cụ & Bộ Lọc -->
+        {{-- Tìm kiếm sản phẩm, lọc danh mục, trạng thái và đặt lại bộ lọc --}}
         <div
             class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-soft flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
 
@@ -71,7 +71,7 @@
                 </button>
             </div>
 
-            <!-- Nút Thêm Sản Phẩm Mới -->
+            {{-- Mở biểu mẫu tạo sản phẩm sau khi đặt lại dữ liệu cũ --}}
             <button type="button" wire:click="createProduct" wire:loading.attr="disabled"
                 class="bg-brand-700 hover:bg-brand-800 text-white font-bold text-xs sm:text-sm px-4 py-2.5 rounded-xl sm:rounded-2xl transition shadow-sm flex items-center justify-center gap-2 active:scale-95 shrink-0 whitespace-nowrap cursor-pointer">
                 <i class="fa-solid fa-plus"></i>
@@ -87,7 +87,7 @@
             </span>
         </div>
 
-        <!-- Bảng Dữ Liệu Sản Phẩm -->
+        {{-- Hiển thị thông tin sản phẩm, tồn kho và các thao tác quản lý --}}
         <div class="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-soft overflow-hidden">
             <div class="w-full overflow-x-auto custom-scrollbar">
                 <table class="w-full text-left border-collapse text-xs sm:text-sm whitespace-nowrap">
@@ -111,6 +111,7 @@
                     <tbody class="divide-y divide-slate-100 font-medium">
                         @if (isset($products) && count($products) > 0)
                             @foreach ($products as $product)
+                                {{-- Lấy tổng tồn kho --}}
                                 @php
                                     $totalStock = $productStocks[$product->id] ?? 0;
                                 @endphp
@@ -163,14 +164,16 @@
                                         </b>
                                     </td>
 
+                                    {{-- Hiển thị số lượng đã bán và điểm đánh giá trung bình của sản phẩm. --}}
+                                    <td class="py-3.5 px-4 text-center font-mono text-slate-700 font-bold">
+                                        {{ number_format($product->sold_count ?? 0, 0, ',', '.') }}
+                                    </td>
+
                                     <td class="py-3.5 px-4 text-center font-mono text-amber-500 font-bold">
                                         {{ number_format($product->avg_rating ?? 0, 1) }} ★
                                     </td>
 
-                                    <td class="py-3.5 px-4 text-center font-mono text-amber-500 font-bold">
-                                        {{ $product->avg_rating ?? '5.0' }} ★
-                                    </td>
-
+                                    {{-- Đồng bộ nút hiển thị sau khi cập nhật trạng thái sản phẩm --}}
                                     <td class="py-3.5 px-4 text-center">
                                         <div x-data="{ enabled: @js($product->status === 'active') }"
                                             x-on:product-status-updated.window="if (Number($event.detail.id) === {{ $product->id }}) {enabled = $event.detail.status === 'active';}"
@@ -228,7 +231,7 @@
                             @endforeach
                         @else
                             <tr>
-                                <td colspan="9" class="py-10 text-center text-slate-400 italic">
+                                <td colspan="11" class="py-10 text-center text-slate-400 italic">
                                     Không tìm thấy sản phẩm nông sản nào phù hợp.
                                 </td>
                             </tr>
@@ -237,8 +240,8 @@
                 </table>
             </div>
 
-            <!-- Phân trang -->
-            @if (isset($products) && method_exists($products, 'hasPages') && $products->hasPages())
+            {{-- Hiển thị điều hướng khi danh sách sản phẩm có nhiều trang --}}
+            @if ($products->hasPages())
                 <div class="p-4 border-t border-slate-100">
                     {{ $products->links() }}
                 </div>
@@ -246,7 +249,7 @@
         </div>
     </div>
 
-    <!-- MODAL THÊM / SỬA SẢN PHẨM -->
+    {{-- Hiển thị biểu mẫu thêm, sửa sản phẩm và khóa thao tác khi đang xử lý --}}
     <div id="modal-product" wire:key="product-modal-{{ $editingId ?? 'new' }}" x-data="{ uploadingImage: false }"
         x-on:product-images-ready="uploadingImage = false"
         x-on:livewire-upload-start="
@@ -286,7 +289,7 @@
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
-
+            {{-- Kiểm tra dữ liệu trước khi mở hộp thoại xác nhận lưu sản phẩm --}}
             <form wire:submit="$js.submitProduct" novalidate
                 x-on:submit.capture="
         if (confirmingProduct) {
@@ -295,15 +298,6 @@
         }
     "
                 class="space-y-3.5 text-xs sm:text-sm">
-                @if ($errors->any())
-                    <div role="alert" class="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-
-                        @foreach ($errors->all() as $message)
-                            <p>{{ $message }}</p>
-                        @endforeach
-                    </div>
-                @endif
-
                 <input type="hidden" id="p-id" value="{{ $editingId }}">
 
                 <div>
@@ -314,6 +308,9 @@
                     <input type="text" id="p-name" wire:model.live.debounce.300ms="name" maxlength="255"
                         required
                         class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600">
+                    @error('name')
+                        <p role="alert" class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
@@ -324,6 +321,9 @@
 
                         <input type="text" id="p-sku" wire:model="sku" maxlength="100" required
                             class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono uppercase outline-none focus:border-brand-600">
+                        @error('sku')
+                            <p role="alert" class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     <div>
@@ -341,6 +341,9 @@
                                 @endforeach
                             @endif
                         </select>
+                        @error('category_id')
+                            <p role="alert" class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
                 </div>
 
@@ -363,6 +366,9 @@
                                 </option>
                             @endif
                         </select>
+                        @error('unit')
+                            <p role="alert" class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     <div>
@@ -373,6 +379,9 @@
                         <input type="number" id="p-price" wire:model="price" min="0.01" max="9999999999.99"
                             step="0.01" required
                             class="w-full min-w-0 bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono outline-none focus:border-brand-600">
+                        @error('price')
+                            <p role="alert" class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
                     <div>
                         <label class="block font-bold text-slate-700 mb-1">
@@ -397,9 +406,12 @@
 
                     <textarea id="p-desc" wire:model="description" maxlength="10000" rows="2"
                         class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl p-2.5 outline-none focus:border-brand-600 resize-none"></textarea>
+                    @error('description')
+                        <p role="alert" class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
 
-                <!-- Ảnh sản phẩm -->
+                {{-- Tải nhiều ảnh, xem trước, sắp xếp ảnh bìa và loại bỏ ảnh --}}
                 <div class="space-y-3">
                     <label for="p-images" class="block font-bold text-slate-700 mb-1">
                         Ảnh sản phẩm
@@ -434,11 +446,28 @@
                         </p>
                     @enderror
 
+                    {{-- Hiển thị lỗi của từng tệp trong lần tải nhiều ảnh. --}}
+                    @foreach ($errors->get('imageUploads.*') as $uploadErrors)
+                        @foreach ($uploadErrors as $message)
+                            <p role="alert" class="text-xs font-semibold text-red-600">
+                                {{ $message }}
+                            </p>
+                        @endforeach
+                    @endforeach
+
+                    {{-- Hiển thị lỗi kiểm tra lại nội dung ảnh trước khi lưu. --}}
+                    @error('image')
+                        <p role="alert" class="text-xs font-semibold text-red-600">
+                            {{ $message }}
+                        </p>
+                    @enderror
+
                     <p wire:loading wire:target="imageUploads" class="text-xs text-brand-700">
                         <i class="fa-solid fa-spinner fa-spin mr-1"></i>
                         Đang tải ảnh lên...
                     </p>
 
+                    {{-- Xác định ảnh đã lưu hoặc ảnh mới để tạo bản xem trước. --}}
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         @forelse ($imageOrder as $index => $token)
                             @php
@@ -537,6 +566,7 @@
         </div>
     </div>
 
+    {{-- Kiểm tra dữ liệu, xác nhận lưu và thay đổi trạng thái sản phẩm. --}}
     @script
         <script>
             let submitting = false;
@@ -571,11 +601,27 @@
                 });
             }
 
-            async function runProductAction(action) {
+            async function runProductAction(action, {
+                inlineErrors = false
+            } = {}) {
                 try {
                     await action();
-                    await showProductErrors();
+
+                    if (!inlineErrors) {
+                        await showProductErrors();
+                    }
                 } catch (error) {
+                    const isValidationError =
+                        Number(error?.status) === 422 ||
+                        (
+                            error?.errors &&
+                            Object.keys(error.errors).length > 0
+                        );
+
+                    if (inlineErrors && isValidationError) {
+                        return;
+                    }
+
                     await showProductErrors(error);
                 }
             }
@@ -588,7 +634,9 @@
                 try {
                     // Kiểm tra dữ liệu trước khi mở xác nhận.
                     await runProductAction(
-                        () => $wire.requestSaveProduct()
+                        () => $wire.requestSaveProduct(), {
+                            inlineErrors: true
+                        }
                     );
                 } finally {
                     submitting = false;
@@ -619,7 +667,11 @@
                     });
 
                     if (result.isConfirmed) {
-                        await runProductAction(() => $wire.saveProduct());
+                        await runProductAction(
+                            () => $wire.saveProduct(), {
+                                inlineErrors: true
+                            }
+                        );
                     }
                 } finally {
                     confirming = false;

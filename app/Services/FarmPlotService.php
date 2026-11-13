@@ -21,7 +21,10 @@ use Throwable;
 
 class FarmPlotService
 {
+    private const PHOTO_DISK = 'r2';
+    private const PHOTO_DIRECTORY = 'farm-logs/r2';
 
+    // Chuyển vụ đang trồng sang giai đoạn thu hoạch khi đến ngày tối thiểu.
     public function syncHarvestingStatuses(): int
     {
         return PlantingBatch::query()
@@ -37,6 +40,8 @@ class FarmPlotService
                 'updated_at' => now(),
             ]);
     }
+
+    // Validate dữ liệu
     public function validatePlotData(array $data): array
     {
         $area = $data['area'] ?? null;
@@ -59,6 +64,8 @@ class FarmPlotService
             ],
         ]);
     }
+
+    // Tạo luống mới sau khi cải tạo đất
     public function createPlot(array $data, User $staff): FarmPlot
     {
         $this->requireStaff($staff);
@@ -116,11 +123,9 @@ class FarmPlotService
         });
     }
 
-    public function validateSowData(
-        ?int $productId,
-        string $plantedDate,
-        ?UploadedFile $photo
-    ): array {
+    // 	Kiểm tra sản phẩm, ngày xuống giống và ảnh minh chứng
+    public function validateSowData(?int $productId, string $plantedDate, ?UploadedFile $photo): array
+    {
         return $this->validateData([
             'sowProductId' => $productId,
             'sowDate' => $plantedDate,
@@ -142,6 +147,7 @@ class FarmPlotService
         ]);
     }
 
+    // 	Khóa luống, tạo vụ trồng và ghi sự kiện xuống giống
     public function sow(FarmPlot $plot, ?int $productId, string $plantedDate, ?UploadedFile $photo, User $staff): PlantingBatch
     {
         $staff = $this->requireStaff($staff);
@@ -265,6 +271,7 @@ class FarmPlotService
         }
     }
 
+    // Kiểm tra dữ liệu theo loại hoạt động và tạo nội dung nhật ký
     public function validateLogData(
         array $data,
         ?UploadedFile $photo,
@@ -404,6 +411,7 @@ class FarmPlotService
         ];
     }
 
+    // Kiểm tra ngày thu hoạch, hạn dùng, sản lượng và điều kiện thu hoạch
     public function validateHarvestData(
         array $data,
         ?UploadedFile $photo,
@@ -464,16 +472,10 @@ class FarmPlotService
         return $validated;
     }
 
-    public function recordEvent(
-        PlantingBatch $batch,
-        array $data,
-        ?UploadedFile $photo,
-        User $staff
-    ): TraceabilityEvent {
+    // Khóa vụ đang hoạt động và ghi nhật ký canh tác
+    public function recordEvent(PlantingBatch $batch, array $data, ?UploadedFile $photo, User $staff): TraceabilityEvent
+    {
         $staff = $this->requireStaff($staff);
-
-
-
         $imagePath = null;
 
         try {
@@ -500,6 +502,7 @@ class FarmPlotService
         }
     }
 
+    // 	Tạo lô thu hoạch, nhập kho và cập nhật trạng thái vụ, luống
     public function harvest(PlantingBatch $batch, array $data, ?UploadedFile $photo, User $staff): ProductBatch
     {
         $staff = $this->requireStaff($staff);
@@ -623,6 +626,7 @@ class FarmPlotService
             ->firstOrFail();
     }
 
+    // Kiểm tra trạng thái và ngày thu hoạch tối thiểu của vụ
     private function requireHarvestable(
         PlantingBatch $batch,
         string $harvestDate
@@ -658,10 +662,8 @@ class FarmPlotService
         }
     }
 
-    private function requireOpenBatch(
-        PlantingBatch $batch,
-        string $field
-    ): void {
+    private function requireOpenBatch(PlantingBatch $batch, string $field): void
+    {
         if (
             !in_array(
                 $batch->status,
@@ -691,13 +693,9 @@ class FarmPlotService
         }
     }
 
-    private function appendEvent(
-        PlantingBatch $batch,
-        string $name,
-        string $description,
-        ?string $imagePath,
-        User $staff
-    ): TraceabilityEvent {
+    // Tạo sự kiện phục vụ truy xuất nhật ký
+    private function appendEvent(PlantingBatch $batch, string $name, string $description, ?string $imagePath, User $staff): TraceabilityEvent
+    {
         return TraceabilityEvent::create([
             'planting_batch_id' => $batch->id,
             'event_name' => $name,
@@ -708,43 +706,69 @@ class FarmPlotService
         ]);
     }
 
-    private function savePhoto(?UploadedFile $photo, ?string &$imagePath): void
-    {
+    // 	Lưu ảnh R2
+    private function savePhoto(
+        ?UploadedFile $photo,
+        ?string &$imagePath
+    ): void {
         if ($photo === null) {
-            return;
+            throw new RuntimeException('Thiếu ảnh minh chứng.');
         }
 
-        $storedPath = $photo->store('farm-logs', 'public');
-
-        if (!is_string($storedPath) || $storedPath === '') {
+        if (empty(config('filesystems.disks.r2.url'))) {
             throw new RuntimeException(
-                'Không thể lưu ảnh nhật ký.'
+                'Chưa cấu hình URL công khai của R2.'
             );
         }
 
-        // Gán sớm để cleanupPhoto() có thể dọn file nếu bước sau lỗi.
+        $storedPath = $photo->store(
+            self::PHOTO_DIRECTORY,
+            self::PHOTO_DISK
+        );
+
+        if (!is_string($storedPath) || $storedPath === '') {
+            throw new RuntimeException(
+                'Không thể lưu ảnh nhật ký lên R2.'
+            );
+        }
+
+        // Gán trước khi kiểm tra để catch có thể dọn file khi xảy ra lỗi.
         $imagePath = $storedPath;
 
-        if (!Storage::disk('public')->exists($imagePath)) {
+        if (!Storage::disk(self::PHOTO_DISK)->exists($imagePath)) {
             throw new RuntimeException(
-                'Ảnh nhật ký chưa được lưu thành công.'
+                'Ảnh nhật ký chưa được lưu thành công trên R2.'
             );
         }
     }
 
     private function cleanupPhoto(?string $path): void
     {
-        if (!$path) {
+        if (
+            !$path
+            || !str_starts_with($path, self::PHOTO_DIRECTORY . '/')
+            || str_contains($path, '..')
+        ) {
             return;
         }
 
         try {
-            Storage::disk('public')->delete($path);
+            // Giữ file nếu vẫn có nhật ký tham chiếu.
+            if (TraceabilityEvent::where('image', $path)->exists()) {
+                return;
+            }
+
+            if (!Storage::disk(self::PHOTO_DISK)->delete($path)) {
+                throw new RuntimeException(
+                    'Không thể dọn ảnh nhật ký trên R2.'
+                );
+            }
         } catch (Throwable $exception) {
             report($exception);
         }
     }
 
+    // Kiểm tra tài khoản nhân viên còn hoạt động và đúng vai trò
     private function requireStaff(User $staff): User
     {
         $freshUser = $staff->fresh();
@@ -765,6 +789,7 @@ class FarmPlotService
         return $freshUser;
     }
 
+    // Thực hiện validation dùng chung với thông báo theo trường dữ liệu
     private function validateData(array $data, array $rules): array
     {
         return Validator::make($data, $rules, [
@@ -776,7 +801,7 @@ class FarmPlotService
             'after_or_equal' => ':attribute không được trước hôm nay.',
             'min.numeric' => ':attribute phải từ :min trở lên.',
             'max.numeric' => ':attribute không được vượt quá :max.',
-            'min.string' => ':attribute phải có ít nhất :min ký tự.',
+
             'max.string' => ':attribute tối đa :max ký tự.',
             'max.file' => ':attribute tối đa :max KB.',
             'image' => ':attribute phải là hình ảnh.',
@@ -788,24 +813,16 @@ class FarmPlotService
             'newPlotArea.decimal' => 'Diện tích chỉ nhận tối đa hai chữ số thập phân.',
             'newPlotArea.gt' => 'Diện tích phải lớn hơn 0.',
             'newPlotArea.max' => 'Diện tích vượt quá giới hạn cho phép.',
-
             'sowPhoto.required' => 'Vui lòng tải ảnh xuống giống.',
             'sowPhoto.image' => 'Tệp tải lên phải là ảnh.',
             'sowPhoto.mimes' => 'Chỉ nhận JPG, JPEG, PNG hoặc WEBP.',
             'sowPhoto.max' => 'Ảnh xuống giống tối đa 2 MB.',
-
-            'logPhoto.required' => 'Vui lòng tải ảnh minh chứng nhật ký.',
-            'logPhoto.max' => 'Ảnh nhật ký tối đa 2 MB.',
-
             'harvestPhoto.required' => 'Vui lòng tải ảnh thu hoạch thực tế.',
             'harvestPhoto.max' => 'Ảnh thu hoạch tối đa 2 MB.',
         ], [
             'sowProductId' => 'Giống trồng',
             'sowDate' => 'Ngày xuống giống',
             'sowPhoto' => 'Ảnh xuống giống',
-            'logName' => 'Tên hoạt động',
-            'logDesc' => 'Mô tả nhật ký',
-            'logPhoto' => 'Ảnh nhật ký',
             'harvestDate' => 'Ngày thu hoạch',
             'harvestExpiry' => 'Hạn sử dụng',
             'harvestQty' => 'Sản lượng',
@@ -817,6 +834,7 @@ class FarmPlotService
         ])->validate();
     }
 
+    // 	Ném lỗi validation cho trường dữ liệu tương ứng
     private function reject(string $field, string $message): never
     {
         throw ValidationException::withMessages([

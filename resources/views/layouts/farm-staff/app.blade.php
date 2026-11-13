@@ -7,7 +7,7 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <title>{{ $title ?? 'Quản Trị Nông Trại' }} | {{ $farmName }}</title>
 
-        <!-- Fonts & Icons -->
+        {{-- Nạp phông chữ và bộ biểu tượng dùng chung cho giao diện nhân viên nông trại --}}
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link
@@ -15,10 +15,11 @@
             rel="stylesheet">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-        <!-- SweetAlert2 & TailwindCSS -->
+        {{-- Nạp SweetAlert2 và tài nguyên CSS, JavaScript qua Vite --}}
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
 
+        {{-- Định nghĩa giao diện menu, thanh cuộn và bố cục in tem nhiệt --}}
         <style>
             .menu-active {
                 background-color: #15803d;
@@ -58,6 +59,7 @@
                 border-radius: 9999px;
             }
 
+            /* 	Chỉ hiển thị tem QR khi in trên giấy kích thước 70 × 80 mm. */
             @media print {
                 @page {
                     size: 70mm 80mm;
@@ -138,6 +140,7 @@
         </style>
         @stack('styles')
     </head>
+    {{-- 	Tiếp nhận thông báo và yêu cầu xem ảnh minh chứng bằng SweetAlert2 --}}
 
     <body x-data="{}"
         x-on:swal.window="Swal.fire({
@@ -158,19 +161,20 @@
     })"
         class="font-sans text-gray-800 bg-cream antialiased flex h-[100dvh] min-h-[100dvh] overflow-hidden selection:bg-brand-200 selection:text-brand-900">
 
-        <!-- LỚP PHỦ MOBILE KHI MỞ SIDEBAR -->
+        {{-- Hiển thị lớp phủ để đóng menu điều hướng trên màn hình di động --}}
         <div id="sidebar-overlay" onclick="toggleSidebar()"
             class="fixed inset-0 bg-black/60 z-40 hidden lg:hidden backdrop-blur-xs transition-opacity"></div>
 
-        <!-- ================= 1. SIDEBAR LIVEWIRE COMPONENT ================= -->
+        {{-- Gắn component điều hướng và tài khoản nhân viên nông trại --}}
         @livewire('farm-staff.sidebar')
 
-        <!-- ================= 2. MAIN ================= -->
+        {{-- Hiển thị nội dung trang --}}
         <main class="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden bg-cream">
             {{ $slot }}
         </main>
 
         <script>
+            // Đóng, mở sidebar và lớp phủ trên thiết bị di động.
             function toggleSidebar() {
                 const sidebar = document.getElementById('sidebar');
                 const overlay = document.getElementById('sidebar-overlay');

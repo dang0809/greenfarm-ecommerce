@@ -83,13 +83,7 @@ class ProductBatchDetail extends Component
         $eventImages = [];
 
         foreach ($events as $event) {
-            $path = trim((string) $event->image);
-
-            $eventImages[$event->id] = $path === ''
-                ? null
-                : (preg_match('/\Ahttps?:\/\//i', $path)
-                    ? $path
-                    : asset('storage/' . ltrim($path, '/')));
+            $eventImages[$event->id] = $event->image_url;
         }
 
         return view('livewire.farm-owner.product-batch-detail', [

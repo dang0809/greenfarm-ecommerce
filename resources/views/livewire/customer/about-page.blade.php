@@ -18,7 +18,7 @@
 
                 <div class="flex items-center gap-4 text-xs text-gray-400">
                     <span><i class="fa-regular fa-clock mr-1"></i> Cập nhật:
-                        {{ isset($page->created_at) ? \Carbon\Carbon::parse($page->created_at)->format('d/m/Y') : 'Tháng 10/2026' }}</span>
+                        {{ isset($page->updated_at) ? \Carbon\Carbon::parse($page->updated_at)->format('d/m/Y') : 'Tháng 12/2026' }}</span>
                     <span>•</span>
                     <span><i class="fa-solid fa-location-dot mr-1"></i> {{ $farmAddress }}</span>
                 </div>

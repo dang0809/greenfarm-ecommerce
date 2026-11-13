@@ -1,5 +1,5 @@
 <div>
-    <!-- Header -->
+    {{-- Hiển thị tiêu đề quản lý danh mục, ngày hiện tại và nút mở menu di động --}}
     <header
         class="min-h-[4.5rem] sm:h-20 bg-white/95 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-8 shrink-0 z-20 gap-3">
         <div class="flex items-center gap-3 min-w-0">
@@ -26,7 +26,7 @@
 
     <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 custom-scrollbar pb-28 sm:pb-12">
 
-        <!-- Thanh Tìm Kiếm & Nút Thêm -->
+        {{-- Tìm kiếm danh mục và cung cấp thao tác tạo mới --}}
         <div
             class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-soft flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div class="relative w-full sm:w-80">
@@ -37,7 +37,7 @@
                     class="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm outline-none focus:border-brand-600 bg-[#FAFAF8] font-medium transition-all">
             </div>
 
-            <!-- Nút Thêm Danh Mục Mới -->
+            {{-- Mở biểu mẫu tạo danh mục --}}
             <button type="button" wire:click="createCategory"
                 class="bg-brand-700 hover:bg-brand-800 text-white font-bold text-xs sm:text-sm px-4 py-2.5 rounded-xl sm:rounded-2xl transition shadow-sm flex items-center justify-center gap-2 active:scale-95 shrink-0 whitespace-nowrap self-start sm:self-auto cursor-pointer">
                 <i class="fa-solid fa-plus"></i>
@@ -45,7 +45,7 @@
             </button>
         </div>
 
-        <!-- Bảng Dữ Liệu Danh Mục -->
+        {{-- Hiển thị danh mục, số sản phẩm, trạng thái và thao tác chỉnh sửa, xóa --}}
         <div class="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-soft overflow-hidden">
             <div class="w-full overflow-x-auto custom-scrollbar">
                 <table class="w-full text-left border-collapse text-xs sm:text-sm whitespace-nowrap">
@@ -103,7 +103,7 @@
                 </table>
             </div>
 
-            <!-- Phân trang -->
+            {{-- Hiển thị điều hướng khi danh sách danh mục có nhiều trang --}}
             @if ($categories->hasPages())
                 <div class="p-4 border-t border-slate-100">
                     {{ $categories->links() }}
@@ -112,7 +112,7 @@
         </div>
     </div>
 
-    <!-- MODAL THÊM / SỬA DANH MỤC -->
+    {{-- Hiển thị biểu mẫu thêm, sửa danh mục và trạng thái tải ảnh --}}
     <div wire:key="category-modal-{{ $editingId ?? 'new' }}-{{ $imageInputKey }}" x-data="{ uploadingImage: false }"
         x-on:livewire-upload-start="
         if ($event.detail.property === 'newImage') uploadingImage = true"
@@ -143,7 +143,7 @@
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
-
+            {{-- Gửi yêu cầu lưu danh mục sau khi quá trình tải ảnh hoàn tất --}}
             <form wire:submit="requestSaveCategory"
                 x-on:submit.capture="
         if (uploadingImage) {
@@ -184,7 +184,7 @@
                         <p role="alert">{{ $message }}</p>
                     @enderror
                 </div>
-
+                {{-- Tải và xem trước ảnh danh mục mới hoặc ảnh hiện tại --}}
                 <div>
                     <label for="c-file" class="block font-bold text-slate-700 mb-1">
                         Ảnh đại diện danh mục
@@ -273,7 +273,7 @@
         </div>
     </div>
 </div>
-
+{{-- Xử lý xác nhận lưu, xóa danh mục và thông báo lỗi --}}
 @script
     <script>
         let confirming = false;
