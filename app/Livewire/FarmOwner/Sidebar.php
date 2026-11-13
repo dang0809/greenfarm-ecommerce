@@ -1,0 +1,103 @@
+<?php
+
+namespace App\Livewire\FarmOwner;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
+use Livewire\Component;
+use Livewire\Attributes\Locked;
+
+class Sidebar extends Component
+{
+    #[Locked]
+    public string $activeRoute = '';
+
+    public function boot(): void
+    {
+        $owner = Auth::id()
+            ? User::find(Auth::id())
+            : null;
+
+        abort_unless(
+            $owner
+            && $owner->role === 'farm_owner'
+            && $owner->status === 'active',
+            403,
+            'Bạn không có quyền truy cập khu vực chủ trang trại.'
+        );
+    }
+
+    public function mount(): void
+    {
+        $this->activeRoute = request()->route()?->getName() ?? '';
+    }
+
+    public function requestLogout(): void
+    {
+        $this->dispatch('confirm-farm-owner-logout')->self();
+    }
+
+    public function logout(): void
+    {
+        Auth::guard('web')->logout();
+
+        request()->session()->invalidate();
+        request()->session()->regenerateToken();
+
+        // Ghi flash sau khi đã xóa session cũ.
+        session()->flash(
+            'success',
+            'Đã đăng xuất tài khoản thành công!'
+        );
+
+        $this->redirectRoute('login', navigate: true);
+    }
+
+    public function render()
+    {
+        $items = [
+            [
+                'route' => 'farm-owner.dashboard',
+                'label' => 'Bảng điều khiển & Báo cáo',
+                'icon' => 'fa-chart-line',
+            ],
+            [
+                'route' => 'farm-owner.customers',
+                'label' => 'Danh sách khách hàng',
+                'icon' => 'fa-users',
+            ],
+            [
+                'route' => 'farm-owner.products',
+                'label' => 'Danh sách sản phẩm',
+                'icon' => 'fa-boxes-stacked',
+            ],
+            [
+                'route' => 'farm-owner.batches',
+                'label' => 'Danh sách lô hàng nông sản',
+                'icon' => 'fa-seedling',
+            ],
+        ];
+
+        $items = array_map(function (array $item): array {
+            $item['url'] = route($item['route']);
+
+            $item['active'] =
+                $this->activeRoute === $item['route']
+                || str_starts_with(
+                    $this->activeRoute,
+                    $item['route'] . '.'
+                );
+
+            return $item;
+        }, $items);
+
+        $user = Auth::guard('web')->user();
+
+        return view('livewire.farm-owner.sidebar', [
+            'items' => $items,
+            'dashboardUrl' => route('farm-owner.dashboard'),
+            'userName' => $user->name,
+            'avatarUrl' => $user->avatar_url
+                ?? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150',
+        ]);
+    }
+}

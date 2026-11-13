@@ -13,6 +13,11 @@
                 'fa-crown',
                 'Admin',
             ],
+            'farm_owner' => [
+                'inline-flex items-center gap-1 text-[11px] font-extrabold bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-0.5 rounded-full',
+                'fa-crown',
+                'Chủ trang trại',
+            ],
             'farm_staff' => [
                 'inline-flex items-center gap-1 text-[11px] font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-0.5 rounded-full',
                 'fa-leaf',
@@ -33,6 +38,8 @@
         $hintClasses = [
             'farm_staff' =>
                 'p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl text-emerald-950 text-xs flex items-start gap-2',
+            'farm_owner' =>
+                'p-3 bg-amber-50/70 border border-amber-200 rounded-xl text-amber-950 text-xs flex items-start gap-2',
             'sales' =>
                 'p-3 bg-blue-50/70 border border-blue-200 rounded-xl text-blue-950 text-xs flex items-start gap-2',
             'admin' =>
@@ -43,6 +50,7 @@
 
         $hintTitles = [
             'farm_staff' => 'Farm Staff:',
+            'farm_owner' => 'Chủ trang trại',
             'sales' => 'Sales / CSKH:',
             'admin' => 'Admin Master:',
             'customer' => 'Customer:',
@@ -51,6 +59,7 @@
         $hintText = [
             'farm_staff' =>
                 'Truy cập module Luống đất, Ghi nhật ký canh tác, Thu hoạch tạo lô hàng, In tem nhiệt QR, Lập phiếu hao hụt kho.',
+            'farm_owner' => 'Xem báo cáo, khách hàng, sản phẩm, đánh giá và nhật ký lô nông sản.',
             'sales' =>
                 'Truy cập module Quản lý Đơn hàng, Phân bổ lô FEFO, Gọi xe hỏa tốc, Xử lý khiếu nại bồi thường, Kích hoạt Flash Sale.',
             'admin' =>
@@ -266,7 +275,8 @@
                     <select id="user-filter-role" wire:model.live="roleFilter"
                         class="w-full sm:w-auto bg-white border border-slate-200 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-semibold text-slate-700 outline-none focus:border-brand-600 transition cursor-pointer">
                         <option value="">-- Tất cả vai trò --</option>
-                        <option value="admin">Admin (Chủ & Quản trị)</option>
+                        <option value="admin">Admin (Quản trị)</option>
+                        <option value="farm_owner">Chủ trang trại</option>
                         <option value="farm_staff">Farm Staff (Kỹ sư vườn/kho)</option>
                         <option value="sales">Sales / CSKH (Bán hàng)</option>
                         <option value="customer">Customer (Khách hàng)</option>
@@ -603,7 +613,8 @@
                             class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-600 cursor-pointer">
                             <option value="farm_staff">Farm Staff (Kỹ sư vườn - Luống đất & Kho FEFO)</option>
                             <option value="sales">Sales / CSKH (Nhân viên Bán hàng - Đơn hàng & Khiếu nại)</option>
-                            <option value="admin">Admin Master (Chủ Nông Trại - Toàn quyền hệ thống)</option>
+                            <option value="admin">Admin Master (Quản trị - Toàn quyền hệ thống)</option>
+                            <option value="farm_owner">Chủ trang trại</option>
                             <option value="customer">Customer (Khách hàng mua sắm)</option>
                         </select>
                         @error('role')

@@ -78,7 +78,7 @@ class Login extends Component
             }
 
             // 3.2. KIỂM TRA PHÂN QUYỀN (Nếu không thuộc nội bộ thì báo sai thông tin như bình thường)
-            if (!in_array($user->role, ['admin', 'sales', 'farm_staff'])) {
+            if (!in_array($user->role, ['admin', 'farm_owner', 'sales', 'farm_staff'])) {
                 Auth::logout();
                 RateLimiter::hit($throttleKey, 60);
                 $this->addError('email', 'Email hoặc mật khẩu không chính xác.');
@@ -105,6 +105,7 @@ class Login extends Component
     {
         return match ($user->role) {
             'admin' => route('admin.accounts'),
+            'farm_owner' => route('farm-owner.dashboard'),
             'sales' => route('sales.orders'),
             'farm_staff' => route('farm-staff.farm-plot'),
             default => route('home'),
