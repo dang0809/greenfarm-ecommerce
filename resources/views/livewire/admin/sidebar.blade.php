@@ -19,7 +19,7 @@
 @endphp
 
 <aside id="admin-sidebar"
-    class="fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-slate-200/80 flex flex-col shrink-0 shadow-soft transition-transform duration-300 -translate-x-full lg:translate-x-0 lg:static">
+    class="fixed inset-y-0 left-0 z-50 w-72 h-[100dvh] min-h-0 bg-white border-r border-slate-200/80 flex flex-col shrink-0 overflow-hidden shadow-soft transition-transform duration-300 -translate-x-full lg:translate-x-0 lg:static">
 
     <div class="flex flex-col min-h-0 flex-1">
         <div class="h-16 sm:h-20 flex items-center justify-between px-6 border-b border-slate-100 shrink-0">
@@ -45,7 +45,7 @@
             </button>
         </div>
 
-        <nav class="p-3.5 space-y-1 overflow-y-auto flex-1 custom-scrollbar">
+        <nav class="p-3.5 space-y-1 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
             @foreach ($items as $item)
                 <a href="{{ route($item['route']) }}" wire:navigate @class([
                     'w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition',
@@ -104,6 +104,8 @@
 
             try {
                 const result = await Swal.fire({
+                    heightAuto: false,
+                    scrollbarPadding: false,
                     icon: 'question',
                     title: 'Xác nhận đăng xuất?',
                     text: 'Bạn có muốn đăng xuất khỏi tài khoản hiện tại?',
@@ -121,6 +123,8 @@
                 }
             } catch (error) {
                 await Swal.fire({
+                    heightAuto: false,
+                    scrollbarPadding: false,
                     icon: 'error',
                     title: 'Chưa đăng xuất được',
                     text: 'Vui lòng kiểm tra kết nối và thử lại.',

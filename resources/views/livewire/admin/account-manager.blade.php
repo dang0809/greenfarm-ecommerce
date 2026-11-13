@@ -1,7 +1,7 @@
 <div x-data="{ confirmingAccount: false }" x-on:account-confirm-state="confirmingAccount = $event.detail.busy"
-    class="flex flex-1 min-h-0 flex-col overflow-hidden">
+    class="flex flex-1 min-h-0 min-w-0 flex-col overflow-hidden"
     @php
-        $fallbackAvatar =
+$fallbackAvatar =
             'data:image/svg+xml;base64,' .
             base64_encode(
                 '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" rx="40" fill="#dcfce7"/><circle cx="40" cy="30" r="14" fill="#15803d"/><path d="M12 76a28 28 0 0 1 56 0" fill="#15803d"/></svg>',
@@ -66,36 +66,25 @@
                 'Toàn quyền quản trị tài chính, cấu hình hệ thống, thu hồi lô khẩn cấp, xuất báo cáo và cấp tài khoản.',
             'customer' =>
                 'Tài khoản khách hàng mua sắm, nhận rau định kỳ và tích lũy điểm thưởng thành viên (`reward_points`).',
-        ];
-    @endphp
+        ]; @endphp
+    {{-- Header --}} <header
+    class="min-h-[4.5rem] sm:h-20 bg-white/95 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-8 shrink-0 z-20 gap-3">
+    <div class="flex items-center gap-3 min-w-0">
+        <button type="button" onclick="toggleSidebar()"
+            class="lg:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition shrink-0" aria-label="Mở menu">
+            <i class="fa-solid fa-bars text-lg"></i>
+        </button>
 
-    {{-- Header --}}
-    <header
-        class="min-h-[4.5rem] sm:h-20 bg-white/95 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-8 shrink-0 z-20 gap-3">
-        <div class="flex items-center gap-3 min-w-0">
-            <button type="button" onclick="toggleSidebar()"
-                class="lg:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition shrink-0"
-                aria-label="Mở menu">
-                <i class="fa-solid fa-bars text-lg"></i>
-            </button>
-
-            <div class="min-w-0">
-                <h1 class="text-base sm:text-2xl font-black text-slate-900 tracking-tight truncate leading-tight">
-                    Quản Lý Tài Khoản
-                </h1>
-            </div>
+        <div class="min-w-0">
+            <h1 class="text-base sm:text-2xl font-black text-slate-900 tracking-tight truncate leading-tight">
+                Quản Lý Tài Khoản
+            </h1>
         </div>
-
-        <div class="flex items-center gap-2 shrink-0">
-            <span
-                class="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-bold font-mono">
-                <span class="w-2 h-2 rounded-full bg-brand-600 animate-pulse"></span>
-                Hệ thống phân quyền 4 cấp
-            </span>
-        </div>
+    </div>
     </header>
 
-    <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 custom-scrollbar pb-28 sm:pb-12">
+    <div
+        class="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 custom-scrollbar pb-28 sm:pb-12">
 
         {{-- Thống kê --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-5">
@@ -764,6 +753,8 @@
 
             try {
                 const result = await Swal.fire({
+                    heightAuto: false,
+                    scrollbarPadding: false,
                     icon: 'question',
                     showCancelButton: true,
                     confirmButtonText: 'Xác nhận',
@@ -782,6 +773,8 @@
                 }
             } catch (error) {
                 await Swal.fire({
+                    heightAuto: false,
+                    scrollbarPadding: false,
                     icon: 'error',
                     title: 'Yêu cầu chưa hoàn tất',
                     text: 'Vui lòng kiểm tra kết nối và thử lại.'
@@ -835,6 +828,8 @@
 
             try {
                 const result = await Swal.fire({
+                    heightAuto: false,
+                    scrollbarPadding: false,
                     title: 'Điều Chỉnh Điểm Tích Lũy',
                     html: `
                     <div class="text-left text-xs space-y-3 pt-2">
@@ -915,6 +910,8 @@
 
                 if (result.isConfirmed) {
                     await Swal.fire({
+                        heightAuto: false,
+                        scrollbarPadding: false,
                         icon: result.value.changed ? 'success' : 'info',
                         title: result.value.message,
                         confirmButtonColor: '#15803d'
@@ -924,6 +921,8 @@
                 }
             } catch (error) {
                 await Swal.fire({
+                    heightAuto: false,
+                    scrollbarPadding: false,
                     icon: 'error',
                     title: 'Yêu cầu chưa hoàn tất'
                 });
