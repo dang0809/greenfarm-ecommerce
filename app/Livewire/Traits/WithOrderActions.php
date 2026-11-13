@@ -37,7 +37,8 @@ trait WithOrderActions
     public function payNow(?int $orderId = null): void
     {
         $targetId = $orderId ?? ($this->orderId ?? null);
-        if (!$targetId) return;
+        if (!$targetId)
+            return;
 
         $order = Order::with('items')->where('user_id', Auth::id())
             ->where('status', 'pending')
@@ -68,9 +69,14 @@ trait WithOrderActions
 
                 $checkoutUrl = $paymentInfo['checkoutUrl'] ?? (!empty($paymentInfo['id']) ? "https://pay.payos.vn/web/" . $paymentInfo['id'] : null);
 
-                if (($paymentInfo['status']) === 'PAID') {
-                    Payment::where('order_id', $order->id)->update(['status' => 'success', 'paid_at' => now()]);
-                    $this->dispatch('show-toast', type: 'success', message: 'Đơn hàng này đã được thanh toán thành công!');
+                if (($paymentInfo['status'] ?? null) === 'PAID') {
+                    // Webhook xử lý Payment, trừ kho và ghi nhật ký trong cùng giao dịch.
+                    $this->dispatch(
+                        'show-toast',
+                        type: 'info',
+                        message: 'Giao dịch đã thanh toán. Hệ thống đang đồng bộ đơn hàng, vui lòng kiểm tra lại sau ít giây.'
+                    );
+
                     return;
                 }
 
@@ -98,7 +104,8 @@ trait WithOrderActions
     public function confirmCancel(?int $orderId = null): void
     {
         $targetId = $orderId ?? ($this->orderId ?? null);
-        if (!$targetId) return;
+        if (!$targetId)
+            return;
 
         $order = Order::where('user_id', Auth::id())
             ->where('status', 'pending')
@@ -141,10 +148,10 @@ trait WithOrderActions
 
             // 3. Cập nhật trạng thái hủy
             $lockedOrder->update([
-                'status'        => 'cancelled',
+                'status' => 'cancelled',
                 'cancel_reason' => 'Khách hàng tự hủy đơn',
-                'cancelled_at'  => now(),
-                'cancelled_by'  => 'customer',
+                'cancelled_at' => now(),
+                'cancelled_by' => 'customer',
             ]);
 
             Payment::where('order_id', $lockedOrder->id)
@@ -190,16 +197,19 @@ trait WithOrderActions
     public function reorder(?int $orderId = null)
     {
         $targetId = $orderId ?? ($this->orderId ?? null);
-        if (!$targetId) return;
+        if (!$targetId)
+            return;
 
         $order = Order::with('items.product')->where('user_id', Auth::id())->find($targetId);
-        if (!$order || $order->order_type !== 'retail') return;
+        if (!$order || $order->order_type !== 'retail')
+            return;
 
         $cart = Cart::firstOrCreate(['user_id' => Auth::id()]);
         $addedCount = 0;
 
         foreach ($order->items as $item) {
-            if (!$item->product) continue;
+            if (!$item->product)
+                continue;
 
             $cartItem = CartItem::where('cart_id', $cart->id)
                 ->where('product_id', $item->product_id)
@@ -209,9 +219,9 @@ trait WithOrderActions
                 $cartItem->increment('quantity', $item->quantity);
             } else {
                 CartItem::create([
-                    'cart_id'    => $cart->id,
+                    'cart_id' => $cart->id,
                     'product_id' => $item->product_id,
-                    'quantity'   => $item->quantity,
+                    'quantity' => $item->quantity,
                 ]);
             }
             $addedCount++;
@@ -232,7 +242,8 @@ trait WithOrderActions
     public function openComplaintModal(?int $orderId = null): void
     {
         $targetId = $orderId ?? ($this->orderId ?? null);
-        if (!$targetId) return;
+        if (!$targetId)
+            return;
 
         $order = Order::with('statusHistories')
             ->where('user_id', Auth::id())
@@ -260,15 +271,15 @@ trait WithOrderActions
         }
 
         $user = Auth::user();
-        $this->complainingOrderId      = $order->id;
+        $this->complainingOrderId = $order->id;
         $this->complaint_refund_amount = (int) $order->total;
-        $this->bank_name               = $user->default_bank_name ?? '';
-        $this->bank_account_number     = $user->default_bank_account_number ?? '';
-        $this->bank_account_name       = $user->default_bank_account_name ?? mb_strtoupper($user->name);
-        $this->complaint_images        = [];
-        $this->new_complaint_images    = [];
+        $this->bank_name = $user->default_bank_name ?? '';
+        $this->bank_account_number = $user->default_bank_account_number ?? '';
+        $this->bank_account_name = $user->default_bank_account_name ?? mb_strtoupper($user->name);
+        $this->complaint_images = [];
+        $this->new_complaint_images = [];
         $this->resetValidation();
-        $this->showComplaintModal      = true;
+        $this->showComplaintModal = true;
     }
 
     /**
@@ -290,7 +301,7 @@ trait WithOrderActions
             ], [
                 'new_complaint_images.*.image' => 'Tập tin tải lên phải là hình ảnh.',
                 'new_complaint_images.*.mimes' => 'Hình ảnh phải có định dạng: jpeg, png, jpg, webp.',
-                'new_complaint_images.*.max'   => 'Mỗi hình ảnh không được vượt quá 5MB.',
+                'new_complaint_images.*.max' => 'Mỗi hình ảnh không được vượt quá 5MB.',
             ]);
         } catch (ValidationException $e) {
             $this->new_complaint_images = [];
@@ -355,24 +366,24 @@ trait WithOrderActions
         }
 
         $this->validate([
-            'complaint_reason'        => 'required|string|min:10|max:500',
-            'bank_name'               => 'required|string',
-            'bank_account_number'     => 'required|string|max:30',
-            'bank_account_name'       => 'required|string|max:100',
-            'complaint_images'        => 'required|array|min:1|max:4',
-            'complaint_images.*'      => 'image|mimes:jpeg,png,jpg,webp|max:5120',
+            'complaint_reason' => 'required|string|min:10|max:500',
+            'bank_name' => 'required|string',
+            'bank_account_number' => 'required|string|max:30',
+            'bank_account_name' => 'required|string|max:100',
+            'complaint_images' => 'required|array|min:1|max:4',
+            'complaint_images.*' => 'image|mimes:jpeg,png,jpg,webp|max:5120',
         ], [
-            'complaint_reason.required'        => 'Vui lòng nhập lý do khiếu nại dập nát / hư hỏng.',
-            'complaint_reason.min'             => 'Lý do khiếu nại phải có ít nhất 10 ký tự để tiện thẩm định.',
-            'bank_name.required'               => 'Vui lòng chọn ngân hàng nhận lại tiền.',
-            'bank_account_number.required'     => 'Vui lòng nhập số tài khoản ngân hàng.',
-            'bank_account_name.required'       => 'Vui lòng nhập tên chủ tài khoản.',
-            'complaint_images.required'        => 'Vui lòng tải lên ít nhất 1 hình ảnh bằng chứng.',
-            'complaint_images.min'             => 'Vui lòng tải lên ít nhất 1 hình ảnh bằng chứng.',
-            'complaint_images.max'             => 'Chỉ được tải lên tối đa 4 hình ảnh bằng chứng.',
-            'complaint_images.*.image'         => 'Tập tin tải lên phải là hình ảnh.',
-            'complaint_images.*.mimes'         => 'Hình ảnh phải có định dạng: jpeg, png, jpg, webp.',
-            'complaint_images.*.max'           => 'Mỗi hình ảnh không được vượt quá 5MB.',
+            'complaint_reason.required' => 'Vui lòng nhập lý do khiếu nại dập nát / hư hỏng.',
+            'complaint_reason.min' => 'Lý do khiếu nại phải có ít nhất 10 ký tự để tiện thẩm định.',
+            'bank_name.required' => 'Vui lòng chọn ngân hàng nhận lại tiền.',
+            'bank_account_number.required' => 'Vui lòng nhập số tài khoản ngân hàng.',
+            'bank_account_name.required' => 'Vui lòng nhập tên chủ tài khoản.',
+            'complaint_images.required' => 'Vui lòng tải lên ít nhất 1 hình ảnh bằng chứng.',
+            'complaint_images.min' => 'Vui lòng tải lên ít nhất 1 hình ảnh bằng chứng.',
+            'complaint_images.max' => 'Chỉ được tải lên tối đa 4 hình ảnh bằng chứng.',
+            'complaint_images.*.image' => 'Tập tin tải lên phải là hình ảnh.',
+            'complaint_images.*.mimes' => 'Hình ảnh phải có định dạng: jpeg, png, jpg, webp.',
+            'complaint_images.*.max' => 'Mỗi hình ảnh không được vượt quá 5MB.',
         ]);
 
         $complaint = null;
@@ -381,29 +392,29 @@ trait WithOrderActions
             $bankAccName = mb_strtoupper($this->bank_account_name);
 
             $complaint = Complaint::create([
-                'order_id'            => $order->id,
-                'user_id'             => Auth::id(),
-                'reason'              => $this->complaint_reason,
-                'refund_amount'       => (float) $order->total,
-                'status'              => 'pending',
-                'bank_name'           => $this->bank_name,
+                'order_id' => $order->id,
+                'user_id' => Auth::id(),
+                'reason' => $this->complaint_reason,
+                'refund_amount' => (float) $order->total,
+                'status' => 'pending',
+                'bank_name' => $this->bank_name,
                 'bank_account_number' => $this->bank_account_number,
-                'bank_account_name'   => $bankAccName,
+                'bank_account_name' => $bankAccName,
             ]);
 
             if (!empty($this->complaint_images)) {
                 foreach ($this->complaint_images as $img) {
                     ComplaintImage::create([
                         'complaint_id' => $complaint->id,
-                        'image'        => $img->store('complaints', 'r2'),
+                        'image' => $img->store('complaints', 'r2'),
                     ]);
                 }
             }
 
             Auth::user()->update([
-                'default_bank_name'           => $this->bank_name,
+                'default_bank_name' => $this->bank_name,
                 'default_bank_account_number' => $this->bank_account_number,
-                'default_bank_account_name'   => $bankAccName,
+                'default_bank_account_name' => $bankAccName,
             ]);
         });
 
@@ -435,4 +446,3 @@ trait WithOrderActions
         $this->resetValidation();
     }
 }
-

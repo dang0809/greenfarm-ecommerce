@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 use PayOS\PayOS;
 use App\Models\Order;
 use App\Models\Product;
-  use App\Models\ProductBatch;
+use App\Models\ProductBatch;
 use App\Models\InventoryLog;
 use App\Models\User;
 use App\Models\Payment;
@@ -21,7 +21,7 @@ class PayOSWebhookController extends Controller
     {
         // ... (Dán nguyên vẹn đoạn code handleWebhook bạn vừa gửi vào đây) ...
         $body = $request->all();
-        
+
         try {
             $payOS = new PayOS(
                 config('services.payos.client_id'),
@@ -30,10 +30,10 @@ class PayOSWebhookController extends Controller
             );
 
             $webhookData = $payOS->verifyPaymentWebhookData($body);
-            
+
             if ($webhookData['code'] == '00') {
                 $payosOrderCode = $webhookData['orderCode'];
-                
+
                 $orderId = Order::where('order_code', (string) $payosOrderCode)
                     ->value('id');
 
@@ -68,12 +68,12 @@ class PayOSWebhookController extends Controller
                         Payment::updateOrCreate(
                             ['order_id' => $order->id],
                             [
-                                'payment_code'     => 'PAY-' . $order->order_code,
-                                'method'           => 'payos',
-                                'amount'           => $webhookData['amount'] ?? $order->total,
-                                'status'           => 'success',
+                                'payment_code' => 'PAY-' . $order->order_code,
+                                'method' => 'payos',
+                                'amount' => $webhookData['amount'] ?? $order->total,
+                                'status' => 'success',
                                 'transaction_code' => $webhookData['reference'] ?? null,
-                                'paid_at'          => now(),
+                                'paid_at' => now(),
                             ]
                         );
 
@@ -89,17 +89,20 @@ class PayOSWebhookController extends Controller
                     Payment::updateOrCreate(
                         ['order_id' => $order->id],
                         [
-                            'payment_code'     => 'PAY-' . $order->order_code,
-                            'method'           => 'payos',
-                            'amount'           => $webhookData['amount'] ?? $order->total,
-                            'status'           => 'success',
+                            'payment_code' => 'PAY-' . $order->order_code,
+                            'method' => 'payos',
+                            'amount' => $webhookData['amount'] ?? $order->total,
+                            'status' => 'success',
                             'transaction_code' => $webhookData['reference'] ?? null,
-                            'paid_at'          => now(),
+                            'paid_at' => now(),
                         ]
                     );
 
                     // Lấy danh sách sản phẩm trong đơn hàng
-                    $order->load('items');
+                    $order->load([
+                        'items.product',
+                        'user:id,name',
+                    ]);
                     $subscription = null;
                     if ($order->order_type === 'subscription') {
                         $order->update(['status' => 'delivered']);
@@ -112,13 +115,13 @@ class PayOSWebhookController extends Controller
 
                         if (!$subscription) {
                             $subscription = \App\Models\Subscription::create([
-                                'user_id'           => $order->user_id,
-                                'recipient_name'    => $order->recipient_name,
-                                'recipient_phone'   => $order->recipient_phone,
+                                'user_id' => $order->user_id,
+                                'recipient_name' => $order->recipient_name,
+                                'recipient_phone' => $order->recipient_phone,
                                 'recipient_address' => $order->recipient_address,
-                                'delivery_days'     => null,
-                                'total_price'       => $order->total,
-                                'status'            => 'active',
+                                'delivery_days' => null,
+                                'total_price' => $order->total,
+                                'status' => 'active',
                             ]);
                         }
                     } else {
@@ -144,17 +147,28 @@ class PayOSWebhookController extends Controller
                             // Đồng bộ lại giá sale_price nếu lô cận date này vừa bán hết
                             ProductBatch::syncProductSalePrice($item->product_id);
                             // 3. Ghi sổ nhật ký xuất bán (type: export_sale)
+                            $customerName = $order->user?->name
+                                ?: ($order->recipient_name ?: 'Khách hàng');
+
+                            $quantity = (int) $item->quantity;
+                            $unit = $item->product?->unit ?? 'đơn vị';
+
                             InventoryLog::create([
-                                'batch_id'   => $item->batch_id,
-                                'type'       => 'export_sale',
-                                'quantity'   => $item->quantity,
-                                'note'       => "Xuất kho bán hàng đơn #{$order->order_code}",
-                                'created_by' => $order->user_id ?? 1,
+                                'batch_id' => $item->batch_id,
+                                'type' => 'export_sale',
+                                'quantity' => $quantity,
+
+                                'note' => "Khách hàng: {$customerName}\n"
+                                    . "Mã đơn: #{$order->order_code}\n"
+                                    . "Thanh toán thành công.\n"
+                                    . "Xuất khỏi lô: {$quantity} {$unit}",
+
+                                'created_by' => $order->user_id,
                             ]);
                         }
                     }
 
-                   
+
                     DB::commit();
 
                     // Phát sóng sự kiện Realtime cho giao diện NVBH (OrderManager & Sidebar)
@@ -182,7 +196,7 @@ class PayOSWebhookController extends Controller
                     return response()->json(['error' => 'Có lỗi xảy ra khi cập nhật dữ liệu đơn hàng.'], 500);
                 }
             }
-            
+
             return response()->json(['error' => 'Mã phản hồi thanh toán không hợp lệ.'], 400);
 
         } catch (\Exception $e) {

@@ -72,18 +72,18 @@ class GenerateVipDeliveryOrders extends Command
                     $orderCode = (string) intval(time() . rand(100, 999));
 
                     $order = Order::create([
-                        'user_id'              => $subscription->user_id,
-                        'order_code'           => $orderCode,
-                        'order_type'           => 'subscription_delivery',
-                        'recipient_name'       => $subscription->recipient_name,
-                        'recipient_phone'      => $subscription->recipient_phone,
-                        'recipient_address'    => $subscription->recipient_address,
+                        'user_id' => $subscription->user_id,
+                        'order_code' => $orderCode,
+                        'order_type' => 'subscription_delivery',
+                        'recipient_name' => $subscription->recipient_name,
+                        'recipient_phone' => $subscription->recipient_phone,
+                        'recipient_address' => $subscription->recipient_address,
                         'shipping_distance_km' => 0,
-                        'subtotal'             => 0,
-                        'shipping_fee'         => 0,
-                        'total'                => 0,
-                        'status'               => 'pending',
-                        'note'                 => null,
+                        'subtotal' => 0,
+                        'shipping_fee' => 0,
+                        'total' => 0,
+                        'status' => 'pending',
+                        'note' => null,
                     ]);
 
                     // Ghi nhận lịch sử trạng thái ban đầu
@@ -134,21 +134,24 @@ class GenerateVipDeliveryOrders extends Command
 
                             // Tạo OrderItem đã gán lô
                             OrderItem::create([
-                                'order_id'     => $order->id,
-                                'product_id'   => $productId,
-                                'batch_id'     => $batch->id,
+                                'order_id' => $order->id,
+                                'product_id' => $productId,
+                                'batch_id' => $batch->id,
                                 'product_name' => $productName,
-                                'price'        => 0,
-                                'quantity'     => $take,
-                                'subtotal'     => 0,
+                                'price' => 0,
+                                'quantity' => $take,
+                                'subtotal' => 0,
                             ]);
 
                             // Ghi sổ nhật ký kho xuất bán
                             InventoryLog::create([
-                                'batch_id'   => $batch->id,
-                                'type'       => 'export_sale',
-                                'quantity'   => $take,
-                                'note'       => "Xuất kho giao đợt VIP #{$schedule->delivery_order}/8 đơn {$order->order_code}",
+                                'batch_id' => $batch->id,
+                                'type' => 'export_sale',
+                                'quantity' => $take,
+                                'note' => "Khách hàng: {$subscription->user->name}\n"
+                                    . "Mã đơn: #{$order->order_code}\n"
+                                    . "Xuất kho giao đợt VIP #{$schedule->delivery_order}/8.\n"
+                                    . "Xuất khỏi lô: {$take} {$product->unit}",
                                 'created_by' => $subscription->user_id,
                             ]);
 
@@ -158,13 +161,13 @@ class GenerateVipDeliveryOrders extends Command
                         // Nếu không đủ kho hoặc hết sạch: Tạo OrderItem với batch_id = null (hiển thị thiếu hàng trên giao diện)
                         if ($quantityNeeded > 0) {
                             OrderItem::create([
-                                'order_id'     => $order->id,
-                                'product_id'   => $productId,
-                                'batch_id'     => null,
+                                'order_id' => $order->id,
+                                'product_id' => $productId,
+                                'batch_id' => null,
                                 'product_name' => $productName,
-                                'price'        => 0,
-                                'quantity'     => $quantityNeeded,
-                                'subtotal'     => 0,
+                                'price' => 0,
+                                'quantity' => $quantityNeeded,
+                                'subtotal' => 0,
                             ]);
                         }
                     }
@@ -172,20 +175,20 @@ class GenerateVipDeliveryOrders extends Command
                     // 3. Cập nhật Lịch giao sang processing
                     $schedule->update([
                         'order_id' => $order->id,
-                        'status'   => 'processing',
+                        'status' => 'processing',
                     ]);
 
                     // 4. Bắn thông báo Realtime quả chuông cho khách
                     $notification = Notification::create([
                         'user_id' => $subscription->user_id,
-                        'type'    => 'vip_delivery_created',
-                        'title'   => "📦 Đợt rau VIP số {$schedule->delivery_order}/8 đã được tạo đơn",
+                        'type' => 'vip_delivery_created',
+                        'title' => "📦 Đợt rau VIP số {$schedule->delivery_order}/8 đã được tạo đơn",
                         'content' => "Đợt giao rau số {$schedule->delivery_order}/8 của bạn (Đơn #{$order->order_code}) đã được tạo. Nông trại đang chuẩn bị thu hoạch và đóng gói.",
-                        'data'    => [
-                            'order_id'   => $order->id,
+                        'data' => [
+                            'order_id' => $order->id,
                             'order_code' => $order->order_code,
-                            'icon'       => 'fa-crown',
-                            'url'        => '/ho-so?tab=orders',
+                            'icon' => 'fa-crown',
+                            'url' => '/ho-so?tab=orders',
                         ],
                     ]);
 
