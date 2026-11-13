@@ -470,6 +470,8 @@
                 input.value = '';
 
                 Swal.fire({
+                    heightAuto: false,
+                    scrollbarPadding: false,
                     icon: 'error',
                     title: 'Ảnh không hợp lệ',
                     text: message,
@@ -545,6 +547,8 @@
                 if (!messages.length && !error) return;
 
                 await Swal.fire({
+                    heightAuto: false,
+                    scrollbarPadding: false,
                     icon: 'error',
                     title: 'Không thể lưu sản phẩm',
                     text: messages.length ?
@@ -586,6 +590,8 @@
 
                 try {
                     const result = await Swal.fire({
+                        heightAuto: false,
+                        scrollbarPadding: false,
                         icon: 'question',
 
                         title: $wire.editingId !== null ?
@@ -629,6 +635,8 @@
                     const enabling = targetStatus === 'active';
 
                     const result = await Swal.fire({
+                        heightAuto: false,
+                        scrollbarPadding: false,
                         icon: enabling ? 'question' : 'warning',
 
                         title: enabling ?
