@@ -10,6 +10,12 @@ class Sidebar extends Component
     protected $listeners = [
         'profile-updated' => '$refresh',
     ];
+
+    public function requestLogout(): void
+    {
+        $this->dispatch('confirm-farm-staff-logout')->self();
+    }
+
     // Hàm xử lý đăng xuất
     public function logout()
     {
@@ -20,7 +26,7 @@ class Sidebar extends Component
 
         session()->flash('success', 'Đã đăng xuất tài khoản thành công!');
 
-        return $this->redirect(route('home'), navigate: true);
+        $this->redirectRoute('login', navigate: true);
     }
 
     public function render()

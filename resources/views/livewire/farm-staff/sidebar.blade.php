@@ -84,11 +84,64 @@
         </a>
 
         <!-- Nút Đăng xuất -->
-        <button type="button" wire:click="logout" wire:loading.attr="disabled"
-            class="flex items-center space-x-3 text-red-600 hover:bg-red-50 transition w-full px-4 py-2.5 rounded-xl font-bold text-xs cursor-pointer disabled:opacity-50">
-            <i wire:loading.remove wire:target="logout" class="fa-solid fa-arrow-right-from-bracket"></i>
-            <i wire:loading wire:target="logout" class="fa-solid fa-spinner fa-spin"></i>
-            <span>Đăng xuất hệ thống</span>
+        <button type="button" wire:click="requestLogout" wire:loading.attr="disabled"
+            wire:target="requestLogout,logout"
+            class="flex items-center space-x-3 text-red-600 hover:bg-red-50 transition w-full px-4 py-2.5 rounded-xl font-bold text-xs cursor-pointer disabled:opacity-50 disabled:cursor-wait">
+            <i wire:loading.remove wire:target="logout" class="fa-solid fa-arrow-right-from-bracket"
+                aria-hidden="true"></i>
+
+            <i wire:loading wire:target="logout" class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>
+
+            <span wire:loading.remove wire:target="logout">
+                Đăng xuất hệ thống
+            </span>
+
+            <span wire:loading wire:target="logout">
+                Đang đăng xuất...
+            </span>
         </button>
     </div>
 </aside>
+@script
+    <script>
+        let confirmingLogout = false;
+
+        $wire.on('confirm-farm-staff-logout', async () => {
+            if (confirmingLogout) return;
+
+            confirmingLogout = true;
+
+            try {
+                const result = await Swal.fire({
+                    heightAuto: false,
+                    icon: 'question',
+                    title: 'Xác nhận đăng xuất?',
+                    text: 'Bạn có muốn đăng xuất khỏi tài khoản hiện tại?',
+                    showCancelButton: true,
+                    confirmButtonText: 'Xác nhận',
+                    cancelButtonText: 'Hủy',
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#64748b',
+                    reverseButtons: true,
+                    focusCancel: true,
+                    allowOutsideClick: false
+                });
+
+                if (result.isConfirmed) {
+                    await $wire.logout();
+                }
+            } catch (error) {
+                await Swal.fire({
+                    heightAuto: false,
+                    icon: 'error',
+                    title: 'Chưa hoàn tất đăng xuất',
+                    text: 'Vui lòng tải lại trang để kiểm tra và thử lại.',
+                    confirmButtonText: 'Đóng',
+                    confirmButtonColor: '#15803d'
+                });
+            } finally {
+                confirmingLogout = false;
+            }
+        });
+    </script>
+@endscript
