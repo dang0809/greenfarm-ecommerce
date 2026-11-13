@@ -201,28 +201,50 @@
                     thời gian gieo trồng, bón phân và thu hoạch thực tế.
                 </p>
 
-                <form action="" method="GET" id="batch-search-form"
+                <form id="batch-search-form" wire:submit="verifyBatch" novalidate
                     class="max-w-2xl mx-auto flex flex-col sm:flex-row items-center gap-3">
                     <div
-                        class="flex-1 w-full bg-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl shadow-sm border border-gray-200 flex items-center focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100 transition-all">
+                        class="flex-1 w-full bg-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl
+               shadow-sm border border-gray-200 flex items-center
+               focus-within:border-brand-500 focus-within:ring-2
+               focus-within:ring-brand-100 transition-all">
                         <i class="fa-solid fa-barcode text-gray-400 text-lg mr-3 shrink-0"></i>
-                        <input type="text" id="batch-code-input" name="batch"
-                            placeholder="Nhập mã lô (Ví dụ: DL-20261015-K1)"
-                            class="w-full outline-none text-gray-800 font-mono text-sm uppercase" required>
 
-                        <button type="button" id="start-qr-scan-btn"
-                            class="ml-2 px-3 py-1.5 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-700 font-bold text-xs flex items-center gap-1.5 shrink-0 transition-colors border border-brand-200"
+                        <input type="text" id="batch-code-input" wire:model="batchCode" maxlength="100"
+                            autocomplete="off" placeholder="Nhập mã lô (Ví dụ: DL-20261015-K1)"
+                            class="w-full outline-none text-gray-800 font-mono text-sm uppercase">
+
+                        <button type="button" id="start-qr-scan-btn" wire:loading.attr="disabled"
+                            wire:target="verifyBatch"
+                            class="ml-2 px-3 py-1.5 rounded-xl bg-brand-50 hover:bg-brand-100
+                   text-brand-700 font-bold text-xs flex items-center gap-1.5
+                   shrink-0 transition-colors border border-brand-200
+                   disabled:opacity-50"
                             title="Quét mã QR từ camera">
                             <i class="fa-solid fa-camera text-brand-600"></i>
                             <span class="hidden sm:inline">Quét QR</span>
                         </button>
                     </div>
 
-                    <button type="submit"
-                        class="w-full sm:w-auto bg-gray-900 text-white px-8 py-3.5 rounded-2xl font-bold hover:bg-brand-600 transition-colors shadow-md whitespace-nowrap">
-                        Xác thực ngay
+                    <button type="submit" wire:loading.attr="disabled" wire:target="verifyBatch"
+                        class="w-full sm:w-auto bg-gray-900 text-white px-8 py-3.5
+               rounded-2xl font-bold hover:bg-brand-600 transition-colors
+               shadow-md whitespace-nowrap disabled:opacity-50">
+                        <span wire:loading.remove wire:target="verifyBatch">
+                            Xác thực ngay
+                        </span>
+
+                        <span wire:loading wire:target="verifyBatch">
+                            Đang kiểm tra...
+                        </span>
                     </button>
                 </form>
+
+                @error('batchCode')
+                    <p class="max-w-2xl mx-auto mt-3 text-sm text-red-600" role="alert">
+                        {{ $message }}
+                    </p>
+                @enderror
             </div>
         </div>
     </section>
@@ -300,146 +322,241 @@
     </section>
 
     <!-- SCRIPT SLIDER & QUÉT QR CODE -->
-    <script>
-        (() => {
-            const slider = document.getElementById('hero-slider');
-            const slides = slider?.querySelectorAll('.slide') ?? [];
-            const dots = slider?.querySelectorAll('.dot') ?? [];
+    @script
+        <script>
+            (() => {
+                const slider = document.getElementById('hero-slider');
+                const slides = slider?.querySelectorAll('.slide') ?? [];
+                const dots = slider?.querySelectorAll('.dot') ?? [];
 
-            let currentSlide = 0;
-            let slideInterval;
+                let currentSlide = 0;
+                let slideInterval;
 
-            function showSlide(index) {
-                if (!slides.length) return;
+                function showSlide(index) {
+                    if (!slides.length) return;
 
-                currentSlide = (index + slides.length) % slides.length;
+                    currentSlide = (index + slides.length) % slides.length;
 
-                slides.forEach((slide, i) => {
-                    const active = i === currentSlide;
+                    slides.forEach((slide, i) => {
+                        const active = i === currentSlide;
 
-                    slide.classList.toggle('opacity-100', active);
-                    slide.classList.toggle('opacity-0', !active);
+                        slide.classList.toggle('opacity-100', active);
+                        slide.classList.toggle('opacity-0', !active);
 
-                    slide.classList.toggle('z-10', active);
-                    slide.classList.toggle('z-0', !active);
+                        slide.classList.toggle('z-10', active);
+                        slide.classList.toggle('z-0', !active);
 
-                    slide.classList.toggle('pointer-events-auto', active);
-                    slide.classList.toggle('pointer-events-none', !active);
+                        slide.classList.toggle('pointer-events-auto', active);
+                        slide.classList.toggle('pointer-events-none', !active);
 
-                    slide.setAttribute('aria-hidden', String(!active));
-                    slide.toggleAttribute('inert', !active);
-                });
+                        slide.setAttribute('aria-hidden', String(!active));
+                        slide.toggleAttribute('inert', !active);
+                    });
 
-                dots.forEach((dot, i) => {
-                    const active = i === currentSlide;
+                    dots.forEach((dot, i) => {
+                        const active = i === currentSlide;
 
-                    dot.classList.toggle('active', active);
-                    dot.setAttribute('aria-pressed', String(active));
-                });
-            }
-
-            function resetInterval() {
-                clearInterval(slideInterval);
-
-                if (slides.length > 1) {
-                    slideInterval = setInterval(() => {
-                        if (!slider?.isConnected) {
-                            clearInterval(slideInterval);
-                            return;
-                        }
-
-                        showSlide(currentSlide + 1);
-                    }, 5000);
+                        dot.classList.toggle('active', active);
+                        dot.setAttribute('aria-pressed', String(active));
+                    });
                 }
+
+                function resetInterval() {
+                    clearInterval(slideInterval);
+
+                    if (slides.length > 1) {
+                        slideInterval = setInterval(() => {
+                            if (!slider?.isConnected) {
+                                clearInterval(slideInterval);
+                                return;
+                            }
+
+                            showSlide(currentSlide + 1);
+                        }, 5000);
+                    }
+                }
+
+                slider?.querySelector('#next-slide')
+                    ?.addEventListener('click', () => {
+                        showSlide(currentSlide + 1);
+                        resetInterval();
+                    });
+
+                slider?.querySelector('#prev-slide')
+                    ?.addEventListener('click', () => {
+                        showSlide(currentSlide - 1);
+                        resetInterval();
+                    });
+
+                dots.forEach((dot, index) => {
+                    dot.addEventListener('click', () => {
+                        showSlide(index);
+                        resetInterval();
+                    });
+                });
+
+                showSlide(0);
+                resetInterval();
+            })();
+
+            // Cuộn danh mục
+            const catContainer = document.getElementById('category-scroll-container');
+            document.getElementById('cat-prev-btn')?.addEventListener('click', () => catContainer.scrollBy({
+                left: -catContainer.offsetWidth / 2,
+                behavior: 'smooth'
+            }));
+            document.getElementById('cat-next-btn')?.addEventListener('click', () => catContainer.scrollBy({
+                left: catContainer.offsetWidth / 2,
+                behavior: 'smooth'
+            }));
+
+            // HTML5 QR CODE CAMERA LOGIC
+            const root = $wire.$el;
+            const qrModal = root.querySelector('#qr-modal');
+            const qrStatus = root.querySelector('#qr-scan-status');
+
+            let scanner = null;
+            let operations = Promise.resolve();
+            let session = 0;
+
+            function extractBatchCode(text) {
+                const raw = text.trim();
+
+                // QR chỉ chứa mã lô.
+                if (/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/i.test(raw)) {
+                    return raw;
+                }
+
+                // QR chứa URL đầy đủ hoặc đường dẫn tương đối.
+                const url = new URL(raw, window.location.origin);
+                const path = url.pathname.match(/\/truy-xuat\/([^/]+)\/?$/);
+
+                // Ưu tiên mã trong đường dẫn, giống route truy xuất.
+                const code = path ?
+                    decodeURIComponent(path[1]) :
+                    url.searchParams.get('batch');
+
+                if (!code) {
+                    throw new Error('QR không chứa mã lô hợp lệ.');
+                }
+
+                return code.trim();
             }
 
-            slider?.querySelector('#next-slide')
-                ?.addEventListener('click', () => {
-                    showSlide(currentSlide + 1);
-                    resetInterval();
-                });
+            function stopQrScanner() {
+                session++;
+                qrModal.classList.add('hidden');
 
-            slider?.querySelector('#prev-slide')
-                ?.addEventListener('click', () => {
-                    showSlide(currentSlide - 1);
-                    resetInterval();
-                });
+                // Chờ thao tác khởi động hoàn tất rồi mới dừng camera.
+                operations = operations.then(async () => {
+                    if (!scanner) return;
 
-            dots.forEach((dot, index) => {
-                dot.addEventListener('click', () => {
-                    showSlide(index);
-                    resetInterval();
+                    const current = scanner;
+                    scanner = null;
+
+                    try {
+                        await current.stop();
+                    } finally {
+                        current.clear();
+                    }
+                }).catch(console.error);
+
+                return operations;
+            }
+
+            root.querySelector('#start-qr-scan-btn').addEventListener('click', () => {
+                const currentSession = ++session;
+                let accepted = false;
+
+                qrModal.classList.remove('hidden');
+                qrStatus.textContent = 'Đang bật camera...';
+
+                if (!window.Html5Qrcode) {
+                    qrStatus.textContent =
+                        'Không tải được thư viện QR. Vui lòng nhập mã tay.';
+                    return;
+                }
+
+                operations = operations.then(async () => {
+                    if (currentSession !== session) return;
+
+                    try {
+                        scanner = new window.Html5Qrcode('qr-reader');
+
+                        await scanner.start({
+                                facingMode: 'environment'
+                            }, {
+                                fps: 10,
+                                qrbox: {
+                                    width: 220,
+                                    height: 220
+                                }
+                            },
+                            async (decodedText) => {
+                                    // Tránh gửi nhiều request từ cùng một lần quét.
+                                    if (accepted || currentSession !== session) return;
+
+                                    let code;
+
+                                    try {
+                                        code = extractBatchCode(decodedText);
+                                    } catch {
+                                        qrStatus.textContent =
+                                            'QR không chứa mã lô hợp lệ.';
+                                        return;
+                                    }
+
+                                    accepted = true;
+
+                                    const stoppedSession = session + 1;
+                                    await stopQrScanner();
+
+                                    if (
+                                        session !== stoppedSession ||
+                                        !root.isConnected
+                                    ) return;
+
+                                    try {
+                                        // Server kiểm tra và quyết định chuyển trang.
+                                        await $wire.verifyBatch(code);
+                                    } catch (error) {
+                                        console.error(error);
+                                    }
+                                },
+                                () => {}
+                        );
+
+                        if (currentSession === session) {
+                            qrStatus.textContent = 'Hướng camera vào mã QR.';
+                        }
+                    } catch (error) {
+                        try {
+                            scanner?.clear();
+                        } catch {}
+
+                        scanner = null;
+
+                        if (currentSession === session) {
+                            qrStatus.textContent =
+                                'Không thể bật camera. Hãy cấp quyền hoặc nhập mã tay.';
+                        }
+                    }
                 });
             });
 
-            showSlide(0);
-            resetInterval();
-        })();
+            root.querySelector('#close-qr-modal-btn')
+                .addEventListener('click', stopQrScanner);
 
-        // Cuộn danh mục
-        const catContainer = document.getElementById('category-scroll-container');
-        document.getElementById('cat-prev-btn')?.addEventListener('click', () => catContainer.scrollBy({
-            left: -catContainer.offsetWidth / 2,
-            behavior: 'smooth'
-        }));
-        document.getElementById('cat-next-btn')?.addEventListener('click', () => catContainer.scrollBy({
-            left: catContainer.offsetWidth / 2,
-            behavior: 'smooth'
-        }));
-
-        // HTML5 QR CODE CAMERA LOGIC
-        let html5QrCode = null;
-        const qrModal = document.getElementById('qr-modal');
-        const startQrScanBtn = document.getElementById('start-qr-scan-btn');
-        const closeQrModalBtn = document.getElementById('close-qr-modal-btn');
-        const batchCodeInput = document.getElementById('batch-code-input');
-        const qrStatus = document.getElementById('qr-scan-status');
-
-        function stopQrScanner() {
-            if (html5QrCode) {
-                html5QrCode.stop().then(() => {
-                    html5QrCode.clear();
-                    html5QrCode = null;
-                }).catch(err => console.error(err));
-            }
-            qrModal.classList.add('hidden');
-        }
-
-        startQrScanBtn?.addEventListener('click', () => {
-            qrModal.classList.remove('hidden');
-            qrStatus.textContent = 'Đang bật camera...';
-
-            if (!html5QrCode) {
-                html5QrCode = new Html5Qrcode("qr-reader");
-            }
-
-            html5QrCode.start({
-                    facingMode: "environment"
-                }, {
-                    fps: 10,
-                    qrbox: {
-                        width: 220,
-                        height: 220
-                    }
-                },
-                (decodedText) => {
-                    stopQrScanner();
-                    let code = decodedText.trim();
-                    if (code.includes('batch=')) {
-                        const urlParams = new URLSearchParams(code.split('?')[1]);
-                        code = urlParams.get('batch') || code;
-                    }
-                    batchCodeInput.value = code;
-                },
-                (errorMessage) => {}
-            ).catch(err => {
-                qrStatus.textContent = 'Không thể truy cập camera. Vui lòng cấp quyền hoặc nhập mã tay!';
+            qrModal.addEventListener('click', (event) => {
+                if (event.target === qrModal) stopQrScanner();
             });
-        });
 
-        closeQrModalBtn?.addEventListener('click', stopQrScanner);
-        qrModal?.addEventListener('click', (e) => {
-            if (e.target === qrModal) stopQrScanner();
-        });
-    </script>
+            document.addEventListener(
+                'livewire:navigating',
+                stopQrScanner, {
+                    once: true
+                }
+            );
+        </script>
+    @endscript
 </div>

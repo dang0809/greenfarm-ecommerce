@@ -62,8 +62,6 @@
                     <h2 class="text-lg sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
                         <i class="fa-solid fa-timeline text-brand-600"></i> Hành Trình Canh Tác Thực Tế
                     </h2>
-                    <p class="text-xs sm:text-sm text-gray-500 mt-1">Dữ liệu từng công đoạn được ký số minh bạch và băm
-                        SHA-256 chống chỉnh sửa</p>
                 </div>
                 <span class="hidden sm:inline-block text-xs font-bold text-gray-400 font-mono">
                     {{ $events?->count() ?? 0 }} Sự kiện ghi nhận
@@ -103,40 +101,6 @@
                                             class="w-24 h-24 sm:w-32 sm:h-32 rounded-xl object-cover border border-gray-200">
                                     </div>
                                 @endif
-
-                                <!-- KHỐI CHỨNG THỰC BLOCKCHAIN -->
-                                <div
-                                    class="bg-white border border-brand-200/90 rounded-2xl p-3.5 sm:p-4 text-xs font-mono space-y-2 mb-3 shadow-xs">
-                                    @if ($event->data_hash)
-                                        <div>
-                                            <span
-                                                class="text-gray-400 font-semibold block text-[11px] mb-1 flex items-center gap-1.5">
-                                                <i class="fa-solid fa-hashtag text-brand-600"></i> Data Hash (SHA-256):
-                                            </span>
-                                            <p
-                                                class="text-gray-800 break-all bg-gray-50 p-2 sm:p-2.5 rounded-xl border border-gray-100 text-[11px] leading-relaxed">
-                                                {{ $event->data_hash }}
-                                            </p>
-                                        </div>
-                                    @endif
-
-                                    @if ($event->blockchain_tx_hash)
-                                        <div
-                                            class="pt-2 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-                                            <span
-                                                class="text-gray-400 font-semibold text-[11px] flex items-center gap-1.5">
-                                                <i class="fa-solid fa-cube text-blue-600"></i> TxHash:
-                                            </span>
-                                            <a href="https://polygonscan.com/tx/{{ $event->blockchain_tx_hash }}"
-                                                target="_blank"
-                                                class="text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 text-[11px] break-all">
-                                                <span>{{ $event->blockchain_tx_hash }}</span>
-                                                <i
-                                                    class="fa-solid fa-arrow-up-right-from-square text-[9px] shrink-0"></i>
-                                            </a>
-                                        </div>
-                                    @endif
-                                </div>
 
                                 <div
                                     class="flex items-center gap-2 text-xs text-gray-400 pt-2 border-t border-brand-100">
