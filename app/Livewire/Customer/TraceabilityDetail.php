@@ -11,25 +11,26 @@ class TraceabilityDetail extends Component
 {
     public string $batchCode;
 
-    public function mount(string $batch)
+    public function mount(string $batch): void
     {
-        $this->batchCode = $batch;
+        $this->batchCode = strtoupper(trim($batch));
     }
 
     public function render()
     {
-        // Truy vấn theo Mã lô sản phẩm (batch_code), nạp Lô trồng (plantingBatch), Mảnh đất (farmPlot), Sản phẩm & Nhật ký
         $productBatch = ProductBatch::with([
             'plantingBatch.product.productImages',
             'plantingBatch.farmPlot',
-            'plantingBatch.traceabilityEvents'
+            'plantingBatch.traceabilityEvents' => fn($query) => $query
+                ->orderBy('recorded_at')
+                ->orderBy('id'),
         ])
             ->where('batch_code', $this->batchCode)
-            ->first();
+            ->firstOrFail();
 
         return view('livewire.customer.traceability-detail', [
             'productBatch' => $productBatch,
-            'plantingBatch' => $productBatch?->plantingBatch,
+            'plantingBatch' => $productBatch->plantingBatch,
         ])->layout('layouts.customer.app');
     }
 }

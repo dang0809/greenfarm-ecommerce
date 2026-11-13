@@ -6,6 +6,8 @@ use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Models\ProductBatch;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -16,6 +18,37 @@ use App\Models\Banner;
 class HomePage extends Component
 {
     use HandlesCart;
+
+    public string $batchCode = '';
+
+    public function verifyBatch(?string $scannedCode = null): void
+    {
+        // Nhận mã từ QR hoặc từ ô nhập.
+        $this->batchCode = strtoupper(
+            trim($scannedCode ?? $this->batchCode)
+        );
+
+        $this->validate([
+            'batchCode' => [
+                'bail',
+                'required',
+                'string',
+                'max:100',
+                'regex:/\A[A-Z0-9]+(?:-[A-Z0-9]+)*\z/',
+                Rule::exists(ProductBatch::class, 'batch_code'),
+            ],
+        ], [
+            'batchCode.required' => 'Vui lòng nhập mã lô hàng.',
+            'batchCode.max' => 'Mã lô không được vượt quá 100 ký tự.',
+            'batchCode.regex' => 'Mã lô chỉ gồm chữ, số và dấu gạch ngang.',
+            'batchCode.exists' => 'Mã lô hàng không tồn tại. Vui lòng kiểm tra lại.',
+        ]);
+
+        // Chỉ thực hiện khi tất cả điều kiện validate đều đạt.
+        $this->redirectRoute('customer.traceability.detail', [
+            'batch' => $this->batchCode,
+        ]);
+    }
 
     public function render()
     {
