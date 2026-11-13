@@ -45,7 +45,7 @@
                                 {{ $statusLabels[$batch->display_status] ?? $batch->display_status }}
                             </td>
                             <td class="p-4">
-                                <a href="{{ route('farm-owner.batches.show', $batch->id) }}"
+                                <a href="{{ route('farm-owner.batches.show', $batch->id) }}" wire:navigate
                                     class="inline-flex bg-brand-50 text-brand-700 px-3 py-2 rounded-xl font-bold text-xs">
                                     Xem chi tiết
                                 </a>

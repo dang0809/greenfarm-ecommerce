@@ -360,7 +360,7 @@
                                 class="hover:bg-slate-50 transition">
                                 <td class="py-3.5 px-4 pl-5">
                                     <a href="{{ route('farm-owner.products.show', ['product' => $product['id']]) }}"
-                                        class="flex items-center gap-3">
+                                        wire:navigate class="flex items-center gap-3">
                                         @if ($product['image'])
                                             <img src="{{ $product['image'] }}" alt="{{ $product['name'] }}"
                                                 loading="lazy"

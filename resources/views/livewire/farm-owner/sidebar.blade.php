@@ -2,7 +2,7 @@
     class="fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-slate-200/80 flex flex-col justify-between shrink-0 shadow-soft transition-transform duration-300 -translate-x-full lg:translate-x-0 lg:static">
     <div class="flex flex-col min-h-0 flex-1">
         <div class="h-16 sm:h-20 flex items-center justify-between px-6 border-b border-slate-100 shrink-0">
-            <a href="{{ $dashboardUrl }}" class="flex items-center gap-2.5">
+            <a href="{{ $dashboardUrl }}" wire:navigate class="flex items-center gap-2.5">
                 <div
                     class="w-10 h-10 rounded-xl bg-slate-900 text-brand-400 flex items-center justify-center shrink-0 shadow-sm border border-slate-700">
                     <i class="fa-solid fa-crown text-amber-400 text-base"></i>
@@ -28,8 +28,8 @@
 
         <nav class="p-3.5 space-y-1 overflow-y-auto flex-1 custom-scrollbar">
             @foreach ($items as $item)
-                <a wire:key="farm-owner-menu-{{ $item['route'] }}" href="{{ $item['url'] ?? '#' }}"
-                    @class([
+                <a wire:navigate wire:key="farm-owner-menu-{{ $item['route'] }}" href="{{ $item['url'] }}"
+                    @if ($item['active']) aria-current="page" @endif @class([
                         'w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm transition-all text-left whitespace-nowrap',
                         'font-bold menu-admin-active' => $item['active'],
                         'font-semibold menu-admin-inactive' => !$item['active'],

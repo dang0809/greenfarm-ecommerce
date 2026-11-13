@@ -9,7 +9,7 @@
         </button>
 
         @if ($back)
-            <a href="{{ $back }}" class="text-brand-700 text-sm font-bold shrink-0">
+            <a href="{{ $back }}" wire:navigate class="text-brand-700 text-sm font-bold shrink-0">
                 <i class="fa-solid fa-arrow-left mr-1"></i> Quay lại
             </a>
         @endif

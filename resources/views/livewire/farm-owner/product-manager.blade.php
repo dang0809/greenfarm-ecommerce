@@ -56,7 +56,7 @@
                                 {{ $product->status === 'active' ? 'Đang bán' : 'Đang ẩn' }}
                             </td>
                             <td class="p-4">
-                                <a href="{{ route('farm-owner.products.show', $product) }}"
+                                <a href="{{ route('farm-owner.products.show', $product) }}" wire:navigate
                                     class="inline-flex bg-brand-50 text-brand-700 px-3 py-2 rounded-xl font-bold text-xs">
                                     Xem chi tiết
                                 </a>
