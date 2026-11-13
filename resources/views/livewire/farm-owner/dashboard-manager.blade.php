@@ -1,5 +1,5 @@
 <div class="flex flex-1 min-h-0 min-w-0 flex-col overflow-hidden">
-    <!-- Header -->
+    {{-- Header --}}
     <header
         class="min-h-[4.5rem] sm:min-h-20 bg-white/95 backdrop-blur-md border-b border-slate-200/80 flex flex-wrap items-center justify-between px-4 sm:px-8 py-3 shrink-0 z-20 gap-3">
         <div class="flex items-center gap-3 min-w-0 flex-1">
@@ -22,10 +22,9 @@
         </div>
     </header>
 
-    <!-- Workspace Viewport -->
     <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 custom-scrollbar pb-28 sm:pb-12">
 
-        <!-- ================= THANH TÁC VỤ & BỘ LỌC THỜI GIAN ================= -->
+        {{-- Tác vụ và Bộ lọc --}}
         <div
             class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-soft">
             <div class="flex flex-wrap items-center gap-2.5">
@@ -61,10 +60,10 @@
             </span>
         </div>
 
-        <!-- ================= 3. HÀNG 3 THẺ THỐNG KÊ DOANH THU ================= -->
+        {{-- THỐNG KÊ DOANH THU --}}
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-5">
 
-            <!-- Thẻ 1: Tổng doanh thu -->
+            {{-- TỔNG DOANH THU --}}
             <div
                 class="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-soft flex flex-col justify-between hover:shadow-md transition">
                 <div class="flex items-center justify-between mb-2">
@@ -111,7 +110,7 @@
                 </div>
             </div>
 
-            <!-- Thẻ 2: Đơn hàng hoàn thành -->
+            {{-- ĐƠN HÀNG HOÀN THÀNH --}}
             <div
                 class="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-soft flex flex-col justify-between hover:shadow-md transition">
                 <div class="flex items-center justify-between mb-2">
@@ -137,7 +136,7 @@
                 </div>
             </div>
 
-            <!-- Thẻ 3: Doanh thu gói VIP -->
+            {{-- DOANH THU GÓI ĐỊNH KỲ --}}
             <div
                 class="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-soft flex flex-col justify-between hover:shadow-md transition">
                 <div class="flex items-center justify-between mb-2">
@@ -167,10 +166,10 @@
 
         </div>
 
-        <!-- ================= 4. HÀNG THỐNG KÊ: KIỂM SOÁT KHIẾU NẠI & ĐỀN BÙ ================= -->
+        {{-- KHIẾU NẠI VÀ ĐỀN BÙ --}}
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-5">
 
-            <!-- Thẻ K1: Tổng đơn khiếu nại phát sinh -->
+            {{-- TỔNG ĐƠN KHIẾU NẠI --}}
             <div
                 class="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-rose-200 shadow-soft flex items-center justify-between">
                 <div>
@@ -192,7 +191,7 @@
                 </div>
             </div>
 
-            <!-- Thẻ K2: Tổng đơn bồi thường (Hoàn tiền / Voucher) -->
+            {{-- TỔNG ĐƠN HOÀN TIỀN --}}
             <div
                 class="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-amber-200 shadow-soft flex items-center justify-between">
                 <div>
@@ -222,10 +221,10 @@
 
         </div>
 
-        <!-- ================= 5. KHU VỰC BIỂU ĐỒ (2 CỘT SO SÁNH SONG SONG) ================= -->
+        {{-- 2 biểu đồ --}}
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
 
-            <!-- Biểu đồ A: Xu hướng doanh thu -->
+            {{-- BIỂU ĐỒ DOANH THU --}}
             <div
                 class="lg:col-span-8 min-w-0 bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-soft space-y-4">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -270,7 +269,7 @@
                 </div>
             </div>
 
-            <!-- Biểu đồ B: Cơ cấu danh mục -->
+            {{-- BIỂU ĐỒ DANH MỤC --}}
             <div
                 class="lg:col-span-4 min-w-0 bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-soft space-y-4 flex flex-col justify-between">
                 <div class="min-w-0">
@@ -322,7 +321,7 @@
 
         </div>
 
-        <!-- ================= 6. BẢNG TOP SẢN PHẨM DOANH THU CAO ================= -->
+        {{-- BẢNG SẢN PHẨM CÓ DOANH THU CAO --}}
         <div
             class="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-soft overflow-hidden space-y-3">
             <div class="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between gap-2">
