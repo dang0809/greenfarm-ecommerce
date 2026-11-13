@@ -74,9 +74,7 @@ class ProductPage extends Component
 
         $query = Product::with([
             'category',
-            'productImages' => function ($q) {
-                $q->where('is_primary', true);
-            }
+            'productImages',
         ])
             ->withTotalStock()
             ->where('status', 'active');

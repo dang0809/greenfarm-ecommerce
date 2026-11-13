@@ -236,7 +236,8 @@ class ProductDetail extends Component
         $reviews = Review::with(['user', 'images'])
             ->where('product_id', $this->product->id)
             ->latest()
-            ->paginate(10, ['*'], 'reviewsPage');
+            ->paginate(10, ['*'], 'reviewsPage'); //* lấy toàn bộ kiểu select * 
+            //reviewsPage tên biến để phân trang thay vì page thì ?reviewsPage=2
 
         $currentBatch = $this->product->batches->first();
 

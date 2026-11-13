@@ -99,10 +99,8 @@
                                                     class="inline-flex items-center gap-1 flex-wrap text-[10px] text-amber-900 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full font-bold">
                                                     <span>Gồm:</span>
                                                     @foreach ($priceData['breakdown'] as $b)
-                                                        <span
-                                                            class="{{ $b['is_sale'] ? 'text-rose-600' : 'text-gray-700' }}">
-                                                            {{ $b['quantity'] + 0 }}{{ $product->unit ?? 'kg' }}
-                                                            {{ $b['is_sale'] ? '(-' . $b['discount_percent'] . '%)' : '(Gốc)' }}
+                                                        <span class="{{ $b['is_sale'] ? 'text-rose-600' : 'text-gray-700' }}">
+                                                            {{ $b['quantity'] }}{{ $product->unit ?? 'kg' }} {{ $b['is_sale'] ? '(-' . $b['discount_percent'] . '%)' : '(Gốc)' }}
                                                         </span>
                                                         @if (!$loop->last)
                                                             <span class="text-gray-400">+</span>
@@ -117,10 +115,8 @@
                                                     <i class="fa-solid fa-ban text-[9px]"></i> Tạm hết hàng
                                                 </span>
                                             @elseif ($item->quantity >= $availableStock)
-                                                <span
-                                                    class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
-                                                    <i class="fa-solid fa-triangle-exclamation text-[9px]"></i> Tối đa
-                                                    kho ({{ $availableStock + 0 }})
+                                                <span class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                                                    <i class="fa-solid fa-triangle-exclamation text-[9px]"></i> Tối đa kho ({{ $availableStock }})
                                                 </span>
                                             @endif
                                         </div>
@@ -137,14 +133,16 @@
                                             class="w-8 h-full text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center justify-center cursor-pointer shrink-0">
                                             <i class="fa-solid fa-minus text-[10px]"></i>
                                         </button>
-
-                                        <input type="number" value="{{ $item->quantity + 0 }}" readonly
-                                            class="w-full h-full text-center font-bold text-gray-900 bg-transparent outline-none text-xs select-none cursor-default [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
-
-                                        <button type="button" wire:click="incrementQuantity({{ $item->id }})"
-                                            @disabled($item->quantity >= $availableStock || $availableStock <= 0)
-                                            class="w-8 h-full text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center justify-center cursor-pointer shrink-0"
-                                            title="{{ $item->quantity >= $availableStock ? 'Đã đạt số lượng tối đa trong kho (' . ($availableStock + 0) . ')' : 'Tăng số lượng' }}">
+<input type="number" 
+                                               value="{{ $item->quantity }}" 
+                                               readonly
+                                               class="w-full h-full text-center font-bold text-gray-900 bg-transparent outline-none text-xs select-none cursor-default [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                                        
+                                        <button type="button" 
+                                                wire:click="incrementQuantity({{ $item->id }})" 
+                                                @disabled($item->quantity >= $availableStock || $availableStock <= 0)
+                                                class="w-8 h-full text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center justify-center cursor-pointer shrink-0"
+                                                title="{{ $item->quantity >= $availableStock ? 'Đã đạt số lượng tối đa trong kho (' . $availableStock . ')' : 'Tăng số lượng' }}">
                                             <i class="fa-solid fa-plus text-[10px]"></i>
                                         </button>
                                     </div>

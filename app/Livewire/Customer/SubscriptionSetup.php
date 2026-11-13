@@ -525,9 +525,7 @@ class SubscriptionSetup extends Component
         // 2. Query Sản phẩm CHUẨN FEFO (chỉ lấy sản phẩm còn hàng trong các lô active và còn hạn sử dụng)
         $productQuery = Product::with([
             'category',
-            'productImages' => function ($q) {
-                $q->where('is_primary', true);
-            }
+            'productImages',
         ])
             ->withTotalStock()
             ->where('status', 'active')

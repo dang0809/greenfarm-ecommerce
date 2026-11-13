@@ -374,5 +374,3 @@
         </script>
     @endscript
 </div>
-<<<<<<< HEAD:resources/views/livewire/farm-staff/profile-manager.blade.php=======>>>>>>>
-    909e51ba9809b76457a6d00dfc53b9da5f5bb86b:resources/views/livewire/profile-manager.blade.php

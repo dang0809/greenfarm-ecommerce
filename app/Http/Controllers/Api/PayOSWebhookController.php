@@ -124,9 +124,7 @@ class PayOSWebhookController extends Controller
                                 'status' => 'active',
                             ]);
                         }
-                    } else {
-                        $order->update(['status' => 'pending']);
-                    }
+                    } 
 
                     $order->statusHistories()->create([
                         'old_status' => 'pending',

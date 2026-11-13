@@ -285,7 +285,7 @@
                                     @foreach($mOrder->items as $it)
                                         <div class="text-[11px] text-gray-700 flex items-center justify-between">
                                             <span class="font-semibold truncate">{{ $it->product_name }}</span>
-                                            <span class="text-gray-400 font-mono shrink-0 ml-1">x{{ $it->quantity + 0 }}</span>
+                                            <span class="text-gray-400 font-mono shrink-0 ml-1">x{{ $it->quantity }}</span>
                                         </div>
                                     @endforeach
                                 </div>

@@ -51,8 +51,8 @@ class CartPage extends Component
                 }
             } elseif ($item->quantity > $stock) {
                 // Vượt tồn kho: tự động hạ xuống đúng mức kho còn lại
-                $oldQty = $item->quantity + 0;
-                $newQty = $stock + 0;
+                $oldQty = $item->quantity;
+                $newQty = $stock;
                 $item->update(['quantity' => $stock]);
                 $item->quantity = $stock;
                 $messages[] = "Sản phẩm \"{$item->product->name}\" đã tự động giảm từ {$oldQty} xuống {$newQty} do kho vừa thay đổi.";
