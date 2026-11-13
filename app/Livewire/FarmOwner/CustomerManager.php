@@ -4,8 +4,9 @@ namespace App\Livewire\FarmOwner;
 
 use App\Models\User;
 use Livewire\WithPagination;
-
-class CustomerManager extends OwnerPage
+use Illuminate\Support\Facades\Auth;
+use Livewire\Component;
+class CustomerManager extends Component
 {
     use WithPagination;
 
@@ -14,6 +15,21 @@ class CustomerManager extends OwnerPage
     public function updatedSearch(): void
     {
         $this->resetPage();
+    }
+
+    public function boot(): void
+    {
+        $owner = Auth::id()
+            ? User::find(Auth::id())
+            : null;
+
+        abort_unless(
+            $owner
+            && $owner->role === 'farm_owner'
+            && $owner->status === 'active',
+            403,
+            'Bạn không có quyền truy cập khu vực chủ trang trại.'
+        );
     }
 
     public function render()

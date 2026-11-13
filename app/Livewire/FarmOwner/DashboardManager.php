@@ -1,7 +1,9 @@
 <?php
 
 namespace App\Livewire\FarmOwner;
-
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
+use Livewire\Component;
 use App\Models\Complaint;
 use App\Models\Order;
 use App\Models\Product;
@@ -10,8 +12,24 @@ use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 
-class DashboardManager extends OwnerPage
+class DashboardManager extends Component
 {
+
+    public function boot(): void
+    {
+        $owner = Auth::id()
+            ? User::find(Auth::id())
+            : null;
+
+        abort_unless(
+            $owner
+            && $owner->role === 'farm_owner'
+            && $owner->status === 'active',
+            403,
+            'Bạn không có quyền truy cập khu vực chủ trang trại.'
+        );
+    }
+
     public string $period = 'this_month';
 
     public function updatedPeriod(): void

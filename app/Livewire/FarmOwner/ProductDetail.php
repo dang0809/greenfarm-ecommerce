@@ -1,12 +1,14 @@
 <?php
 
 namespace App\Livewire\FarmOwner;
-
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
+use Livewire\Component;
 use App\Models\Product;
 use Livewire\Attributes\Locked;
 use Livewire\WithPagination;
 
-class ProductDetail extends OwnerPage
+class ProductDetail extends Component
 {
     use WithPagination;
 
@@ -16,6 +18,21 @@ class ProductDetail extends OwnerPage
     public function mount(Product $product): void
     {
         $this->productId = $product->id;
+    }
+
+    public function boot(): void
+    {
+        $owner = Auth::id()
+            ? User::find(Auth::id())
+            : null;
+
+        abort_unless(
+            $owner
+            && $owner->role === 'farm_owner'
+            && $owner->status === 'active',
+            403,
+            'Bạn không có quyền truy cập khu vực chủ trang trại.'
+        );
     }
 
     public function render()

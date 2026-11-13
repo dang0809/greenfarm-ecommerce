@@ -1,14 +1,16 @@
 <?php
 
 namespace App\Livewire\FarmOwner;
-
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
+use Livewire\Component;
 use App\Models\InventoryLog;
 use App\Models\ProductBatch;
 use App\Models\TraceabilityEvent;
 use Livewire\Attributes\Locked;
 use Livewire\WithPagination;
 
-class ProductBatchDetail extends OwnerPage
+class ProductBatchDetail extends Component
 {
     use WithPagination;
 
@@ -18,6 +20,21 @@ class ProductBatchDetail extends OwnerPage
     public function mount(int $batch): void
     {
         $this->batchId = (int) ProductBatch::findOrFail($batch)->id;
+    }
+
+    public function boot(): void
+    {
+        $owner = Auth::id()
+            ? User::find(Auth::id())
+            : null;
+
+        abort_unless(
+            $owner
+            && $owner->role === 'farm_owner'
+            && $owner->status === 'active',
+            403,
+            'Bạn không có quyền truy cập khu vực chủ trang trại.'
+        );
     }
 
     public function render()
