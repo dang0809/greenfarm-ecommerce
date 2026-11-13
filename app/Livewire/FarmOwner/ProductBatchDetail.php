@@ -60,6 +60,7 @@ class ProductBatchDetail extends Component
             'export_sale' => ['Xuất bán', '-'],
             'export_spoilage' => ['Xuất hủy', '-'],
             'return_cancel' => ['Hoàn kho do hủy đơn', '+'],
+            'return_refund' => ['Hoàn kho do hoàn tiền', '+'],
             'adjustment_in' => ['Kiểm kê tăng', '+'],
             'adjustment_out' => ['Kiểm kê giảm', '-'],
             'expiry_change' => ['Sửa hạn sử dụng', ''],

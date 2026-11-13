@@ -20,14 +20,6 @@
                 </h1>
             </div>
         </div>
-
-        <div class="flex items-center gap-2 shrink-0">
-            <span
-                class="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-bold font-mono">
-                <span class="w-2 h-2 rounded-full bg-brand-600 animate-pulse"></span>
-                Truyền thông Website
-            </span>
-        </div>
     </header>
 
     <!-- Workspace Viewport -->

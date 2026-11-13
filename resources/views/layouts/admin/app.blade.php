@@ -84,6 +84,8 @@
 
     <body x-data="{}"
         x-on:swal.window="Swal.fire({
+        heightAuto: false,
+        scrollbarPadding: false,
         icon: $event.detail.icon ?? 'success',
         title: $event.detail.title ?? '',
         text: $event.detail.text ?? '',

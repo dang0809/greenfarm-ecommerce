@@ -137,9 +137,12 @@ class VipCheckout extends Component
 
                     // Nếu thực tế đã thanh toán xong từ trước
                     if ($payStatus === 'PAID') {
-                        $existingOrder->update(['status' => 'delivered']);
-                        Payment::where('order_id', $existingOrder->id)->update(['status' => 'success', 'paid_at' => now()]);
-                        return $this->redirect(route('customer.checkout.success', ['order_id' => $existingOrder->id]), navigate: false);
+                        return $this->redirect(
+                            route('customer.checkout.success', [
+                                'order_id' => $existingOrder->id,
+                            ]),
+                            navigate: false
+                        );
                     }
 
                     // Nếu link cũ vẫn còn PENDING -> DÙNG LẠI LINK VÀ MÃ QR CŨ

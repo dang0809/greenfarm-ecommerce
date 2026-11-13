@@ -714,6 +714,7 @@
                                     'export_sale' => ['Xuất bán', '-'],
                                     'export_spoilage' => ['Xuất hủy', '-'],
                                     'return_cancel' => ['Hoàn kho do hủy đơn', '+'],
+                                    'return_refund' => ['Hoàn kho do hoàn tiền', '+'],
                                     'adjustment_in' => ['Kiểm kê tăng', '+'],
                                     'adjustment_out' => ['Kiểm kê giảm', '-'],
                                     'expiry_change' => ['Sửa hạn sử dụng', ''],
@@ -761,7 +762,7 @@
                                     @endphp
 
                                     <p class="text-xs text-slate-700 mt-0.5 font-medium">
-                                        Lý do:
+                                        Nội dung:
 
                                         @foreach ($reasonLines as $reasonLine)
                                             {{ $reasonLine }}
@@ -782,7 +783,7 @@
                                 <!-- hiển thị số lượng -->
                                 <span class="font-mono font-black {{ $logColor }} text-xs sm:text-sm">
                                     @if ($log->quantity !== 0)
-                                        {{ $sign }}{{ number_format($log->quantity) }}
+                                        {{ $sign }}{{ number_format(abs((int) $log->quantity), 0, ',', '.') }}
                                         {{ $selectedUnit }}
                                     @else
                                         -
