@@ -126,9 +126,10 @@ class PayOSWebhookController extends Controller
                         }
                     } 
 
+                    $newStatus = ($order->order_type === 'subscription') ? 'delivered' : 'pending';
                     $order->statusHistories()->create([
                         'old_status' => 'pending',
-                        'new_status' => 'pending',
+                        'new_status' => $newStatus,
                         'changed_by' => $order->user_id,
                     ]);
 

@@ -150,7 +150,7 @@ class CheckoutPage extends Component
             if (empty($buyNowData))
                 return collect();
 
-            $product = Product::with(['category', 'productImages'])->find($buyNowData['product_id']);
+            $product = Product::with(['productImages'])->find($buyNowData['product_id']);
 
             if (!$product)
                 return collect();
@@ -164,7 +164,7 @@ class CheckoutPage extends Component
             return collect([$item]);
         }
 
-        $cart = Cart::with(['items.product.category', 'items.product.productImages'])
+        $cart = Cart::with(['items.product.productImages'])
             ->where('user_id', Auth::id())
             ->first();
 
