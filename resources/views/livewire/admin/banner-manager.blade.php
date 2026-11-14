@@ -5,7 +5,7 @@
     }
 "
     class="flex flex-1 min-h-0 flex-col overflow-hidden">
-    <!-- Header -->
+    {{-- Header --}}
     <header
         class="min-h-[4.5rem] sm:h-20 bg-white/95 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-8 shrink-0 z-20 gap-3">
         <div class="flex items-center gap-3 min-w-0">
@@ -22,10 +22,9 @@
         </div>
     </header>
 
-    <!-- Workspace Viewport -->
     <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 custom-scrollbar pb-28 sm:pb-12">
 
-        <!-- ================= 3. THANH TAB CHUYỂN ĐỔI 3 PHÂN HỆ NỘI DUNG (ĐÃ BỎ CÁC CHỮ TRONG NGOẶC) ================= -->
+        {{-- 3 TAB chuyển qua lại --}}
         <div class="w-full bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-soft overflow-hidden">
             <div
                 class="flex overflow-x-auto border-b border-slate-100 px-4 sm:px-6 pt-3 gap-6 sm:gap-8 text-sm no-scrollbar bg-slate-50/50 w-full">
@@ -65,10 +64,10 @@
             </div>
         </div>
 
-        <!-- ================= TAB 1: BANNER QUẢNG CÁO TRANG CHỦ ================= -->
+        {{-- TAB Banner quảng cáo --}}
         <div id="tab-pane-banners" x-show="tab === 'banners'" class="space-y-4">
 
-            <!-- BẢNG DANH SÁCH BANNERS KÈM THANH TÁC VỤ (NÚT THÊM MỚI ĐƯA XUỐNG ĐÂY) -->
+            {{-- Danh sách banner --}}
             <div
                 class="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-soft overflow-hidden space-y-4">
                 <div
@@ -79,7 +78,7 @@
                             thị trực tiếp</p>
                     </div>
 
-                    <!-- Nút Thêm Mới Banner đưa xuống đây -->
+                    {{-- Nút thêm banner --}}
                     <div class="flex items-center gap-2.5">
                         <span
                             class="text-xs font-bold text-slate-500 bg-white border border-slate-200 px-3 py-2 rounded-xl hidden md:inline font-mono">
@@ -203,7 +202,7 @@
             </div>
         </div>
 
-        <!-- ================= TAB 2: TRANG TĨNH & CÂU CHUYỆN THƯƠNG HIỆU ================= -->
+        {{-- TAB trang câu chuyện --}}
         <div id="tab-pane-pages" x-cloak x-show="tab === 'pages'" class="space-y-4">
             <div
                 class="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-soft overflow-hidden space-y-4">
@@ -217,7 +216,7 @@
                             "Chính sách đổi trả", "Quy trình canh tác"</p>
                     </div>
 
-                    <!-- Nút Thêm Trang Mới đưa xuống đây -->
+                    {{-- nút thêm --}}
                     <button type="button" wire:click="openForm('page')"
                         class="bg-brand-700 hover:bg-brand-800 text-white font-bold text-xs sm:text-sm px-4 py-2 rounded-xl transition shadow-sm flex items-center gap-2 active:scale-95 cursor-pointer self-start sm:self-auto">
                         <i class="fa-solid fa-plus"></i>
@@ -281,7 +280,7 @@
             </div>
         </div>
 
-        <!-- ================= TAB 3: BỘ SƯU TẬP ẢNH NÔNG TRẠI ================= -->
+        {{-- Tab ảnh bộ sưu tập --}}
         <div id="tab-pane-farm_images" x-cloak x-show="tab === 'farm_images'" class="space-y-4">
             <div
                 class="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-soft p-5 sm:p-6 space-y-4">
@@ -296,7 +295,7 @@
                             website</p>
                     </div>
 
-                    <!-- Nút Tải Ảnh Vườn -->
+                    {{-- Nút đăng ảnh của khu vườn --}}
                     <button type="button" wire:click="openForm('farm-image')"
                         class="bg-brand-700 hover:bg-brand-800 text-white font-bold text-xs sm:text-sm px-4 py-2 rounded-xl transition shadow-sm flex items-center gap-1.5 self-start sm:self-auto active:scale-95 cursor-pointer">
                         <i class="fa-solid fa-upload"></i>
@@ -304,7 +303,7 @@
                     </button>
                 </div>
 
-                <!-- Lưới Ảnh Gallery -->
+                {{-- Hiện thị ảnh grid --}}
                 <div id="farm-gallery-grid"
                     class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
 
@@ -352,7 +351,7 @@
         </div>
 
     </div>
-    <!-- MODAL 1: THÊM / SỬA BANNER TRANG CHỦ -->
+    {{-- Modal thêm sửa banner --}}
     <div id="modal-banner-form" x-cloak x-show="$wire.modal === 'banner'"
         x-on:click.self="if (!confirming) $wire.closeModal()"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
@@ -452,7 +451,7 @@
                         </div>
                     </div>
 
-                    <!-- Tải ảnh Banner -->
+                    {{-- đăng ảnh banner --}}
                     <div>
                         <label class="block font-bold text-slate-700 mb-1">Hình ảnh banner (Khuyên dùng: 1920x600
                             px) @if ($editingId === null || !$currentImagePath)
@@ -504,7 +503,7 @@
         </div>
     </div>
 
-    <!-- MODAL 2: THÊM / SỬA TRANG TĨNH -->
+    {{-- Modal thêm sửa trang câu chuyện --}}
     <div id="modal-page-form" x-cloak x-show="$wire.modal === 'page'"
         x-on:click.self="if (!confirming) $wire.closeModal()"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
@@ -587,7 +586,7 @@
         </div>
     </div>
 
-    <!-- MODAL 3: THÊM / SỬA ẢNH NÔNG TRẠI -->
+    {{-- Modal thêm sửa ảnh nông trại --}}
     <div id="modal-farm-image-form" x-cloak x-show="$wire.modal === 'farm-image'"
         x-on:click.self="if (!confirming) $wire.closeModal()"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">

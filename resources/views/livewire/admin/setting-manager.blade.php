@@ -1,5 +1,5 @@
 <div class="flex flex-1 min-h-0 flex-col overflow-hidden">
-    <!-- Header Topbar Responsive -->
+    {{-- Header --}}
     <header
         class="min-h-[4.5rem] sm:h-20 bg-white/95 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-8 shrink-0 z-20 gap-3">
         <div class="flex items-center gap-3 min-w-0">
@@ -16,10 +16,8 @@
         </div>
     </header>
 
-    <!-- Workspace Viewport: RỘNG TOÀN DIỆN w-full -->
     <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 custom-scrollbar pb-28 sm:pb-12 w-full">
-        <!-- ================= 4. KHU VỰC NỘI DUNG TỪNG TAB: w-full KHÔNG BỊ GIỚI HẠN ================= -->
-        <!-- TAB 3: THÔNG TIN NÔNG TRẠI -->
+        {{-- Thông tin của nông trại --}}
         <div id="tab-pane-farm" class="w-full space-y-4 sm:space-y-6">
             <div
                 class="w-full bg-white p-5 sm:p-8 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-soft space-y-6">
@@ -48,7 +46,7 @@
                         @enderror
                     </div>
 
-                    {{-- Hotline: đóng khối này trước khối Email --}}
+                    {{-- Hotline: khối Email --}}
                     <div>
                         <label class="block font-bold text-slate-700 mb-1.5">
                             Hotline CSKH / Đặt hàng
@@ -63,7 +61,7 @@
                         @enderror
                     </div>
 
-                    {{-- Email ngang cấp với Hotline --}}
+                    {{-- Email  --}}
                     <div>
                         <label class="block font-bold text-slate-700 mb-1.5">
                             Email liên hệ chính thức
@@ -78,7 +76,7 @@
                         @enderror
                     </div>
 
-                    {{-- Địa chỉ chiếm toàn bộ chiều ngang grid --}}
+                    {{-- Địa chỉ chiếm toàn bộ chiều ngang --}}
                     <div class="md:col-span-2 lg:col-span-3">
                         <label class="block font-bold text-slate-700 mb-1.5">
                             Địa chỉ nông trại thực tế
@@ -93,7 +91,7 @@
                         @enderror
                     </div>
                 </div>
-                {{-- Grid kết thúc tại đây --}}
+
 
                 @error('save')
                     <p class="text-red-500" role="alert">{{ $message }}</p>

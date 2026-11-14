@@ -1,7 +1,7 @@
 <div x-data="{ confirmingAccount: false }" x-on:account-confirm-state="confirmingAccount = $event.detail.busy"
-    class="flex flex-1 min-h-0 min-w-0 flex-col overflow-hidden"
+    class="flex flex-1 min-h-0 min-w-0 flex-col overflow-hidden">
     @php
-$fallbackAvatar =
+        $fallbackAvatar =
             'data:image/svg+xml;base64,' .
             base64_encode(
                 '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" rx="40" fill="#dcfce7"/><circle cx="40" cy="30" r="14" fill="#15803d"/><path d="M12 76a28 28 0 0 1 56 0" fill="#15803d"/></svg>',
@@ -66,21 +66,22 @@ $fallbackAvatar =
                 'Toàn quyền quản trị tài chính, cấu hình hệ thống, thu hồi lô khẩn cấp, xuất báo cáo và cấp tài khoản.',
             'customer' =>
                 'Tài khoản khách hàng mua sắm, nhận rau định kỳ và tích lũy điểm thưởng thành viên (`reward_points`).',
-        ]; @endphp
-    {{-- Header --}} <header
-    class="min-h-[4.5rem] sm:h-20 bg-white/95 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-8 shrink-0 z-20 gap-3">
-    <div class="flex items-center gap-3 min-w-0">
-        <button type="button" onclick="toggleSidebar()"
-            class="lg:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition shrink-0" aria-label="Mở menu">
-            <i class="fa-solid fa-bars text-lg"></i>
-        </button>
+    ]; @endphp
+    <header
+        class="min-h-[4.5rem] sm:h-20 bg-white/95 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-8 shrink-0 z-20 gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+            <button type="button" onclick="toggleSidebar()"
+                class="lg:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition shrink-0"
+                aria-label="Mở menu">
+                <i class="fa-solid fa-bars text-lg"></i>
+            </button>
 
-        <div class="min-w-0">
-            <h1 class="text-base sm:text-2xl font-black text-slate-900 tracking-tight truncate leading-tight">
-                Quản Lý Tài Khoản
-            </h1>
+            <div class="min-w-0">
+                <h1 class="text-base sm:text-2xl font-black text-slate-900 tracking-tight truncate leading-tight">
+                    Quản Lý Tài Khoản
+                </h1>
+            </div>
         </div>
-    </div>
     </header>
 
     <div
