@@ -14,6 +14,7 @@ use Livewire\Attributes\Computed;
 
 class DashboardManager extends Component
 {
+    public string $period = 'this_month';
 
     public function boot(): void
     {
@@ -30,7 +31,7 @@ class DashboardManager extends Component
         );
     }
 
-    public string $period = 'this_month';
+
 
     public function updatedPeriod(): void
     {
@@ -52,57 +53,6 @@ class DashboardManager extends Component
             'owner-charts-updated',
             charts: $this->report['charts']
         );
-    }
-
-    private function range(): array
-    {
-        $today = CarbonImmutable::today();
-
-        return match ($this->period) {
-            'today' => [
-                $today,
-                $today->addDay(),
-                $today->subDay(),
-                'hour',
-            ],
-            '7days' => [
-                $today->subDays(6),
-                $today->addDay(),
-                $today->subDays(13),
-                'day',
-            ],
-            'this_quarter' => [
-                $today->startOfQuarter(),
-                $today->startOfQuarter()->addQuarter(),
-                $today->startOfQuarter()->subQuarter(),
-                'month',
-            ],
-            'this_year' => [
-                $today->startOfYear(),
-                $today->startOfYear()->addYear(),
-                $today->startOfYear()->subYear(),
-                'month',
-            ],
-            default => [
-                $today->startOfMonth(),
-                $today->startOfMonth()->addMonth(),
-                $today->startOfMonth()->subMonth(),
-                'day',
-            ],
-        };
-    }
-
-    private function paidPayments(
-        CarbonImmutable $start,
-        CarbonImmutable $end
-    ): Builder {
-        return DB::table('payments as pay')
-            ->join('orders as o', 'o.id', '=', 'pay.order_id')
-            ->where('pay.status', 'success')
-            ->where('o.status', '!=', 'cancelled')
-            ->whereIn('o.order_type', ['retail', 'subscription'])
-            ->where('pay.paid_at', '>=', $start)
-            ->where('pay.paid_at', '<', $end);
     }
 
     #[Computed]
@@ -282,63 +232,55 @@ class DashboardManager extends Component
             ],
         ];
     }
-
-    public function exportCsv()
+    private function range(): array
     {
-        $report = $this->report;
+        $today = CarbonImmutable::today();
 
-        return response()->streamDownload(function () use ($report) {
-            $file = fopen('php://output', 'w');
-            fwrite($file, "\xEF\xBB\xBF");
+        return match ($this->period) {
+            'today' => [
+                $today,
+                $today->addDay(),
+                $today->subDay(),
+                'hour',
+            ],
+            '7days' => [
+                $today->subDays(6),
+                $today->addDay(),
+                $today->subDays(13),
+                'day',
+            ],
+            'this_quarter' => [
+                $today->startOfQuarter(),
+                $today->startOfQuarter()->addQuarter(),
+                $today->startOfQuarter()->subQuarter(),
+                'month',
+            ],
+            'this_year' => [
+                $today->startOfYear(),
+                $today->startOfYear()->addYear(),
+                $today->startOfYear()->subYear(),
+                'month',
+            ],
+            default => [
+                $today->startOfMonth(),
+                $today->startOfMonth()->addMonth(),
+                $today->startOfMonth()->subMonth(),
+                'day',
+            ],
+        };
+    }
 
-            $write = static function (array $row) use ($file): void {
-                $row = array_map(static function ($value) {
-                    return is_string($value)
-                        && preg_match('/^[=+\-@\t\r]/u', $value)
-                        ? "'" . $value
-                        : $value;
-                }, $row);
-
-                fputcsv($file, $row, ',', '"', '');
-            };
-
-            $write(['Chỉ tiêu', 'Giá trị']);
-            $write(['Từ ngày', $report['from']]);
-            $write(['Đến ngày', $report['to']]);
-            $write(['Doanh thu đã thanh toán', $report['revenue']]);
-            $write(['Doanh thu VIP', $report['vip']]);
-            $write(['Đơn giao hoàn thành', $report['orders']]);
-            $write(['Khiếu nại phát sinh', $report['complaints']]);
-            $write(['Khiếu nại trong kỳ đã duyệt hoàn', $report['refund_count']]);
-            $write(['Số tiền hoàn đã duyệt', $report['refund_amount']]);
-            $write(['Đơn giao bù', $report['reships']]);
-            $write([]);
-            $write(['Mốc thời gian', 'Thanh toán mua lẻ', 'Thanh toán VIP']);
-
-            foreach ($report['charts']['labels'] as $index => $label) {
-                $write([
-                    $label,
-                    $report['charts']['retail'][$index],
-                    $report['charts']['vip'][$index],
-                ]);
-            }
-
-            $write([]);
-            $write(['Sản phẩm bán lẻ', 'Số lượng', 'Đơn vị', 'Giá trị dòng hàng']);
-
-            foreach ($report['top'] as $product) {
-                $write([
-                    $product['name'],
-                    $product['quantity'],
-                    $product['unit'],
-                    $product['value'],
-                ]);
-            }
-
-            fclose($file);
-        }, 'bao-cao-' . now()->format('Ymd-His') . '.csv', [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-        ]);
+    private function paidPayments(
+        CarbonImmutable $start,
+        CarbonImmutable $end
+    ): Builder {
+        return DB::table('payments as pay')
+            ->join('orders as o', 'o.id', '=', 'pay.order_id')
+            ->where('pay.status', 'success')
+            ->where('o.status', '!=', 'cancelled')
+            ->whereIn('o.order_type', ['retail', 'subscription'])
+            ->where('pay.paid_at', '>=', $start)
+            ->where('pay.paid_at', '<', $end);
     }
 
     public function render()
