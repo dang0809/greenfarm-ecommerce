@@ -77,7 +77,8 @@ class ProductPage extends Component
             'productImages',
         ])
             ->withTotalStock()
-            ->where('status', 'active');
+            ->where('status', 'active')
+            ->whereHas('category', fn($q) => $q->where('is_active', true));
 
         if (!empty($this->selectedCategory)) {
             $query->where('category_id', $this->selectedCategory);
@@ -87,17 +88,16 @@ class ProductPage extends Component
             $query->where('name', 'like', '%' . trim($this->search) . '%');
         }
 
-        $saleScope = fn($q) => $q->whereNotNull('sale_price')
-            ->where('sale_price', '>', 0)
-            ->whereColumn('sale_price', '<', 'price');
-
-        $saleCount = $saleScope(Product::where('status', 'active'))->count();
+        $saleCount = Product::where('status', 'active')
+            ->whereHas('category', fn($q) => $q->where('is_active', true))
+            ->whereNotNull('sale_price')
+            ->count();
 
         if ($this->onlySale) {
-            $saleScope($query);
+            $query->whereNotNull('sale_price');
         }
 
-        $effectivePrice = 'CASE WHEN sale_price IS NOT NULL AND sale_price > 0 AND sale_price < price THEN sale_price ELSE price END';
+        $effectivePrice = 'COALESCE(sale_price, price)';
 
         match ($this->priceRange) {
             'under_50' => $query->whereRaw("({$effectivePrice}) < ?", [50000]),

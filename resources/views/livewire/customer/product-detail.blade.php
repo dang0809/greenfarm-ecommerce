@@ -155,7 +155,7 @@
                 </div>
 
                 <div class="flex flex-col sm:flex-row gap-3">
-                    <button type="button" wire:click="addToCart" {{ $totalStock <= 0 ? 'disabled' : '' }}
+                    <button type="button" wire:click="addToCart({{ $product->id }}, {{ $quantity }})" {{ $totalStock <= 0 ? 'disabled' : '' }}
                         class="flex-1 bg-white border-2 border-brand-600 text-brand-700 py-3.5 rounded-2xl font-bold text-sm sm:text-base hover:bg-brand-50 transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                         <i class="fa-solid fa-cart-plus"></i> Thêm vào giỏ
                     </button>
