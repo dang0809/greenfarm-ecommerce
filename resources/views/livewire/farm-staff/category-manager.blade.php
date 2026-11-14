@@ -165,7 +165,7 @@
 
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">
-                        Đường dẫn URL tĩnh (Slug)
+                        Slug
                         <span class="text-red-500">*</span>
                     </label>
 

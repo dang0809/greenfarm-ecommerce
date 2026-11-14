@@ -150,19 +150,23 @@ class FarmPlotManager extends Component
         ]);
     }
 
-    // Danh sahcs luống đất
+    // Trạng thái luống đất
+    #[Computed]
+    public function plotFilterOptions(): array
+    {
+        return [
+            'all' => '-- Tất cả trạng thái --',
+        ] + FarmPlot::STATUS_LABELS;
+    }
 
+    // Danh sách luống đất
     #[Computed]
     public function plots(): Collection
     {
         return FarmPlot::query()
             ->search($this->search)
             ->when(
-                in_array(
-                    $this->filter,
-                    ['empty', 'in-progress', 'available', 'maintenance'],
-                    true
-                ),
+                array_key_exists($this->filter, FarmPlot::STATUS_LABELS),
                 fn($query) => $query->where('status', $this->filter)
             )
             ->with([
@@ -391,21 +395,22 @@ class FarmPlotManager extends Component
             : collect();
     }
 
-
     // Bộ lọc
-    public function setFilter(string $value): void
+    public function updatedFilter(): void
     {
-        if (
-            !in_array(
-                $value,
-                ['all', 'empty', 'in-progress', 'available', 'maintenance'],
-                true
-            )
-        ) {
-            return;
+        // Chỉ chấp nhận "all" hoặc trạng thái có trong FarmPlot.
+        if (!array_key_exists($this->filter, $this->plotFilterOptions)) {
+            $this->filter = 'all';
         }
 
-        $this->filter = $value;
+        // Xóa cache computed để danh sách được truy vấn lại.
+        unset($this->plots);
+    }
+
+    public function resetFilters(): void
+    {
+        $this->reset('search', 'filter');
+
         unset($this->plots);
     }
 

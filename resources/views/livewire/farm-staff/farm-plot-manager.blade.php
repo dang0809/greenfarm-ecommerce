@@ -73,30 +73,43 @@
         {{-- Hiển thị danh sách luống, bộ lọc và thao tác theo hiện trạng từng luống --}}
         @unless ($this->selectedPlot)
             <div class="space-y-4 sm:space-y-6">
-                <div
-                    class="flex flex-col md:flex-row md:items-center justify-between gap-3.5 bg-white p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft">
-                    <div class="relative w-full md:w-80">
-                        <i
-                            class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs sm:text-sm"></i>
-                        <input type="text" wire:model.live.debounce.300ms="search"
-                            placeholder="Tìm tên luống (VD: Nhà Màng A1)..."
-                            class="w-full pl-10 pr-4 py-2 sm:py-2.5 border border-gray-200 rounded-xl sm:rounded-2xl text-xs sm:text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 bg-[#FAFAF8] font-medium transition-all">
-                    </div>
-                    <div class="flex flex-wrap items-center gap-3 sm:gap-5 text-xs sm:text-sm font-bold text-gray-600">
-                        @foreach ([
-            'all' => 'Tất cả',
-            'empty' => 'Đất trống',
-            'in-progress' => 'Đang canh tác',
-            'available' => 'Sẵn sàng',
-            'maintenance' => 'Cần cải tạo',
-        ] as $key => $label)
-                            <label class="flex items-center gap-1.5 cursor-pointer">
-                                <input type="radio" name="filter_plot" value="{{ $key }}"
-                                    wire:click="setFilter('{{ $key }}')" @checked($filter === $key)
-                                    class="accent-brand-700">
-                                {{ $label }}
-                            </label>
-                        @endforeach
+                <div class="bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft overflow-hidden">
+
+                    <div
+                        class="p-3.5 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 bg-gray-50/60">
+
+                        <div
+                            class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-3 flex-1">
+
+                            {{-- Tìm kiếm tên luống --}}
+                            <div class="relative w-full sm:w-72 md:w-80">
+                                <i
+                                    class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs sm:text-sm">
+                                </i>
+
+                                <input type="text" wire:model.live.debounce.300ms="search" placeholder="Tìm tên luống..."
+                                    aria-label="Tìm kiếm tên luống"
+                                    class="w-full pl-10 pr-4 py-2 sm:py-2.5 border border-gray-200 rounded-xl sm:rounded-2xl text-xs sm:text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 bg-white font-medium transition-all">
+                            </div>
+
+                            {{-- Lọc trạng thái luống --}}
+                            <select wire:model.live="filter" aria-label="Lọc theo trạng thái luống"
+                                class="bg-white border border-gray-200 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-gray-700 outline-none focus:border-brand-500 transition-all cursor-pointer">
+
+                                @foreach ($this->plotFilterOptions as $value => $label)
+                                    <option value="{{ $value }}">
+                                        {{ $label }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Đặt lại tìm kiếm và trạng thái --}}
+                        <button type="button" wire:click="resetFilters" wire:loading.attr="disabled"
+                            wire:target="resetFilters" title="Đặt lại bộ lọc" aria-label="Đặt lại bộ lọc"
+                            class="self-end md:self-auto p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 transition-colors shadow-xs cursor-pointer">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -105,17 +118,14 @@
                     @forelse ($this->plots as $plot)
                         @php
                             $batch = $plot->activeBatch();
+
                             $isMaintenance = $plot->status === 'maintenance';
+
                             $canSow = !$batch && $plot->status === 'available';
+
                             $canMaintain = !$batch && in_array($plot->status, ['empty', 'maintenance'], true);
 
-                            $statusLabel = match ($plot->status) {
-                                'empty' => 'Đất trống',
-                                'maintenance' => 'Cần cải tạo',
-                                'available' => 'Sẵn sàng xuống giống',
-                                'in-progress' => 'Đang canh tác',
-                                default => $plot->status,
-                            };
+                            $statusLabel = \App\Models\FarmPlot::STATUS_LABELS[$plot->status] ?? 'Không xác định';
                         @endphp
 
                         <div wire:key="plot-{{ $plot->id }}"
