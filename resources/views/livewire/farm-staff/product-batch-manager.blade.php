@@ -27,23 +27,14 @@
                 </h1>
             </div>
         </div>
-
-        <div class="flex items-center gap-2 shrink-0">
-            <div
-                class="inline-flex items-center gap-1.5 sm:gap-2 bg-brand-50 border border-brand-200 text-brand-800 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-2xl text-[11px] sm:text-xs font-bold font-mono">
-                <i class="fa-regular fa-calendar-check text-brand-600"></i>
-                <span class="hidden sm:inline">Hôm nay:</span>
-                <span>{{ today()->format('d/m/Y') }}</span>
-            </div>
-        </div>
     </header>
 
     {{-- Hiển thị thống kê và danh sách lô nông sản trong kho --}}
     <div
         class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 relative z-10 space-y-5 sm:space-y-6 custom-scrollbar pb-28 sm:pb-12 h-[calc(100dvh-5rem)]">
 
-        {{-- Tổng hợp lô tồn kho, cận hạn, hết hạn và lượng xuất hủy theo đơn vị. --}}
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+        {{-- Tổng hợp lô tồn kho, hết hạn và lượng xuất hủy theo đơn vị. --}}
+        <div class="grid grid-cols-2 lg:grid-cols-4 auto-rows-fr gap-3 sm:gap-4">
             <div class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft">
                 <div class="flex items-center justify-between mb-1.5 sm:mb-2">
                     <span class="text-[11px] sm:text-xs font-bold text-gray-500">
@@ -86,7 +77,7 @@
                 </p>
             </div>
 
-            <div class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-rose-100 shadow-soft">
+            <div class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft">
                 <div class="flex items-center justify-between mb-1.5 sm:mb-2">
                     <span class="text-[11px] sm:text-xs font-bold text-rose-600">
                         Lô đã hết hạn
@@ -107,8 +98,7 @@
                 </p>
             </div>
 
-            <div
-                class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft col-span-2 sm:col-span-1">
+            <div class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft">
                 <div class="flex items-center justify-between mb-1.5 sm:mb-2">
                     <span class="text-[11px] sm:text-xs font-bold text-rose-700">
                         Hao hụt xuất hủy
@@ -169,6 +159,7 @@
 
                     <select wire:model.live="statusFilter"
                         class="bg-white border border-gray-200 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-gray-700 outline-none focus:border-brand-500 transition-all cursor-pointer">
+                        <option value="">-- Tất cả trạng thái --</option>
                         @foreach (\App\Models\ProductBatch::STATUS_LABELS as $value => $text)
                             <option value="{{ $value }}">{{ $text }}</option>
                         @endforeach
@@ -294,8 +285,7 @@
 
                                 <td class="py-3 px-4 pr-5 text-right space-x-1">
                                     @if ($hasStock && !$isDestroyed)
-                                        <button type="button"
-                                            wire:click="openModal('spoilage', {{ $batch->id }})"
+                                        <button type="button" wire:click="openModal('spoilage', {{ $batch->id }})"
                                             wire:loading.attr="disabled" wire:target="openModal"
                                             class="px-2 py-1.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition font-bold text-[11px] cursor-pointer">
                                             <i class="fa-solid fa-trash-can mr-1"></i>Xuất hủy

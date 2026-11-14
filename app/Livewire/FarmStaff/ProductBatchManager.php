@@ -572,24 +572,17 @@ class ProductBatchManager extends Component
             // Bỏ các hậu tố hệ thống đã từng được thêm vào log xuất hủy.
             if ($log->type === 'export_spoilage') {
                 $reason = preg_replace(
-                    '/\s+(?:Đã tiêu hủy hết tồn của lô\.|Đã xuất hủy hết tồn; chuyển Đã tiêu hủy\.|Đã xuất hủy hết tồn; chuyển recalled\.|Còn \d+ đơn vị chờ tiêu hủy; giữ trạng thái pending_recalled\.)\z/u',
+                    '/\s+(?:Đã tiêu hủy hết tồn của lô\.|Đã xuất hủy hết tồn; chuyển [^.]+\.|Còn \d+ đơn vị [^.]+; giữ trạng thái [a-z_]+\.)\z/u',
                     '',
                     $reason
                 ) ?? $reason;
             }
         }
 
-        $statusLabels = [
-            'active' => 'Đang bán',
-            'suspended' => 'Tạm dừng',
-            'pending_recalled' => 'Chờ tiêu hủy',
-            'recalled' => 'Đã tiêu hủy',
-        ];
+        $statusLabels = ProductBatch::STATUS_LABELS;
 
-        $transition = $from !== null && $to !== null
-            ? ($statusLabels[$from] ?? $from)
-            . ' → '
-            . ($statusLabels[$to] ?? $to)
+        $transition = isset($statusLabels[$from], $statusLabels[$to])
+            ? $statusLabels[$from] . ' → ' . $statusLabels[$to]
             : null;
 
         return [
