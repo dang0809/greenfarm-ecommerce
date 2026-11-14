@@ -31,14 +31,7 @@
             </div>
         </div>
 
-        <div class="flex items-center gap-2 shrink-0">
-            <div
-                class="inline-flex items-center gap-1.5 sm:gap-2 bg-brand-50 border border-brand-200 text-brand-800 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-2xl text-[11px] sm:text-xs font-bold font-mono">
-                <i class="fa-regular fa-calendar-check text-brand-600"></i>
-                <span class="hidden sm:inline">Hôm nay:</span>
-                <span>{{ today()->format('d/m/Y') }}</span>
-            </div>
-        </div>
+
     </header>
 
     {{-- Hiển thị thống kê và danh sách lô nông sản trong kho --}}

@@ -14,14 +14,7 @@
                 </h1>
             </div>
         </div>
-        <div class="flex items-center gap-2 shrink-0">
-            <div
-                class="inline-flex items-center gap-1.5 sm:gap-2 bg-brand-50 border border-brand-200 text-brand-800 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-2xl text-[11px] sm:text-xs font-bold font-mono">
-                <i class="fa-regular fa-calendar-check text-brand-700"></i>
-                <span class="hidden sm:inline">Hôm nay:</span>
-                <span>{{ now()->format('d/m/Y') }}</span>
-            </div>
-        </div>
+
     </header>
 
     <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 custom-scrollbar pb-28 sm:pb-12">

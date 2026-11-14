@@ -14,14 +14,7 @@
             </div>
         </div>
 
-        <div class="flex items-center gap-2 shrink-0">
-            <div
-                class="inline-flex items-center gap-1.5 sm:gap-2 bg-brand-50 border border-brand-200 text-brand-800 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-2xl text-[11px] sm:text-xs font-bold font-mono">
-                <i class="fa-regular fa-calendar-check text-brand-700"></i>
-                <span class="hidden sm:inline">Hôm nay:</span>
-                <span>{{ now()->format('d/m/Y') }}</span>
-            </div>
-        </div>
+
     </header>
 
     <!-- ================= 2. NỘI DUNG CUỘN ================= -->
@@ -812,9 +805,6 @@
                         </div>
                     </div>
                     <div class="flex justify-between items-end border-t pt-3">
-                        <div class="text-[10px] text-gray-400">
-                            <p>Quét mã QR trên tem nhãn để đối chiếu nhật ký nông trại.</p>
-                        </div>
                         <div class="text-center font-mono">
                             <p class="font-bold">Ký tên đóng gói</p>
                             <div class="h-10"></div>

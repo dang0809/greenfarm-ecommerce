@@ -2,16 +2,6 @@
     <main class="pt-28 pb-16 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
 
         <!-- Breadcrumbs -->
-        <nav class="flex text-xs sm:text-sm text-gray-500 mb-6" aria-label="Breadcrumb">
-            <ol class="inline-flex items-center space-x-2">
-                <li><a href="{{ route('home') }}" class="hover:text-brand-600">Trang chủ</a></li>
-                <li><i class="fa-solid fa-chevron-right text-[10px] text-gray-400"></i></li>
-                <li><span class="text-gray-500">Truy xuất</span></li>
-                <li><i class="fa-solid fa-chevron-right text-[10px] text-gray-400"></i></li>
-                <li class="text-gray-900 font-semibold font-mono">{{ $batchCode }}</li>
-            </ol>
-        </nav>
-
         @php
             $product = $plantingBatch?->product;
             $farmPlot = $plantingBatch?->farmPlot;

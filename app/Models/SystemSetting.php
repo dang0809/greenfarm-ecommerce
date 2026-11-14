@@ -21,7 +21,7 @@ class SystemSetting extends Model
         'group',
     ];
 
-    public const DEFAULT_FARM_NAME = 'Nông Trại Sinh Thái Đất Lành - GreenFarm';
+    public const DEFAULT_FARM_NAME = 'Đất Lành';
 
     public static function contactSettings(): array
     {
