@@ -1,4 +1,4 @@
-<div>
+<div x-data="{ previewImage: '', previewAlt: '' }">
     <main class="pt-28 pb-16 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
 
         <!-- Breadcrumbs -->
@@ -86,8 +86,19 @@
 
                                 @if ($event->image_url)
                                     <div class="flex gap-2 sm:gap-3 mb-4">
-                                        <img src="{{ $event->image_url }}" alt="{{ $event->event_name }}"
-                                            class="w-24 h-24 sm:w-32 sm:h-32 rounded-xl object-cover border border-gray-200">
+                                        <button type="button"
+                                            x-on:click="
+                previewImage = $el.querySelector('img').src;
+                previewAlt = $el.querySelector('img').alt;
+                $refs.logImageDialog.showModal();
+            "
+                                            title="Nhấn để phóng to ảnh nhật ký" aria-label="Phóng to ảnh nhật ký"
+                                            class="rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 cursor-zoom-in">
+
+                                            <img src="{{ $event->image_url }}" alt="{{ $event->event_name }}"
+                                                loading="lazy"
+                                                class="w-24 h-24 sm:w-32 sm:h-32 rounded-xl object-cover border border-gray-200 hover:opacity-90 transition">
+                                        </button>
                                     </div>
                                 @endif
 
@@ -109,4 +120,21 @@
             </div>
         </div>
     </main>
+    <dialog x-ref="logImageDialog" aria-label="Ảnh nhật ký canh tác phóng to"
+        x-on:click="if ($event.target === $el) $el.close()" x-on:close="previewImage = ''; previewAlt = ''"
+        class="m-auto w-[calc(100%_-_2rem)] max-w-5xl max-h-[90dvh] rounded-2xl border-0 bg-slate-950 p-3 sm:p-5 text-white shadow-2xl backdrop:bg-black/80">
+
+        <div class="flex items-center justify-between gap-3 mb-3">
+            <p x-text="previewAlt" class="min-w-0 text-sm font-bold break-words">
+            </p>
+
+            <button type="button" autofocus x-on:click="$refs.logImageDialog.close()" aria-label="Đóng ảnh phóng to"
+                class="w-9 h-9 shrink-0 inline-flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition cursor-pointer">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <img x-bind:src="previewImage || null" x-bind:alt="previewAlt"
+            class="block max-w-full max-h-[75dvh] mx-auto object-contain rounded-xl">
+    </dialog>
 </div>

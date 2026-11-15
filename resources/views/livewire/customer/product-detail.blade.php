@@ -1,4 +1,4 @@
-<main class="pt-28 pb-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" x-data="{ previewImage: null }">
+<main wire:poll.15s class="pt-28 pb-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" x-data="{ previewImage: null }">
 
     <!-- Thông báo Alert -->
     @if (session()->has('success'))
@@ -151,11 +151,12 @@
                             <i class="fa-solid fa-plus text-xs"></i>
                         </button>
                     </div>
-<span class="text-xs text-gray-400">Tối đa {{ $totalStock }} {{ $product->unit ?? 'kg' }}</span>
+                    <span class="text-xs text-gray-400">Tối đa {{ $totalStock }} {{ $product->unit ?? 'kg' }}</span>
                 </div>
 
                 <div class="flex flex-col sm:flex-row gap-3">
-                    <button type="button" wire:click="addToCart({{ $product->id }}, {{ $quantity }})" {{ $totalStock <= 0 ? 'disabled' : '' }}
+                    <button type="button" wire:click="addToCart({{ $product->id }}, {{ $quantity }})"
+                        {{ $totalStock <= 0 ? 'disabled' : '' }}
                         class="flex-1 bg-white border-2 border-brand-600 text-brand-700 py-3.5 rounded-2xl font-bold text-sm sm:text-base hover:bg-brand-50 transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                         <i class="fa-solid fa-cart-plus"></i> Thêm vào giỏ
                     </button>
