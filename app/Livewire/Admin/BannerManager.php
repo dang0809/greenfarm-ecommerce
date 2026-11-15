@@ -108,6 +108,15 @@ class BannerManager extends Component
         // Dữ liệu thay đổi thì xác nhận trước đó không còn hiệu lực.
         $this->cancelConfirmation();
 
+        if ($property === 'page.title' && $this->modal === 'page') {
+            $this->page['slug'] = Str::slug(
+                trim((string) ($this->page['title'] ?? ''))
+            );
+
+            // Tiêu đề đổi thì slug cũng đổi, bỏ lỗi slug cũ.
+            $this->resetValidation('page.slug');
+        }
+
         $fields = [
             'banner.title',
             'banner.description',
@@ -428,11 +437,36 @@ class BannerManager extends Component
 
         try {
             $result = DB::transaction(function () use ($pending) {
-                $record = $this->getRecord(
-                    $pending['type'],
-                    $pending['id'],
-                    true
-                );
+                if (
+                    $pending['kind'] === 'delete'
+                    && $pending['type'] === 'banner'
+                ) {
+                    // Khóa danh sách theo cùng thứ tự trước khi kiểm tra và xóa.
+                    $lockedBanners = Banner::query()
+                        ->orderBy('id')
+                        ->lockForUpdate()
+                        ->get();
+
+                    $record = $lockedBanners->firstWhere(
+                        'id',
+                        (int) $pending['id']
+                    );
+
+                    if ($record && $lockedBanners->count() <= 1) {
+                        return [
+                            'saved' => false,
+                            'status' => $record->status,
+                            'path' => null,
+                            'message' => 'Phải giữ lại ít nhất một banner. Không thể xóa banner cuối cùng.',
+                        ];
+                    }
+                } else {
+                    $record = $this->getRecord(
+                        $pending['type'],
+                        $pending['id'],
+                        true
+                    );
+                }
 
                 if (!$record) {
                     return [
@@ -515,7 +549,8 @@ class BannerManager extends Component
         if (!$result['saved']) {
             $this->notify(
                 'info',
-                'Bản ghi đã thay đổi hoặc bị xóa. Vui lòng thao tác lại.'
+                $result['message']
+                ?? 'Bản ghi đã thay đổi hoặc bị xóa. Vui lòng thao tác lại.'
             );
 
             return;
@@ -564,6 +599,15 @@ class BannerManager extends Component
     // Validate dữ liệu
     private function validatedData(string $type): array
     {
+        if (
+            $type === 'page'
+            && trim((string) ($this->page['slug'] ?? '')) === ''
+        ) {
+            $this->page['slug'] = Str::slug(
+                trim((string) ($this->page['title'] ?? ''))
+            );
+        }
+
         $imageRules = [
             $this->editingId === null || !$this->currentImagePath
             ? 'required'
@@ -926,6 +970,19 @@ class BannerManager extends Component
             && !in_array($record->status, ['active', 'inactive'], true)
         ) {
             $this->notify('error', 'Trạng thái banner không hợp lệ.');
+            return;
+        }
+
+        if (
+            $kind === 'delete'
+            && $type === 'banner'
+            && Banner::query()->count() <= 1
+        ) {
+            $this->notify(
+                'info',
+                'Phải giữ lại ít nhất một banner. Không thể xóa banner cuối cùng.'
+            );
+
             return;
         }
 

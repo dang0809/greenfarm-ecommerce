@@ -64,8 +64,7 @@
                 'Truy cập module Quản lý Đơn hàng, Phân bổ lô FEFO, Gọi xe hỏa tốc, Xử lý khiếu nại bồi thường, Kích hoạt Flash Sale.',
             'admin' =>
                 'Toàn quyền quản trị tài chính, cấu hình hệ thống, thu hồi lô khẩn cấp, xuất báo cáo và cấp tài khoản.',
-            'customer' =>
-                'Tài khoản khách hàng mua sắm, nhận rau định kỳ và tích lũy điểm thưởng thành viên (`reward_points`).',
+            'customer' => 'Tài khoản khách hàng mua sắm và đăng ký rau định kỳ.',
     ]; @endphp
     <header
         class="min-h-[4.5rem] sm:h-20 bg-white/95 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-8 shrink-0 z-20 gap-3">
@@ -103,7 +102,7 @@
                         </span>
                         <span
                             class="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
-                            VIP Points
+                            Customer
                         </span>
                     </div>
 
@@ -249,6 +248,19 @@
                         {{ $counts['blocked'] }}
                     </span>
                 </button>
+
+                <button type="button" id="tab-inactive" wire:key="account-tab-inactive" wire:click="setTab('inactive')"
+                    class="pb-3 {{ $tab === 'inactive' ? 'tab-btn-active' : 'tab-btn-inactive' }} transition whitespace-nowrap flex items-center gap-2 cursor-pointer">
+
+                    <i class="fa-solid fa-envelope-circle-check text-xs"></i>
+
+                    <span>Tài Khoản Chờ Xác Thực</span>
+
+                    <span id="count-inactive"
+                        class="text-xs font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                        {{ $counts['inactive'] }}
+                    </span>
+                </button>
             </div>
 
             <div
@@ -299,14 +311,27 @@
                     <thead>
                         <tr
                             class="bg-slate-50/80 text-slate-500 uppercase font-bold text-[10px] sm:text-xs tracking-wider border-b border-slate-100">
-                            <th class="py-3.5 sm:py-4 px-4 sm:px-5">Thành Viên</th>
-                            <th class="py-3.5 sm:py-4 px-4">Email Đăng Nhập</th>
-                            <th class="py-3.5 sm:py-4 px-4">Số Điện Thoại</th>
-                            <th class="py-3.5 sm:py-4 px-4">Vai Trò</th>
-                            <th class="py-3.5 sm:py-4 px-4 text-center">Điểm Tích Lũy</th>
-                            <th class="py-3.5 sm:py-4 px-4 text-center">Trạng Thái</th>
-                            <th class="py-3.5 sm:py-4 px-4">Ngày Tạo</th>
-                            <th class="py-3.5 sm:py-4 px-4 sm:px-6 text-right">Thao Tác</th>
+                            <th class="py-3.5 sm:py-4 px-4 sm:px-5 text-left align-middle">
+                                Thành Viên
+                            </th>
+                            <th class="py-3.5 sm:py-4 px-4 text-left align-middle">
+                                Email Đăng Nhập
+                            </th>
+                            <th class="py-3.5 sm:py-4 px-4 text-center align-middle">
+                                Số Điện Thoại
+                            </th>
+                            <th class="py-3.5 sm:py-4 px-4 text-center align-middle">
+                                Vai Trò
+                            </th>
+                            <th class="py-3.5 sm:py-4 px-4 text-center align-middle">
+                                Trạng Thái
+                            </th>
+                            <th class="py-3.5 sm:py-4 px-4 text-center align-middle">
+                                Ngày Tạo
+                            </th>
+                            <th class="py-3.5 sm:py-4 px-4 sm:px-6 text-center align-middle">
+                                Thao Tác
+                            </th>
                         </tr>
                     </thead>
 
@@ -314,55 +339,49 @@
                         @foreach ($users as $user)
                             @php
                                 $badge = $badges[$user->role] ?? $badges['customer'];
+
+                                $canDelete = $user->role !== 'admin' && (int) $user->id !== (int) auth()->id();
                             @endphp
 
                             <tr wire:key="account-row-{{ $user->id }}"
                                 class="hover:bg-slate-50 transition bg-white border-b border-slate-100">
 
-                                <td class="py-3.5 sm:py-4 px-4 sm:px-5 flex items-center gap-3">
-                                    <img src="{{ $user->avatar_url ?: $fallbackAvatar }}" alt="{{ $user->name }}"
-                                        class="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0">
+                                <td class="py-3.5 sm:py-4 px-4 sm:px-5 align-middle">
+                                    <div class="flex items-center gap-3">
+                                        <img src="{{ $user->avatar_url ?: $fallbackAvatar }}"
+                                            alt="{{ $user->name }}"
+                                            class="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0">
 
-                                    <div class="min-w-0">
-                                        <b wire:click="openEdit({{ $user->id }})"
-                                            class="text-slate-900 text-xs sm:text-sm block truncate hover:text-brand-700 cursor-pointer">
-                                            {{ $user->name }}
-                                        </b>
-                                        <span class="text-[11px] text-slate-400 font-mono">
-                                            ID: #{{ $user->id }}
-                                        </span>
+                                        <div class="min-w-0">
+                                            <b wire:click="openEdit({{ $user->id }})"
+                                                class="text-slate-900 text-xs sm:text-sm block truncate hover:text-brand-700 cursor-pointer">
+                                                {{ $user->name }}
+                                            </b>
+
+                                            <span class="text-[11px] text-slate-400 font-mono">
+                                                ID: #{{ $user->id }}
+                                            </span>
+                                        </div>
                                     </div>
                                 </td>
 
-                                <td class="py-3.5 sm:py-4 px-4 font-mono text-slate-700 text-xs">
+                                <td class="py-3.5 sm:py-4 px-4 font-mono text-slate-700 text-xs align-middle">
                                     {{ $user->email }}
                                 </td>
 
-                                <td class="py-3.5 sm:py-4 px-4 font-mono font-semibold text-slate-800 text-xs">
+                                <td
+                                    class="py-3.5 sm:py-4 px-4 font-mono font-semibold text-slate-800 text-xs text-center align-middle">
                                     {{ $user->phone }}
                                 </td>
 
-                                <td class="py-3.5 sm:py-4 px-4">
+                                <td class="py-3.5 sm:py-4 px-4 text-center align-middle">
                                     <span class="{{ $badge[0] }}">
                                         <i class="fa-solid {{ $badge[1] }} text-[10px]"></i>
                                         {{ $badge[2] }}
                                     </span>
                                 </td>
 
-                                <td class="py-3.5 sm:py-4 px-4 text-center">
-                                    @if ($user->role === 'customer')
-                                        <button type="button" wire:click="requestQuickPoints({{ $user->id }})"
-                                            class="inline-flex items-center gap-1.5 font-mono font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-2.5 py-1 rounded-lg text-xs transition active:scale-95 cursor-pointer shadow-2xs"
-                                            title="Nhấp để cộng/trừ điểm nhanh">
-                                            <span>{{ $user->reward_points }} pts</span>
-                                            <i class="fa-solid fa-pen text-[9px] text-purple-400"></i>
-                                        </button>
-                                    @else
-                                        <span class="text-slate-300 font-mono text-xs">---</span>
-                                    @endif
-                                </td>
-
-                                <td class="py-3.5 sm:py-4 px-4 text-center">
+                                <td class="py-3.5 sm:py-4 px-4 align-middle text-center">
                                     @php
                                         $isSelf = $user->id === (int) auth()->id();
 
@@ -407,22 +426,38 @@
                                     </div>
                                 </td>
 
-                                <td class="py-3.5 sm:py-4 px-4 font-mono text-slate-500 text-xs">
+                                <td
+                                    class="py-3.5 sm:py-4 px-4 font-mono text-slate-500 text-xs text-center align-middle">
                                     {{ $user->created_at?->format('Y-m-d') }}
                                 </td>
 
-                                <td class="py-3.5 sm:py-4 px-4 sm:px-6 text-right space-x-1.5">
-                                    <button type="button" wire:click="openEdit({{ $user->id }})"
-                                        class="p-2 rounded-xl bg-slate-100 text-slate-700 hover:text-brand-700 hover:bg-brand-50 transition"
-                                        title="Chỉnh sửa phân quyền">
-                                        <i class="fa-regular fa-pen-to-square"></i>
-                                    </button>
+                                <td class="py-3.5 sm:py-4 px-4 sm:px-6 text-center align-middle">
+                                    <div class="inline-flex items-center justify-center gap-1.5">
+                                        <button type="button" wire:click="openEdit({{ $user->id }})"
+                                            x-bind:disabled="confirmingAccount"
+                                            class="p-2 rounded-xl bg-slate-100 text-slate-700 hover:text-brand-700 hover:bg-brand-50 transition cursor-pointer"
+                                            title="Chỉnh sửa phân quyền">
+                                            <i class="fa-regular fa-pen-to-square"></i>
+                                        </button>
 
-                                    <button type="button" wire:click="openResetPassword({{ $user->id }})"
-                                        class="p-2 rounded-xl bg-amber-50 text-amber-800 hover:bg-amber-100 transition"
-                                        title="Đặt lại mật khẩu">
-                                        <i class="fa-solid fa-key"></i>
-                                    </button>
+                                        <button type="button" wire:click="openResetPassword({{ $user->id }})"
+                                            x-bind:disabled="confirmingAccount"
+                                            class="p-2 rounded-xl bg-amber-50 text-amber-800 hover:bg-amber-100 transition cursor-pointer"
+                                            title="Đặt lại mật khẩu">
+                                            <i class="fa-solid fa-key"></i>
+                                        </button>
+
+                                        <button type="button" wire:click="requestDeleteAccount({{ $user->id }})"
+                                            wire:loading.attr="disabled"
+                                            wire:target="requestDeleteAccount({{ $user->id }}),deleteAccount,cancelDeleteAccount"
+                                            @disabled(!$canDelete)
+                                            x-bind:disabled="confirmingAccount || @js(!$canDelete)"
+                                            aria-label="Xóa tài khoản"
+                                            title="{{ $canDelete ? 'Xóa tài khoản' : 'Không thể xóa tài khoản Admin hoặc tài khoản đang đăng nhập' }}"
+                                            class="p-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 transition {{ $canDelete ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed' }}">
+                                            <i class="fa-regular fa-trash-can"></i>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach
@@ -474,7 +509,7 @@
                                 {{ $editingId ? 'Chỉnh Sửa Quyền: ' . $name : 'Cấp Tài Khoản Người Dùng Mới' }}
                             </h3>
                             <p class="text-xs text-slate-400">
-                                {{ $editingId !== null ? 'Thông tin tài khoản và phân quyền' : 'Phân quyền 4 vai trò & thiết lập điểm thưởng' }}
+                                {{ $editingId !== null ? 'Thông tin tài khoản và phân quyền' : 'Thông tin đăng nhập và vai trò tài khoản' }}
                             </p>
                         </div>
                     </div>
@@ -574,23 +609,32 @@
                     </div>
 
                     @if ($editingId === null)
-                        <div id="uf-password-wrapper">
-                            <div class="flex justify-between items-center mb-1">
-                                <label for="uf-password" class="font-bold text-slate-700">
-                                    Mật khẩu khởi tạo <span class="text-red-500">*</span>
-                                </label>
-                                <button type="button" wire:click="generateRandomPassword"
-                                    class="text-[11px] text-brand-700 hover:underline font-bold">
-                                    <i class="fa-solid fa-wand-magic-sparkles mr-0.5"></i>
-                                    Tạo ngẫu nhiên
+                        <div id="uf-password-wrapper" x-data="{ showPassword: false }">
+                            <label for="uf-password" class="block font-bold text-slate-700 mb-1">
+                                Mật khẩu khởi tạo
+                                <span class="text-red-500">*</span>
+                            </label>
+
+                            <div class="relative">
+                                <input type="password" x-bind:type="showPassword ? 'text' : 'password'"
+                                    id="uf-password" wire:model="password" autocomplete="new-password"
+                                    maxlength="72" placeholder="Nhập ít nhất 8 ký tự..."
+                                    class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl pl-3.5 pr-11 py-2 text-xs font-mono outline-none focus:border-brand-600 focus:bg-white">
+
+                                <button type="button" x-on:click="showPassword = !showPassword"
+                                    x-bind:disabled="confirmingAccount"
+                                    x-bind:aria-label="showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'"
+                                    x-bind:title="showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'"
+                                    x-bind:aria-pressed="showPassword.toString()" aria-controls="uf-password"
+                                    class="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 inline-flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-brand-700 transition cursor-pointer disabled:opacity-50">
+
+                                    <i class="fa-solid" x-bind:class="showPassword ? 'fa-eye-slash' : 'fa-eye'">
+                                    </i>
                                 </button>
                             </div>
 
-                            <input type="text" id="uf-password" wire:model="password" autocomplete="new-password"
-                                maxlength="72" placeholder="Nhập ít nhất 8 ký tự..."
-                                class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-mono outline-none focus:border-brand-600 focus:bg-white">
                             @error('password')
-                                <p class="text-red-600 text-xs mt-1">{{ $message }}</p>
+                                <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                             @enderror
                         </div>
                     @endif
@@ -599,41 +643,36 @@
                         <label for="uf-role" class="block font-bold text-slate-700 mb-1">
                             Vai trò phân quyền<span class="text-red-500">*</span>
                         </label>
-                        <select id="uf-role" required wire:model.live="role"
-                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-600 cursor-pointer">
-                            <option value="farm_staff">Farm Staff (Kỹ sư vườn - Luống đất & Kho FEFO)</option>
-                            <option value="sales">Sales / CSKH (Nhân viên Bán hàng - Đơn hàng & Khiếu nại)</option>
-                            <option value="admin">Admin Master (Quản trị - Toàn quyền hệ thống)</option>
-                            <option value="farm_owner">Chủ trang trại</option>
-                            <option value="customer">Customer (Khách hàng mua sắm)</option>
+                        <select id="uf-role" required wire:model.live="role" @disabled($isEditingAdmin)
+                            x-bind:disabled="confirmingAccount || @js($isEditingAdmin)"
+                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-600 cursor-pointer disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed">
+
+                            <option value="farm_staff">
+                                Farm Staff (Kỹ sư vườn - Luống đất & Kho FEFO)
+                            </option>
+
+                            <option value="sales">
+                                Sales / CSKH
+                            </option>
+
+                            <option value="admin">
+                                Admin Master
+                            </option>
+
+                            <option value="farm_owner">
+                                Chủ trang trại
+                            </option>
+
+                            @if ($editingId !== null)
+                                <option value="customer">
+                                    Customer (Khách hàng mua sắm)
+                                </option>
+                            @endif
                         </select>
                         @error('role')
                             <p class="text-red-600 text-xs mt-1">{{ $message }}</p>
                         @enderror
                     </div>
-
-                    @if ($editingId === null && $role === 'customer')
-                        <div id="uf-points-wrapper">
-                            <label for="uf-reward-points" class="block font-bold text-purple-900 mb-1">
-                                Điểm thưởng tích lũy của Khách Hàng:
-                            </label>
-                            <div class="relative">
-                                <input type="number" id="uf-reward-points" wire:model="rewardPoints" min="0"
-                                    step="1"
-                                    class="w-full bg-purple-50/50 border border-purple-200 rounded-xl px-3.5 py-2 text-xs font-mono font-bold text-purple-900 outline-none focus:border-purple-600 focus:bg-white">
-                                <span
-                                    class="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-mono text-purple-600 font-bold">
-                                    pts
-                                </span>
-                            </div>
-                            @error('rewardPoints')
-                                <p class="text-red-600 text-xs mt-1">{{ $message }}</p>
-                            @enderror
-                            <p class="text-[10px] text-slate-400 mt-0.5">
-                                Admin có thể điều chỉnh cộng/trừ điểm thưởng trực tiếp cho khách hàng
-                            </p>
-                        </div>
-                    @endif
 
                     <div id="uf-role-permission-hint"
                         class="{{ $hintClasses[$role] ?? $hintClasses['farm_staff'] }}">
@@ -819,117 +858,19 @@
             () => $wire.cancelToggleStatus()
         ));
 
-        $wire.on('edit-account-points', async ({
+        $wire.on('confirm-account-delete', ({
             name,
-            points
-        }) => {
-            if (confirming) return;
-
-            confirming = true;
-
-            try {
-                const result = await Swal.fire({
-                    heightAuto: false,
-                    scrollbarPadding: false,
-                    title: 'Điều Chỉnh Điểm Tích Lũy',
-                    html: `
-                    <div class="text-left text-xs space-y-3 pt-2">
-                        <div class="p-3 bg-purple-50 border border-purple-200 rounded-xl">
-                            <span class="text-slate-600 block">
-                                Khách hàng: <b id="swal-points-name"></b>
-                            </span>
-                            <span class="text-slate-600 block">
-                                Điểm hiện tại:
-                                <b id="swal-points-current" class="text-purple-800 font-mono text-sm"></b>
-                            </span>
-                        </div>
-                        <div>
-                            <label class="font-bold block mb-1">
-                                Nhập số điểm muốn đặt mới:
-                            </label>
-                            <input id="swal-points-input" type="number"
-                                min="0" max="2147483647" step="1"
-                                class="w-full border border-slate-300 p-2.5 rounded-xl font-mono font-bold text-base text-purple-900 text-center outline-none focus:border-purple-600">
-                        </div>
-                        <div>
-                            <label class="font-bold block mb-1">
-                                Lý do điều chỉnh điểm:
-                            </label>
-                            <input id="swal-points-reason" maxlength="500"
-                                placeholder="VD: Bù điểm khiếu nại dập nát, tri ân khách VIP..."
-                                class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none focus:border-brand-600">
-                        </div>
-                    </div>
-                `,
-                    showCancelButton: true,
-                    confirmButtonText: 'Lưu Điểm',
-                    cancelButtonText: 'Đóng',
-                    confirmButtonColor: '#15803d',
-                    showLoaderOnConfirm: true,
-                    allowOutsideClick: () => !Swal.isLoading(),
-
-                    didOpen: () => {
-                        const popup = Swal.getPopup();
-
-                        popup.querySelector('#swal-points-name').textContent = name;
-                        popup.querySelector('#swal-points-current').textContent = points + ' pts';
-                        popup.querySelector('#swal-points-input').value = points;
-                    },
-
-                    preConfirm: async () => {
-                        const popup = Swal.getPopup();
-                        const value = popup.querySelector('#swal-points-input').value.trim();
-                        const reason = popup.querySelector('#swal-points-reason').value.trim();
-
-                        if (!/^\d+$/.test(value) || Number(value) > 2147483647) {
-                            Swal.showValidationMessage(
-                                'Vui lòng nhập số nguyên từ 0 đến 2147483647.'
-                            );
-
-                            return false;
-                        }
-
-                        try {
-                            const response = await $wire.saveQuickPoints(value, reason);
-
-                            if (!response.ok) {
-                                Swal.showValidationMessage(response.message);
-
-                                return false;
-                            }
-
-                            return response;
-                        } catch (error) {
-                            Swal.showValidationMessage(
-                                'Chưa lưu được điểm. Vui lòng thử lại.'
-                            );
-
-                            return false;
-                        }
-                    }
-                });
-
-                if (result.isConfirmed) {
-                    await Swal.fire({
-                        heightAuto: false,
-                        scrollbarPadding: false,
-                        icon: result.value.changed ? 'success' : 'info',
-                        title: result.value.message,
-                        confirmButtonColor: '#15803d'
-                    });
-                } else {
-                    await $wire.cancelQuickPoints();
-                }
-            } catch (error) {
-                await Swal.fire({
-                    heightAuto: false,
-                    scrollbarPadding: false,
-                    icon: 'error',
-                    title: 'Yêu cầu chưa hoàn tất'
-                });
-            } finally {
-                confirming = false;
-            }
-        });
+            email
+        }) => confirmAction({
+                icon: 'warning',
+                title: 'Xác nhận xóa tài khoản?',
+                text: name + ' (' + email + '). Thao tác này không thể khôi phục.',
+                confirmButtonText: 'Xóa tài khoản',
+                confirmButtonColor: '#dc2626',
+                allowEscapeKey: false,
+            },
+            () => $wire.deleteAccount(),
+            () => $wire.cancelDeleteAccount()
+        ));
     </script>
 @endscript

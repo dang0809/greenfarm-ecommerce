@@ -25,8 +25,9 @@
         <div class="h-16 sm:h-20 flex items-center justify-between px-6 border-b border-slate-100 shrink-0">
 
             <a href="{{ route('admin.accounts') }}" wire:navigate class="flex items-center gap-2.5">
-                <div class="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center">
-                    <i class="fa-solid fa-crown text-amber-400"></i>
+                <div
+                    class="w-10 h-10 rounded-xl bg-brand-700 text-white flex items-center justify-center shrink-0 shadow-sm">
+                    <i class="fa-solid fa-leaf text-brand-200 text-xl"></i>
                 </div>
 
                 <div>
@@ -34,7 +35,7 @@
                         {{ $farmName }}
                     </span>
                     <span class="text-[10px] font-bold text-amber-800">
-                        Chủ Nông Trại
+                        Quản Trị Viên
                     </span>
                 </div>
             </a>
@@ -71,7 +72,7 @@
                     {{ auth()->user()?->name ?? 'Admin' }}
                 </p>
                 <p class="text-[11px] text-amber-700 font-bold">
-                    Chủ Nông Trại
+                    Quản Trị Viên
                 </p>
             </div>
         </div>

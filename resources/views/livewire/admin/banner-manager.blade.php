@@ -181,10 +181,13 @@
 
                                         <button type="button"
                                             wire:click="requestDelete('banner', {{ $item->id }})"
-                                            wire:loading.attr="disabled" x-bind:disabled="confirming"
-                                            class="p-2 rounded-xl bg-slate-100 text-slate-400
-            hover:text-rose-600 hover:bg-rose-50 transition"
-                                            title="Xóa banner">
+                                            wire:loading.attr="disabled"
+                                            wire:target="requestDelete('banner', {{ $item->id }}),saveAction,cancelAction"
+                                            @disabled($banners->count() <= 1)
+                                            x-bind:disabled="confirming || @js($banners->count() <= 1)"
+                                            title="{{ $banners->count() <= 1 ? 'Phải giữ lại ít nhất một banner' : 'Xóa banner' }}"
+                                            aria-label="Xóa banner"
+                                            class="p-2 rounded-xl bg-slate-100 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-slate-400 disabled:hover:bg-slate-100">
                                             <i class="fa-regular fa-trash-can"></i>
                                         </button>
                                     </td>
