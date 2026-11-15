@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
-use Livewire\Attributes\Layout; 
+use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use App\Livewire\Traits\HandlesCart;
 use App\Models\Cart;
@@ -41,16 +41,13 @@ class ProductDetail extends Component
         $this->product = Product::with([
             'category',
             'productImages',
-            'batches' => fn($q) => $q->where('product_batches.status', 'active')
-                                    ->whereRaw('product_batches.current_quantity > COALESCE(product_batches.reserved_quantity, 0)')
-                                    ->whereDate('product_batches.expiry_date', '>=', now())
-                                    ->orderBy('product_batches.expiry_date', 'asc'),
-        ])->where('slug', $slug)
-          ->where('status', 'active')
+        ])
+            ->where('slug', $slug)
+            ->where('status', 'active')
             ->whereHas('category', function ($query) {
                 $query->where('is_active', true);
             })
-          ->firstOrFail();
+            ->firstOrFail();
 
         if (request()->query('tab') === 'reviews' || request()->has('reviewsPage')) {
             $this->activeTab = 'reviews';
@@ -112,11 +109,11 @@ class ProductDetail extends Component
         return OrderItem::where('product_id', $this->product->id)
             ->whereHas('order', function ($query) {
                 $query->where('user_id', Auth::id())
-                      ->where('status', 'delivered')
-                      ->whereDoesntHave('items', function ($itemQuery) {
-                          $itemQuery->where('product_id', $this->product->id)
-                                    ->whereHas('review');
-                      });
+                    ->where('status', 'delivered')
+                    ->whereDoesntHave('items', function ($itemQuery) {
+                        $itemQuery->where('product_id', $this->product->id)
+                            ->whereHas('review');
+                    });
             })
             ->first();
     }
@@ -146,7 +143,7 @@ class ProductDetail extends Component
 
         session()->put('checkout_buy_now', [
             'product_id' => $this->product->id,
-            'quantity'   => $qty,
+            'quantity' => $qty,
         ]);
         session()->forget('checkout_selected_items');
         session()->save();
@@ -237,16 +234,35 @@ class ProductDetail extends Component
             ->where('product_id', $this->product->id)
             ->latest()
             ->paginate(10, ['*'], 'reviewsPage'); //* lấy toàn bộ kiểu select * 
-            //reviewsPage tên biến để phân trang thay vì page thì ?reviewsPage=2
+        //reviewsPage tên biến để phân trang thay vì page thì ?reviewsPage=2
 
-        $currentBatch = $this->product->batches->first();
+        $availableBatches = $this->product->batches()
+            ->where('product_batches.status', 'active')
+            ->whereDate('product_batches.expiry_date', '>=', today())
+            ->whereRaw(
+                'product_batches.current_quantity > COALESCE(product_batches.reserved_quantity, 0)'
+            )
+            ->orderBy('product_batches.expiry_date')
+            ->orderBy('product_batches.id')
+            ->get();
+
+        $currentBatch = $availableBatches->first();
+
+        // Mã lô và tồn khả dụng cùng lấy từ dữ liệu mới nhất.
+        $this->totalStock = (int) $availableBatches->sum(
+            fn($batch) => max(
+                0,
+                (int) $batch->current_quantity
+                - (int) ($batch->reserved_quantity ?? 0)
+            )
+        );
 
         return view('livewire.customer.product-detail', [
             'relatedProducts' => $relatedProducts,
-            'currentBatch'    => $currentBatch,
-            'reviews'         => $reviews,
-            'reviewCount'     => $reviewCount,
-            'avgRating'       => $avgRating,
+            'currentBatch' => $currentBatch,
+            'reviews' => $reviews,
+            'reviewCount' => $reviewCount,
+            'avgRating' => $avgRating,
         ]);
     }
 }
