@@ -156,9 +156,16 @@ class ProfilePage extends Component
     // Cập nhật Họ tên & Số điện thoại
     public function updateProfile()
     {
+        $cleanedPhone = preg_replace('/[\s.\-]+/u', '', trim($this->phone)) ?? '';
+        $this->phone = $cleanedPhone;
+
+        $phoneRules = $cleanedPhone === ''
+            ? ['nullable']
+            : ['required', 'string', 'regex:/^(0[35789])[0-9]{8}$/'];
+
         $this->validate([
             'name' => ['required', 'string', 'max:255'],
-            'phone' => ['required', 'string', 'regex:/^(0[35789])[0-9]{8}$/'],
+            'phone' => $phoneRules,
             'bank_name' => ['nullable', 'string'],
             'bank_account_number' => ['nullable', 'string', 'max:30'],
             'bank_account_name' => ['nullable', 'string', 'max:100'],
@@ -179,7 +186,7 @@ class ProfilePage extends Component
         $user = Auth::user();
         $user->update([
             'name' => $this->name,
-            'phone' => $this->phone,
+            'phone' => !empty($this->phone) ? $this->phone : null,
             'default_bank_name' => $this->bank_name,
             'default_bank_account_number' => $this->bank_account_number,
             'default_bank_account_name' => mb_strtoupper($this->bank_account_name),

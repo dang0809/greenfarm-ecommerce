@@ -71,14 +71,16 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
     }
 
     // 2. Kiểm tra chữ ký bảo mật (Hạn 60 phút)
+    //Kiểm tra xem LINK ĐÃ HẾT HẠN CHƯA? và có hợp lệ không
     if (!$request->hasValidSignature()) {
         session()->flash('error', 'Link xác thực đã hết hạn!');
         return redirect()->route('home');
     }
 
     // 3. Kích hoạt tài khoản: đổi status thành 'active'
+    //kiểm tra tài khoản đã được kích hoạt chưa
     if (!$user->hasVerifiedEmail()) {
-        $user->markEmailAsVerified();
+        $user->markEmailAsVerified();//thêm vào cột email_verified_at
         $user->update(['status' => 'active']);
     }
 

@@ -169,6 +169,7 @@ trait WithOrderActions
                 if ($item->batch_id) {
                     ProductBatch::where('id', $item->batch_id)
                         ->decrement('reserved_quantity', $item->quantity);
+                    ProductBatch::syncProductSalePrice($item->product_id);
                 }
             }
 

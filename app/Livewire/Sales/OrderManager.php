@@ -356,7 +356,10 @@ class OrderManager extends Component
                 'cancelled_at' => now(),
             ]);
 
-            if ($lockedOrder->order_type === 'retail' && $lockedOrder->payment?->status === 'success') {
+            if (
+                in_array($lockedOrder->order_type, ['retail', 'subscription_delivery'], true)
+                && ($lockedOrder->order_type === 'subscription_delivery' || $lockedOrder->payment?->status === 'success')
+            ) {
                 $lockedOrder->adjustProductSoldCounts(-1);
             }
 
@@ -386,10 +389,11 @@ class OrderManager extends Component
 
                 $batch->current_quantity = $current + $quantity;
 
-                // Lô đã bán hết có hàng hoàn về thì mở bán lại.
+                // Lô đã bán hết có hàng hoàn về và còn hạn sử dụng thì mở bán lại.
                 if (
                     $batch->status === 'sold_out'
                     && $batch->current_quantity > 0
+                    && $batch->expiry_date?->gte(today())
                 ) {
                     $batch->status = 'active';
                 }

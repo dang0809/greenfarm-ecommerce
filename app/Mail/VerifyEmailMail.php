@@ -15,15 +15,18 @@ use Illuminate\Support\Facades\URL;
 class VerifyEmailMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
-
+    //giúp thu nhỏ Model thành ID để lưu vào database cho nhẹ, và khi gửi thì tự lấy lại dữ liệu mới nhất từ database ra.
+    //hoặc đặt tên hàng đợi bằng cách public $queue = 'emails';
     public User $user;
     public string $verificationUrl;
 
     public function __construct(User $user)
     {
+        //có thể đặt tên $this->onQueue('emails') cho hàng đợi và gọi bằng php artisan queue:work --queue=emails,default
         $this->user = $user;
 
         // Tạo Signed URL xác thực tài khoản (hạn 60 phút)
+        //dùng để tạo đường dẫn có chữ ký bảo mật và thời gian hết hạn.
         $this->verificationUrl = URL::temporarySignedRoute(
             'verification.verify',
             now()->addMinutes(60),

@@ -26,7 +26,6 @@ class AuthModal extends Component
 
     // Form Đăng ký
     public string $registerName = '';
-    public string $registerPhone = '';
     public string $registerEmail = '';
     public string $registerPassword = '';
     public string $registerPasswordConfirmation = '';
@@ -94,7 +93,7 @@ class AuthModal extends Component
         $this->isOpen = false;
         $this->resetValidation();
         $this->reset([
-            'registerName', 'registerPhone', 'registerEmail', 'registerPassword', 'registerPasswordConfirmation',
+            'registerName', 'registerEmail', 'registerPassword', 'registerPasswordConfirmation',
             'loginAccount', 'loginPassword',
             'forgotAccount', 'forgotLinkSent',
             'resetToken', 'resetEmail', 'newPassword', 'newPasswordConfirmation',
@@ -129,7 +128,6 @@ class AuthModal extends Component
         // Đã tối ưu bỏ :dns để nút đăng ký chạy tức thì
         $validated = $this->validate([
             'registerName' => ['required', 'string', 'max:255'],
-            'registerPhone' => ['required', 'string', 'regex:/^(0[35789])[0-9]{8}$/'],
             'registerEmail' => ['required', 'string', 'email:rfc', 'max:255'],
             'registerPassword' => [
                 'required',
@@ -142,8 +140,6 @@ class AuthModal extends Component
             'registerPasswordConfirmation' => ['required', 'same:registerPassword'],
         ], [
             'registerName.required' => 'Vui lòng nhập họ và tên.',
-            'registerPhone.required' => 'Vui lòng nhập số điện thoại.',
-            'registerPhone.regex' => 'Số điện thoại không đúng định dạng (VD: 0912345678).',
             'registerEmail.required' => 'Vui lòng nhập địa chỉ Email.',
             'registerEmail.email' => 'Địa chỉ Email không đúng định dạng.',
             'registerPassword.required' => 'Vui lòng nhập mật khẩu.',
@@ -154,15 +150,8 @@ class AuthModal extends Component
         ]);
 
         $email = strtolower(trim($validated['registerEmail']));
-        $phone = trim($validated['registerPhone']);
 
         $existingUser = User::where('email', $email)->first();
-        $existingPhone = User::where('phone', $phone)->first();
-
-        if ($existingPhone && (!$existingUser || $existingPhone->id !== $existingUser->id)) {
-            $this->addError('registerPhone', 'Số điện thoại này đã được sử dụng.');
-            return;
-        }
 
         if ($existingUser) {
             if ($existingUser->status === 'active') {
@@ -172,7 +161,6 @@ class AuthModal extends Component
 
             $existingUser->update([
                 'name' => trim($validated['registerName']),
-                'phone' => $phone,
                 'password' => Hash::make($validated['registerPassword']),
             ]);
 
@@ -180,7 +168,6 @@ class AuthModal extends Component
         } else {
             $user = User::create([
                 'name' => trim($validated['registerName']),
-                'phone' => $phone,
                 'email' => $email,
                 'password' => Hash::make($validated['registerPassword']),
                 'role' => 'customer',

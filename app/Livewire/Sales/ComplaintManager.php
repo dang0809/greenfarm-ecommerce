@@ -3,10 +3,7 @@
 namespace App\Livewire\Sales;
 
 use App\Models\Complaint;
-use App\Models\InventoryLog;
 use App\Models\Order;
-use App\Models\ProductBatch;
-use Illuminate\Validation\ValidationException;
 use App\Services\OrderNotificationService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -229,7 +226,7 @@ class ComplaintManager extends Component
 
         try {
             $result = DB::transaction(function () use ($complaintId, $orderId, $staff, $resolution, $rejectReason, $resolutionNote) {
-                // Khóa đơn trước, đồng nhất với luồng thanh toán/hủy đơn.
+                // Khóa đơn và khiếu nại trước để tránh tranh chấp dữ liệu.
                 $order = Order::query()
                     ->whereKey($orderId)
                     ->lockForUpdate()
@@ -241,7 +238,7 @@ class ComplaintManager extends Component
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                // Kiểm tra sau khi khóa để tránh hai request cùng hoàn kho.
+                // Kiểm tra sau khi khóa để tránh hai request cùng xử lý.
                 if ($complaint->status !== 'pending') {
                     return null;
                 }
@@ -256,147 +253,25 @@ class ComplaintManager extends Component
                     return $complaint;
                 }
 
-                // Khớp điều kiện khiếu nại hiện tại của khách hàng.
-                // Đơn cancelled không được hoàn kho thêm lần nữa.
-                if (
-                    $order->order_type !== 'retail'
-                    || $order->status !== 'delivered'
-                    || !$order->payments()
-                        ->where('status', 'success')
-                        ->exists()
-                ) {
-                    throw ValidationException::withMessages([
-                        'resolution_type' =>
-                            'Chỉ hoàn kho cho đơn mua lẻ đã thanh toán và giao thành công.',
-                    ]);
-                }
+                // Duyệt khiếu nại -> Hoàn tiền theo tổng tiền đơn (rau hỏng bỏ đi, không hoàn kho)
+                $refundAmount = (float) $order->total;
 
-                $order->load([
-                    'items.product',
-                    'user:id,name',
-                ]);
-
-                // Phải xác định được toàn bộ lô gốc trước khi hoàn kho.
-                if (
-                    $order->items->isEmpty()
-                    || $order->items->contains(
-                        fn($item) =>
-                            $item->batch_id === null
-                            || (int) $item->quantity <= 0
-                    )
-                ) {
-                    throw ValidationException::withMessages([
-                        'resolution_type' =>
-                            'Đơn hàng có sản phẩm thiếu lô gốc hoặc số lượng không hợp lệ. Vui lòng kiểm tra trước khi hoàn kho.',
-                    ]);
-                }
-
-                // Một đơn có thể lấy cùng sản phẩm từ nhiều lô.
-                $groups = $order->items->groupBy('batch_id');
-
-                $batches = ProductBatch::query()
-                    ->whereKey($groups->keys())
-                    ->orderBy('id')
-                    ->lockForUpdate()
-                    ->get()
-                    ->keyBy('id');
-
-                if ($batches->count() !== $groups->count()) {
-                    throw ValidationException::withMessages([
-                        'resolution_type' =>
-                            'Không tìm thấy đầy đủ các lô gốc để hoàn kho.',
-                    ]);
-                }
-
-                $customerName = $order->user?->name
-                    ?: ($order->recipient_name ?: 'Khách hàng');
-
-                // Hoàn toàn bộ hàng: điều chỉnh bộ đếm đã bán một lần.
-                $order->adjustProductSoldCounts(-1);
-
-                foreach ($groups as $batchId => $items) {
-                    $batch = $batches->get($batchId);
-
-                    // Chỉ hoàn số lượng từng lấy từ chính lô này.
-                    $quantity = (int) $items->sum('quantity');
-                    $unit = $items->first()->product?->unit ?? 'đơn vị';
-
-                    $before = (int) $batch->current_quantity;
-
-                    if (
-                        $quantity <= 0
-                        || $before < 0
-                        || $before > 2147483647 - $quantity
-                    ) {
-                        throw ValidationException::withMessages([
-                            'resolution_type' =>
-                                'Số lượng hoàn kho không hợp lệ hoặc vượt giới hạn.',
-                        ]);
-                    }
-
-                    $after = $before + $quantity;
-
-                    $batch->current_quantity = $after;
-
-                    if ($batch->status === 'sold_out' && $after > 0) {
-                        $batch->status = 'active';
-                    }
-
-                    $batch->saveOrFail();
-
-                    InventoryLog::create([
-                        'batch_id' => $batch->id,
-                        'type' => 'return_refund',
-                        'quantity' => $quantity,
-                        'created_by' => $staff->id,
-
-                        'note' => "Khách hàng: {$customerName}\n"
-                            . "Mã đơn: #{$order->order_code}\n"
-                            . "Hoàn kho khi duyệt hoàn tiền toàn bộ đơn.\n"
-                            . "Nhập lại vào lô: {$quantity} {$unit}\n"
-                            . "Tồn kho: {$before} → {$after}"
-                            . (
-                                $resolutionNote !== ''
-                                ? "\nGhi chú: {$resolutionNote}"
-                                : ''
-                            ),
-                    ]);
-                }
-
-                foreach (
-                    $order->items->pluck('product_id')->unique()->sort()
-                    as $productId
-                ) {
-                    ProductBatch::syncProductSalePrice((int) $productId);
-                }
-
-                // Cập nhật cùng transaction với cộng kho và ghi nhật ký.
                 $complaint->update([
                     'status' => 'resolved',
-                    'refund_amount' => $order->total,
+                    'refund_amount' => $refundAmount,
                     'resolved_by' => $staff->id,
                     'resolution_note' => $resolutionNote,
                 ]);
 
                 return $complaint;
             }, 3);
-        } catch (ValidationException $exception) {
-            $this->dispatch(
-                'show-toast',
-                type: 'error',
-                message: (string) collect($exception->errors())
-                    ->flatten()
-                    ->first()
-            );
-
-            return;
         } catch (\Throwable $exception) {
             report($exception);
 
             $this->dispatch(
                 'show-toast',
                 type: 'error',
-                message: 'Không thể xử lý khiếu nại và hoàn kho. Vui lòng thử lại.'
+                message: 'Không thể xử lý khiếu nại. Vui lòng thử lại.'
             );
 
             return;
@@ -421,10 +296,12 @@ class ComplaintManager extends Component
         if ($result->status === 'resolved') {
             OrderNotificationService::notifyComplaintResolved($result);
 
+            $formattedAmount = number_format((float) ($result->refund_amount ?? 0), 0, ',', '.') . 'đ';
+
             $this->dispatch(
                 'show-toast',
                 type: 'success',
-                message: "Đã duyệt hoàn tiền và hoàn kho cho đơn #{$orderCode}."
+                message: "Đã duyệt hoàn tiền {$formattedAmount} cho đơn #{$orderCode} thành công."
             );
         } else {
             OrderNotificationService::notifyComplaintRejected(

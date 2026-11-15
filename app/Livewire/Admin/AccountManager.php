@@ -877,11 +877,19 @@ class AccountManager extends Component
         $this->name = trim($this->name);
         $this->email = strtolower(trim($this->email));
 
-        $this->phone = preg_replace(
+        $cleanedPhone = preg_replace(
             '/[\s.\-]+/u',
             '',
-            trim($this->phone)
+            trim((string) $this->phone)
         ) ?? '';
+        $this->phone = $cleanedPhone;
+
+        $phoneRules = ['required', 'string', 'regex:/^0[35789][0-9]{8}$/'];
+        if ($this->role === 'customer') {
+            $phoneRules = $cleanedPhone === ''
+                ? ['nullable']
+                : ['required', 'string', 'regex:/^0[35789][0-9]{8}$/'];
+        }
 
         $data = $this->validate([
             'newAvatar' => $this->avatarRules(),
@@ -895,11 +903,7 @@ class AccountManager extends Component
                 Rule::unique('users', 'email')->ignore($this->editingId),
             ],
 
-            'phone' => [
-                'required',
-                'string',
-                'regex:/^0[35789][0-9]{8}$/',
-            ],
+            'phone' => $phoneRules,
 
             'password' => $this->editingId === null
                 ? ['required', 'string', 'min:8', 'max:72']
@@ -947,7 +951,7 @@ class AccountManager extends Component
         $payload = [
             'name' => $data['name'],
             'email' => $data['email'],
-            'phone' => $data['phone'],
+            'phone' => !empty($data['phone']) ? $data['phone'] : null,
             'role' => $data['role'],
         ];
 

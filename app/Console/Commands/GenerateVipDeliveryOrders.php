@@ -176,15 +176,21 @@ class GenerateVipDeliveryOrders extends Command
                                 'subtotal' => 0,
                             ]);
                         }
+
+                        // Đồng bộ lại giá sale_price của sản phẩm nếu lô giảm giá vừa được xuất hết
+                        ProductBatch::syncProductSalePrice($productId);
                     }
 
-                    // 3. Cập nhật Lịch giao sang processing
+                    // 3. Đồng bộ bộ đếm số lượng đã bán (sold_count) cho các sản phẩm thực tế đã xuất từ lô
+                    $order->adjustProductSoldCounts(1);
+
+                    // 4. Cập nhật Lịch giao sang processing
                     $schedule->update([
                         'order_id' => $order->id,
                         'status' => 'processing',
                     ]);
 
-                    // 4. Bắn thông báo Realtime quả chuông cho khách
+                    // 5. Bắn thông báo Realtime quả chuông cho khách
                     $notification = Notification::create([
                         'user_id' => $subscription->user_id,
                         'type' => 'vip_delivery_created',

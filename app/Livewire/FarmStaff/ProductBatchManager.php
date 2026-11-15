@@ -402,6 +402,11 @@ class ProductBatchManager extends Component
 
                     $batch->current_quantity = $newQuantity;
 
+                    // Nếu cân chỉnh tồn kho về 0 thì tự động chuyển sang trạng thái đã bán hết
+                    if ($batch->current_quantity === 0) {
+                        $batch->status = 'sold_out';
+                    }
+
                     $type = $newQuantity > $current
                         ? 'adjustment_in'
                         : 'adjustment_out';
@@ -499,6 +504,11 @@ class ProductBatchManager extends Component
                     throw new RuntimeException(
                         'Không ghi được nhật ký kho.'
                     );
+                }
+
+                $productId = $batch->plantingBatch?->product_id;
+                if ($productId) {
+                    ProductBatch::syncProductSalePrice((int) $productId);
                 }
 
                 return 'saved';

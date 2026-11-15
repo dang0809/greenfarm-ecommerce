@@ -371,7 +371,11 @@
 
                                 <td
                                     class="py-3.5 sm:py-4 px-4 font-mono font-semibold text-slate-800 text-xs text-center align-middle">
-                                    {{ $user->phone }}
+                                    @if ($user->phone)
+                                        {{ $user->phone }}
+                                    @else
+                                        <span class="text-slate-400 font-normal italic">Chưa cập nhật</span>
+                                    @endif
                                 </td>
 
                                 <td class="py-3.5 sm:py-4 px-4 text-center align-middle">
@@ -597,9 +601,9 @@
 
                         <div>
                             <label for="uf-phone" class="block font-bold text-slate-700 mb-1">
-                                Số điện thoại <span class="text-red-500">*</span>
+                                Số điện thoại @if ($role !== 'customer') <span class="text-red-500">*</span> @endif
                             </label>
-                            <input type="text" id="uf-phone" wire:model="phone" required
+                            <input type="text" id="uf-phone" wire:model="phone" {{ $role !== 'customer' ? 'required' : '' }}
                                 placeholder="0918.223.344"
                                 class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono outline-none focus:border-brand-600 focus:bg-white font-bold">
                             @error('phone')

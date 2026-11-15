@@ -147,20 +147,6 @@
                         </div>
 
                         <div>
-                            <label class="block text-xs font-bold text-gray-700 mb-1.5">Số điện thoại <span
-                                    class="text-red-500">*</span></label>
-                            <div class="relative">
-                                <i
-                                    class="fa-solid fa-phone absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
-                                <input type="tel" wire:model="registerPhone" placeholder="0912345678"
-                                    class="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-11 pr-4 py-3 text-xs sm:text-sm font-medium outline-none focus:bg-white focus:border-brand-500 transition-all">
-                            </div>
-                            @error('registerPhone')
-                                <span class="text-xs text-red-500 font-semibold mt-1 block">{{ $message }}</span>
-                            @enderror
-                        </div>
-
-                        <div>
                             <label class="block text-xs font-bold text-gray-700 mb-1.5">Địa chỉ Email (Nhận thông báo)
                                 <span class="text-red-500">*</span></label>
                             <div class="relative">

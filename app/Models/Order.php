@@ -64,10 +64,10 @@ class Order extends Model
             return;
         }
 
-        $this->loadMissing('items');
+        $this->load('items');
 
         $totalsByProduct = $this->items
-            ->filter(fn ($item) => $item->product_id && (int) $item->quantity > 0)
+            ->filter(fn ($item) => $item->product_id && $item->batch_id && (int) $item->quantity > 0)
             ->groupBy('product_id')
             ->map(fn ($group) => (int) $group->sum('quantity'));
 
