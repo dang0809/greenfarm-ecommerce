@@ -230,7 +230,7 @@
                             <tr
                                 class="bg-slate-50 text-slate-500 uppercase font-bold text-[10px] tracking-wider border-b border-slate-200">
                                 <th class="py-3.5 px-4 pl-5">Tiêu Đề Trang</th>
-                                <th class="py-3.5 px-4 font-mono">Đường Dẫn URL</th>
+                                <th class="py-3.5 px-4 font-mono">Slug</th>
                                 <th class="py-3.5 px-4">Nội Dung Tóm Tắt</th>
                                 <th class="py-3.5 px-4 font-mono">Ngày Cập Nhật</th>
                                 <th class="py-3.5 px-4 pr-6 text-right">Thao Tác</th>
@@ -543,7 +543,7 @@
                             @enderror
                         </div>
                         <div>
-                            <label class="block font-bold text-slate-700 mb-1">Đường dẫn URL <span
+                            <label class="block font-bold text-slate-700 mb-1">Slug <span
                                     class="text-red-500">*</span></label>
                             <input type="text" id="pg-slug" wire:model.live.debounce.300ms="page.slug" required
                                 placeholder="cau-chuyen-thuong-hieu"

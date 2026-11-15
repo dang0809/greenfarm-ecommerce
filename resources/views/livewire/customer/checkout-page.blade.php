@@ -4,8 +4,8 @@
 
         <div class="pb-6 border-b border-gray-200/80 mb-8">
             <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Thanh Toán Đơn Hàng</h1>
-            <p class="text-gray-500 text-xs sm:text-sm mt-1">Xác nhận thông tin giao nhận nông sản tươi từ Nông trại Đất
-                Lành</p>
+            <p class="text-gray-500 text-xs sm:text-sm mt-1">Xác nhận thông tin giao nhận nông sản tươi từ Nông trại
+                {{ $farmName }}</p>
         </div>
 
         <!-- FORM THANH TOÁN -->
@@ -321,7 +321,7 @@
                         <p class="text-[11px] text-gray-400 text-center leading-relaxed">
                             Bằng việc nhấn đặt hàng, bạn đồng ý với <a href="#"
                                 class="text-brand-600 hover:underline">Chính sách kiểm hàng & bồi thường 24H</a> của
-                            Đất Lành.
+                            {{ $farmName }}.
                         </p>
                     </div>
 

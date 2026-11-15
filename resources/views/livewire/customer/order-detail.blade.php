@@ -735,7 +735,7 @@
                     <!-- 1. Mua lại đơn này: Dành cho đơn bán lẻ đã giao hoặc đã hủy -->
                     @if (in_array($order->status, ['delivered', 'cancelled']) &&
                             !in_array($order->order_type, ['subscription', 'subscription_delivery']))
-                        <button type="button" wire:click="reorder"
+                        <button type="button" wire:click="reorder({{ $order->id }})"
                             class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3.5 rounded-2xl text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer">
                             <i class="fa-solid fa-rotate-right text-xs"></i>
                             <span>Mua lại đơn này</span>
@@ -744,14 +744,14 @@
 
                     <!-- 2. Thanh toán ngay: Dành cho đơn pending chưa trả tiền -->
                     @if ($order->status === 'pending' && $order->payment?->status === 'pending')
-                        <button type="button" wire:click="payNow" wire:loading.attr="disabled"
+                        <button type="button" wire:click="payNow({{ $order->id }})" wire:loading.attr="disabled"
                             class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3.5 rounded-2xl text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer">
                             <i class="fa-solid fa-qrcode text-xs" wire:loading.remove></i>
                             <i class="fa-solid fa-spinner fa-spin text-xs" wire:loading></i>
                             <span>Thanh toán ngay</span>
                         </button>
 
-                        <button type="button" wire:click="confirmCancel"
+                        <button type="button" wire:click="confirmCancel({{ $order->id }})"
                             wire:confirm="Bạn có chắc chắn muốn hủy đơn hàng #{{ $order->order_code }} không?"
                             class="w-full bg-white hover:bg-red-50 text-gray-600 hover:text-red-600 border border-gray-200 font-bold py-2.5 rounded-2xl text-xs transition-all flex items-center justify-center gap-2 cursor-pointer">
                             <i class="fa-regular fa-trash-can text-xs"></i>
@@ -761,7 +761,7 @@
 
                     <!-- 3. Yêu cầu xử lý / Khiếu nại hoàn tiền dập nát (24H) -->
                     @if ($order->status === 'delivered' && $order->order_type === 'retail' && !$order->complaint)
-                        <button type="button" wire:click="openComplaintModal"
+                        <button type="button" wire:click="openComplaintModal({{ $order->id }})"
                             class="w-full bg-white hover:bg-amber-50 text-amber-700 hover:text-amber-800 border border-amber-200 hover:border-amber-300 font-semibold py-2.5 rounded-2xl text-xs transition-all flex items-center justify-center gap-2 cursor-pointer">
                             <i class="fa-solid fa-shield-cat text-xs text-amber-600"></i>
                             <span>Khiếu nại / Yêu cầu bồi hoàn (24H)</span>

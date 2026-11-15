@@ -34,16 +34,15 @@ trait WithOrderActions
     /**
      * Thanh toán lại đơn hàng (dành cho đơn pending chưa trả tiền)
      */
-    public function payNow(?int $orderId = null): void
+    public function payNow(int $orderId): void
     {
-        $targetId = $orderId ?? ($this->orderId ?? null);
-        if (!$targetId)
+        if (!$orderId)
             return;
 
         $order = Order::with('items')->where('user_id', Auth::id())
             ->where('status', 'pending')
             ->whereHas('payment', fn($q) => $q->where('status', 'pending'))
-            ->find($targetId);
+            ->find($orderId);
 
         if (!$order) {
             $this->dispatch('show-toast', type: 'error', message: 'Đơn hàng không hợp lệ hoặc đã thanh toán!');
@@ -101,15 +100,14 @@ trait WithOrderActions
     /**
      * Xác nhận hủy đơn hàng (Chỉ cho phép đơn pending chưa thanh toán)
      */
-    public function confirmCancel(?int $orderId = null): void
+    public function confirmCancel(int $orderId): void
     {
-        $targetId = $orderId ?? ($this->orderId ?? null);
-        if (!$targetId)
+        if (!$orderId)
             return;
 
         $order = Order::where('user_id', Auth::id())
             ->where('status', 'pending')
-            ->find($targetId);
+            ->find($orderId);
 
         if (!$order) {
             $this->dispatch('show-toast', type: 'error', message: 'Không thể hủy đơn hàng này hoặc đơn đã chuyển sang bước xử lý!');
@@ -194,34 +192,53 @@ trait WithOrderActions
     /**
      * Mua lại đơn này: Thêm tất cả sản phẩm vào giỏ hàng
      */
-    public function reorder(?int $orderId = null)
+    public function reorder(int $orderId)
     {
-        $targetId = $orderId ?? ($this->orderId ?? null);
-        if (!$targetId)
+        if (!$orderId)
             return;
 
-        $order = Order::with('items.product')->where('user_id', Auth::id())->find($targetId);
+        $order = Order::with([
+            'items.product' => fn($q) => $q->withTotalStock()->with('category')
+        ])->where('user_id', Auth::id())->find($orderId);
+
         if (!$order || $order->order_type !== 'retail')
             return;
 
         $cart = Cart::firstOrCreate(['user_id' => Auth::id()]);
         $addedCount = 0;
+        $skippedCount = 0;
 
         foreach ($order->items as $item) {
-            if (!$item->product)
-                continue;
+            $product = $item->product;
+            $availableStock = (int) ($product?->total_stock ?? 0);
+            $isValid = $product && $product->status === 'active' && ($product->category?->is_active ?? true) && $availableStock > 0;
 
+            if (!$isValid) {
+                $skippedCount++;
+                continue;
+            }
+
+            // 2. Tìm hoặc cập nhật số lượng trong giỏ hàng
             $cartItem = CartItem::where('cart_id', $cart->id)
                 ->where('product_id', $item->product_id)
                 ->first();
 
+            $currentQty = $cartItem ? (int) $cartItem->quantity : 0;
+            // Số lượng thêm mới không vượt quá tồn kho còn lại
+            $qtyToAdd = min((int) $item->quantity, max(0, $availableStock - $currentQty));
+
+            if ($qtyToAdd <= 0) {
+                $skippedCount++;
+                continue;
+            }
+
             if ($cartItem) {
-                $cartItem->increment('quantity', $item->quantity);
+                $cartItem->increment('quantity', $qtyToAdd);
             } else {
                 CartItem::create([
-                    'cart_id' => $cart->id,
+                    'cart_id'    => $cart->id,
                     'product_id' => $item->product_id,
-                    'quantity' => $item->quantity,
+                    'quantity'   => $qtyToAdd,
                 ]);
             }
             $addedCount++;
@@ -229,27 +246,30 @@ trait WithOrderActions
 
         if ($addedCount > 0) {
             $this->dispatch('cart-updated');
-            $this->dispatch('show-toast', type: 'success', message: 'Đã thêm các sản phẩm vào giỏ hàng!');
+            if ($skippedCount > 0) {
+                $this->dispatch('show-toast', type: 'warning', message: 'Đã thêm sản phẩm còn hàng vào giỏ. Một số món đã hết hoặc ngừng bán đã được bỏ qua.');
+            } else {
+                $this->dispatch('show-toast', type: 'success', message: 'Đã thêm các sản phẩm vào giỏ hàng!');
+            }
             return redirect()->route('customer.cart');
         } else {
-            $this->dispatch('show-toast', type: 'error', message: 'Các sản phẩm trong đơn hàng này hiện không còn tồn tại!');
+            $this->dispatch('show-toast', type: 'error', message: 'Các sản phẩm trong đơn hàng này hiện đã hết hàng hoặc ngừng kinh doanh!');
         }
     }
 
     /**
      * Mở modal Khiếu nại hoàn tiền
      */
-    public function openComplaintModal(?int $orderId = null): void
+    public function openComplaintModal(int $orderId): void
     {
-        $targetId = $orderId ?? ($this->orderId ?? null);
-        if (!$targetId)
+        if (!$orderId)
             return;
 
         $order = Order::with('statusHistories')
             ->where('user_id', Auth::id())
             ->where('status', 'delivered')
             ->where('order_type', 'retail')
-            ->find($targetId);
+            ->find($orderId);
 
         if (!$order) {
             $this->dispatch('show-toast', type: 'error', message: 'Đơn hàng không đủ điều kiện khiếu nại (Chỉ áp dụng cho đơn bán lẻ đã giao)!');
@@ -345,7 +365,10 @@ trait WithOrderActions
      */
     public function submitComplaint(): void
     {
-        $targetId = $this->complainingOrderId ?? ($this->orderId ?? null);
+        $targetId = $this->complainingOrderId;
+        if (!$targetId)
+            return;
+
         $order = Order::with('statusHistories')
             ->where('user_id', Auth::id())
             ->where('status', 'delivered')
