@@ -405,14 +405,10 @@
                     </button>
                 </div>
 
-                <form wire:submit="requestSave" class="space-y-3 text-xs">
-                    @if ($errors->any())
-                        <div role="alert">
-                            @foreach ($errors->all() as $message)
-                                <p>{{ $message }}</p>
-                            @endforeach
-                        </div>
-                    @endif
+                <form wire:submit="requestSave" novalidate class="space-y-3 text-xs">
+                    @error('form')
+                        <p role="alert" class="text-red-500">{{ $message }}</p>
+                    @enderror
 
                     <fieldset x-bind:disabled="confirmingBatch" wire:loading.attr="disabled"
                         wire:target="requestSave,saveChange,closeModal" class="space-y-3">
@@ -438,12 +434,16 @@
                                 </label>
 
                                 @if ($selectedBatch->available_quantity > 0)
-                                    <input type="number" id="sp-qty" wire:model="quantity" step="1"
-                                        min="1" max="{{ $selectedBatch->available_quantity }}" required
+                                    <input type="number" id="sp-qty" wire:model.live.debounce.300ms="quantity"
+                                        step="1" min="1" max="{{ $selectedBatch->available_quantity }}"
                                         class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold text-rose-600 text-sm outline-none focus:border-rose-500">
 
-                                    <p class="mt-2 text-slate-500">
-                                        Chỉ được xuất hủy phần chưa giữ chỗ.
+                                    @error('quantity')
+                                        <p role="alert" class="text-red-500">{{ $message }}</p>
+                                    @enderror
+
+                                    <p class="mt-2 text-red-500">
+                                        Chỉ được xuất hủy phần khả dụng.
                                         Xuất hủy hết tồn sẽ chuyển lô sang Tiêu hủy.
                                     </p>
                                 @else
@@ -459,9 +459,13 @@
                                     <span class="text-red-500">*</span>
                                 </label>
 
-                                <input type="number" id="as-quantity" wire:model="quantity" step="1"
-                                    min="{{ $selectedBatch->reserved_quantity }}" max="2147483647" required
+                                <input type="number" id="as-quantity" wire:model.live.debounce.300ms="quantity"
+                                    step="1" min="{{ $selectedBatch->reserved_quantity }}" max="2147483647"
                                     class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2 font-mono font-bold text-sm text-slate-900 outline-none focus:border-brand-600">
+
+                                @error('quantity')
+                                    <p role="alert" class="text-red-500">{{ $message }}</p>
+                                @enderror
 
                                 <p><br>
                                     Đang giữ chỗ: {{ $selectedBatch->reserved_quantity }} {{ $selectedUnit }}. Tồn mới
@@ -474,12 +478,24 @@
                                     <span class="text-red-500">*</span>
                                 </label>
 
-                                <input type="date" id="ae-expiry" wire:model="expiry" required
+                                <input type="date" id="ae-expiry" wire:model.live="expiry"
                                     class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono outline-none focus:border-brand-600 font-bold text-sm">
 
-                                <p><br>
-                                    HSD hiện tại: {{ $selectedBatch->expiry_date->format('d/m/Y') }}. HSD mới phải
-                                    sau ngày thu hoạch/ngày xuống giống. </p>
+                                @error('expiry')
+                                    <p role="alert" class="text-red-500">{{ $message }}</p>
+                                @enderror
+
+                                <p class="mt-2">
+                                    HSD hiện tại:
+                                    {{ $selectedBatch->expiry_date->format('d/m/Y') }}.
+                                    HSD mới phải sau ngày thu hoạch/ngày xuống giống.
+                                </p>
+
+                                @if (((int) $selectedBatch->reserved_quantity > 0 || $hasUnfinishedOrders) && !$errors->has('form'))
+                                    <p role="alert" class="text-red-500">
+                                        Không sửa HSD khi còn giữ chỗ hoặc đơn chưa kết thúc.
+                                    </p>
+                                @endif
                             </div>
                         @else
                             <div>
@@ -488,11 +504,16 @@
                                     <span class="text-red-500">*</span>
                                 </label>
 
-                                <select id="batch-status" wire:model.live="newStatus" required
+                                <select id="batch-status" wire:model.live="newStatus"
                                     class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none">
+
                                     <option value="active">Đang mở bán</option>
                                     <option value="suspended">Tạm dừng</option>
                                 </select>
+
+                                @error('newStatus')
+                                    <p role="alert" class="text-red-500">{{ $message }}</p>
+                                @enderror
 
                                 <p class="mt-2">
                                     @if ($newStatus === 'suspended')
@@ -511,9 +532,13 @@
                                 <span class="text-red-500">*</span>
                             </label>
 
-                            <textarea id="batch-note" wire:model="note" rows="2" maxlength="1000" required
+                            <textarea id="batch-note" wire:model.live.debounce.300ms="note" rows="2" maxlength="1000"
                                 placeholder="Nhập lý do chi tiết..."
                                 class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl p-2.5 outline-none {{ $modal === 'spoilage' ? 'focus:border-rose-500' : 'focus:border-brand-600' }} resize-none"></textarea>
+
+                            @error('note')
+                                <p role="alert" class="text-red-500">{{ $message }}</p>
+                            @enderror
                         </div>
 
                         <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">

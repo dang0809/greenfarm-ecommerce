@@ -101,6 +101,39 @@ class ProductBatchDetail extends Component
     {
         $raw = trim((string) ($log->note ?? ''));
 
+        // Chuẩn hóa ký tự xuống dòng.
+        $text = str_replace(["\r\n", "\r"], "\n", $raw);
+
+        // Đọc định dạng văn bản mới.
+// Toàn bộ nội dung sau dòng "Lý do:" là nội dung người dùng nhập.
+        $pattern = '/\ANhật ký lô hàng\n'
+            . 'Trạng thái: ([^\n]+?) → ([^\n]+)\n'
+            . 'Tồn kho: (\d+) → (\d+)\n'
+            . 'HSD: ([^\n]+?) → ([^\n]+)\n'
+            . 'Lý do:\n(.*)\z/su';
+
+        if (preg_match($pattern, $text, $matches)) {
+            $reason = trim($matches[7]);
+
+            return [
+                'reason' => $reason !== ''
+                    ? $reason
+                    : 'Không có lý do được ghi nhận.',
+
+                'transition' => $matches[1] !== $matches[2]
+                    ? $matches[1] . ' → ' . $matches[2]
+                    : null,
+
+                'stockChange' => $matches[3] !== $matches[4]
+                    ? $matches[3] . ' → ' . $matches[4]
+                    : null,
+
+                'expiryChange' => $matches[5] !== $matches[6]
+                    ? $matches[5] . ' → ' . $matches[6]
+                    : null,
+            ];
+        }
+
         $reason = $raw;
         $from = null;
         $to = null;

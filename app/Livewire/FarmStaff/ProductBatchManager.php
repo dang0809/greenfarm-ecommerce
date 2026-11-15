@@ -55,6 +55,24 @@ class ProductBatchManager extends Component
             )
         ) {
             $this->resetPage();
+
+            return;
+        }
+
+        if (
+            in_array(
+                $this->modal,
+                ['spoilage', 'stock', 'expiry', 'status'],
+                true
+            )
+            && in_array(
+                $property,
+                ['quantity', 'expiry', 'newStatus', 'note'],
+                true
+            )
+        ) {
+            // Chỉ xóa lỗi của trường vừa thay đổi.
+            $this->resetValidation($property);
         }
     }
 
@@ -118,6 +136,7 @@ class ProductBatchManager extends Component
             'expiry.required' => 'Vui lòng chọn hạn sử dụng.',
             'expiry.date_format' => 'Hạn sử dụng không hợp lệ.',
 
+            'newStatus.required' => 'Vui lòng chọn trạng thái lô hàng.',
             'newStatus.in' => 'Trạng thái không hợp lệ.',
         ]);
     }
@@ -236,10 +255,39 @@ class ProductBatchManager extends Component
     // Lưu thay đổi của kho
     public function requestSave(): void
     {
-        $this->resetValidation('form');
+        $this->staff();
+        $this->resetValidation();
+
+        abort_unless(
+            $this->batchId
+            && in_array(
+                $this->modal,
+                ['spoilage', 'stock', 'expiry', 'status'],
+                true
+            ),
+            422
+        );
+
+        if ($this->modal === 'expiry') {
+            // Đọc lại dữ liệu mới nhất khi người dùng nhấn Lưu.
+            $batch = ProductBatch::findOrFail($this->batchId);
+
+            if (
+                (int) $batch->reserved_quantity > 0
+                || $batch->hasUnfinishedOrders()
+            ) {
+                $this->addError(
+                    'form',
+                    'Không sửa HSD khi còn giữ chỗ hoặc đơn chưa kết thúc.'
+                );
+
+                return;
+            }
+        }
+
         $this->validatedInput();
 
-        // Chưa cập nhật DB ở bước yêu cầu xác nhận.
+        // Chỉ mở SweetAlert khi vượt qua các kiểm tra.
         $this->dispatch('confirm-batch-change')->self();
     }
 
@@ -413,28 +461,37 @@ class ProductBatchManager extends Component
                     );
                 }
 
+                $statusLabels = ProductBatch::STATUS_LABELS;
+
+                $statusFrom = $statusLabels[$statusBefore] ?? $statusBefore;
+                $statusTo = $statusLabels[$batch->status] ?? $batch->status;
+
+                $expiryAfter = $batch->expiry_date?->toDateString();
+
+                $note = implode("\n", [
+                    'Nhật ký lô hàng',
+
+                    "Trạng thái: {$statusFrom} → {$statusTo}",
+
+                    'Tồn kho: '
+                    . $current
+                    . ' → '
+                    . (int) $batch->current_quantity,
+
+                    'HSD: '
+                    . ($expiryBefore ?? '—')
+                    . ' → '
+                    . ($expiryAfter ?? '—'),
+
+                    'Lý do:',
+                    trim($data['note']),
+                ]);
+
                 $log = InventoryLog::create([
                     'batch_id' => $batch->id,
                     'type' => $type,
                     'quantity' => $logQuantity,
-
-                    'note' => json_encode([
-                        'format' => 'batch-log-v1',
-
-                        // Chỉ chứa lý do người dùng nhập.
-                        'reason' => $data['note'],
-
-                        // Dữ liệu lịch sử, lấy trước/sau thao tác.
-                        'status_from' => $statusBefore,
-                        'status_to' => (string) $batch->status,
-
-                        'quantity_from' => $current,
-                        'quantity_to' => (int) $batch->current_quantity,
-
-                        'expiry_from' => $expiryBefore,
-                        'expiry_to' => $batch->expiry_date?->toDateString(),
-                    ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
-
+                    'note' => $note,
                     'created_by' => $staff->id,
                 ]);
 
@@ -481,6 +538,39 @@ class ProductBatchManager extends Component
     private function inventoryLogDisplay(InventoryLog $log): array
     {
         $raw = trim((string) ($log->note ?? ''));
+
+        // Chuẩn hóa ký tự xuống dòng.
+        $text = str_replace(["\r\n", "\r"], "\n", $raw);
+
+        // Đọc định dạng văn bản mới.
+// Toàn bộ nội dung sau dòng "Lý do:" là nội dung người dùng nhập.
+        $pattern = '/\ANhật ký lô hàng\n'
+            . 'Trạng thái: ([^\n]+?) → ([^\n]+)\n'
+            . 'Tồn kho: (\d+) → (\d+)\n'
+            . 'HSD: ([^\n]+?) → ([^\n]+)\n'
+            . 'Lý do:\n(.*)\z/su';
+
+        if (preg_match($pattern, $text, $matches)) {
+            $reason = trim($matches[7]);
+
+            return [
+                'reason' => $reason !== ''
+                    ? $reason
+                    : 'Không có lý do được ghi nhận.',
+
+                'transition' => $matches[1] !== $matches[2]
+                    ? $matches[1] . ' → ' . $matches[2]
+                    : null,
+
+                'stockChange' => $matches[3] !== $matches[4]
+                    ? $matches[3] . ' → ' . $matches[4]
+                    : null,
+
+                'expiryChange' => $matches[5] !== $matches[6]
+                    ? $matches[5] . ' → ' . $matches[6]
+                    : null,
+            ];
+        }
 
         $reason = $raw;
         $from = null;
@@ -716,11 +806,7 @@ class ProductBatchManager extends Component
         }
 
         $hasUnfinishedOrders = $selectedBatch
-            && in_array(
-                $this->modal,
-                ['status', 'spoilage', 'detail'],
-                true
-            )
+            && $this->modal === 'expiry'
             && $selectedBatch->hasUnfinishedOrders();
 
         $qrUrl = null;
@@ -757,6 +843,7 @@ class ProductBatchManager extends Component
             'stats' => $stats,
             'spoiledByUnit' => $spoiledByUnit,
             'selectedBatch' => $selectedBatch,
+            'hasUnfinishedOrders' => $hasUnfinishedOrders,
             'qrUrl' => $qrUrl,
             'inventoryLogDisplays' => $inventoryLogDisplays,
         ]);
