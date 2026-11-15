@@ -63,9 +63,9 @@ class AuthModal extends Component
             $this->tab = 'reset_password';
             $this->isOpen = true;
 
-            // KIỂM TRA NGAY TỨC THÌ: Token có tồn tại trong database và còn hạn (60 phút) không?
+            // KIỂM TRA NGAY TỨC THÌ: Token có tồn tại trong database, còn hạn (60 phút) và tài khoản không bị khóa không?
             $user = User::where('email', $this->resetEmail)->first();
-            if (! $user || ! Password::broker()->tokenExists($user, $this->resetToken)) {
+            if (! $user || $user->status === 'blocked' || $user->role !== 'customer' || ! Password::broker()->tokenExists($user, $this->resetToken)) {
                 $this->tokenInvalid = true;
             } else {
                 $this->tokenInvalid = false;
@@ -222,7 +222,16 @@ class AuthModal extends Component
                 return;
             }
 
-            if ($user->status !== 'active' || !$user->hasVerifiedEmail()) {
+            // Kiểm tra tài khoản bị khóa
+            if ($user->status === 'blocked') {
+                Auth::logout();
+                RateLimiter::hit($throttleKey, 60);
+                $this->addError('loginAccount', 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ ban quản trị để được hỗ trợ.');
+                return;
+            }
+
+            // Kiểm tra tài khoản chưa kích hoạt
+            if ($user->status !== 'active') {
                 Auth::logout();
                 RateLimiter::hit($throttleKey, 60);
                 $this->addError('loginAccount', 'Tài khoản chưa kích hoạt! Vui lòng kiểm tra email để kích hoạt.');
@@ -266,7 +275,8 @@ class AuthModal extends Component
 
         $user = User::where('email', $this->forgotAccount)->first();
 
-        if ($user) {
+        // Chỉ gửi link khi tài khoản tồn tại, đúng role customer và đang hoạt động (active)
+        if ($user && $user->role === 'customer' && $user->status === 'active') {
             $token = Password::broker()->createToken($user);
             $emailService->sendResetLink($user->email, $token);
         }
@@ -298,6 +308,12 @@ class AuthModal extends Component
             'newPasswordConfirmation.required' => 'Vui lòng xác nhận mật khẩu mới.',
             'newPasswordConfirmation.same' => 'Mật khẩu xác nhận không khớp.',
         ]);
+
+        $user = User::where('email', $this->resetEmail)->first();
+        if (! $user || $user->status === 'blocked' || $user->role !== 'customer') {
+            $this->tokenInvalid = true;
+            return;
+        }
 
         $status = Password::broker()->reset(
             [

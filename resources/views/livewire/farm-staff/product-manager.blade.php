@@ -241,8 +241,10 @@
     </div>
 
     {{-- Hiển thị biểu mẫu thêm, sửa sản phẩm và khóa thao tác khi đang xử lý --}}
+    @if ($showModal)
     <div id="modal-product" wire:key="product-modal-{{ $editingId ?? 'new' }}" x-data="{ uploadingImage: false }"
         x-on:product-images-ready="uploadingImage = false"
+        x-on:keydown.escape.window="$wire.closeModal()"
         x-on:livewire-upload-start="
         if ($event.detail.property === 'imageUploads') {
             uploadingImage = true
@@ -263,7 +265,8 @@
             uploadingImage = false
         }
     "
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs {{ $showModal ? '' : 'hidden' }} p-3 sm:p-4">
+        wire:click.self="closeModal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
 
         <div
             class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-2xl shadow-2xl p-5 sm:p-8 max-h-[92vh] overflow-y-auto custom-scrollbar border border-slate-100 space-y-4">
@@ -273,10 +276,8 @@
                     {{ $editingId ? 'Sửa Sản Phẩm: ' . $name : 'Thêm Sản Phẩm Nông Sản Mới' }}
                 </h3>
 
-                <button type="button" wire:click="closeModal" x-bind:disabled="uploadingImage || confirmingProduct"
-                    wire:loading.attr="disabled"
-                    wire:target="imageUploads,moveImage,removeImage,requestSaveProduct,saveProduct,closeModal"
-                    class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center cursor-pointer disabled:opacity-50">
+                <button type="button" wire:click="closeModal"
+                    class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center cursor-pointer">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
@@ -348,7 +349,8 @@
                         </label>
 
                         <select id="p-unit" wire:model.live="unitOption" required
-                            class="w-full min-w-0 bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600 cursor-pointer">
+                            @if ($hasExistingBatchesOrOrders) disabled @endif
+                            class="w-full min-w-0 bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600 cursor-pointer disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed">
 
                             @foreach (\App\Livewire\FarmStaff\ProductManager::UNIT_OPTIONS as $value => $label)
                                 <option value="{{ $value }}">
@@ -358,6 +360,13 @@
 
                             <option value="other">Khác</option>
                         </select>
+
+                        @if ($hasExistingBatchesOrOrders)
+                            <p class="mt-1.5 text-xs text-amber-700 flex items-center gap-1 font-medium">
+                                <i class="fa-solid fa-lock text-[10px]"></i>
+                                Sản phẩm đã có lô hàng hoặc đơn hàng, không thể đổi đơn vị tính.
+                            </p>
+                        @endif
 
                         @error('unitOption')
                             <p role="alert" class="mt-1 text-xs text-red-600">
@@ -375,7 +384,8 @@
 
                                 <input type="text" id="p-custom-unit" wire:model.live.debounce.300ms="customUnit"
                                     maxlength="50" placeholder="Ví dụ: Gói 250g, Túi 1kg..." required
-                                    class="w-full min-w-0 bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600">
+                                    @if ($hasExistingBatchesOrOrders) disabled @endif
+                                    class="w-full min-w-0 bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed">
 
                                 @error('customUnit')
                                     <p role="alert" class="mt-1 text-xs text-red-600">
@@ -558,8 +568,7 @@
                 </div>
 
                 <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
-                    <button type="button" wire:click="closeModal" x-bind:disabled="uploadingImage"
-                        wire:loading.attr="disabled" wire:target="requestSaveProduct,saveProduct,closeModal"
+                    <button type="button" wire:click="closeModal"
                         class="px-4 py-2 border border-slate-200 rounded-xl text-slate-600 font-bold hover:bg-slate-50 cursor-pointer">
                         Hủy
                     </button>
@@ -579,6 +588,7 @@
             </form>
         </div>
     </div>
+    @endif
 
     {{-- Kiểm tra dữ liệu, xác nhận lưu và thay đổi trạng thái sản phẩm. --}}
     @script

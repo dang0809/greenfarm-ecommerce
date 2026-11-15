@@ -19,37 +19,13 @@
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-        <script src="https://cdn.tailwindcss.com"></script>
-        <script>
-            tailwind.config = {
-                theme: {
-                    extend: {
-                        fontFamily: {
-                            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-                        },
-                        colors: {
-                            brand: {
-                                50: '#f0fdf4',
-                                100: '#dcfce7',
-                                200: '#bbf7d0',
-                                500: '#22c55e',
-                                600: '#16a34a',
-                                700: '#15803d',
-                                800: '#166534',
-                                900: '#14532d',
-                            },
-                            cream: '#FAFAF7',
-                        },
-                        boxShadow: {
-                            soft: '0 4px 20px -2px rgba(15, 23, 42, 0.05)',
-                            modal: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
-                        },
-                    },
-                },
-            };
-        </script>
+        @vite(['resources/css/app.css', 'resources/js/app.js'])
 
         <style>
+            [x-cloak] {
+                display: none !important;
+            }
+
             .menu-admin-active {
                 background: linear-gradient(135deg, #15803d 0%, #166534 100%);
                 color: #ffffff !important;
@@ -63,6 +39,21 @@
             .menu-admin-inactive:hover {
                 background-color: #f1f5f9;
                 color: #0f172a;
+            }
+
+            .tab-btn-active {
+                border-bottom: 2.5px solid #15803d;
+                color: #15803d;
+                font-weight: 700;
+            }
+
+            .tab-btn-inactive {
+                color: #64748b;
+                font-weight: 600;
+            }
+
+            .tab-btn-inactive:hover {
+                color: #15803d;
             }
 
             .custom-scrollbar::-webkit-scrollbar {

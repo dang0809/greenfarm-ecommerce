@@ -66,6 +66,8 @@ class ProductManager extends Component
     public string $min_growth_days = '';
     public string $status = 'active';
 
+    public bool $hasExistingBatchesOrOrders = false;
+
     public array $imageUploads = [];
 
     /**
@@ -422,6 +424,12 @@ class ProductManager extends Component
             ? $v['customUnit']
             : $v['unitOption'];
 
+        // Nếu sản phẩm đã phát sinh lô hàng hoặc đơn hàng thì giữ nguyên đơn vị tính cũ
+        if ($this->hasExistingBatchesOrOrders && $this->editingId !== null) {
+            $existing = Product::findOrFail($this->editingId);
+            $this->unit = (string) $existing->unit;
+        }
+
         // Chỉ trả về các trường thực tế được lưu vào sản phẩm.
         return [
             'name' => $v['name'],
@@ -616,6 +624,9 @@ class ProductManager extends Component
             ->map(fn(ProductImage $image) => 'old:' . $image->id)
             ->values()
             ->all();
+
+        $this->hasExistingBatchesOrOrders = $product->batches()->exists()
+            || $product->orderItems()->exists();
 
         $this->showModal = true;
     }
@@ -1077,6 +1088,7 @@ class ProductManager extends Component
             'imageOrder',
             'existingImages',
             'newImages',
+            'hasExistingBatchesOrOrders',
         ]);
 
         $this->imageInputKey++;

@@ -105,7 +105,9 @@
     </div>
 
     {{-- Hiển thị biểu mẫu thêm, sửa danh mục và trạng thái tải ảnh --}}
+    @if ($showModal)
     <div wire:key="category-modal-{{ $editingId ?? 'new' }}-{{ $imageInputKey }}" x-data="{ uploadingImage: false }"
+        x-on:keydown.escape.window="$wire.closeModal()"
         x-on:livewire-upload-start="
         if ($event.detail.property === 'newImage') uploadingImage = true"
         x-on:livewire-upload-finish="
@@ -114,7 +116,8 @@
         if ($event.detail.property === 'newImage') uploadingImage = false"
         x-on:livewire-upload-cancel="
         if ($event.detail.property === 'newImage') uploadingImage = false"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs {{ $showModal ? '' : 'hidden' }} p-3 sm:p-4">
+        wire:click.self="closeModal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
         <div
             class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-md shadow-2xl p-5 sm:p-7 max-h-[92vh] overflow-y-auto custom-scrollbar border border-slate-100 space-y-4">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -263,6 +266,7 @@
             </form>
         </div>
     </div>
+    @endif
 </div>
 {{-- Xử lý xác nhận lưu, xóa danh mục và thông báo lỗi --}}
 @script
