@@ -6,9 +6,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -71,7 +69,6 @@ class AccountManager extends Component
     public string $phone = '';
     public string $password = '';
     public string $role = 'farm_staff';
-    public string $rewardPoints = '0';
 
     public $newAvatar = null;
 
@@ -82,9 +79,6 @@ class AccountManager extends Component
 
     #[Locked]
     public array $pendingStatus = [];
-
-    #[Locked]
-    public array $pendingPoints = [];
 
     public function boot(): void
     {
@@ -149,7 +143,7 @@ class AccountManager extends Component
         if (
             !in_array(
                 $tab,
-                ['all', 'internal', 'customer', 'blocked'],
+                ['all', 'internal', 'customer', 'blocked', 'inactive'],
                 true
             )
         ) {
@@ -158,7 +152,7 @@ class AccountManager extends Component
 
         $this->tab = $tab;
 
-        // Tránh bộ lọc của tab trước làm tab mới không có kết quả.
+        // Xóa bộ lọc vai trò/trạng thái của tab trước.
         $this->reset(['roleFilter', 'statusFilter']);
         $this->resetPage();
     }
@@ -205,17 +199,6 @@ class AccountManager extends Component
     public function closeUserModal(): void
     {
         $this->resetForm();
-    }
-
-    public function generateRandomPassword(): void
-    {
-        if (!$this->showUserModal || $this->editingId !== null) {
-            return;
-        }
-
-        $this->password = Str::password(10) . '@Farm';
-        $this->confirmationHash = null;
-        $this->resetValidation('password');
     }
 
     public function cancelAvatar(): void
@@ -655,142 +638,6 @@ class AccountManager extends Component
         );
     }
 
-    // Chỉnh điểm tích lũy
-    public function requestQuickPoints(int $id): void
-    {
-        $this->pendingPoints = [];
-
-        $user = User::findOrFail($id);
-
-        if ($user->role !== 'customer') {
-            return;
-        }
-
-        $this->pendingPoints = [
-            'id' => $user->id,
-            'points' => (int) $user->reward_points,
-        ];
-
-        $this->dispatch(
-            'edit-account-points',
-            name: $user->name,
-            points: (int) $user->reward_points
-        )->self();
-    }
-
-    public function cancelQuickPoints(): void
-    {
-        $this->pendingPoints = [];
-    }
-
-    public function saveQuickPoints(string $points, string $reason): array
-    {
-        $validator = Validator::make(
-            [
-                'points' => $points,
-                'reason' => trim($reason),
-            ],
-            [
-                'points' => [
-                    'required',
-                    'integer',
-                    'min:0',
-                    'max:2147483647',
-                ],
-                'reason' => ['nullable', 'string', 'max:500'],
-            ],
-            [
-                'points.required' => 'Vui lòng nhập số điểm.',
-                'points.integer' => 'Điểm phải là số nguyên.',
-                'points.min' => 'Điểm không được âm.',
-                'points.max' => 'Điểm tối đa 2147483647.',
-                'reason.max' => 'Lý do tối đa 500 ký tự.',
-            ]
-        );
-
-        if ($validator->fails()) {
-            return [
-                'ok' => false,
-                'message' => $validator->errors()->first(),
-            ];
-        }
-
-        $pending = $this->pendingPoints;
-
-        if (!$pending) {
-            return [
-                'ok' => false,
-                'message' => 'Vui lòng mở lại hộp chỉnh điểm.',
-            ];
-        }
-
-        $data = $validator->validated();
-
-        try {
-            $result = DB::transaction(function () use ($pending, $data) {
-                $user = User::whereKey($pending['id'])
-                    ->lockForUpdate()
-                    ->firstOrFail();
-
-                if (
-                    $user->role !== 'customer'
-                    || (int) $user->reward_points !== $pending['points']
-                ) {
-                    return [
-                        'ok' => false,
-                        'message' => 'Dữ liệu đã thay đổi. Vui lòng mở lại hộp chỉnh điểm.',
-                    ];
-                }
-
-                $points = (int) $data['points'];
-
-                if ($points === (int) $user->reward_points) {
-                    return [
-                        'ok' => true,
-                        'changed' => false,
-                        'message' => 'Không có sự thay đổi nào.',
-                    ];
-                }
-
-                $user->reward_points = $points;
-                $user->saveOrFail();
-
-                return [
-                    'ok' => true,
-                    'changed' => true,
-                    'message' => 'Đã cập nhật điểm tích lũy.',
-                ];
-            });
-        } catch (Throwable $exception) {
-            report($exception);
-
-            return [
-                'ok' => false,
-                'message' => 'Chưa cập nhật được điểm. Vui lòng thử lại.',
-            ];
-        }
-
-        if ($result['ok']) {
-            $this->pendingPoints = [];
-
-            if ($result['changed']) {
-                try {
-                    Log::info('Admin adjusted reward points', [
-                        'admin_id' => Auth::id(),
-                        'user_id' => $pending['id'],
-                        'old_points' => $pending['points'],
-                        'new_points' => (int) $data['points'],
-                        'reason' => $data['reason'] ?? '',
-                    ]);
-                } catch (Throwable $exception) {
-                    report($exception);
-                }
-            }
-        }
-
-        return $result;
-    }
-
     // Form tài khoản
     private function resetForm(): void
     {
@@ -803,7 +650,6 @@ class AccountManager extends Component
             'phone',
             'password',
             'role',
-            'rewardPoints',
             'newAvatar',
             'currentAvatarUrl',
         ]);
@@ -819,29 +665,22 @@ class AccountManager extends Component
         $this->name = trim($this->name);
         $this->email = strtolower(trim($this->email));
 
-        // Chấp nhận nhập số điện thoại có khoảng trắng, dấu chấm/gạch.
         $this->phone = preg_replace(
             '/[\s.\-]+/u',
             '',
             trim($this->phone)
         ) ?? '';
 
-        if ($this->editingId === null) {
-            $this->rewardPoints = $this->role === 'customer'
-                ? trim($this->rewardPoints)
-                : '0';
-        }
-
         $data = $this->validate([
             'newAvatar' => $this->avatarRules(),
+
             'name' => ['required', 'string', 'max:255'],
 
             'email' => [
                 'required',
                 'email:rfc',
                 'max:255',
-                Rule::unique('users', 'email')
-                    ->ignore($this->editingId),
+                Rule::unique('users', 'email')->ignore($this->editingId),
             ],
 
             'phone' => [
@@ -858,42 +697,24 @@ class AccountManager extends Component
                 'required',
                 Rule::in(self::ROLES),
             ],
-
-            'rewardPoints' => $this->editingId === null
-                ? [
-                    'required',
-                    'integer',
-                    'min:0',
-                    'max:2147483647',
-                ]
-                : ['exclude'],
         ], [
             ...$this->avatarMessages(),
+
             'required' => 'Vui lòng nhập :attribute.',
-
             'name.max' => 'Họ tên tối đa 255 ký tự.',
-
             'email.email' => 'Email không đúng định dạng.',
             'email.max' => 'Email tối đa 255 ký tự.',
             'email.unique' => 'Email đã được sử dụng.',
-
             'phone.regex' => 'Số điện thoại gồm 10 số, bắt đầu bằng 03, 05, 07, 08 hoặc 09.',
-
             'password.min' => 'Mật khẩu phải có ít nhất 8 ký tự.',
             'password.max' => 'Mật khẩu tối đa 72 ký tự.',
-
             'role.in' => 'Vai trò không hợp lệ.',
-
-            'rewardPoints.integer' => 'Điểm thưởng phải là số nguyên.',
-            'rewardPoints.min' => 'Điểm thưởng không được âm.',
-            'rewardPoints.max' => 'Điểm thưởng tối đa 2147483647.',
         ], [
             'name' => 'họ tên',
             'email' => 'email',
             'phone' => 'số điện thoại',
             'password' => 'mật khẩu',
             'role' => 'vai trò',
-            'rewardPoints' => 'điểm thưởng',
         ]);
 
         if (
@@ -914,7 +735,7 @@ class AccountManager extends Component
 
         if ($this->editingId === null) {
             $payload['password'] = $data['password'];
-            $payload['reward_points'] = (int) $data['rewardPoints'];
+            $payload['reward_points'] = 0;
         }
 
         return $payload;
@@ -1145,6 +966,10 @@ class AccountManager extends Component
             'blocked' => (int) $groups
                 ->where('status', 'blocked')
                 ->sum('total'),
+
+            'inactive' => (int) $groups
+                ->where('status', 'inactive')
+                ->sum('total'),
         ];
 
         $users = User::query()
@@ -1156,10 +981,8 @@ class AccountManager extends Component
                 'avatar',
                 'role',
                 'status',
-                'reward_points',
                 'created_at'
             )
-
             ->search($this->search)
             ->when(
                 $this->tab === 'internal',
@@ -1177,11 +1000,12 @@ class AccountManager extends Component
                 fn($query) => $query->where('status', 'blocked')
             )
             ->when(
+                $this->tab === 'inactive',
+                fn($query) => $query->where('status', 'inactive')
+            )
+            ->when(
                 in_array($this->roleFilter, self::ROLES, true),
-                fn($query) => $query->where(
-                    'role',
-                    $this->roleFilter
-                )
+                fn($query) => $query->where('role', $this->roleFilter)
             )
             ->when(
                 in_array(
@@ -1189,10 +1013,7 @@ class AccountManager extends Component
                     ['active', 'inactive', 'blocked'],
                     true
                 ),
-                fn($query) => $query->where(
-                    'status',
-                    $this->statusFilter
-                )
+                fn($query) => $query->where('status', $this->statusFilter)
             )
             ->latest('id')
             ->paginate(10);
