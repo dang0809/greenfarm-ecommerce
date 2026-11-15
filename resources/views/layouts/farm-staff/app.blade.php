@@ -21,6 +21,10 @@
 
         {{-- Định nghĩa giao diện menu, thanh cuộn và bố cục in tem nhiệt --}}
         <style>
+            [x-cloak] {
+                display: none !important;
+            }
+
             .menu-active {
                 background-color: #15803d;
                 color: #ffffff !important;

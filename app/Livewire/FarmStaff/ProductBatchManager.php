@@ -35,12 +35,6 @@ class ProductBatchManager extends Component
     #[Locked]
     public ?int $batchId = null;
 
-    #[Locked]
-    public bool $destroyAll = false;
-
-    #[Locked]
-    public int $destroyQuantity = 0;
-
     public string $quantity = '';
     public string $note = '';
     public string $expiry = '';
@@ -61,6 +55,24 @@ class ProductBatchManager extends Component
             )
         ) {
             $this->resetPage();
+
+            return;
+        }
+
+        if (
+            in_array(
+                $this->modal,
+                ['spoilage', 'stock', 'expiry', 'status'],
+                true
+            )
+            && in_array(
+                $property,
+                ['quantity', 'expiry', 'newStatus', 'note'],
+                true
+            )
+        ) {
+            // Chỉ xóa lỗi của trường vừa thay đổi.
+            $this->resetValidation($property);
         }
     }
 
@@ -84,15 +96,12 @@ class ProductBatchManager extends Component
         ];
 
         if ($this->modal === 'spoilage') {
-            // Chỉ validate số lượng nhập tay với xuất hủy thông thường.
-            if (!$this->destroyAll) {
-                $rules['quantity'] = [
-                    'required',
-                    'integer',
-                    'min:1',
-                    'max:2147483647',
-                ];
-            }
+            $rules['quantity'] = [
+                'required',
+                'integer',
+                'min:1',
+                'max:2147483647',
+            ];
         } elseif ($this->modal === 'stock') {
             $rules['quantity'] = [
                 'required',
@@ -111,7 +120,6 @@ class ProductBatchManager extends Component
                 Rule::in([
                     'active',
                     'suspended',
-                    'pending_recalled',
                 ]),
             ];
         }
@@ -128,6 +136,7 @@ class ProductBatchManager extends Component
             'expiry.required' => 'Vui lòng chọn hạn sử dụng.',
             'expiry.date_format' => 'Hạn sử dụng không hợp lệ.',
 
+            'newStatus.required' => 'Vui lòng chọn trạng thái lô hàng.',
             'newStatus.in' => 'Trạng thái không hợp lệ.',
         ]);
     }
@@ -171,26 +180,20 @@ class ProductBatchManager extends Component
         $batch = ProductBatch::findOrFail($id);
 
         if (
-            $mode === 'qr'
-            && $batch->status === 'pending_recalled'
-        ) {
-            $this->dispatch(
-                'swal',
-                icon: 'info',
-                title: 'Lô đang chờ tiêu hủy nên không mở mã QR.'
-            );
-
-            return;
-        }
-
-        if (
             $mode !== 'detail'
-            && (int) $batch->current_quantity <= 0
+            && (
+                (int) $batch->current_quantity <= 0
+                || in_array($batch->status, ['recalled', 'sold_out'], true)
+            )
         ) {
             $this->dispatch(
                 'swal',
                 icon: 'info',
-                title: 'Lô đã hết tồn. Chỉ được xem chi tiết.'
+                title: match ($batch->status) {
+                    'sold_out' => 'Lô đã bán hết. Chỉ được xem chi tiết.',
+                    'recalled' => 'Lô đã tiêu hủy. Chỉ được xem chi tiết.',
+                    default => 'Lô đã hết tồn. Chỉ được xem chi tiết.',
+                }
             );
 
             return;
@@ -211,15 +214,12 @@ class ProductBatchManager extends Component
 
         if (
             in_array($mode, ['expiry', 'stock', 'status'], true)
-            && (
-                $batch->expiry_date->lt(today())
-                || $batch->status === 'pending_recalled'
-            )
+            && $batch->expiry_date->lt(today())
         ) {
             $this->dispatch(
                 'swal',
                 icon: 'error',
-                title: 'Lô đã hết hạn hoặc chờ tiêu hủy. Không được sửa HSD, cân chỉnh hoặc đổi trạng thái.'
+                title: 'Lô đã hết hạn. Không được sửa HSD, cân chỉnh hoặc đổi trạng thái.'
             );
 
             return;
@@ -229,13 +229,6 @@ class ProductBatchManager extends Component
 
         $this->batchId = $batch->id;
         $this->modal = $mode;
-
-        $this->destroyAll = $mode === 'spoilage'
-            && $batch->status === 'pending_recalled';
-
-        $this->destroyQuantity = $this->destroyAll
-            ? (int) $batch->current_quantity
-            : 0;
 
         $this->quantity = $mode === 'stock'
             ? (string) $batch->current_quantity
@@ -250,8 +243,6 @@ class ProductBatchManager extends Component
         $this->reset([
             'modal',
             'batchId',
-            'destroyAll',
-            'destroyQuantity',
             'quantity',
             'note',
             'expiry',
@@ -264,10 +255,39 @@ class ProductBatchManager extends Component
     // Lưu thay đổi của kho
     public function requestSave(): void
     {
-        $this->resetValidation('form');
+        $this->staff();
+        $this->resetValidation();
+
+        abort_unless(
+            $this->batchId
+            && in_array(
+                $this->modal,
+                ['spoilage', 'stock', 'expiry', 'status'],
+                true
+            ),
+            422
+        );
+
+        if ($this->modal === 'expiry') {
+            // Đọc lại dữ liệu mới nhất khi người dùng nhấn Lưu.
+            $batch = ProductBatch::findOrFail($this->batchId);
+
+            if (
+                (int) $batch->reserved_quantity > 0
+                || $batch->hasUnfinishedOrders()
+            ) {
+                $this->addError(
+                    'form',
+                    'Không sửa HSD khi còn giữ chỗ hoặc đơn chưa kết thúc.'
+                );
+
+                return;
+            }
+        }
+
         $this->validatedInput();
 
-        // Chưa cập nhật DB ở bước yêu cầu xác nhận.
+        // Chỉ mở SweetAlert khi vượt qua các kiểm tra.
         $this->dispatch('confirm-batch-change')->self();
     }
 
@@ -301,26 +321,22 @@ class ProductBatchManager extends Component
 
                 if (
                     $current === 0
-                    || $batch->status === 'recalled'
+                    || in_array($batch->status, ['recalled', 'sold_out'], true)
                 ) {
                     $this->reject(
                         'form',
-                        'Lô đã hết tồn hoặc đã tiêu hủy. Chỉ được xem chi tiết.'
+                        'Lô đã hết tồn, đã bán hết hoặc đã tiêu hủy. Chỉ được xem chi tiết.'
                     );
                 }
 
-                // Giữ quy tắc đã thống nhất:
-                // hết hạn hoặc chờ tiêu hủy không được sửa lại dữ liệu lô.
+                // hết hạn không được sửa lại dữ liệu lô.
                 if (
                     in_array($mode, ['expiry', 'stock', 'status'], true)
-                    && (
-                        $batch->expiry_date->lt(today())
-                        || $batch->status === 'pending_recalled'
-                    )
+                    && $batch->expiry_date->lt(today())
                 ) {
                     $this->reject(
                         'form',
-                        'Lô đã hết hạn hoặc đang chờ tiêu hủy. Không được sửa HSD, cân chỉnh hoặc đổi trạng thái.'
+                        'Lô đã hết hạn. Không được sửa HSD, cân chỉnh hoặc đổi trạng thái.'
                     );
                 }
 
@@ -332,75 +348,38 @@ class ProductBatchManager extends Component
                 $expiryBefore = $batch->expiry_date?->toDateString();
 
                 if ($mode === 'spoilage') {
-                    $pending = $batch->status === 'pending_recalled';
+                    $qty = (int) $data['quantity'];
 
-                    if ($pending !== $this->destroyAll) {
+                    // Chỉ xuất hủy lượng chưa giữ cho đơn hàng.
+                    if ($qty <= 0 || $qty > $current - $reserved) {
                         $this->reject(
-                            'form',
-                            'Trạng thái lô đã đổi. Đóng và mở lại modal.'
+                            'quantity',
+                            'Số lượng xuất hủy không hợp lệ hoặc vượt phần tồn chưa giữ chỗ.'
                         );
                     }
 
-                    if ($this->destroyAll) {
-                        // Tiêu hủy toàn bộ:
-                        // phải xử lý cả giữ chỗ và các đơn đang phân bổ.
-                        if (
-                            $reserved > 0
-                            || $batch->hasUnfinishedOrders()
-                        ) {
-                            $this->reject(
-                                'form',
-                                'Còn giữ chỗ hoặc đơn chưa kết thúc. Sales cần xử lý các phân bổ trước khi tiêu hủy toàn bộ.'
-                            );
-                        }
-
-                        if ($current !== $this->destroyQuantity) {
-                            $this->reject(
-                                'form',
-                                'Tồn kho đã thay đổi. Mở lại modal để xác nhận số lượng mới.'
-                            );
-                        }
-
-                        // Dùng số lượng thật từ bản ghi đã khóa.
-                        $qty = $current;
-                    } else {
-                        // Xuất hủy thông thường:
-                        // chỉ được dùng phần chưa giữ cho đơn hàng.
-                        $qty = (int) $data['quantity'];
-
-                        if ($qty > $current - $reserved) {
-                            $this->reject(
-                                'quantity',
-                                'Số lượng xuất hủy vượt phần tồn chưa giữ chỗ.'
-                            );
-                        }
-
-                        // Không hoàn tất tiêu hủy toàn lô khi vẫn còn
-                        // các đơn liên quan chưa xử lý.
-                        if (
-                            $qty === $current
-                            && $batch->hasUnfinishedOrders()
-                        ) {
-                            $this->reject(
-                                'form',
-                                'Xuất hủy hết tồn cần xử lý các đơn chưa kết thúc trước.'
-                            );
-                        }
-                    }
-
+                    // Khi xuất hủy hết tồn, mọi đơn liên quan phải được xử lý xong.
                     if (
-                        $qty <= 0
-                        || $spoiled > 2147483647 - $qty
+                        $qty === $current
+                        && $batch->hasUnfinishedOrders()
                     ) {
                         $this->reject(
+                            'form',
+                            'Xuất hủy hết tồn cần xử lý các đơn chưa kết thúc trước.'
+                        );
+                    }
+
+                    if ($spoiled > 2147483647 - $qty) {
+                        $this->reject(
                             'quantity',
-                            'Số lượng xuất hủy không hợp lệ hoặc vượt giới hạn.'
+                            'Số lượng xuất hủy vượt giới hạn lưu trữ.'
                         );
                     }
 
                     $batch->current_quantity = $current - $qty;
                     $batch->spoiled_quantity = $spoiled + $qty;
 
+                    // Chỉ ghi nhận Tiêu hủy khi đã xuất hủy hết tồn.
                     if ($batch->current_quantity === 0) {
                         $batch->status = 'recalled';
                     }
@@ -470,23 +449,10 @@ class ProductBatchManager extends Component
                         return 'unchanged';
                     }
 
-                    // Chỉ việc thu hồi toàn bộ yêu cầu giải quyết
-                    // các phân bổ trước. Tạm dừng không bị chặn.
-                    if (
-                        $target === 'pending_recalled'
-                        && (
-                            $reserved > 0
-                            || $batch->hasUnfinishedOrders()
-                        )
-                    ) {
-                        $this->reject(
-                            'newStatus',
-                            'Hãy Tạm dừng lô trước. Sales cần chuyển lô hoặc xử lý các đơn liên quan, rồi mới Thu hồi toàn bộ.'
-                        );
-                    }
-
                     $batch->status = $target;
+
                     $type = 'status_change';
+                    $logQuantity = 0;
                 }
 
                 if (!$batch->save()) {
@@ -495,28 +461,37 @@ class ProductBatchManager extends Component
                     );
                 }
 
+                $statusLabels = ProductBatch::STATUS_LABELS;
+
+                $statusFrom = $statusLabels[$statusBefore] ?? $statusBefore;
+                $statusTo = $statusLabels[$batch->status] ?? $batch->status;
+
+                $expiryAfter = $batch->expiry_date?->toDateString();
+
+                $note = implode("\n", [
+                    'Nhật ký lô hàng',
+
+                    "Trạng thái: {$statusFrom} → {$statusTo}",
+
+                    'Tồn kho: '
+                    . $current
+                    . ' → '
+                    . (int) $batch->current_quantity,
+
+                    'HSD: '
+                    . ($expiryBefore ?? '—')
+                    . ' → '
+                    . ($expiryAfter ?? '—'),
+
+                    'Lý do:',
+                    trim($data['note']),
+                ]);
+
                 $log = InventoryLog::create([
                     'batch_id' => $batch->id,
                     'type' => $type,
                     'quantity' => $logQuantity,
-
-                    'note' => json_encode([
-                        'format' => 'batch-log-v1',
-
-                        // Chỉ chứa lý do người dùng nhập.
-                        'reason' => $data['note'],
-
-                        // Dữ liệu lịch sử, lấy trước/sau thao tác.
-                        'status_from' => $statusBefore,
-                        'status_to' => (string) $batch->status,
-
-                        'quantity_from' => $current,
-                        'quantity_to' => (int) $batch->current_quantity,
-
-                        'expiry_from' => $expiryBefore,
-                        'expiry_to' => $batch->expiry_date?->toDateString(),
-                    ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
-
+                    'note' => $note,
                     'created_by' => $staff->id,
                 ]);
 
@@ -563,6 +538,39 @@ class ProductBatchManager extends Component
     private function inventoryLogDisplay(InventoryLog $log): array
     {
         $raw = trim((string) ($log->note ?? ''));
+
+        // Chuẩn hóa ký tự xuống dòng.
+        $text = str_replace(["\r\n", "\r"], "\n", $raw);
+
+        // Đọc định dạng văn bản mới.
+// Toàn bộ nội dung sau dòng "Lý do:" là nội dung người dùng nhập.
+        $pattern = '/\ANhật ký lô hàng\n'
+            . 'Trạng thái: ([^\n]+?) → ([^\n]+)\n'
+            . 'Tồn kho: (\d+) → (\d+)\n'
+            . 'HSD: ([^\n]+?) → ([^\n]+)\n'
+            . 'Lý do:\n(.*)\z/su';
+
+        if (preg_match($pattern, $text, $matches)) {
+            $reason = trim($matches[7]);
+
+            return [
+                'reason' => $reason !== ''
+                    ? $reason
+                    : 'Không có lý do được ghi nhận.',
+
+                'transition' => $matches[1] !== $matches[2]
+                    ? $matches[1] . ' → ' . $matches[2]
+                    : null,
+
+                'stockChange' => $matches[3] !== $matches[4]
+                    ? $matches[3] . ' → ' . $matches[4]
+                    : null,
+
+                'expiryChange' => $matches[5] !== $matches[6]
+                    ? $matches[5] . ' → ' . $matches[6]
+                    : null,
+            ];
+        }
 
         $reason = $raw;
         $from = null;
@@ -661,24 +669,17 @@ class ProductBatchManager extends Component
             // Bỏ các hậu tố hệ thống đã từng được thêm vào log xuất hủy.
             if ($log->type === 'export_spoilage') {
                 $reason = preg_replace(
-                    '/\s+(?:Đã tiêu hủy hết tồn của lô\.|Đã xuất hủy hết tồn; chuyển Đã tiêu hủy\.|Đã xuất hủy hết tồn; chuyển recalled\.|Còn \d+ đơn vị chờ tiêu hủy; giữ trạng thái pending_recalled\.)\z/u',
+                    '/\s+(?:Đã tiêu hủy hết tồn của lô\.|Đã xuất hủy hết tồn; chuyển [^.]+\.|Còn \d+ đơn vị [^.]+; giữ trạng thái [a-z_]+\.)\z/u',
                     '',
                     $reason
                 ) ?? $reason;
             }
         }
 
-        $statusLabels = [
-            'active' => 'Đang bán',
-            'suspended' => 'Tạm dừng',
-            'pending_recalled' => 'Chờ tiêu hủy',
-            'recalled' => 'Đã tiêu hủy',
-        ];
+        $statusLabels = ProductBatch::STATUS_LABELS;
 
-        $transition = $from !== null && $to !== null
-            ? ($statusLabels[$from] ?? $from)
-            . ' → '
-            . ($statusLabels[$to] ?? $to)
+        $transition = isset($statusLabels[$from], $statusLabels[$to])
+            ? $statusLabels[$from] . ' → ' . $statusLabels[$to]
             : null;
 
         return [
@@ -768,40 +769,14 @@ class ProductBatchManager extends Component
             );
         }
 
-        switch ($this->statusFilter) {
-            case 'active':
-            case 'near_expiry':
-                $query->where('status', 'active')
-                    ->whereDate('expiry_date', '>=', $today)
-                    ->whereColumn(
-                        'current_quantity',
-                        '>',
-                        'reserved_quantity'
-                    );
-
-                if ($this->statusFilter === 'near_expiry') {
-                    $query->whereDate(
-                        'expiry_date',
-                        '<=',
-                        $near
-                    );
-                }
-                break;
-
-            case 'expired':
-                $query->whereDate('expiry_date', '<', $today)
-                    ->where('current_quantity', '>', 0);
-                break;
-
-            case 'out_of_stock':
-                $query->where('current_quantity', '<=', 0);
-                break;
-
-            case 'suspended':
-            case 'pending_recalled':
-            case 'recalled':
-                $query->where('status', $this->statusFilter);
-                break;
+        if (
+            in_array(
+                $this->statusFilter,
+                array_keys(ProductBatch::STATUS_LABELS),
+                true
+            )
+        ) {
+            $query->where('status', $this->statusFilter);
         }
 
         $selectedBatch = $this->batchId
@@ -831,11 +806,7 @@ class ProductBatchManager extends Component
         }
 
         $hasUnfinishedOrders = $selectedBatch
-            && in_array(
-                $this->modal,
-                ['status', 'spoilage', 'detail'],
-                true
-            )
+            && $this->modal === 'expiry'
             && $selectedBatch->hasUnfinishedOrders();
 
         $qrUrl = null;
@@ -843,11 +814,7 @@ class ProductBatchManager extends Component
         if (
             $selectedBatch
             && (int) $selectedBatch->current_quantity > 0
-            && !in_array(
-                $selectedBatch->status,
-                ['pending_recalled', 'recalled'],
-                true
-            )
+            && !in_array($selectedBatch->status, ['recalled', 'sold_out'], true)
             && in_array($this->modal, ['detail', 'qr'], true)
         ) {
             $traceUrl = route('customer.traceability.detail', [
@@ -876,8 +843,8 @@ class ProductBatchManager extends Component
             'stats' => $stats,
             'spoiledByUnit' => $spoiledByUnit,
             'selectedBatch' => $selectedBatch,
-            'qrUrl' => $qrUrl,
             'hasUnfinishedOrders' => $hasUnfinishedOrders,
+            'qrUrl' => $qrUrl,
             'inventoryLogDisplays' => $inventoryLogDisplays,
         ]);
     }

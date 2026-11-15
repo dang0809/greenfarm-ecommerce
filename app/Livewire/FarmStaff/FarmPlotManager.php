@@ -48,6 +48,10 @@ class FarmPlotManager extends Component
     public bool $showSowModal = false;
 
     public bool $showCreatePlotModal = false;
+
+    #[Locked]
+    public ?int $editPlotId = null;
+
     public string $newPlotName = '';
     public string $newPlotArea = '';
     public bool $showLogModal = false;
@@ -150,19 +154,23 @@ class FarmPlotManager extends Component
         ]);
     }
 
-    // Danh sahcs luống đất
+    // Trạng thái luống đất
+    #[Computed]
+    public function plotFilterOptions(): array
+    {
+        return [
+            'all' => '-- Tất cả trạng thái --',
+        ] + FarmPlot::STATUS_LABELS;
+    }
 
+    // Danh sách luống đất
     #[Computed]
     public function plots(): Collection
     {
         return FarmPlot::query()
             ->search($this->search)
             ->when(
-                in_array(
-                    $this->filter,
-                    ['empty', 'in-progress', 'available', 'maintenance'],
-                    true
-                ),
+                array_key_exists($this->filter, FarmPlot::STATUS_LABELS),
                 fn($query) => $query->where('status', $this->filter)
             )
             ->with([
@@ -171,7 +179,7 @@ class FarmPlotManager extends Component
                     ->with('product')
                     ->latest('id'),
             ])
-            ->orderBy('name')
+            ->orderBy('id')
             ->get();
     }
 
@@ -391,21 +399,22 @@ class FarmPlotManager extends Component
             : collect();
     }
 
-
     // Bộ lọc
-    public function setFilter(string $value): void
+    public function updatedFilter(): void
     {
-        if (
-            !in_array(
-                $value,
-                ['all', 'empty', 'in-progress', 'available', 'maintenance'],
-                true
-            )
-        ) {
-            return;
+        // Chỉ chấp nhận "all" hoặc trạng thái có trong FarmPlot.
+        if (!array_key_exists($this->filter, $this->plotFilterOptions)) {
+            $this->filter = 'all';
         }
 
-        $this->filter = $value;
+        // Xóa cache computed để danh sách được truy vấn lại.
+        unset($this->plots);
+    }
+
+    public function resetFilters(): void
+    {
+        $this->reset('search', 'filter');
+
         unset($this->plots);
     }
 
@@ -451,9 +460,24 @@ class FarmPlotManager extends Component
         $this->showCreatePlotModal = true;
     }
 
-    public function requestCreatePlot(
-        FarmPlotService $service
-    ): void {
+    // Sửa luống
+    public function openEditPlotModal(int $plotId): void
+    {
+        $this->staff();
+
+        $plot = FarmPlot::findOrFail($plotId);
+
+        $this->closeModals();
+
+        $this->editPlotId = $plot->id;
+        $this->newPlotName = $plot->name;
+        $this->newPlotArea = (string) $plot->area;
+
+        $this->showCreatePlotModal = true;
+    }
+
+    public function requestSavePlot(FarmPlotService $service): void
+    {
         $this->staff();
 
         abort_unless($this->showCreatePlotModal, 404);
@@ -465,15 +489,19 @@ class FarmPlotManager extends Component
             'area' => $this->newPlotArea,
         ]);
 
+        // Bước này chỉ kiểm tra dữ liệu và mở xác nhận.
         $this->dispatch(
             'confirm-farm-action',
-            action: 'create'
+            action: $this->editPlotId !== null ? 'updatePlot' : 'create'
         )->self();
     }
 
     public function createPlot(FarmPlotService $service): void
     {
-        abort_unless($this->showCreatePlotModal, 404);
+        abort_unless(
+            $this->showCreatePlotModal && $this->editPlotId === null,
+            404
+        );
 
         $this->attempt('newPlotName', function () use ($service) {
             $plot = $service->createPlot([
@@ -497,6 +525,118 @@ class FarmPlotManager extends Component
             $this->success(
                 'Đã tạo luống!',
                 "Đã tạo luống {$plot->name}. Hãy cải tạo đất trước khi xuống giống."
+            );
+        });
+    }
+
+    public function updatePlot(FarmPlotService $service): void
+    {
+        abort_unless(
+            $this->showCreatePlotModal && $this->editPlotId !== null,
+            404
+        );
+
+        $this->attempt('newPlotName', function () use ($service) {
+            $plot = $service->updatePlot(
+                FarmPlot::findOrFail($this->editPlotId),
+                [
+                    'name' => $this->newPlotName,
+                    'area' => $this->newPlotArea,
+                ],
+                $this->staff()
+            );
+
+            $this->closeModals();
+            $this->refreshData();
+
+            $this->success(
+                'Đã cập nhật luống!',
+                "Đã lưu thông tin luống {$plot->name}."
+            );
+        });
+    }
+
+    public function requestDeletePlot(int $plotId): void
+    {
+        $this->staff();
+        $this->resetValidation('plot');
+
+        $plot = FarmPlot::findOrFail($plotId);
+
+        // Kiểm tra trước khi mở xác nhận.
+        if ($plot->plantingBatches()->exists()) {
+            $this->dispatch(
+                'swal',
+                icon: 'warning',
+                title: 'Không thể xóa luống',
+                text: 'Luống đã có lịch sử vụ trồng nên không thể xóa.'
+            );
+
+            return;
+        }
+
+        // Bước này chưa thay đổi dữ liệu.
+        $this->dispatch(
+            'confirm-farm-action',
+            action: 'deletePlot',
+            plotId: $plot->id,
+            plotName: $plot->name
+        )->self();
+    }
+
+    public function deletePlot(
+        int $plotId,
+        FarmPlotService $service
+    ): void {
+        $this->staff();
+        $this->resetValidation('plot');
+
+        $this->attempt('plot', function () use ($plotId, $service) {
+            $plot = FarmPlot::findOrFail($plotId);
+            $plotName = $plot->name;
+
+            try {
+                // Service khóa bản ghi và kiểm tra lại khi xác nhận.
+                $service->deletePlot($plot, $this->staff());
+            } catch (ValidationException $exception) {
+                $message = $exception->errors()['plot'][0]
+                    ?? 'Không thể xóa luống.';
+
+                $this->addError('plot', $message);
+
+                $this->dispatch(
+                    'swal',
+                    icon: 'warning',
+                    title: 'Không thể xóa luống',
+                    text: $message
+                );
+
+                return;
+            }
+
+            // Dọn màn hình/form nếu đang tham chiếu luống vừa xóa.
+            if ($this->selectedPlotId === $plotId) {
+                $this->closeModals();
+
+                $this->reset(
+                    'selectedPlotId',
+                    'selectedBatchId',
+                    'activeTab'
+                );
+            } elseif ($this->editPlotId === $plotId) {
+                $this->closeModals();
+            }
+
+            $this->refreshData();
+
+            $this->dispatch(
+                'farm-plot-deleted',
+                plotId: $plotId
+            )->self();
+
+            $this->success(
+                'Đã xóa luống!',
+                "Đã xóa luống {$plotName}."
             );
         });
     }
@@ -769,6 +909,7 @@ class FarmPlotManager extends Component
             'harvestBatchId',
             'sowProductId',
             'showCreatePlotModal',
+            'editPlotId',
             'newPlotName',
             'newPlotArea',
             'sowDate',

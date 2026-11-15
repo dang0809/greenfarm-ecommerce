@@ -4,15 +4,12 @@
         $selectedProduct = $selectedBatch?->plantingBatch?->product;
         $selectedUnit = $selectedProduct?->unit ?? 'đơn vị';
 
-        $blockedForRecall = $selectedBatch && ((int) $selectedBatch->reserved_quantity > 0 || $hasUnfinishedOrders);
-
         $cannotSubmit =
             $selectedBatch &&
-            (($modal === 'status' && $newStatus === 'pending_recalled' && $blockedForRecall) ||
-                ($modal === 'spoilage' &&
-                    ($selectedBatch->current_quantity <= 0 ||
-                        $selectedBatch->status === 'recalled' ||
-                        ($destroyAll ? $blockedForRecall : $selectedBatch->available_quantity <= 0))));
+            $modal === 'spoilage' &&
+            ($selectedBatch->current_quantity <= 0 ||
+                in_array($selectedBatch->status, ['recalled', 'sold_out'], true) ||
+                $selectedBatch->available_quantity <= 0);
     @endphp
     {{-- Hiển thị tiêu đề quản lý lô nông sản, ngày hiện tại và nút mở menu di động --}}
     <header
@@ -30,16 +27,14 @@
                 </h1>
             </div>
         </div>
-
-
     </header>
 
     {{-- Hiển thị thống kê và danh sách lô nông sản trong kho --}}
     <div
         class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 relative z-10 space-y-5 sm:space-y-6 custom-scrollbar pb-28 sm:pb-12 h-[calc(100dvh-5rem)]">
 
-        {{-- Tổng hợp lô tồn kho, cận hạn, hết hạn và lượng xuất hủy theo đơn vị. --}}
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+        {{-- Tổng hợp lô tồn kho, hết hạn và lượng xuất hủy theo đơn vị. --}}
+        <div class="grid grid-cols-2 lg:grid-cols-4 auto-rows-fr gap-3 sm:gap-4">
             <div class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft">
                 <div class="flex items-center justify-between mb-1.5 sm:mb-2">
                     <span class="text-[11px] sm:text-xs font-bold text-gray-500">
@@ -84,27 +79,6 @@
 
             <div class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft">
                 <div class="flex items-center justify-between mb-1.5 sm:mb-2">
-                    <span class="text-[11px] sm:text-xs font-bold text-amber-600">
-                        Lô cận hạn (&le; 3N)
-                    </span>
-
-                    <div
-                        class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xs sm:text-sm">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                    </div>
-                </div>
-
-                <div class="text-xl sm:text-2xl font-black text-amber-700">
-                    {{ number_format($stats['near']) }}
-                </div>
-
-                <p class="text-[10px] sm:text-[11px] text-amber-700 font-medium mt-1">
-                    Ưu tiên đẩy bán FEFO
-                </p>
-            </div>
-
-            <div class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-rose-100 shadow-soft">
-                <div class="flex items-center justify-between mb-1.5 sm:mb-2">
                     <span class="text-[11px] sm:text-xs font-bold text-rose-600">
                         Lô đã hết hạn
                     </span>
@@ -124,8 +98,7 @@
                 </p>
             </div>
 
-            <div
-                class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft col-span-2 sm:col-span-1">
+            <div class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft">
                 <div class="flex items-center justify-between mb-1.5 sm:mb-2">
                     <span class="text-[11px] sm:text-xs font-bold text-rose-700">
                         Hao hụt xuất hủy
@@ -187,13 +160,9 @@
                     <select wire:model.live="statusFilter"
                         class="bg-white border border-gray-200 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-gray-700 outline-none focus:border-brand-500 transition-all cursor-pointer">
                         <option value="">-- Tất cả trạng thái --</option>
-                        <option value="active">Đang mở bán, còn khả dụng</option>
-                        <option value="near_expiry">Cận hạn FEFO (&le; 3 ngày)</option>
-                        <option value="expired">Quá HSD, còn tồn</option>
-                        <option value="out_of_stock">Đã hết tồn</option>
-                        <option value="suspended">Tạm dừng</option>
-                        <option value="pending_recalled">Chờ tiêu hủy</option>
-                        <option value="recalled">Đã tiêu hủy</option>
+                        @foreach (\App\Models\ProductBatch::STATUS_LABELS as $value => $text)
+                            <option value="{{ $value }}">{{ $text }}</option>
+                        @endforeach
                     </select>
                 </div>
 
@@ -227,27 +196,29 @@
                         @forelse ($batches as $batch)
                             @php
                                 $rowProduct = $batch->plantingBatch?->product;
-                                $state = $batch->display_status;
 
                                 $hasStock = (int) $batch->current_quantity > 0;
                                 $isExpired = $batch->expiry_date->lt(today());
-                                $isDestroyed = $batch->status === 'recalled';
+
+                                $isNearExpiry = !$isExpired && $batch->expiry_date->lte(today()->addDays(3));
+
+                                $isClosed = in_array($batch->status, ['recalled', 'sold_out'], true);
+
+                                $canOperate = $hasStock && !$isClosed;
 
                                 $canEdit =
-                                    $hasStock && !$isExpired && in_array($batch->status, ['active', 'suspended'], true);
+                                    $canOperate &&
+                                    !$isExpired &&
+                                    in_array($batch->status, ['active', 'suspended'], true);
 
-                                [$label, $badge] = match ($state) {
-                                    'pending_recalled' => ['Chờ tiêu hủy', 'bg-red-100 text-red-700 border-red-200'],
-                                    'recalled' => ['Đã tiêu hủy', 'bg-red-100 text-red-700 border-red-200'],
-                                    'suspended' => ['Tạm dừng', 'bg-slate-100 text-slate-600 border-slate-300'],
-                                    'expired' => ['Đã hết hạn', 'bg-red-100 text-red-700 border-red-200'],
-                                    'out_of_stock' => ['Đã hết hàng', 'bg-gray-100 text-gray-600 border-gray-200'],
-                                    'reserved' => ['Đã giữ chỗ hết', 'bg-gray-100 text-gray-600 border-gray-200'],
-                                    'near_expiry' => [
-                                        'Cận hạn · FEFO',
-                                        'bg-amber-100 text-amber-800 border-amber-300 font-bold',
-                                    ],
-                                    default => ['Đang mở bán', 'bg-brand-100 text-brand-800 border-brand-200'],
+                                $label = \App\Models\ProductBatch::STATUS_LABELS[$batch->status] ?? '—';
+
+                                $badge = match ($batch->status) {
+                                    'active' => 'bg-brand-100 text-brand-800 border-brand-200',
+                                    'suspended' => 'bg-slate-100 text-slate-600 border-slate-300',
+                                    'recalled' => 'bg-red-100 text-red-700 border-red-200',
+                                    'sold_out' => 'bg-gray-100 text-gray-700 border-gray-300',
+                                    default => 'bg-gray-100 text-gray-600 border-gray-200',
                                 };
                             @endphp
 
@@ -289,7 +260,7 @@
 
                                 <td class="py-3 px-4 font-mono text-xs">
                                     <span
-                                        class="{{ $isExpired ? 'text-red-600 font-bold' : ($state === 'near_expiry' ? 'text-amber-800 font-bold' : 'text-gray-700') }}">
+                                        class="{{ $isExpired ? 'text-red-600 font-bold' : ($isNearExpiry ? 'text-amber-800 font-bold' : 'text-gray-700') }}">
                                         {{ $batch->expiry_date->format('d/m/Y') }}
                                     </span>
                                 </td>
@@ -319,9 +290,8 @@
                                 </td>
 
                                 <td class="py-3 px-4 pr-5 text-right space-x-1">
-                                    @if ($hasStock && !$isDestroyed)
-                                        <button type="button"
-                                            wire:click="openModal('spoilage', {{ $batch->id }})"
+                                    @if ($canOperate)
+                                        <button type="button" wire:click="openModal('spoilage', {{ $batch->id }})"
                                             wire:loading.attr="disabled" wire:target="openModal"
                                             class="px-2 py-1.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition font-bold text-[11px] cursor-pointer">
                                             <i class="fa-solid fa-trash-can mr-1"></i>Xuất hủy
@@ -349,14 +319,11 @@
                                                 Trạng thái
                                             </button>
                                         @endif
-
-                                        @if ($batch->status !== 'pending_recalled')
-                                            <button type="button" wire:click="openModal('qr', {{ $batch->id }})"
-                                                wire:loading.attr="disabled" wire:target="openModal"
-                                                class="px-2 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition font-bold text-[11px] cursor-pointer">
-                                                <i class="fa-solid fa-qrcode mr-1"></i>QR
-                                            </button>
-                                        @endif
+                                        <button type="button" wire:click="openModal('qr', {{ $batch->id }})"
+                                            wire:loading.attr="disabled" wire:target="openModal"
+                                            class="px-2 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition font-bold text-[11px] cursor-pointer">
+                                            <i class="fa-solid fa-qrcode mr-1"></i>QR
+                                        </button>
                                     @endif
 
                                     <button type="button" wire:click="openModal('detail', {{ $batch->id }})"
@@ -438,14 +405,10 @@
                     </button>
                 </div>
 
-                <form wire:submit="requestSave" class="space-y-3 text-xs">
-                    @if ($errors->any())
-                        <div role="alert">
-                            @foreach ($errors->all() as $message)
-                                <p>{{ $message }}</p>
-                            @endforeach
-                        </div>
-                    @endif
+                <form wire:submit="requestSave" novalidate class="space-y-3 text-xs">
+                    @error('form')
+                        <p role="alert" class="text-red-500">{{ $message }}</p>
+                    @enderror
 
                     <fieldset x-bind:disabled="confirmingBatch" wire:loading.attr="disabled"
                         wire:target="requestSave,saveChange,closeModal" class="space-y-3">
@@ -470,28 +433,19 @@
                                     </span>
                                 </label>
 
-                                @if ($destroyAll)
-                                    <input type="number" id="sp-qty" value="{{ $destroyQuantity }}" disabled
+                                @if ($selectedBatch->available_quantity > 0)
+                                    <input type="number" id="sp-qty" wire:model.live.debounce.300ms="quantity"
+                                        step="1" min="1" max="{{ $selectedBatch->available_quantity }}"
                                         class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold text-rose-600 text-sm outline-none focus:border-rose-500">
 
-                                    <p>
-                                        <br>
-                                        Lô hàng đang Chờ tiêu hủy. Toàn bộ {{ $destroyQuantity }} {{ $selectedUnit }}
-                                        sẽ được xuất hủy sau khi xác nhận.
+                                    @error('quantity')
+                                        <p role="alert" class="text-red-500">{{ $message }}</p>
+                                    @enderror
+
+                                    <p class="mt-2 text-red-500">
+                                        Chỉ được xuất hủy phần khả dụng.
+                                        Xuất hủy hết tồn sẽ chuyển lô sang Tiêu hủy.
                                     </p>
-
-                                    @if ($blockedForRecall)
-                                        <p role="alert">
-                                            Chưa thể tiêu hủy toàn bộ.
-                                            Lô còn {{ $selectedBatch->reserved_quantity }}
-                                            {{ $selectedUnit }} giữ chỗ hoặc còn đơn chưa kết thúc.
-                                            Sales cần xử lý các phân bổ liên quan trước.
-                                        </p>
-                                    @endif
-                                @elseif ($selectedBatch->available_quantity > 0)
-                                    <input type="number" id="sp-qty" wire:model="quantity" step="1"
-                                        min="1" max="{{ $selectedBatch->available_quantity }}" required
-                                        class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold text-rose-600 text-sm outline-none focus:border-rose-500">
                                 @else
                                     <p role="alert">
                                         Không còn số lượng chưa giữ chỗ để xuất hủy.
@@ -505,9 +459,13 @@
                                     <span class="text-red-500">*</span>
                                 </label>
 
-                                <input type="number" id="as-quantity" wire:model="quantity" step="1"
-                                    min="{{ $selectedBatch->reserved_quantity }}" max="2147483647" required
+                                <input type="number" id="as-quantity" wire:model.live.debounce.300ms="quantity"
+                                    step="1" min="{{ $selectedBatch->reserved_quantity }}" max="2147483647"
                                     class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2 font-mono font-bold text-sm text-slate-900 outline-none focus:border-brand-600">
+
+                                @error('quantity')
+                                    <p role="alert" class="text-red-500">{{ $message }}</p>
+                                @enderror
 
                                 <p><br>
                                     Đang giữ chỗ: {{ $selectedBatch->reserved_quantity }} {{ $selectedUnit }}. Tồn mới
@@ -520,12 +478,24 @@
                                     <span class="text-red-500">*</span>
                                 </label>
 
-                                <input type="date" id="ae-expiry" wire:model="expiry" required
+                                <input type="date" id="ae-expiry" wire:model.live="expiry"
                                     class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono outline-none focus:border-brand-600 font-bold text-sm">
 
-                                <p><br>
-                                    HSD hiện tại: {{ $selectedBatch->expiry_date->format('d/m/Y') }}. HSD mới phải
-                                    sau ngày thu hoạch/ngày xuống giống. </p>
+                                @error('expiry')
+                                    <p role="alert" class="text-red-500">{{ $message }}</p>
+                                @enderror
+
+                                <p class="mt-2">
+                                    HSD hiện tại:
+                                    {{ $selectedBatch->expiry_date->format('d/m/Y') }}.
+                                    HSD mới phải sau ngày thu hoạch/ngày xuống giống.
+                                </p>
+
+                                @if (((int) $selectedBatch->reserved_quantity > 0 || $hasUnfinishedOrders) && !$errors->has('form'))
+                                    <p role="alert" class="text-red-500">
+                                        Không sửa HSD khi còn giữ chỗ hoặc đơn chưa kết thúc.
+                                    </p>
+                                @endif
                             </div>
                         @else
                             <div>
@@ -534,34 +504,25 @@
                                     <span class="text-red-500">*</span>
                                 </label>
 
-                                <select id="batch-status" wire:model.live="newStatus" required
+                                <select id="batch-status" wire:model.live="newStatus"
                                     class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none">
+
                                     <option value="active">Đang mở bán</option>
                                     <option value="suspended">Tạm dừng</option>
-                                    <option value="pending_recalled">Thu hồi toàn bộ</option>
                                 </select>
 
-                                @if ($newStatus === 'suspended')
-                                    <p><br>
+                                @error('newStatus')
+                                    <p role="alert" class="text-red-500">{{ $message }}</p>
+                                @enderror
+
+                                <p class="mt-2">
+                                    @if ($newStatus === 'suspended')
                                         Tạm dừng cấp cho đơn mới.
                                         Các đơn đã đặt vẫn tiếp tục được xử lý.
-                                    </p>
-                                @elseif ($newStatus === 'pending_recalled')
-                                    <p><br>
-                                        Chuyển sang Chờ tiêu hủy
-                                    </p>
-
-                                    @if ($blockedForRecall)
-                                        <p role="alert">
-                                            Chưa thể thu hồi toàn bộ: còn giữ chỗ hoặc đơn chưa kết thúc.
-                                            Hãy Tạm dừng lô và phối hợp Sales xử lý trước.
-                                        </p>
-                                    @endif
-                                @else
-                                    <p><br>
+                                    @else
                                         Mở lại nguồn cấp nếu lô còn hạn và còn tồn.
-                                    </p>
-                                @endif
+                                    @endif
+                                </p>
                             </div>
                         @endif
 
@@ -571,9 +532,13 @@
                                 <span class="text-red-500">*</span>
                             </label>
 
-                            <textarea id="batch-note" wire:model="note" rows="2" maxlength="1000" required
+                            <textarea id="batch-note" wire:model.live.debounce.300ms="note" rows="2" maxlength="1000"
                                 placeholder="Nhập lý do chi tiết..."
                                 class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl p-2.5 outline-none {{ $modal === 'spoilage' ? 'focus:border-rose-500' : 'focus:border-brand-600' }} resize-none"></textarea>
+
+                            @error('note')
+                                <p role="alert" class="text-red-500">{{ $message }}</p>
+                            @enderror
                         </div>
 
                         <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
@@ -602,7 +567,7 @@
 
     {{-- Hiển thị thông tin chi tiết lô nông sản và các nhật ký liên quan --}}
     @if ($selectedBatch && $modal === 'detail')
-        <div id="modal-detail" wire:key="batch-detail-{{ $selectedBatch->id }}"
+        <div id="modal-detail" wire:key="batch-detail-{{ $selectedBatch->id }}" x-data="{ detailTab: 'inventory' }"
             class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 overflow-hidden">
 
             <div
@@ -692,13 +657,37 @@
                     </div>
                 </div>
 
+                <div class="shrink-0 border-b border-slate-200" role="tablist"
+                    aria-label="Thông tin chi tiết lô hàng">
+
+                    <div class="grid grid-cols-2 gap-1 w-full">
+                        <button type="button" role="tab" id="inventory-tab" aria-controls="inventory-panel"
+                            :aria-selected="detailTab === 'inventory'" @click="detailTab = 'inventory'"
+                            :class="detailTab === 'inventory'
+                                ?
+                                'border-brand-700 text-brand-700 bg-brand-50' :
+                                'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700'"
+                            class="flex w-full min-w-0 items-center justify-center gap-2 border-b-2 px-2 sm:px-3 py-2.5 text-[11px] sm:text-xs font-bold text-center leading-snug whitespace-normal transition cursor-pointer">
+                            <i class="fa-solid fa-arrow-right-arrow-left shrink-0"></i>
+                            Lịch sử biến động kho
+                        </button>
+
+                        <button type="button" role="tab" id="farming-tab" aria-controls="farming-panel"
+                            :aria-selected="detailTab === 'farming'" @click="detailTab = 'farming'"
+                            :class="detailTab === 'farming'
+                                ?
+                                'border-brand-700 text-brand-700 bg-brand-50' :
+                                'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700'"
+                            class="flex w-full min-w-0 items-center justify-center gap-2 border-b-2 px-2 sm:px-3 py-2.5 text-[11px] sm:text-xs font-bold text-center leading-snug whitespace-normal transition cursor-pointer">
+                            <i class="fa-solid fa-seedling shrink-0"></i>
+                            Nhật ký canh tác gốc
+                        </button>
+                    </div>
+                </div>
+
                 {{-- Hiển thị lịch sử biến động kho, chuyển trạng thái và nội dung thao tác --}}
-                <div class="flex flex-1 min-h-0 flex-col gap-2.5 overflow-hidden">
-                    <h4
-                        class="shrink-0 text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                        <i class="fa-solid fa-trash-can text-red-500"></i>
-                        Lịch sử biến động kho
-                    </h4>
+                <div x-cloak x-show="detailTab === 'inventory'" role="tabpanel" id="inventory-panel"
+                    aria-labelledby="inventory-tab" class="flex-1 min-h-0 flex flex-col gap-2.5 overflow-hidden">
 
                     {{-- Định dạng loại biến động, chiều tăng giảm và nội dung nhật ký kho --}}
                     <div class="flex-1 min-h-0 space-y-2 overflow-y-auto overscroll-contain custom-scrollbar pr-2">
@@ -794,13 +783,8 @@
                 </div>
 
                 {{-- Hiển thị nhật ký canh tác của vụ trồng tạo ra lô nông sản --}}
-                <div class="flex flex-1 min-h-0 flex-col gap-2.5 overflow-hidden pt-3 border-t border-slate-100">
-                    <h4
-                        class="shrink-0 text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                        <i class="fa-solid fa-seedling text-brand-600"></i>
-                        Nhật ký canh tác gốc
-                    </h4>
-
+                <div x-cloak x-show="detailTab === 'farming'" role="tabpanel" id="farming-panel"
+                    aria-labelledby="farming-tab" class="flex-1 min-h-0 flex flex-col gap-2.5 overflow-hidden">
                     {{-- Giới hạn chiều cao và cho phép cuộn riêng nhật ký canh tác --}}
                     <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain custom-scrollbar px-2 py-1">
 
@@ -946,21 +930,10 @@
                 };
 
                 try {
-                    const fullDisposal = $wire.modal === 'spoilage' &&
-                        $wire.destroyAll;
-
-                    const confirmationText = fullDisposal ?
-                        `Xác nhận tiêu hủy toàn bộ ${$wire.destroyQuantity} đơn vị tồn còn lại?` :
-                        'Thao tác sẽ cập nhật dữ liệu và ghi nhật ký kho.';
                     const result = await Swal.fire({
-                        icon: $wire.modal === 'spoilage' ?
-                            'warning' : 'question',
-
-                        title: fullDisposal ?
-                            'Xác nhận tiêu hủy toàn bộ?' : (titles[$wire.modal] ??
-                                'Xác nhận cập nhật lô hàng?'),
-
-                        text: confirmationText,
+                        icon: $wire.modal === 'spoilage' ? 'warning' : 'question',
+                        title: titles[$wire.modal] ?? 'Xác nhận cập nhật lô hàng?',
+                        text: 'Thao tác sẽ cập nhật dữ liệu và ghi nhật ký kho.',
                         showCancelButton: true,
                         confirmButtonText: 'Xác nhận',
                         cancelButtonText: 'Hủy',

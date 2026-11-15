@@ -1,6 +1,95 @@
 <div wire:poll.60s x-data="{
     confirmingFarm: false,
+    confirmingPlotId: null,
     uploadingFarmPhoto: false,
+
+    maintenanceJobs: {},
+    maintenanceClock: Date.now(),
+    maintenanceTimer: null,
+    maintenanceSaving: false,
+
+    init() {
+        this.maintenanceTimer = setInterval(() => {
+            this.maintenanceClock = Date.now();
+
+            // Đợi thao tác xác nhận hoặc yêu cầu lưu hiện tại kết thúc.
+            if (
+                this.confirmingFarm ||
+                this.maintenanceSaving ||
+                Swal.isVisible()
+            ) {
+                return;
+            }
+
+            const id = Object.keys(this.maintenanceJobs).find(
+                id => this.maintenanceJobs[id].endsAt <= this.maintenanceClock
+            );
+
+            if (id !== undefined) {
+                void this.finishMaintenance(id);
+            }
+        }, 250);
+    },
+
+    destroy() {
+        clearInterval(this.maintenanceTimer);
+    },
+
+    isMaintaining(id) {
+        return Boolean(this.maintenanceJobs[id]);
+    },
+
+    maintenanceSeconds(id) {
+        const job = this.maintenanceJobs[id];
+
+        return job ?
+            Math.max(
+                0,
+                Math.ceil((job.endsAt - this.maintenanceClock) / 1000)
+            ) :
+            0;
+    },
+
+    startMaintenance(id) {
+        if (
+            this.confirmingFarm ||
+            this.maintenanceSaving ||
+            this.isMaintaining(id)
+        ) {
+            return;
+        }
+
+        this.maintenanceClock = Date.now();
+
+        this.maintenanceJobs[id] = {
+            endsAt: this.maintenanceClock + 3000,
+            saving: false,
+        };
+    },
+
+    async finishMaintenance(id) {
+        const job = this.maintenanceJobs[id];
+
+        if (!job || job.saving) {
+            return;
+        }
+
+        job.saving = true;
+        this.maintenanceSaving = true;
+
+        try {
+            await this.$wire.completeMaintenance(Number(id));
+        } catch (error) {
+            this.$dispatch('swal', {
+                icon: 'error',
+                title: 'Chưa hoàn tất cải tạo',
+                text: 'Kiểm tra kết nối và thử lại.',
+            });
+        } finally {
+            delete this.maintenanceJobs[id];
+            this.maintenanceSaving = false;
+        }
+    },
 
     checkFarmPhoto(event, maxMb) {
         const file = event.target.files?.[0];
@@ -32,7 +121,11 @@
 
         return message;
     }
-}" x-on:farm-confirm-state="confirmingFarm = $event.detail.busy"
+}"
+    x-on:farm-confirm-state="
+    confirmingFarm = $event.detail.busy;
+    confirmingPlotId = $event.detail.plotId ?? null;"
+    x-on:farm-plot-deleted="delete maintenanceJobs[$event.detail.plotId]"
     x-on:livewire-upload-start="uploadingFarmPhoto = true" x-on:livewire-upload-finish="uploadingFarmPhoto = false"
     x-on:livewire-upload-error="uploadingFarmPhoto = false" x-on:livewire-upload-cancel="uploadingFarmPhoto = false">
     {{-- Hiển thị tiêu đề theo luống đang chọn và thao tác tạo luống mới --}}
@@ -53,8 +146,8 @@
 
         @unless ($this->selectedPlot)
             <button type="button" wire:click="openCreatePlotModal" wire:loading.attr="disabled"
-                wire:target="openCreatePlotModal"
-                class="bg-brand-700 hover:bg-brand-800 text-white font-bold text-xs sm:text-sm px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl transition shadow-md flex items-center gap-2 active:scale-95 shrink-0 whitespace-nowrap cursor-pointer">
+                wire:target="openCreatePlotModal" x-bind:disabled="confirmingFarm || maintenanceSaving"
+                class="bg-brand-700 hover:bg-brand-800 text-white font-bold text-xs sm:text-sm px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl transition shadow-md flex items-center gap-2 active:scale-95 shrink-0 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
                 <i class="fa-solid fa-plus"></i>
                 <span class="hidden sm:inline">Tạo luống đất</span>
             </button>
@@ -73,30 +166,43 @@
         {{-- Hiển thị danh sách luống, bộ lọc và thao tác theo hiện trạng từng luống --}}
         @unless ($this->selectedPlot)
             <div class="space-y-4 sm:space-y-6">
-                <div
-                    class="flex flex-col md:flex-row md:items-center justify-between gap-3.5 bg-white p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft">
-                    <div class="relative w-full md:w-80">
-                        <i
-                            class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs sm:text-sm"></i>
-                        <input type="text" wire:model.live.debounce.300ms="search"
-                            placeholder="Tìm tên luống (VD: Nhà Màng A1)..."
-                            class="w-full pl-10 pr-4 py-2 sm:py-2.5 border border-gray-200 rounded-xl sm:rounded-2xl text-xs sm:text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 bg-[#FAFAF8] font-medium transition-all">
-                    </div>
-                    <div class="flex flex-wrap items-center gap-3 sm:gap-5 text-xs sm:text-sm font-bold text-gray-600">
-                        @foreach ([
-            'all' => 'Tất cả',
-            'empty' => 'Đất trống',
-            'in-progress' => 'Đang canh tác',
-            'available' => 'Sẵn sàng',
-            'maintenance' => 'Cần cải tạo',
-        ] as $key => $label)
-                            <label class="flex items-center gap-1.5 cursor-pointer">
-                                <input type="radio" name="filter_plot" value="{{ $key }}"
-                                    wire:click="setFilter('{{ $key }}')" @checked($filter === $key)
-                                    class="accent-brand-700">
-                                {{ $label }}
-                            </label>
-                        @endforeach
+                <div class="bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft overflow-hidden">
+
+                    <div
+                        class="p-3.5 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 bg-gray-50/60">
+
+                        <div
+                            class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-3 flex-1">
+
+                            {{-- Tìm kiếm tên luống --}}
+                            <div class="relative w-full sm:w-72 md:w-80">
+                                <i
+                                    class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs sm:text-sm">
+                                </i>
+
+                                <input type="text" wire:model.live.debounce.300ms="search" placeholder="Tìm tên luống..."
+                                    aria-label="Tìm kiếm tên luống"
+                                    class="w-full pl-10 pr-4 py-2 sm:py-2.5 border border-gray-200 rounded-xl sm:rounded-2xl text-xs sm:text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 bg-white font-medium transition-all">
+                            </div>
+
+                            {{-- Lọc trạng thái luống --}}
+                            <select wire:model.live="filter" aria-label="Lọc theo trạng thái luống"
+                                class="bg-white border border-gray-200 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-gray-700 outline-none focus:border-brand-500 transition-all cursor-pointer">
+
+                                @foreach ($this->plotFilterOptions as $value => $label)
+                                    <option value="{{ $value }}">
+                                        {{ $label }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Đặt lại tìm kiếm và trạng thái --}}
+                        <button type="button" wire:click="resetFilters" wire:loading.attr="disabled"
+                            wire:target="resetFilters" title="Đặt lại bộ lọc" aria-label="Đặt lại bộ lọc"
+                            class="self-end md:self-auto p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 transition-colors shadow-xs cursor-pointer">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -105,17 +211,14 @@
                     @forelse ($this->plots as $plot)
                         @php
                             $batch = $plot->activeBatch();
+
                             $isMaintenance = $plot->status === 'maintenance';
+
                             $canSow = !$batch && $plot->status === 'available';
+
                             $canMaintain = !$batch && in_array($plot->status, ['empty', 'maintenance'], true);
 
-                            $statusLabel = match ($plot->status) {
-                                'empty' => 'Đất trống',
-                                'maintenance' => 'Cần cải tạo',
-                                'available' => 'Sẵn sàng xuống giống',
-                                'in-progress' => 'Đang canh tác',
-                                default => $plot->status,
-                            };
+                            $statusLabel = \App\Models\FarmPlot::STATUS_LABELS[$plot->status] ?? 'Không xác định';
                         @endphp
 
                         <div wire:key="plot-{{ $plot->id }}"
@@ -127,16 +230,29 @@
                                         {{ $plot->name }}
                                     </h3>
 
-                                    <span
-                                        class="text-[10px] font-bold px-2 py-1 rounded-full shrink-0
-    {{ match ($plot->status) {
-        'maintenance' => 'bg-amber-50 text-amber-800',
-        'available' => 'bg-brand-50 text-brand-800',
-        'in-progress' => 'bg-blue-50 text-blue-800',
-        default => 'bg-gray-100 text-gray-600',
-    } }}">
-                                        {{ $statusLabel }}
-                                    </span>
+                                    <div class="flex items-center gap-1.5 shrink-0">
+                                        <span
+                                            class="text-[10px] font-bold px-2 py-1 rounded-full
+        {{ match ($plot->status) {
+            'maintenance' => 'bg-amber-50 text-amber-800',
+            'available' => 'bg-brand-50 text-brand-800',
+            'in-progress' => 'bg-blue-50 text-blue-800',
+            default => 'bg-gray-100 text-gray-600',
+        } }}">
+                                            {{ $statusLabel }}
+                                        </span>
+
+                                        <button type="button" wire:click.stop="requestDeletePlot({{ $plot->id }})"
+                                            wire:loading.attr="disabled"
+                                            wire:target="requestDeletePlot({{ $plot->id }}),deletePlot({{ $plot->id }})"
+                                            x-bind:disabled="(confirmingFarm && confirmingPlotId === {{ $plot->id }}) ||
+                                            maintenanceSaving ||
+                                                isMaintaining({{ $plot->id }})"
+                                            title="Xóa luống" aria-label="Xóa luống"
+                                            class="w-7 h-7 shrink-0 inline-flex items-center justify-center rounded-lg border border-rose-200 bg-white text-rose-600 hover:bg-rose-50 hover:border-rose-300 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
+                                            <i class="fa-solid fa-trash-can text-xs"></i>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <p class="text-xs text-gray-500">
@@ -179,42 +295,26 @@
 
                             <div class="space-y-2">
                                 @if ($canMaintain)
-                                    <div wire:key="maintenance-{{ $plot->id }}" x-data="{
-                                        running: false,
-                                        seconds: 3
-                                    }">
-                                        <button type="button" x-bind:disabled="running || confirmingFarm"
-                                            x-on:click="
-                if (running) return;
+                                    <button type="button"
+                                        x-bind:disabled="confirmingFarm ||
+                                            maintenanceSaving ||
+                                            isMaintaining({{ $plot->id }})"
+                                        x-on:click="startMaintenance({{ $plot->id }})"
+                                        class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs disabled:opacity-60 disabled:cursor-not-allowed">
 
-                running = true;
-                seconds = 3;
-            {{-- Đếm ngược và gửi yêu cầu hoàn tất cải tạo luống từ danh sách --}}
-                const timer = setInterval(() => {
-                    seconds--;
+                                        <span x-show="!isMaintaining({{ $plot->id }})">
+                                            <i class="fa-solid fa-wrench mr-1"></i>
+                                            Cải tạo đất
+                                        </span>
 
-                    if (seconds <= 0) {
-                        clearInterval(timer);
-
-                        $wire.completeMaintenance({{ $plot->id }})
-                            .finally(() => {
-                                running = false;
-                            });
-                    }
-                }, 1000);
-            "
-                                            class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 rounded-xl text-xs disabled:opacity-60">
-                                            <span x-show="!running">
-                                                <i class="fa-solid fa-wrench mr-1"></i>
-                                                Cải tạo đất
-                                            </span>
-
-                                            <span x-show="running" x-cloak>
-                                                Đang cải tạo...
-                                                <strong x-text="seconds"></strong>
-                                            </span>
-                                        </button>
-                                    </div>
+                                        <span x-cloak x-show="isMaintaining({{ $plot->id }})"
+                                            x-text="
+            maintenanceSeconds({{ $plot->id }}) > 0
+                ? 'Đang cải tạo... ' + maintenanceSeconds({{ $plot->id }}) + 's'
+                : 'Đang hoàn tất...'
+        ">
+                                        </span>
+                                    </button>
                                 @endif
                                 @if ($canSow)
                                     <button type="button" wire:click="openSowFor({{ $plot->id }})"
@@ -259,23 +359,30 @@
                     <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                         <div class="min-w-0">
                             <div class="flex items-center gap-2 flex-wrap">
-                                <h2 class="font-extrabold text-xl text-gray-900">
+                                <h2 class="font-extrabold text-xl text-gray-900 break-words">
                                     {{ $plot->name }}
                                 </h2>
 
-                                <span
-                                    class="text-[10px] font-bold px-2.5 py-1 rounded-full border
-    {{ $plot->status === 'maintenance'
-        ? 'bg-amber-50 border-amber-200 text-amber-800'
-        : 'bg-brand-50 border-brand-200 text-brand-800' }}">
-                                    {{ match ($plot->status) {
-                                        'empty' => 'Đất trống',
-                                        'maintenance' => 'Cần cải tạo',
-                                        'available' => 'Sẵn sàng xuống giống',
-                                        'in-progress' => 'Đang canh tác',
-                                        default => $plot->status,
-                                    } }}
-                                </span>
+                                <div class="inline-flex items-center gap-1.5">
+                                    <span
+                                        class="text-[10px] font-bold px-2.5 py-1 rounded-full border
+            {{ match ($plot->status) {
+                'maintenance' => 'bg-amber-50 border-amber-200 text-amber-800',
+                'available' => 'bg-brand-50 border-brand-200 text-brand-800',
+                'in-progress' => 'bg-blue-50 border-blue-200 text-blue-800',
+                default => 'bg-gray-100 border-gray-200 text-gray-600',
+            } }}">
+                                        {{ \App\Models\FarmPlot::STATUS_LABELS[$plot->status] ?? 'Không xác định' }}
+                                    </span>
+
+                                    <button type="button" wire:click.stop="openEditPlotModal({{ $plot->id }})"
+                                        wire:loading.attr="disabled" wire:target="openEditPlotModal"
+                                        x-bind:disabled="confirmingFarm || maintenanceSaving"
+                                        title="Sửa tên và diện tích luống" aria-label="Sửa tên và diện tích luống"
+                                        class="w-7 h-7 shrink-0 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-brand-50 hover:border-brand-200 hover:text-brand-700 transition disabled:opacity-50 cursor-pointer">
+                                        <i class="fa-solid fa-pen-to-square text-xs"></i>
+                                    </button>
+                                </div>
                             </div>
 
 
@@ -296,41 +403,31 @@
                         </div>
                         {{-- Đếm ngược và thực hiện cải tạo luống từ màn hình chi tiết --}}
                         @if (!$this->currentBatch && in_array($plot->status, ['empty', 'maintenance'], true))
-                            <div wire:key="maintenance-detail-{{ $plot->id }}" x-data="{ running: false, seconds: 3 }">
-                                <button type="button" x-bind:disabled="running || confirmingFarm"
-                                    x-on:click="
-                if (running) return;
+                            <button type="button"
+                                x-bind:disabled="confirmingFarm ||
+                                    maintenanceSaving ||
+                                    isMaintaining({{ $plot->id }})"
+                                x-on:click="startMaintenance({{ $plot->id }})"
+                                class="w-full sm:w-auto shrink-0 bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer">
 
-                running = true;
-                seconds = 3;
+                                <span x-show="!isMaintaining({{ $plot->id }})">
+                                    <i class="fa-solid fa-wrench mr-1"></i>
+                                    Cải tạo đất
+                                </span>
 
-                const timer = setInterval(() => {
-                    seconds--;
-
-                    if (seconds <= 0) {
-                        clearInterval(timer);
-
-                        $wire.completeMaintenance({{ $plot->id }})
-                            .finally(() => {
-                                running = false;
-                            });
-                    }
-                }, 1000);
-            "
-                                    class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs disabled:opacity-60">
-                                    <span x-show="!running">
-                                        Cải tạo đất
-                                    </span>
-
-                                    <span x-show="running" style="display: none">
-                                        Đang cải tạo…
-                                        <strong x-text="seconds"></strong>
-                                    </span>
-                                </button>
-                            </div>
+                                <span x-cloak x-show="isMaintaining({{ $plot->id }})"
+                                    x-text="
+                maintenanceSeconds({{ $plot->id }}) > 0
+                    ? 'Đang cải tạo... ' + maintenanceSeconds({{ $plot->id }}) + 's'
+                    : 'Đang hoàn tất...'
+            ">
+                                </span>
+                            </button>
                         @elseif (!$this->currentBatch && $plot->status === 'available')
                             <button type="button" wire:click="openSowFor({{ $plot->id }})"
-                                class="bg-brand-700 hover:bg-brand-800 text-white font-bold py-2.5 px-4 rounded-xl text-xs shrink-0">
+                                wire:loading.attr="disabled" wire:target="openSowFor"
+                                x-bind:disabled="confirmingFarm || maintenanceSaving"
+                                class="w-full sm:w-auto shrink-0 bg-brand-700 hover:bg-brand-800 text-white font-bold py-2.5 px-4 rounded-xl text-xs disabled:opacity-50 cursor-pointer">
                                 <i class="fa-solid fa-seedling mr-1"></i>
                                 Xuống Giống Vụ Mới
                             </button>
@@ -523,13 +620,10 @@
                                     class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
                                     <div>
                                         <h3 class="text-sm sm:text-base font-extrabold text-blue-700">Các Lô Hàng
-                                            Thương Mại Đã
-                                            Nhập
-                                            Kho</h3>
+                                            Thương Mại Đã Nhập Kho</h3>
                                         <p class="text-[11px] sm:text-xs text-gray-400 mt-0.5">Mỗi lần thu hoạch sinh
                                             ra 1 Lô
-                                            hàng
-                                            riêng biệt quản lý theo chuẩn FEFO</p>
+                                            hàng riêng biệt quản lý theo chuẩn FEFO</p>
                                     </div>
                                     @if ($this->canHarvestSelectedBatch)
                                         <button type="button" wire:click="openHarvestModal"
@@ -608,30 +702,42 @@
 
     </div>
 
-    {{-- Hiển thị biểu mẫu tạo luống và xác nhận trước khi lưu --}}
+    {{-- Biểu mẫu dùng chung cho tạo và sửa luống --}}
     @if ($showCreatePlotModal)
-        <div wire:key="create-farm-plot-modal"
+        <div wire:key="farm-plot-form-{{ $editPlotId ?? 'new' }}"
             class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4">
-            <div role="dialog" aria-modal="true" aria-labelledby="create-plot-title"
+
+            <div role="dialog" aria-modal="true" aria-labelledby="plot-form-title"
                 class="bg-white rounded-3xl w-full max-w-md shadow-2xl p-5 sm:p-7 border border-gray-100 max-h-[90vh] overflow-y-auto">
+
                 <div class="flex justify-between items-center mb-5 border-b border-gray-100 pb-3">
-                    <h3 id="create-plot-title" class="text-base sm:text-lg font-extrabold text-gray-900">
-                        Tạo Luống Đất
+                    <h3 id="plot-form-title" class="text-base sm:text-lg font-extrabold text-gray-900">
+                        {{ $editPlotId !== null ? 'Sửa Luống Đất' : 'Tạo Luống Đất' }}
                     </h3>
 
-                    <button type="button" wire:click="closeCreatePlotModal" x-bind:disabled="confirmingFarm"
-                        wire:loading.attr="disabled" wire:target="requestCreatePlot,createPlot,closeCreatePlotModal"
-                        aria-label="Đóng" class="text-gray-400 hover:text-red-500 p-1 disabled:opacity-50">
+                    <button type="button" wire:click="closeCreatePlotModal"
+                        x-bind:disabled="confirmingFarm || maintenanceSaving" wire:loading.attr="disabled"
+                        wire:target="requestSavePlot,createPlot,updatePlot,closeCreatePlotModal" aria-label="Đóng"
+                        class="text-gray-400 hover:text-red-500 p-1 disabled:opacity-50 cursor-pointer">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
 
-                <form wire:submit="requestCreatePlot" novalidate>
-                    <fieldset x-bind:disabled="confirmingFarm" wire:loading.attr="disabled"
-                        wire:target="requestCreatePlot,createPlot,closeCreatePlotModal" class="space-y-4">
+                <form wire:submit="requestSavePlot" novalidate
+                    x-on:submit.capture="
+                    if (confirmingFarm || maintenanceSaving) {
+                        $event.preventDefault();
+                        $event.stopImmediatePropagation();
+                    }
+                ">
+
+                    <fieldset x-bind:disabled="confirmingFarm || maintenanceSaving" wire:loading.attr="disabled"
+                        wire:target="requestSavePlot,createPlot,updatePlot,closeCreatePlotModal" class="space-y-4">
+
                         <div>
                             <label for="new-plot-name" class="block font-bold text-gray-700 mb-1">
-                                Tên luống <span class="text-red-500">*</span>
+                                Tên luống
+                                <span class="text-red-500">*</span>
                             </label>
 
                             <input type="text" id="new-plot-name" wire:model="newPlotName" maxlength="255"
@@ -647,7 +753,8 @@
 
                         <div>
                             <label for="new-plot-area" class="block font-bold text-gray-700 mb-1">
-                                Diện tích (m²) <span class="text-red-500">*</span>
+                                Diện tích (m²)
+                                <span class="text-red-500">*</span>
                             </label>
 
                             <input type="number" id="new-plot-area" wire:model="newPlotArea" min="0.01"
@@ -661,27 +768,34 @@
                             @enderror
                         </div>
 
-                        <p class="text-xs text-gray-500">
-                            Luống mới ở trạng thái Đất trống.
-                            Hãy bấm Cải tạo đất trước khi xuống giống.
-                        </p>
+                        @if ($editPlotId === null)
+                            <p class="text-xs text-gray-500">
+                                Luống mới ở trạng thái Đất trống.
+                                Hãy bấm Cải tạo đất trước khi xuống giống.
+                            </p>
+                        @else
+                            <p class="text-xs text-gray-500">
+                                Cập nhật tên và diện tích của luống.
+                            </p>
+                        @endif
 
                         <div class="flex justify-end gap-3 pt-3 border-t border-gray-100">
-                            <button type="button" wire:click="closeCreatePlotModal" x-bind:disabled="confirmingFarm"
-                                wire:loading.attr="disabled"
-                                wire:target="requestCreatePlot,createPlot,closeCreatePlotModal"
-                                class="px-4 py-2.5 rounded-xl border border-gray-200 font-bold text-gray-600 disabled:opacity-50">
+                            <button type="button" wire:click="closeCreatePlotModal"
+                                x-bind:disabled="confirmingFarm || maintenanceSaving" wire:loading.attr="disabled"
+                                wire:target="requestSavePlot,createPlot,updatePlot,closeCreatePlotModal"
+                                class="px-4 py-2.5 rounded-xl border border-gray-200 font-bold text-gray-600 disabled:opacity-50 cursor-pointer">
                                 Đóng
                             </button>
 
-                            <button type="submit" x-bind:disabled="confirmingFarm" wire:loading.attr="disabled"
-                                wire:target="requestCreatePlot,createPlot"
-                                class="px-5 py-2.5 rounded-xl bg-brand-700 hover:bg-brand-800 text-white font-bold disabled:opacity-50">
-                                <span wire:loading.remove wire:target="requestCreatePlot,createPlot">
-                                    Tạo luống
+                            <button type="submit" x-bind:disabled="confirmingFarm || maintenanceSaving"
+                                wire:loading.attr="disabled" wire:target="requestSavePlot,createPlot,updatePlot"
+                                class="px-5 py-2.5 rounded-xl bg-brand-700 hover:bg-brand-800 text-white font-bold disabled:opacity-50 cursor-pointer">
+
+                                <span wire:loading.remove wire:target="requestSavePlot,createPlot,updatePlot">
+                                    {{ $editPlotId !== null ? 'Lưu thay đổi' : 'Tạo luống' }}
                                 </span>
 
-                                <span wire:loading wire:target="requestCreatePlot,createPlot">
+                                <span wire:loading wire:target="requestSavePlot,createPlot,updatePlot">
                                     Đang xử lý…
                                 </span>
                             </button>
@@ -942,7 +1056,8 @@
                                             class="{{ $inputClass }}">
                                             <option value="">-- Chọn số ngày theo nhãn --</option>
                                             @for ($days = 0; $days <= 365; $days++)
-                                                <option value="{{ $days }}">{{ $days }} ngày</option>
+                                                <option value="{{ $days }}">{{ $days }} ngày
+                                                </option>
                                             @endfor
                                         </select>
                                     @elseif ($type === 'date')
@@ -1190,11 +1305,23 @@
     @script
         <script>
             let confirmationOpen = false;
-            // 	Điều phối xác nhận tạo luống, xuống giống, ghi nhật ký và thu hoạch
+
             const operations = {
                 create: {
                     title: 'Xác nhận tạo luống đất?',
                     save: () => $wire.createPlot(),
+                },
+
+                updatePlot: {
+                    title: 'Xác nhận sửa tên và diện tích luống?',
+                    save: () => $wire.updatePlot(),
+                },
+
+                deletePlot: {
+                    title: 'Xác nhận xóa luống?',
+                    icon: 'warning',
+                    confirmButtonColor: '#dc2626',
+                    save: plotId => $wire.deletePlot(plotId),
                 },
 
                 sow: {
@@ -1213,18 +1340,21 @@
                 },
             };
 
-            function setConfirmationState(busy) {
+            function setConfirmationState(busy, plotId = null) {
                 $wire.$el.dispatchEvent(
                     new CustomEvent('farm-confirm-state', {
                         detail: {
-                            busy
+                            busy,
+                            plotId: busy ? plotId : null,
                         },
                     })
                 );
             }
 
             $wire.on('confirm-farm-action', async ({
-                action
+                action,
+                plotId = null,
+                plotName = '',
             }) => {
                 if (
                     confirmationOpen ||
@@ -1233,37 +1363,52 @@
                     return;
                 }
 
+                const deleting = action === 'deletePlot';
+
+                if (
+                    deleting &&
+                    (!Number.isSafeInteger(plotId) || plotId <= 0)
+                ) {
+                    return;
+                }
+
                 confirmationOpen = true;
-                setConfirmationState(true);
+                setConfirmationState(true, deleting ? plotId : null);
 
                 try {
                     const operation = operations[action];
 
                     const result = await Swal.fire({
-                        icon: 'question',
+                        icon: operation.icon ?? 'question',
                         title: operation.title,
-                        text: 'Chọn Hủy để hủy thao tác.',
+
+                        text: deleting ?
+                            `Xóa luống "${plotName}"? Thao tác này không thể khôi phục.` :
+                            'Chọn Hủy để hủy thao tác.',
+
                         showCancelButton: true,
                         confirmButtonText: 'Xác nhận',
                         cancelButtonText: 'Hủy',
-                        confirmButtonColor: '#15803d',
+                        confirmButtonColor: operation.confirmButtonColor ?? '#15803d',
                         cancelButtonColor: '#6b7280',
                         reverseButtons: true,
                         allowOutsideClick: false,
                         allowEscapeKey: false,
+                        heightAuto: false,
+                        scrollbarPadding: false,
                     });
 
                     if (result.isConfirmed) {
-                        await operation.save();
+                        await operation.save(plotId);
                     }
-
-                    // Chọn Hủy: không gọi hàm lưu, đóng hoặc reset form.
                 } catch (error) {
                     await Swal.fire({
                         icon: 'error',
                         title: 'Yêu cầu chưa hoàn tất',
-                        text: 'Kiểm tra dữ liệu trên form hoặc kết nối rồi thử lại.',
+                        text: 'Kiểm tra dữ liệu hoặc kết nối rồi thử lại.',
                         confirmButtonColor: '#15803d',
+                        heightAuto: false,
+                        scrollbarPadding: false,
                     });
                 } finally {
                     confirmationOpen = false;

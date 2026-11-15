@@ -322,11 +322,27 @@ class ComplaintManager extends Component
                     $unit = $items->first()->product?->unit ?? 'đơn vị';
 
                     $before = (int) $batch->current_quantity;
+
+                    if (
+                        $quantity <= 0
+                        || $before < 0
+                        || $before > 2147483647 - $quantity
+                    ) {
+                        throw ValidationException::withMessages([
+                            'resolution_type' =>
+                                'Số lượng hoàn kho không hợp lệ hoặc vượt giới hạn.',
+                        ]);
+                    }
+
                     $after = $before + $quantity;
 
-                    $batch->update([
-                        'current_quantity' => $after,
-                    ]);
+                    $batch->current_quantity = $after;
+
+                    if ($batch->status === 'sold_out' && $after > 0) {
+                        $batch->status = 'active';
+                    }
+
+                    $batch->saveOrFail();
 
                     InventoryLog::create([
                         'batch_id' => $batch->id,

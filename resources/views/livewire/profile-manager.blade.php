@@ -13,8 +13,6 @@
                 Hồ Sơ {{ $roleTitle ?? 'Nhân Viên' }}
             </h1>
         </div>
-
-
     </header>
 
     <div class="overflow-y-auto p-4 sm:p-6 lg:p-8 pb-28 custom-scrollbar h-[calc(100dvh-5rem)]">

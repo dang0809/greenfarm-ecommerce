@@ -19,7 +19,14 @@ class FarmPlot extends Model
     // Các trạng thái của lô đất
     // empty => Đất trống (mới tạo)
     // in-progress => Đang canh tác (có cây đang trồng)
-    // maintenance => Đang cải tạo (Sau khi trồng xong kết thúc vụ)
+    // maintenance => Cải tạo (Sau khi trồng xong kết thúc vụ)
+    // available => Đang sẵn sàng xuống giống
+    public const STATUS_LABELS = [
+        'empty' => 'Đất trống',
+        'maintenance' => 'Cần cải tạo',
+        'in-progress' => 'Đang canh tác',
+        'available' => 'Sẵn sàng xuống giống',
+    ];
 
     protected function casts(): array
     {

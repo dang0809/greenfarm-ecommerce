@@ -76,40 +76,17 @@ class ProductBatch extends Model
         );
     }
 
+    public const STATUS_LABELS = [
+        'active' => 'Đang bán',
+        'suspended' => 'Tạm dừng',
+        'recalled' => 'Tiêu hủy',
+        'sold_out' => 'Đã bán hết',
+    ];
+
     protected function displayStatus(): Attribute
     {
         return Attribute::make(
-            get: function (): string {
-                if ($this->status === 'recalled') {
-                    return 'recalled';
-                }
-
-                if ((int) $this->current_quantity <= 0) {
-                    return 'out_of_stock';
-                }
-
-                if (
-                    in_array(
-                        $this->status,
-                        ['pending_recalled', 'suspended'],
-                        true
-                    )
-                ) {
-                    return $this->status;
-                }
-
-                if ($this->expiry_date?->lt(today())) {
-                    return 'expired';
-                }
-
-                if ($this->available_quantity <= 0) {
-                    return 'reserved';
-                }
-
-                return $this->expiry_date?->lte(today()->addDays(3))
-                    ? 'near_expiry'
-                    : 'active';
-            }
+            get: fn(): string => (string) $this->status
         );
     }
 

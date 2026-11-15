@@ -80,6 +80,53 @@ class FarmPlotService
         ]);
     }
 
+    public function updatePlot(
+        FarmPlot $plot,
+        array $data,
+        User $staff
+    ): FarmPlot {
+        $this->requireStaff($staff);
+
+        // Dùng chung validation tên và diện tích với tạo luống.
+        $validated = $this->validatePlotData($data);
+
+        return DB::transaction(function () use ($plot, $validated) {
+            $lockedPlot = FarmPlot::query()
+                ->lockForUpdate()
+                ->findOrFail($plot->id);
+
+            $lockedPlot->fill([
+                'name' => $validated['newPlotName'],
+                'area' => $validated['newPlotArea'],
+            ])->saveOrFail();
+
+            return $lockedPlot->refresh();
+        });
+    }
+
+    public function deletePlot(FarmPlot $plot, User $staff): void
+    {
+        $this->requireStaff($staff);
+
+        DB::transaction(function () use ($plot): void {
+            $lockedPlot = FarmPlot::query()
+                ->lockForUpdate()
+                ->findOrFail($plot->id);
+
+            // Kiểm tra toàn bộ lịch sử, bao gồm cả vụ đã kết thúc.
+            if ($lockedPlot->plantingBatches()->exists()) {
+                $this->reject(
+                    'plot',
+                    'Luống đã có lịch sử vụ trồng nên không thể xóa.'
+                );
+            }
+
+            if (!$lockedPlot->delete()) {
+                throw new RuntimeException('Không thể xóa luống.');
+            }
+        });
+    }
+
     public function completeMaintenance(
         FarmPlot $plot,
         User $staff

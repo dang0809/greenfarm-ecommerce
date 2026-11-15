@@ -124,7 +124,7 @@ class PayOSWebhookController extends Controller
                                 'status' => 'active',
                             ]);
                         }
-                    } 
+                    }
 
                     $newStatus = ($order->order_type === 'subscription') ? 'delivered' : 'pending';
                     $order->statusHistories()->create([
@@ -138,33 +138,63 @@ class PayOSWebhookController extends Controller
                     }
 
                     foreach ($order->items as $item) {
-                        if ($item->batch_id) {
-                            // 1. Nhả giữ chỗ
-                            ProductBatch::where('id', $item->batch_id)->decrement('reserved_quantity', $item->quantity);
-                            // 2. Chính thức xuất kho thực tế
-                            ProductBatch::where('id', $item->batch_id)->decrement('current_quantity', $item->quantity);
-                            // Đồng bộ lại giá sale_price nếu lô cận date này vừa bán hết
-                            ProductBatch::syncProductSalePrice($item->product_id);
-                            // 3. Ghi sổ nhật ký xuất bán (type: export_sale)
-                            $customerName = $order->user?->name
-                                ?: ($order->recipient_name ?: 'Khách hàng');
-
-                            $quantity = (int) $item->quantity;
-                            $unit = $item->product?->unit ?? 'đơn vị';
-
-                            InventoryLog::create([
-                                'batch_id' => $item->batch_id,
-                                'type' => 'export_sale',
-                                'quantity' => $quantity,
-
-                                'note' => "Khách hàng: {$customerName}\n"
-                                    . "Mã đơn: #{$order->order_code}\n"
-                                    . "Thanh toán thành công.\n"
-                                    . "Xuất khỏi lô: {$quantity} {$unit}",
-
-                                'created_by' => $order->user_id,
-                            ]);
+                        if (!$item->batch_id) {
+                            continue;
                         }
+
+                        // Khóa lô để đọc đúng tồn kho mới nhất.
+                        $batch = ProductBatch::query()
+                            ->lockForUpdate()
+                            ->findOrFail($item->batch_id);
+
+                        $quantity = (int) $item->quantity;
+                        $current = (int) $batch->current_quantity;
+                        $reserved = (int) $batch->reserved_quantity;
+
+                        if (
+                            $quantity <= 0
+                            || $current < 0
+                            || $reserved < 0
+                            || $reserved > $current
+                            || $quantity > $current
+                            || $quantity > $reserved
+                            || !in_array($batch->status, ['active', 'suspended'], true)
+                        ) {
+                            throw new \RuntimeException(
+                                "Tồn kho hoặc giữ chỗ của lô {$batch->batch_code} không hợp lệ."
+                            );
+                        }
+
+                        // Thanh toán thành công: nhả giữ chỗ và trừ tồn thực tế.
+                        $batch->reserved_quantity = $reserved - $quantity;
+                        $batch->current_quantity = $current - $quantity;
+
+                        if ($batch->current_quantity === 0) {
+                            $batch->status = 'sold_out';
+                        }
+
+                        $batch->saveOrFail();
+
+                        ProductBatch::syncProductSalePrice($item->product_id);
+
+                        $customerName = $order->user?->name
+                            ?: ($order->recipient_name ?: 'Khách hàng');
+
+                        $unit = $item->product?->unit ?? 'đơn vị';
+
+                        // Loại biến động kho
+                        InventoryLog::create([
+                            'batch_id' => $batch->id,
+                            'type' => 'export_sale',
+                            'quantity' => $quantity,
+
+                            'note' => "Khách hàng: {$customerName}\n"
+                                . "Mã đơn: #{$order->order_code}\n"
+                                . "Thanh toán thành công.\n"
+                                . "Xuất khỏi lô: {$quantity} {$unit}",
+
+                            'created_by' => $order->user_id,
+                        ]);
                     }
 
 
