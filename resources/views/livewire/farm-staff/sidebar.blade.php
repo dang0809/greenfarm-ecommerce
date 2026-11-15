@@ -9,8 +9,8 @@
                     <i class="fa-solid fa-leaf text-brand-200 text-xl"></i>
                 </div>
                 <div>
-                    <span class="font-extrabold text-xl text-brand-800 tracking-tight block leading-tight">ĐẤT
-                        LÀNH</span>
+                    <span
+                        class="font-extrabold text-xl text-brand-800 tracking-tight block leading-tight">{{ $farmName }}</span>
                     <span
                         class="text-[10px] font-bold text-brand-700 bg-brand-50 border border-brand-200 px-2 py-0.5 rounded uppercase tracking-wider">Farm
                         Staff</span>
