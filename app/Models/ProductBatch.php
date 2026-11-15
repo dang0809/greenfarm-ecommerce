@@ -80,6 +80,7 @@ class ProductBatch extends Model
         'active' => 'Đang bán',
         'suspended' => 'Tạm dừng',
         'recalled' => 'Tiêu hủy',
+        'sold_out' => 'Đã bán hết',
     ];
 
     protected function displayStatus(): Attribute

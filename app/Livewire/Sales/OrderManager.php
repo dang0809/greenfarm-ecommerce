@@ -363,17 +363,54 @@ class OrderManager extends Component
             // 1. Xử lý hoàn kho thực tế và ghi sổ nhật ký return_cancel
             // Toàn bộ đơn ở OrderManager đều đã thanh toán thành công (kho thực tế đã bị trừ qua webhook)
             foreach ($lockedOrder->items as $item) {
-                if ($item->batch_id) {
-                    ProductBatch::where('id', $item->batch_id)->increment('current_quantity', $item->quantity);
-
-                    InventoryLog::create([
-                        'batch_id' => $item->batch_id,
-                        'type' => 'return_cancel',
-                        'quantity' => $item->quantity,
-                        'note' => "Hoàn kho do NVBH hủy đơn #{$lockedOrder->order_code}: {$reason}",
-                        'created_by' => Auth::id() ?? $lockedOrder->user_id ?? 1,
-                    ]);
+                if (!$item->batch_id) {
+                    continue;
                 }
+
+                $batch = ProductBatch::query()
+                    ->lockForUpdate()
+                    ->findOrFail($item->batch_id);
+
+                $quantity = (int) $item->quantity;
+                $current = (int) $batch->current_quantity;
+
+                if (
+                    $quantity <= 0
+                    || $current < 0
+                    || $current > 2147483647 - $quantity
+                ) {
+                    throw new \RuntimeException(
+                        'Số lượng hoàn kho không hợp lệ hoặc vượt giới hạn.'
+                    );
+                }
+
+                $batch->current_quantity = $current + $quantity;
+
+                // Lô đã bán hết có hàng hoàn về thì mở bán lại.
+                if (
+                    $batch->status === 'sold_out'
+                    && $batch->current_quantity > 0
+                ) {
+                    $batch->status = 'active';
+                }
+
+                $batch->saveOrFail();
+
+                InventoryLog::create([
+                    'batch_id' => $batch->id,
+                    'type' => 'return_cancel',
+                    'quantity' => $quantity,
+                    'note' => "Hoàn kho do NVBH hủy đơn #{$lockedOrder->order_code}: {$reason}",
+                    'created_by' => Auth::id() ?? $lockedOrder->user_id ?? 1,
+                ]);
+            }
+
+            // Cập nhật giá khuyến mãi sau khi các lô đã được hoàn kho.
+            foreach (
+                $lockedOrder->items->pluck('product_id')->unique()->sort()
+                as $productId
+            ) {
+                ProductBatch::syncProductSalePrice((int) $productId);
             }
 
             // 2. Hoàn lại điểm thưởng tích lũy (nếu khách đã tiêu)

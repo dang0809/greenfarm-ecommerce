@@ -310,7 +310,8 @@
                             Mã SKU <span class="text-red-500">*</span>
                         </label>
 
-                        <input type="text" id="p-sku" wire:model="sku" maxlength="100" required
+                        <input type="text" id="p-sku" wire:model.live.debounce.300ms="sku" maxlength="100"
+                            required
                             class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono uppercase outline-none focus:border-brand-600">
                         @error('sku')
                             <p role="alert" class="mt-1 text-xs text-red-600">{{ $message }}</p>
@@ -372,8 +373,8 @@
                                     <span class="text-red-500">*</span>
                                 </label>
 
-                                <input type="text" id="p-custom-unit" wire:model="customUnit" maxlength="50"
-                                    placeholder="Ví dụ: Gói 250g, Túi 1kg..." required
+                                <input type="text" id="p-custom-unit" wire:model.live.debounce.300ms="customUnit"
+                                    maxlength="50" placeholder="Ví dụ: Gói 250g, Túi 1kg..." required
                                     class="w-full min-w-0 bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600">
 
                                 @error('customUnit')
@@ -389,8 +390,8 @@
                             Giá bán gốc (đ) <span class="text-red-500">*</span>
                         </label>
 
-                        <input type="number" id="p-price" wire:model="price" min="0.01" max="9999999999.99"
-                            step="0.01" required
+                        <input type="number" id="p-price" wire:model.live.debounce.300ms="price" min="0.01"
+                            max="9999999999.99" step="0.01" required
                             class="w-full min-w-0 bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono outline-none focus:border-brand-600">
                         @error('price')
                             <p role="alert" class="mt-1 text-xs text-red-600">{{ $message }}</p>
@@ -401,8 +402,8 @@
                             Số ngày thu hoạch tối thiểu <span class="text-red-500">*</span>
                         </label>
 
-                        <input type="number" id="p-min-growth-days" wire:model="min_growth_days" min="1"
-                            max="10000" step="1" required inputmode="numeric"
+                        <input type="number" id="p-min-growth-days" wire:model.live.debounce.300ms="min_growth_days"
+                            min="1" max="10000" step="1" required inputmode="numeric"
                             class="w-full min-w-0 bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono outline-none focus:border-brand-600">
                         @error('min_growth_days')
                             <p class="text-xs text-red-600 mt-1">
@@ -417,7 +418,7 @@
                         Mô tả đặc tính
                     </label>
 
-                    <textarea id="p-desc" wire:model="description" maxlength="10000" rows="2"
+                    <textarea id="p-desc" wire:model.live.debounce.300ms="description" maxlength="10000" rows="2"
                         class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl p-2.5 outline-none focus:border-brand-600 resize-none"></textarea>
                     @error('description')
                         <p role="alert" class="mt-1 text-xs text-red-600">{{ $message }}</p>

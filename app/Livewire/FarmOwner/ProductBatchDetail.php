@@ -205,12 +205,7 @@ class ProductBatchDetail extends Component
             }
         }
 
-        $statusLabels = [
-            'active' => 'Đang bán',
-            'suspended' => 'Tạm dừng',
-            'pending_recalled' => 'Chờ tiêu hủy',
-            'recalled' => 'Đã tiêu hủy',
-        ];
+        $statusLabels = ProductBatch::STATUS_LABELS;
 
         $transition = $from !== null && $to !== null
             ? ($statusLabels[$from] ?? $from)

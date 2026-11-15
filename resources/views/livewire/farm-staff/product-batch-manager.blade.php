@@ -8,7 +8,7 @@
             $selectedBatch &&
             $modal === 'spoilage' &&
             ($selectedBatch->current_quantity <= 0 ||
-                $selectedBatch->status === 'recalled' ||
+                in_array($selectedBatch->status, ['recalled', 'sold_out'], true) ||
                 $selectedBatch->available_quantity <= 0);
     @endphp
     {{-- Hiển thị tiêu đề quản lý lô nông sản, ngày hiện tại và nút mở menu di động --}}
@@ -199,12 +199,17 @@
 
                                 $hasStock = (int) $batch->current_quantity > 0;
                                 $isExpired = $batch->expiry_date->lt(today());
+
                                 $isNearExpiry = !$isExpired && $batch->expiry_date->lte(today()->addDays(3));
 
-                                $isDestroyed = $batch->status === 'recalled';
+                                $isClosed = in_array($batch->status, ['recalled', 'sold_out'], true);
+
+                                $canOperate = $hasStock && !$isClosed;
 
                                 $canEdit =
-                                    $hasStock && !$isExpired && in_array($batch->status, ['active', 'suspended'], true);
+                                    $canOperate &&
+                                    !$isExpired &&
+                                    in_array($batch->status, ['active', 'suspended'], true);
 
                                 $label = \App\Models\ProductBatch::STATUS_LABELS[$batch->status] ?? '—';
 
@@ -212,6 +217,7 @@
                                     'active' => 'bg-brand-100 text-brand-800 border-brand-200',
                                     'suspended' => 'bg-slate-100 text-slate-600 border-slate-300',
                                     'recalled' => 'bg-red-100 text-red-700 border-red-200',
+                                    'sold_out' => 'bg-gray-100 text-gray-700 border-gray-300',
                                     default => 'bg-gray-100 text-gray-600 border-gray-200',
                                 };
                             @endphp
@@ -284,7 +290,7 @@
                                 </td>
 
                                 <td class="py-3 px-4 pr-5 text-right space-x-1">
-                                    @if ($hasStock && !$isDestroyed)
+                                    @if ($canOperate)
                                         <button type="button" wire:click="openModal('spoilage', {{ $batch->id }})"
                                             wire:loading.attr="disabled" wire:target="openModal"
                                             class="px-2 py-1.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition font-bold text-[11px] cursor-pointer">

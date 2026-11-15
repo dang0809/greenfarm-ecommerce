@@ -162,12 +162,19 @@ class ProductBatchManager extends Component
 
         if (
             $mode !== 'detail'
-            && (int) $batch->current_quantity <= 0
+            && (
+                (int) $batch->current_quantity <= 0
+                || in_array($batch->status, ['recalled', 'sold_out'], true)
+            )
         ) {
             $this->dispatch(
                 'swal',
                 icon: 'info',
-                title: 'Lô đã hết tồn. Chỉ được xem chi tiết.'
+                title: match ($batch->status) {
+                    'sold_out' => 'Lô đã bán hết. Chỉ được xem chi tiết.',
+                    'recalled' => 'Lô đã tiêu hủy. Chỉ được xem chi tiết.',
+                    default => 'Lô đã hết tồn. Chỉ được xem chi tiết.',
+                }
             );
 
             return;
@@ -266,11 +273,11 @@ class ProductBatchManager extends Component
 
                 if (
                     $current === 0
-                    || $batch->status === 'recalled'
+                    || in_array($batch->status, ['recalled', 'sold_out'], true)
                 ) {
                     $this->reject(
                         'form',
-                        'Lô đã hết tồn hoặc đã tiêu hủy. Chỉ được xem chi tiết.'
+                        'Lô đã hết tồn, đã bán hết hoặc đã tiêu hủy. Chỉ được xem chi tiết.'
                     );
                 }
 
@@ -721,7 +728,7 @@ class ProductBatchManager extends Component
         if (
             $selectedBatch
             && (int) $selectedBatch->current_quantity > 0
-            && $selectedBatch->status !== 'recalled'
+            && !in_array($selectedBatch->status, ['recalled', 'sold_out'], true)
             && in_array($this->modal, ['detail', 'qr'], true)
         ) {
             $traceUrl = route('customer.traceability.detail', [

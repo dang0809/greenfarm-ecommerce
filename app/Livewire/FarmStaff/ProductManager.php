@@ -110,6 +110,38 @@ class ProductManager extends Component
         $this->resetPage();
     }
 
+    public function updated(string $property): void
+    {
+        if (!$this->showModal) {
+            return;
+        }
+
+        // Mỗi trường chỉ xóa lỗi của chính nó và các trường phụ thuộc.
+        $errorFields = [
+            'name' => ['name', 'slug'],
+            'slug' => ['slug'],
+            'sku' => ['sku'],
+            'category_id' => ['category_id'],
+
+            'price' => ['price', 'sale_price'],
+            'sale_price' => ['sale_price'],
+
+            'unitOption' => ['unitOption', 'customUnit'],
+            'customUnit' => ['customUnit'],
+
+            'weight_kg' => ['weight_kg'],
+            'description' => ['description'],
+            'min_growth_days' => ['min_growth_days'],
+            'status' => ['status'],
+        ];
+
+        if (!array_key_exists($property, $errorFields)) {
+            return;
+        }
+
+        $this->resetValidation($errorFields[$property]);
+    }
+
     public function updatedName(): void
     {
         $this->staff();

@@ -129,8 +129,14 @@ class GenerateVipDeliveryOrders extends Command
                                 continue;
                             }
 
-                            // Trừ kho thực tế của lô
-                            $batch->decrement('current_quantity', $take);
+                            // $batch đã được lấy bằng lockForUpdate() trong transaction.
+                            $batch->current_quantity = (int) $batch->current_quantity - $take;
+
+                            if ($batch->current_quantity === 0) {
+                                $batch->status = 'sold_out';
+                            }
+
+                            $batch->saveOrFail();
 
                             // Tạo OrderItem đã gán lô
                             OrderItem::create([
