@@ -28,6 +28,12 @@ class ProductManager extends Component
 {
     use WithFileUploads, WithPagination;
 
+    public const UNIT_OPTIONS = [
+        'kg' => 'Kg',
+        'bó' => 'Bó',
+        'hộp 500g' => 'Hộp 500g',
+    ];
+
     // Bộ lọc.
     public string $search = '';
     public string $selectedCategory = '';
@@ -46,7 +52,14 @@ class ProductManager extends Component
     public string $category_id = '';
     public string $price = '';
     public string $sale_price = '';
+    // Giá trị thực tế dùng để lưu vào products.unit.
     public string $unit = 'kg';
+
+    // Giá trị lựa chọn trên select.
+    public string $unitOption = 'kg';
+
+    // Nội dung nhập khi chọn Khác.
+    public string $customUnit = '';
     public string $weight_kg = '1';
     public string $description = '';
 
@@ -202,7 +215,16 @@ class ProductManager extends Component
                 'lt:price',
             ],
 
-            'unit' => [
+            'unitOption' => [
+                'required',
+                Rule::in([
+                    ...array_keys(self::UNIT_OPTIONS),
+                    'other',
+                ]),
+            ],
+
+            'customUnit' => [
+                'exclude_unless:unitOption,other',
                 'required',
                 'string',
                 'max:50',
@@ -272,6 +294,14 @@ class ProductManager extends Component
 
             'category_id.integer' => 'Danh mục không hợp lệ.',
             'category_id.exists' => 'Danh mục không còn tồn tại.',
+            'category_id.required' => 'Vui lòng chọn danh mục sản phẩm.',
+
+            'unitOption.required' => 'Vui lòng chọn đơn vị tính.',
+            'unitOption.in' => 'Đơn vị tính được chọn không hợp lệ.',
+
+            'customUnit.required' => 'Vui lòng nhập đơn vị tính khác.',
+            'customUnit.string' => 'Đơn vị tính phải là văn bản.',
+            'customUnit.max' => 'Đơn vị tính tối đa 50 ký tự.',
 
             'sale_price.lt' => 'Giá khuyến mãi phải nhỏ hơn giá gốc.',
             'status.in' => 'Trạng thái không hợp lệ.',
@@ -330,6 +360,8 @@ class ProductManager extends Component
         'price' => 'giá gốc',
         'sale_price' => 'giá khuyến mãi',
         'unit' => 'đơn vị',
+        'unitOption' => 'đơn vị tính',
+        'customUnit' => 'đơn vị tính khác',
         'weight_kg' => 'khối lượng',
         'description' => 'mô tả',
         'status' => 'trạng thái',
@@ -343,29 +375,43 @@ class ProductManager extends Component
         $this->name = trim($this->name);
         $this->sku = Str::upper(trim($this->sku));
         $this->slug = trim($this->slug);
-        $this->unit = trim($this->unit);
+        $this->customUnit = trim($this->customUnit);
         $this->description = trim($this->description);
         $this->sale_price = trim($this->sale_price);
         $this->min_growth_days = trim($this->min_growth_days);
+
         $this->syncSlugWithName();
 
         $v = $this->validate();
 
-        // Whitelist: không nhận tồn kho, sold_count hoặc avg_rating từ form.
+        // Chọn Khác: lấy nội dung nhập.
+        // Chọn đơn vị có sẵn: lấy giá trị của option.
+        $this->unit = $v['unitOption'] === 'other'
+            ? $v['customUnit']
+            : $v['unitOption'];
+
+        // Chỉ trả về các trường thực tế được lưu vào sản phẩm.
         return [
             'name' => $v['name'],
             'slug' => $v['slug'],
             'sku' => $v['sku'] === '' ? null : $v['sku'],
+
             'category_id' => (int) $v['category_id'],
+
             'price' => $v['price'],
+
             'sale_price' => $v['sale_price'] === ''
                 ? null
                 : $v['sale_price'],
-            'unit' => $v['unit'],
+
+            'unit' => $this->unit,
+
             'weight_kg' => $v['weight_kg'],
+
             'description' => $v['description'] === ''
                 ? null
                 : $v['description'],
+
             'min_growth_days' => (int) $v['min_growth_days'],
             'status' => $v['status'],
         ];
@@ -469,10 +515,7 @@ class ProductManager extends Component
         $this->staff();
         $this->resetForm();
 
-        // Cùng thứ tự với danh sách danh mục trong render().
-        $categoryId = Category::orderBy('name')->value('id');
-
-        if ($categoryId === null) {
+        if (!Category::query()->exists()) {
             $this->notify(
                 'error',
                 'Chưa có danh mục. Vui lòng tạo danh mục trước.'
@@ -481,7 +524,9 @@ class ProductManager extends Component
             return;
         }
 
-        $this->category_id = (string) $categoryId;
+        // Để trống cho người dùng tự chọn.
+        $this->category_id = '';
+
         $this->sku = 'PROD-' . Str::upper(Str::random(8));
         $this->showModal = true;
     }
@@ -516,6 +561,15 @@ class ProductManager extends Component
         }
 
         $this->category_id = (string) $product->category_id;
+
+        // $this->unit đã được nạp từ sản phẩm trong foreach phía trên.
+        $this->unitOption = array_key_exists($this->unit, self::UNIT_OPTIONS)
+            ? $this->unit
+            : 'other';
+
+        $this->customUnit = $this->unitOption === 'other'
+            ? $this->unit
+            : '';
 
         // Chuẩn bị URL xem trước cho các ảnh đã lưu.
         $this->existingImages = $product->productImages
@@ -981,6 +1035,8 @@ class ProductManager extends Component
             'price',
             'sale_price',
             'unit',
+            'unitOption',
+            'customUnit',
             'weight_kg',
             'description',
             'min_growth_days',

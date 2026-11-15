@@ -536,7 +536,7 @@
 
     {{-- Hiển thị thông tin chi tiết lô nông sản và các nhật ký liên quan --}}
     @if ($selectedBatch && $modal === 'detail')
-        <div id="modal-detail" wire:key="batch-detail-{{ $selectedBatch->id }}"
+        <div id="modal-detail" wire:key="batch-detail-{{ $selectedBatch->id }}" x-data="{ detailTab: 'inventory' }"
             class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 overflow-hidden">
 
             <div
@@ -626,13 +626,37 @@
                     </div>
                 </div>
 
+                <div class="shrink-0 border-b border-slate-200" role="tablist"
+                    aria-label="Thông tin chi tiết lô hàng">
+
+                    <div class="grid grid-cols-2 gap-1 w-full">
+                        <button type="button" role="tab" id="inventory-tab" aria-controls="inventory-panel"
+                            :aria-selected="detailTab === 'inventory'" @click="detailTab = 'inventory'"
+                            :class="detailTab === 'inventory'
+                                ?
+                                'border-brand-700 text-brand-700 bg-brand-50' :
+                                'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700'"
+                            class="flex w-full min-w-0 items-center justify-center gap-2 border-b-2 px-2 sm:px-3 py-2.5 text-[11px] sm:text-xs font-bold text-center leading-snug whitespace-normal transition cursor-pointer">
+                            <i class="fa-solid fa-arrow-right-arrow-left shrink-0"></i>
+                            Lịch sử biến động kho
+                        </button>
+
+                        <button type="button" role="tab" id="farming-tab" aria-controls="farming-panel"
+                            :aria-selected="detailTab === 'farming'" @click="detailTab = 'farming'"
+                            :class="detailTab === 'farming'
+                                ?
+                                'border-brand-700 text-brand-700 bg-brand-50' :
+                                'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700'"
+                            class="flex w-full min-w-0 items-center justify-center gap-2 border-b-2 px-2 sm:px-3 py-2.5 text-[11px] sm:text-xs font-bold text-center leading-snug whitespace-normal transition cursor-pointer">
+                            <i class="fa-solid fa-seedling shrink-0"></i>
+                            Nhật ký canh tác gốc
+                        </button>
+                    </div>
+                </div>
+
                 {{-- Hiển thị lịch sử biến động kho, chuyển trạng thái và nội dung thao tác --}}
-                <div class="flex flex-1 min-h-0 flex-col gap-2.5 overflow-hidden">
-                    <h4
-                        class="shrink-0 text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                        <i class="fa-solid fa-trash-can text-red-500"></i>
-                        Lịch sử biến động kho
-                    </h4>
+                <div x-cloak x-show="detailTab === 'inventory'" role="tabpanel" id="inventory-panel"
+                    aria-labelledby="inventory-tab" class="flex-1 min-h-0 flex flex-col gap-2.5 overflow-hidden">
 
                     {{-- Định dạng loại biến động, chiều tăng giảm và nội dung nhật ký kho --}}
                     <div class="flex-1 min-h-0 space-y-2 overflow-y-auto overscroll-contain custom-scrollbar pr-2">
@@ -728,13 +752,8 @@
                 </div>
 
                 {{-- Hiển thị nhật ký canh tác của vụ trồng tạo ra lô nông sản --}}
-                <div class="flex flex-1 min-h-0 flex-col gap-2.5 overflow-hidden pt-3 border-t border-slate-100">
-                    <h4
-                        class="shrink-0 text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                        <i class="fa-solid fa-seedling text-brand-600"></i>
-                        Nhật ký canh tác gốc
-                    </h4>
-
+                <div x-cloak x-show="detailTab === 'farming'" role="tabpanel" id="farming-panel"
+                    aria-labelledby="farming-tab" class="flex-1 min-h-0 flex flex-col gap-2.5 overflow-hidden">
                     {{-- Giới hạn chiều cao và cho phép cuộn riêng nhật ký canh tác --}}
                     <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain custom-scrollbar px-2 py-1">
 

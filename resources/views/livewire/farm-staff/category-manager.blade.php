@@ -171,9 +171,8 @@
 
                     <input type="text" maxlength="255" wire:model="slug" placeholder="rau-an-la-thuy-canh"
                         class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2 font-mono text-xs text-slate-600 outline-none">
-
                     @error('slug')
-                        <p role="alert">{{ $message }}</p>
+                        <p role="alert" class="text-red-500">{{ $message }}</p>
                     @enderror
                 </div>
                 {{-- Tải và xem trước ảnh danh mục mới hoặc ảnh hiện tại --}}

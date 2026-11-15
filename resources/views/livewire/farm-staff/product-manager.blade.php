@@ -324,6 +324,7 @@
 
                         <select id="p-category" wire:model.live="category_id" required
                             class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600 cursor-pointer">
+                            <option value="">-- Tất cả danh mục --</option>
                             @if (isset($categories))
                                 @foreach ($categories as $cat)
                                     <option value="{{ $cat->id }}">
@@ -340,28 +341,49 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5">
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">
+                        <label for="p-unit" class="block font-bold text-slate-700 mb-1">
                             Đơn vị tính
+                            <span class="text-red-500">*</span>
                         </label>
 
-                        <select id="p-unit" wire:model="unit" required
+                        <select id="p-unit" wire:model.live="unitOption" required
                             class="w-full min-w-0 bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600 cursor-pointer">
 
-                            <option value="kg">Kg</option>
-                            <option value="bó">Bó</option>
-                            <option value="hộp 500g">Hộp 500g</option>
-
-                            @if ($unit !== '' && !in_array($unit, ['kg', 'bó', 'hộp 500g'], true))
-                                <option value="{{ $unit }}">
-                                    {{ $unit }}
+                            @foreach (\App\Livewire\FarmStaff\ProductManager::UNIT_OPTIONS as $value => $label)
+                                <option value="{{ $value }}">
+                                    {{ $label }}
                                 </option>
-                            @endif
-                        </select>
-                        @error('unit')
-                            <p role="alert" class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
+                            @endforeach
 
+                            <option value="other">Khác</option>
+                        </select>
+
+                        @error('unitOption')
+                            <p role="alert" class="mt-1 text-xs text-red-600">
+                                {{ $message }}
+                            </p>
+                        @enderror
+
+                        @if ($unitOption === 'other')
+                            <div wire:key="product-custom-unit-{{ $editingId ?? 'new' }}" class="mt-3">
+
+                                <label for="p-custom-unit" class="block font-bold text-slate-700 mb-1">
+                                    Nhập đơn vị tính
+                                    <span class="text-red-500">*</span>
+                                </label>
+
+                                <input type="text" id="p-custom-unit" wire:model="customUnit" maxlength="50"
+                                    placeholder="Ví dụ: Gói 250g, Túi 1kg..." required
+                                    class="w-full min-w-0 bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600">
+
+                                @error('customUnit')
+                                    <p role="alert" class="mt-1 text-xs text-red-600">
+                                        {{ $message }}
+                                    </p>
+                                @enderror
+                            </div>
+                        @endif
+                    </div>
                     <div>
                         <label class="block font-bold text-slate-700 mb-1">
                             Giá bán gốc (đ) <span class="text-red-500">*</span>
