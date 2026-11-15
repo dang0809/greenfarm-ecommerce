@@ -1,6 +1,7 @@
 <?php
 namespace App\Livewire\Admin;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
@@ -79,6 +80,9 @@ class AccountManager extends Component
 
     #[Locked]
     public array $pendingStatus = [];
+
+    #[Locked]
+    public array $pendingDelete = [];
 
     public function boot(): void
     {
@@ -638,6 +642,201 @@ class AccountManager extends Component
         );
     }
 
+    public function requestDeleteAccount(int $id): void
+    {
+        if (
+            $this->pendingDelete
+            || $this->showUserModal
+            || $this->showPasswordModal
+        ) {
+            return;
+        }
+
+        $user = User::find($id);
+
+        if (!$user) {
+            $this->resetPage();
+            $this->notify('info', 'Tài khoản không còn tồn tại.');
+
+            return;
+        }
+
+        $reason = $this->accountDeletionBlockReason($user);
+
+        if ($reason !== null) {
+            $this->notify('info', $reason);
+
+            return;
+        }
+
+        // Chưa xóa ở bước yêu cầu xác nhận.
+        $this->pendingDelete = [
+            'id' => (int) $user->id,
+            'version' => hash(
+                'sha256',
+                serialize($user->getRawOriginal())
+            ),
+        ];
+
+        $this->dispatch(
+            'confirm-account-delete',
+            name: $user->name,
+            email: $user->email
+        )->self();
+    }
+
+    public function cancelDeleteAccount(): void
+    {
+        $this->pendingDelete = [];
+    }
+
+    public function deleteAccount(): void
+    {
+        $pending = $this->pendingDelete;
+        $this->pendingDelete = [];
+
+        if (!$pending) {
+            return;
+        }
+
+        try {
+            $result = DB::transaction(function () use ($pending): array {
+                $user = User::query()
+                    ->lockForUpdate()
+                    ->find($pending['id']);
+
+                if (!$user) {
+                    return [
+                        'deleted' => false,
+                        'message' => 'Tài khoản không còn tồn tại.',
+                    ];
+                }
+
+                // Kiểm tra lại vai trò và dữ liệu liên quan sau xác nhận.
+                $reason = $this->accountDeletionBlockReason($user);
+
+                if ($reason !== null) {
+                    return [
+                        'deleted' => false,
+                        'message' => $reason,
+                    ];
+                }
+
+                $currentVersion = hash(
+                    'sha256',
+                    serialize($user->getRawOriginal())
+                );
+
+                if (!hash_equals($pending['version'], $currentVersion)) {
+                    return [
+                        'deleted' => false,
+                        'message' => 'Thông tin tài khoản đã thay đổi. Vui lòng xác nhận xóa lại.',
+                    ];
+                }
+
+                $avatar = $user->avatar;
+
+                DB::table('sessions')
+                    ->where('user_id', $user->id)
+                    ->delete();
+
+                DB::table('password_reset_tokens')
+                    ->where('email', $user->email)
+                    ->delete();
+
+                DB::table('personal_access_tokens')
+                    ->where('tokenable_type', $user->getMorphClass())
+                    ->where('tokenable_id', $user->id)
+                    ->delete();
+
+                if (!$user->delete()) {
+                    throw new RuntimeException(
+                        'Không xóa được tài khoản.'
+                    );
+                }
+
+                return [
+                    'deleted' => true,
+                    'avatar' => $avatar,
+                ];
+            });
+        } catch (QueryException $exception) {
+            report($exception);
+
+            $this->notify(
+                'error',
+                in_array(
+                    (string) $exception->getCode(),
+                    ['23000', '23503'],
+                    true
+                )
+                ? 'Không thể xóa: tài khoản đang được dữ liệu khác tham chiếu.'
+                : 'Không thể xóa tài khoản. Vui lòng thử lại.'
+            );
+
+            return;
+        } catch (Throwable $exception) {
+            report($exception);
+
+            $this->notify(
+                'error',
+                'Không thể xóa tài khoản. Vui lòng thử lại.'
+            );
+
+            return;
+        }
+
+        if (!$result['deleted']) {
+            $this->notify('info', $result['message']);
+
+            return;
+        }
+
+        // Chỉ dọn avatar sau khi transaction đã commit.
+        $this->deleteManagedAvatar($result['avatar']);
+
+        if ($this->editingId === (int) $pending['id']) {
+            $this->closeUserModal();
+        }
+
+        if ($this->resetUserId === (int) $pending['id']) {
+            $this->closeResetPassword();
+        }
+
+        // Tránh ở lại trang rỗng sau khi xóa.
+        $this->resetPage();
+
+        $this->notify('success', 'Đã xóa tài khoản.');
+    }
+
+    private function accountDeletionBlockReason(User $user): ?string
+    {
+        if ($user->role === 'admin') {
+            return 'Không thể xóa tài khoản Admin.';
+        }
+
+        if ((int) $user->id === (int) Auth::id()) {
+            return 'Không thể xóa tài khoản đang đăng nhập.';
+        }
+
+        if (
+            $user->orders()->exists()
+            || $user->subscriptions()->exists()
+            || $user->complaints()->exists()
+            || $user->reviews()->exists()
+            || DB::table('inventory_logs')
+                ->where('created_by', $user->id)
+                ->exists()
+            || DB::table('order_status_histories')
+                ->where('changed_by', $user->id)
+                ->exists()
+        ) {
+            return 'Tài khoản đã có đơn hàng, gói đăng ký hoặc lịch sử nghiệp vụ. Hãy khóa tài khoản nếu cần ngừng sử dụng.';
+        }
+
+        return null;
+    }
+
     // Form tài khoản
     private function resetForm(): void
     {
@@ -645,6 +844,7 @@ class AccountManager extends Component
             'showUserModal',
             'editingId',
             'confirmationHash',
+            'pendingDelete',
             'name',
             'email',
             'phone',

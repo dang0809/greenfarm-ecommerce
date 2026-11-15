@@ -311,13 +311,27 @@
                     <thead>
                         <tr
                             class="bg-slate-50/80 text-slate-500 uppercase font-bold text-[10px] sm:text-xs tracking-wider border-b border-slate-100">
-                            <th class="py-3.5 sm:py-4 px-4 sm:px-5">Thành Viên</th>
-                            <th class="py-3.5 sm:py-4 px-4">Email Đăng Nhập</th>
-                            <th class="py-3.5 sm:py-4 px-4">Số Điện Thoại</th>
-                            <th class="py-3.5 sm:py-4 px-4">Vai Trò</th>
-                            <th class="py-3.5 sm:py-4 px-4 text-center">Trạng Thái</th>
-                            <th class="py-3.5 sm:py-4 px-4">Ngày Tạo</th>
-                            <th class="py-3.5 sm:py-4 px-4 sm:px-6 text-right">Thao Tác</th>
+                            <th class="py-3.5 sm:py-4 px-4 sm:px-5 text-left align-middle">
+                                Thành Viên
+                            </th>
+                            <th class="py-3.5 sm:py-4 px-4 text-left align-middle">
+                                Email Đăng Nhập
+                            </th>
+                            <th class="py-3.5 sm:py-4 px-4 text-center align-middle">
+                                Số Điện Thoại
+                            </th>
+                            <th class="py-3.5 sm:py-4 px-4 text-center align-middle">
+                                Vai Trò
+                            </th>
+                            <th class="py-3.5 sm:py-4 px-4 text-center align-middle">
+                                Trạng Thái
+                            </th>
+                            <th class="py-3.5 sm:py-4 px-4 text-center align-middle">
+                                Ngày Tạo
+                            </th>
+                            <th class="py-3.5 sm:py-4 px-4 sm:px-6 text-center align-middle">
+                                Thao Tác
+                            </th>
                         </tr>
                     </thead>
 
@@ -325,42 +339,49 @@
                         @foreach ($users as $user)
                             @php
                                 $badge = $badges[$user->role] ?? $badges['customer'];
+
+                                $canDelete = $user->role !== 'admin' && (int) $user->id !== (int) auth()->id();
                             @endphp
 
                             <tr wire:key="account-row-{{ $user->id }}"
                                 class="hover:bg-slate-50 transition bg-white border-b border-slate-100">
 
-                                <td class="py-3.5 sm:py-4 px-4 sm:px-5 flex items-center gap-3">
-                                    <img src="{{ $user->avatar_url ?: $fallbackAvatar }}" alt="{{ $user->name }}"
-                                        class="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0">
+                                <td class="py-3.5 sm:py-4 px-4 sm:px-5 align-middle">
+                                    <div class="flex items-center gap-3">
+                                        <img src="{{ $user->avatar_url ?: $fallbackAvatar }}"
+                                            alt="{{ $user->name }}"
+                                            class="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0">
 
-                                    <div class="min-w-0">
-                                        <b wire:click="openEdit({{ $user->id }})"
-                                            class="text-slate-900 text-xs sm:text-sm block truncate hover:text-brand-700 cursor-pointer">
-                                            {{ $user->name }}
-                                        </b>
-                                        <span class="text-[11px] text-slate-400 font-mono">
-                                            ID: #{{ $user->id }}
-                                        </span>
+                                        <div class="min-w-0">
+                                            <b wire:click="openEdit({{ $user->id }})"
+                                                class="text-slate-900 text-xs sm:text-sm block truncate hover:text-brand-700 cursor-pointer">
+                                                {{ $user->name }}
+                                            </b>
+
+                                            <span class="text-[11px] text-slate-400 font-mono">
+                                                ID: #{{ $user->id }}
+                                            </span>
+                                        </div>
                                     </div>
                                 </td>
 
-                                <td class="py-3.5 sm:py-4 px-4 font-mono text-slate-700 text-xs">
+                                <td class="py-3.5 sm:py-4 px-4 font-mono text-slate-700 text-xs align-middle">
                                     {{ $user->email }}
                                 </td>
 
-                                <td class="py-3.5 sm:py-4 px-4 font-mono font-semibold text-slate-800 text-xs">
+                                <td
+                                    class="py-3.5 sm:py-4 px-4 font-mono font-semibold text-slate-800 text-xs text-center align-middle">
                                     {{ $user->phone }}
                                 </td>
 
-                                <td class="py-3.5 sm:py-4 px-4">
+                                <td class="py-3.5 sm:py-4 px-4 text-center align-middle">
                                     <span class="{{ $badge[0] }}">
                                         <i class="fa-solid {{ $badge[1] }} text-[10px]"></i>
                                         {{ $badge[2] }}
                                     </span>
                                 </td>
 
-                                <td class="py-3.5 sm:py-4 px-4 text-center">
+                                <td class="py-3.5 sm:py-4 px-4 align-middle text-center">
                                     @php
                                         $isSelf = $user->id === (int) auth()->id();
 
@@ -405,22 +426,38 @@
                                     </div>
                                 </td>
 
-                                <td class="py-3.5 sm:py-4 px-4 font-mono text-slate-500 text-xs">
+                                <td
+                                    class="py-3.5 sm:py-4 px-4 font-mono text-slate-500 text-xs text-center align-middle">
                                     {{ $user->created_at?->format('Y-m-d') }}
                                 </td>
 
-                                <td class="py-3.5 sm:py-4 px-4 sm:px-6 text-right space-x-1.5">
-                                    <button type="button" wire:click="openEdit({{ $user->id }})"
-                                        class="p-2 rounded-xl bg-slate-100 text-slate-700 hover:text-brand-700 hover:bg-brand-50 transition"
-                                        title="Chỉnh sửa phân quyền">
-                                        <i class="fa-regular fa-pen-to-square"></i>
-                                    </button>
+                                <td class="py-3.5 sm:py-4 px-4 sm:px-6 text-center align-middle">
+                                    <div class="inline-flex items-center justify-center gap-1.5">
+                                        <button type="button" wire:click="openEdit({{ $user->id }})"
+                                            x-bind:disabled="confirmingAccount"
+                                            class="p-2 rounded-xl bg-slate-100 text-slate-700 hover:text-brand-700 hover:bg-brand-50 transition cursor-pointer"
+                                            title="Chỉnh sửa phân quyền">
+                                            <i class="fa-regular fa-pen-to-square"></i>
+                                        </button>
 
-                                    <button type="button" wire:click="openResetPassword({{ $user->id }})"
-                                        class="p-2 rounded-xl bg-amber-50 text-amber-800 hover:bg-amber-100 transition"
-                                        title="Đặt lại mật khẩu">
-                                        <i class="fa-solid fa-key"></i>
-                                    </button>
+                                        <button type="button" wire:click="openResetPassword({{ $user->id }})"
+                                            x-bind:disabled="confirmingAccount"
+                                            class="p-2 rounded-xl bg-amber-50 text-amber-800 hover:bg-amber-100 transition cursor-pointer"
+                                            title="Đặt lại mật khẩu">
+                                            <i class="fa-solid fa-key"></i>
+                                        </button>
+
+                                        <button type="button" wire:click="requestDeleteAccount({{ $user->id }})"
+                                            wire:loading.attr="disabled"
+                                            wire:target="requestDeleteAccount({{ $user->id }}),deleteAccount,cancelDeleteAccount"
+                                            @disabled(!$canDelete)
+                                            x-bind:disabled="confirmingAccount || @js(!$canDelete)"
+                                            aria-label="Xóa tài khoản"
+                                            title="{{ $canDelete ? 'Xóa tài khoản' : 'Không thể xóa tài khoản Admin hoặc tài khoản đang đăng nhập' }}"
+                                            class="p-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 transition {{ $canDelete ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed' }}">
+                                            <i class="fa-regular fa-trash-can"></i>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach
@@ -801,6 +838,21 @@
             },
             () => $wire.saveToggleStatus(),
             () => $wire.cancelToggleStatus()
+        ));
+
+        $wire.on('confirm-account-delete', ({
+            name,
+            email
+        }) => confirmAction({
+                icon: 'warning',
+                title: 'Xác nhận xóa tài khoản?',
+                text: name + ' (' + email + '). Thao tác này không thể khôi phục.',
+                confirmButtonText: 'Xóa tài khoản',
+                confirmButtonColor: '#dc2626',
+                allowEscapeKey: false,
+            },
+            () => $wire.deleteAccount(),
+            () => $wire.cancelDeleteAccount()
         ));
     </script>
 @endscript
