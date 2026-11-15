@@ -36,6 +36,13 @@ class AccountManager extends Component
         'customer',
     ];
 
+    private const CREATABLE_ROLES = [
+        'admin',
+        'farm_owner',
+        'farm_staff',
+        'sales',
+    ];
+
     // Bộ lọc danh sách.
     public string $tab = 'all';
     public string $search = '';
@@ -60,6 +67,9 @@ class AccountManager extends Component
 
     #[Locked]
     public ?int $editingId = null;
+
+    #[Locked]
+    public bool $isEditingAdmin = false;
 
     #[Locked]
     public ?string $confirmationHash = null;
@@ -194,6 +204,7 @@ class AccountManager extends Component
         $this->email = $user->email;
         $this->phone = (string) $user->phone;
         $this->role = $user->role;
+        $this->isEditingAdmin = $user->role === 'admin';
         $this->currentAvatarUrl = $user->avatar_url;
 
         // Không đọc mật khẩu từ database vào form.
@@ -843,6 +854,7 @@ class AccountManager extends Component
         $this->reset([
             'showUserModal',
             'editingId',
+            'isEditingAdmin',
             'confirmationHash',
             'pendingDelete',
             'name',
@@ -895,7 +907,11 @@ class AccountManager extends Component
 
             'role' => [
                 'required',
-                Rule::in(self::ROLES),
+                Rule::in(
+                    $this->editingId === null
+                    ? self::CREATABLE_ROLES
+                    : self::ROLES
+                ),
             ],
         ], [
             ...$this->avatarMessages(),
@@ -908,7 +924,9 @@ class AccountManager extends Component
             'phone.regex' => 'Số điện thoại gồm 10 số, bắt đầu bằng 03, 05, 07, 08 hoặc 09.',
             'password.min' => 'Mật khẩu phải có ít nhất 8 ký tự.',
             'password.max' => 'Mật khẩu tối đa 72 ký tự.',
-            'role.in' => 'Vai trò không hợp lệ.',
+            'role.in' => $this->editingId === null
+                ? 'Chỉ được cấp tài khoản Admin, Chủ trang trại, Farm Staff hoặc Sales.'
+                : 'Vai trò không hợp lệ.',
         ], [
             'name' => 'họ tên',
             'email' => 'email',
