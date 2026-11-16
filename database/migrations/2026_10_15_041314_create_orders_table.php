@@ -24,8 +24,6 @@ return new class extends Migration
             $table->integer('points_used')->default(0);
             $table->integer('points_earned')->default(0);
             $table->decimal('total', 12, 2)->default(0)->index();
-            $table->string('shipping_provider', 100)->nullable();
-            $table->string('tracking_code', 100)->nullable()->index();
             $table->string('recipient_name', 255);
             $table->string('recipient_phone', 20);
             $table->string('recipient_address', 255);

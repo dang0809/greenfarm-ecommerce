@@ -49,10 +49,18 @@ class OrderNotificationService
             ]);
 
             // Phát sóng Realtime tới Quả chuông trên Header của người dùng
-            broadcast(new UserNotificationSent($notification));
+            try {
+                broadcast(new UserNotificationSent($notification));
+            } catch (\Throwable $e) {
+                Log::warning('Không thể phát sóng Realtime UserNotificationSent: ' . $e->getMessage());
+            }
 
-            // 3. Gửi Email biên nhận chi tiết
+            // 3. Gửi Email biên nhận chi tiết (tự động nạp User nếu trước đó bị load thiếu email)
             $user = $order->user;
+            if (!$user || empty($user->email)) {
+                $user = User::find($order->user_id);
+            }
+
             if ($user && !empty($user->email)) {
                 Mail::to($user->email)->send(new OrderNotificationMail($order, 'paid'));
             }
@@ -100,10 +108,18 @@ class OrderNotificationService
             ]);
 
             // Phát sóng Realtime tới Quả chuông trên Header của người dùng
-            broadcast(new UserNotificationSent($notification));
+            try {
+                broadcast(new UserNotificationSent($notification));
+            } catch (\Throwable $e) {
+                Log::warning('Không thể phát sóng Realtime UserNotificationSent: ' . $e->getMessage());
+            }
 
-            // 3. Gửi Email thông báo đã nhận hàng & bảo hiểm 24H
+            // 3. Gửi Email thông báo đã nhận hàng & bảo hiểm 24H (tự động nạp User nếu trước đó bị load thiếu email)
             $user = $order->user;
+            if (!$user || empty($user->email)) {
+                $user = User::find($order->user_id);
+            }
+
             if ($user && !empty($user->email)) {
                 Mail::to($user->email)->send(new OrderNotificationMail($order, 'delivered'));
             }

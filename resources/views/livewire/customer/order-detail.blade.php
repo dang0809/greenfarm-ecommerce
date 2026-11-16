@@ -421,11 +421,11 @@
                     <div class="pt-2 border-t border-gray-50 flex flex-col gap-1 text-xs">
                         <p class="text-gray-500">
                             Hình thức giao: <span
-                                class="font-semibold text-gray-800">{{ $order->shipping_provider ?? 'Giao hỏa tốc (Nông trại tự giao)' }}</span>
+                                class="font-semibold text-gray-800">{{ $order->shipping_provider }}</span>
                         </p>
                         <p class="text-gray-500">
                             Mã vận đơn: <span
-                                class="font-mono font-bold text-gray-800">{{ $order->tracking_code ?: 'SHIP-DL-' . date('Ymd', strtotime($order->created_at)) . '-' . str_pad($order->id, 4, '0', STR_PAD_LEFT) }}</span>
+                                class="font-mono font-bold text-gray-800">{{ $order->tracking_code }}</span>
                         </p>
                         @if (!empty($order->note))
                             <p class="text-gray-500">

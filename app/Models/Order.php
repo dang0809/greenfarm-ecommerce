@@ -23,8 +23,6 @@ class Order extends Model
         'points_used', 
         'points_earned', 
         'total', 
-        'shipping_provider', 
-        'tracking_code', 
         'recipient_name',
         'recipient_phone', 
         'recipient_address', 
@@ -57,6 +55,17 @@ class Order extends Model
     public function complaint(): HasOne { return $this->hasOne(Complaint::class); }
     public function shippingAddress(): BelongsTo { return $this->belongsTo(Address::class, 'shipping_address_id'); }
     public function deliverySchedule(): HasOne { return $this->hasOne(DeliverySchedule::class, 'order_id'); }
+
+    public function getTrackingCodeAttribute(): string
+    {
+        $created = $this->created_at ? $this->created_at->format('Ymd') : date('Ymd');
+        return 'SHIP-DL-' . $created . '-' . str_pad((string) $this->id, 4, '0', STR_PAD_LEFT);
+    }
+
+    public function getShippingProviderAttribute(): string
+    {
+        return 'Giao hỏa tốc (Nông trại tự giao)';
+    }
 
     public function adjustProductSoldCounts(int $direction): void
     {

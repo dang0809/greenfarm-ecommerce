@@ -101,7 +101,7 @@ class PayOSWebhookController extends Controller
                     // Lấy danh sách sản phẩm trong đơn hàng
                     $order->load([
                         'items.product',
-                        'user:id,name',
+                        'user:id,name,email',
                     ]);
                     $subscription = null;
                     if ($order->order_type === 'subscription') {
@@ -202,7 +202,11 @@ class PayOSWebhookController extends Controller
 
                     // Phát sóng sự kiện Realtime cho giao diện NVBH (OrderManager & Sidebar)
                     if ($order->order_type !== 'subscription') {
-                        broadcast(new \App\Events\OrderPaidEvent($order));
+                        try {
+                            broadcast(new \App\Events\OrderPaidEvent($order));
+                        } catch (\Throwable $e) {
+                            Log::warning('Không thể phát sóng OrderPaidEvent (Reverb offline?): ' . $e->getMessage());
+                        }
                     }
 
                     // Gửi thông báo sau khi commit thành công

@@ -464,7 +464,7 @@
                                     <span class="text-[10px] text-blue-600 font-bold uppercase tracking-wider block">Mã vận
                                         đơn:</span>
                                     <span class="text-xs font-black text-blue-900 mt-0.5 block">
-                                        {{ $selectedOrder->tracking_code ?: 'SHIP-DL-' . date('Ymd', strtotime($selectedOrder->created_at)) . '-' . str_pad($selectedOrder->id, 4, '0', STR_PAD_LEFT) }}
+                                        {{ $selectedOrder->tracking_code }}
                                     </span>
                                 </div>
                             </div>
