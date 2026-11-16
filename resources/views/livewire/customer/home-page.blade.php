@@ -267,9 +267,16 @@
             <p class="text-xs text-gray-500 mb-4 text-center">Hướng camera về phía mã QR in trên tem nhãn gói nông sản
             </p>
 
-            <div
-                class="overflow-hidden rounded-2xl border-2 border-dashed border-brand-400 bg-black/5 aspect-square relative flex items-center justify-center">
-                <div id="qr-reader" class="w-full h-full"></div>
+            {{-- Khung camera vuông, rộng bằng một nửa trước đây --}}
+            <div id="qr-camera-frame"
+                class="relative mx-auto aspect-square w-1/2 overflow-hidden
+        rounded-xl border-2 border-dashed border-brand-500
+        bg-slate-900">
+
+                {{-- Căn giữa video, không để video kéo giãn khung ngoài --}}
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div id="qr-reader" wire:ignore class="w-full"></div>
+                </div>
             </div>
 
             <div id="qr-scan-status" class="mt-3 text-center text-xs font-semibold text-gray-500">
@@ -487,10 +494,8 @@
                                 facingMode: 'environment'
                             }, {
                                 fps: 10,
-                                qrbox: {
-                                    width: 220,
-                                    height: 220
-                                }
+                                // Yêu cầu camera cung cấp hình ảnh theo tỷ lệ vuông.
+                                aspectRatio: 1,
                             },
                             async (decodedText) => {
                                     // Tránh gửi nhiều request từ cùng một lần quét.

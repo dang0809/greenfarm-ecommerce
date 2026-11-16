@@ -68,9 +68,18 @@
                 width: 1.75rem;
             }
 
-            #qr-reader video {
-                border-radius: 1rem;
-                object-fit: cover;
+            #qr-modal #qr-reader {
+                width: 100% !important;
+                height: auto !important;
+                min-height: 0 !important;
+            }
+
+            #qr-modal #qr-reader video {
+                display: block;
+                width: 100% !important;
+                height: auto !important;
+                border-radius: 0;
+                object-fit: contain;
             }
         </style>
 
