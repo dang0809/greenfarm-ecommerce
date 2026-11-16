@@ -16,6 +16,7 @@
             if (
                 this.confirmingFarm ||
                 this.maintenanceSaving ||
+                document.getElementById('farm-image-dialog')?.open ||
                 Swal.isVisible()
             ) {
                 return;
@@ -599,10 +600,21 @@
                                                     </p>
                                                 @endif
                                                 @if ($event->image_url)
-                                                    <img src="{{ $event->image_url }}"
-                                                        x-on:click="$dispatch('farm-preview-image', { src: $el.src })"
-                                                        class="w-24 h-24 rounded-xl object-cover border mt-2 cursor-pointer hover:scale-105 transition"
-                                                        alt="Ảnh minh chứng">
+                                                    <button type="button"
+                                                        x-on:click="$dispatch('farm-preview-image', {
+            src: @js($event->image_url),
+            title: @js($event->event_name)
+        })"
+                                                        aria-label="Phóng to ảnh minh chứng"
+                                                        class="mt-2 block h-24 w-24 cursor-zoom-in
+            overflow-hidden rounded-xl border border-gray-200
+            focus-visible:outline-2 focus-visible:outline-offset-2
+            focus-visible:outline-brand-700">
+
+                                                        <img src="{{ $event->image_url }}"
+                                                            alt="{{ $event->event_name }}" loading="lazy"
+                                                            class="h-full w-full object-cover">
+                                                    </button>
                                                 @endif
                                             </div>
                                         </div>

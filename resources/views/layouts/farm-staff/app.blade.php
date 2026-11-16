@@ -155,14 +155,6 @@
         text: $event.detail.text ?? '',
         confirmButtonColor: '#15803d'
     })"
-        x-on:farm-preview-image.window="Swal.fire({
-        heightAuto: false,
-        scrollbarPadding: false,
-        imageUrl: $event.detail.src,
-        imageAlt: 'Ảnh nhật ký canh tác',
-        showConfirmButton: false,
-        showCloseButton: true
-    })"
         class="font-sans text-gray-800 bg-cream antialiased flex h-[100dvh] min-h-[100dvh] overflow-hidden selection:bg-brand-200 selection:text-brand-900">
 
         {{-- Hiển thị lớp phủ để đóng menu điều hướng trên màn hình di động --}}
@@ -176,6 +168,65 @@
         <main class="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden bg-cream">
             {{ $slot }}
         </main>
+
+        {{-- Hộp xem ảnh, mở trực tiếp bằng Alpine --}}
+        <dialog id="farm-image-dialog" x-data="{ imageSrc: '', imageTitle: '' }" x-ref="farmImageDialog"
+            x-on:farm-preview-image.window="
+        imageSrc = $event.detail.src;
+        imageTitle = $event.detail.title || 'Ảnh nhật ký canh tác';
+
+        $nextTick(() => {
+            if (!$refs.farmImageDialog.open) {
+                $refs.farmImageDialog.showModal();
+            }
+        });
+    "
+            x-on:click.self="$refs.farmImageDialog.close()" x-on:close="imageSrc = ''; imageTitle = ''"
+            aria-labelledby="farm-image-dialog-title"
+            class="m-auto w-[92vw] max-w-4xl max-h-[92dvh] overflow-hidden
+        rounded-3xl border border-gray-100 bg-white p-0 text-gray-900
+        shadow-2xl backdrop:bg-black/80 backdrop:backdrop-blur-sm">
+
+            <div class="flex max-h-[90dvh] flex-col">
+                {{-- Tiêu đề và nút đóng --}}
+                <div
+                    class="flex shrink-0 items-start justify-between gap-3
+            border-b border-gray-100 p-4 sm:p-5">
+
+                    <h2 id="farm-image-dialog-title" x-text="imageTitle"
+                        class="min-w-0 flex-1 break-words text-base
+                    font-extrabold sm:text-lg">
+                    </h2>
+
+                    <button type="button" autofocus x-on:click="$refs.farmImageDialog.close()" aria-label="Đóng ảnh"
+                        class="flex h-9 w-9 shrink-0 cursor-pointer items-center
+                    justify-center rounded-full bg-gray-100 text-gray-600
+                    hover:bg-gray-200">
+                        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                    </button>
+                </div>
+
+                {{-- Nội dung ảnh --}}
+                <div class="min-h-0 flex-1 overflow-y-auto bg-gray-50
+            p-3 sm:p-5 custom-scrollbar">
+
+                    <template x-if="imageSrc">
+                        <img x-bind:src="imageSrc" x-bind:alt="imageTitle"
+                            class="mx-auto h-auto max-h-[64dvh] w-auto max-w-full
+                        rounded-xl object-contain shadow-md">
+                    </template>
+                </div>
+
+                <div class="shrink-0 border-t border-gray-100 p-4">
+                    <button type="button" x-on:click="$refs.farmImageDialog.close()"
+                        class="w-full cursor-pointer rounded-xl bg-gray-100
+                    px-5 py-2.5 text-sm font-bold text-gray-700
+                    hover:bg-gray-200">
+                        Đóng
+                    </button>
+                </div>
+            </div>
+        </dialog>
 
         <script>
             // Đóng, mở sidebar và lớp phủ trên thiết bị di động.
