@@ -83,7 +83,7 @@
 
                 <i class="fa-solid fa-arrows-rotate hidden sm:inline" aria-hidden="true"></i>
 
-                <span class="leading-snug">Nhật ký biến động lô</span>
+                <span class="leading-snug">Lịch sử biến động lô</span>
             </button>
 
             {{-- Tab nhật ký canh tác --}}
@@ -107,76 +107,196 @@
 
         <section id="inventory-logs" role="tabpanel" aria-labelledby="inventory-tab" tabindex="0" x-cloak
             x-show="activeLogTab === 'inventory'"
-            class="bg-white p-5 rounded-3xl border border-slate-200/80
-        shadow-soft space-y-4">
-            @forelse ($logs as $log)
-                <article wire:key="owner-stock-log-{{ $log->id }}"
-                    class="p-4 rounded-2xl border border-slate-100 space-y-2 text-sm">
-                    <div class="flex justify-between gap-3 font-bold">
-                        <span>{{ $logDisplays[$log->id]['label'] }}</span>
-                        <span>{{ $logDisplays[$log->id]['quantityText'] }}</span>
+            class="overflow-hidden rounded-3xl border border-slate-200
+        bg-white shadow-soft">
+            {{-- Danh sách biến động --}}
+            <div class="space-y-3 p-4 sm:p-6">
+                @forelse ($logs as $log)
+                    @php
+                        $display = $logDisplays[$log->id];
+
+                        $isDecrease = in_array($log->type, ['export_sale', 'export_spoilage', 'adjustment_out'], true);
+
+                        $logColor = $isDecrease ? 'text-rose-600' : 'text-brand-700';
+                    @endphp
+
+                    <article wire:key="owner-stock-log-{{ $log->id }}"
+                        class="flex min-w-0 flex-col gap-3 rounded-2xl
+                    border border-slate-200 bg-white p-4
+                    transition-colors hover:border-slate-300
+                    sm:flex-row sm:items-start sm:justify-between">
+
+                        {{-- Nội dung bên trái --}}
+                        <div class="min-w-0 flex-1 space-y-1.5">
+                            <h3 class="text-xs font-extrabold sm:text-sm {{ $logColor }}">
+                                Thao tác: {{ $display['label'] }}
+                            </h3>
+
+                            @if ($display['transition'])
+                                <p
+                                    class="break-words text-xs font-medium
+                            leading-relaxed text-slate-700">
+                                    Trạng thái:
+                                    <span class="font-bold">
+                                        {{ $display['transition'] }}
+                                    </span>
+                                </p>
+                            @endif
+
+                            @if ($display['stockChange'])
+                                <p
+                                    class="break-words text-xs font-medium
+                            leading-relaxed text-slate-700">
+                                    Tồn kho:
+                                    <span class="font-bold">
+                                        {{ $display['stockChange'] }}
+                                        {{ $batch->plantingBatch?->product?->unit }}
+                                    </span>
+                                </p>
+                            @endif
+
+                            @if ($display['expiryChange'])
+                                <p
+                                    class="break-words text-xs font-medium
+                            leading-relaxed text-slate-700">
+                                    HSD:
+                                    <span class="font-bold">
+                                        {{ $display['expiryChange'] }}
+                                    </span>
+                                </p>
+                            @endif
+
+                            <p
+                                class="whitespace-pre-line break-words text-xs font-medium leading-relaxed text-slate-700">
+                                Nội dung: {{ $display['reason'] }}</p>
+
+                            <p
+                                class="pt-1 font-mono text-[10px]
+                        leading-relaxed text-slate-500 sm:text-[11px]">
+                                {{ $log->created_at?->format('d/m/Y H:i') ?? '—' }}
+                                <span class="mx-1">·</span>
+                                {{ $log->creator?->name ?? '—' }}
+                            </p>
+                        </div>
+
+                        {{-- Số lượng bên phải --}}
+                        <div class="shrink-0 self-end text-right sm:self-start">
+                            <span class="block text-[10px] font-medium text-slate-500">
+                                Biến động
+                            </span>
+
+                            <span
+                                class="mt-1 block font-mono text-sm
+                        font-black tabular-nums {{ $logColor }}">
+                                {{ $display['quantityText'] }}
+
+                                @if ($log->quantity !== 0)
+                                    {{ $batch->plantingBatch?->product?->unit }}
+                                @endif
+                            </span>
+                        </div>
+                    </article>
+                @empty
+                    <div
+                        class="rounded-2xl border border-dashed border-slate-200
+                bg-slate-50 px-4 py-8 text-center">
+                        <i class="fa-solid fa-box-open mb-2 text-xl text-slate-400" aria-hidden="true"></i>
+                        <p class="text-xs text-slate-500">
+                            Chưa có biến động kho.
+                        </p>
                     </div>
+                @endforelse
+            </div>
 
-                    @if ($logDisplays[$log->id]['transition'])
-                        <p>Trạng thái: {{ $logDisplays[$log->id]['transition'] }}</p>
-                    @endif
-
-                    @if ($logDisplays[$log->id]['stockChange'])
-                        <p>Tồn kho: {{ $logDisplays[$log->id]['stockChange'] }}</p>
-                    @endif
-
-                    @if ($logDisplays[$log->id]['expiryChange'])
-                        <p>HSD: {{ $logDisplays[$log->id]['expiryChange'] }}</p>
-                    @endif
-
-                    <p class="whitespace-pre-line text-slate-600">{{ $logDisplays[$log->id]['reason'] }}</p>
-
-                    <p class="text-xs text-slate-400">
-                        {{ $log->created_at?->format('d/m/Y H:i') }}
-                        · {{ $log->creator?->name ?? '—' }}
-                    </p>
-                </article>
-            @empty
-                <p class="text-sm text-slate-500">Chưa có biến động lô.</p>
-            @endforelse
-
-            {{ $logs->links(data: ['scrollTo' => '#inventory-logs']) }}
+            <div class="border-t border-slate-100 bg-slate-50 px-4 py-3 sm:px-6">
+                {{ $logs->links(data: ['scrollTo' => '#inventory-logs']) }}
+            </div>
         </section>
 
         <section id="cultivation-logs" role="tabpanel" aria-labelledby="cultivation-tab" tabindex="0" x-cloak
             x-show="activeLogTab === 'cultivation'"
-            class="bg-white p-5 rounded-3xl border border-slate-200/80
-        shadow-soft space-y-4">
-            @forelse ($events as $event)
-                <article wire:key="owner-farm-event-{{ $event->id }}"
-                    class="p-4 rounded-2xl border border-slate-100 space-y-2">
-                    <h3 class="font-bold">{{ $event->event_name }}</h3>
-                    <p class="text-sm text-slate-600 whitespace-pre-line">{{ $event->description }}</p>
+            class="overflow-hidden rounded-3xl border border-slate-200
+        bg-white shadow-soft">
+            <div class="p-4 sm:p-6">
+                {{-- Đường timeline --}}
+                <div
+                    class="relative space-y-4
+            before:absolute before:inset-y-4 before:left-[7px]
+            before:w-0.5 before:bg-brand-100">
 
-                    <p class="text-xs text-slate-400">
-                        {{ $event->recorded_at?->format('d/m/Y H:i') }}
-                        · {{ $event->recorded_by }}
-                    </p>
+                    @forelse ($events as $event)
+                        <article wire:key="owner-farm-event-{{ $event->id }}" class="relative min-w-0 pl-7 sm:pl-8">
 
-                    @if ($eventImages[$event->id])
-                        <button type="button"
-                            x-on:click="$dispatch('owner-preview-image', {
-        src: @js($eventImages[$event->id]),
-        title: 'Ảnh nhật ký canh tác'
-    })"
-                            aria-label="Phóng to ảnh nhật ký canh tác"
-                            class="block cursor-zoom-in rounded-xl
-        focus-visible:outline-2 focus-visible:outline-brand-700">
-                            <img src="{{ $eventImages[$event->id] }}" alt="Ảnh nhật ký canh tác" loading="lazy"
-                                class="max-h-64 rounded-xl object-contain">
-                        </button>
-                    @endif
-                </article>
-            @empty
-                <p class="text-sm text-slate-500">Chưa có nhật ký canh tác.</p>
-            @endforelse
+                            {{-- Chấm trên timeline --}}
+                            <span aria-hidden="true"
+                                class="absolute left-0 top-4 h-4 w-4
+                            rounded-full border-2 border-white
+                            bg-brand-600 shadow-sm">
+                            </span>
 
-            {{ $events->links(data: ['scrollTo' => '#cultivation-logs']) }}
+                            <div
+                                class="min-w-0 rounded-2xl border border-slate-200
+                        bg-slate-50/60 p-4">
+
+                                <h3
+                                    class="break-words text-xs font-extrabold
+                            leading-relaxed text-slate-900 sm:text-sm">
+                                    {{ $event->event_name }}
+                                </h3>
+
+                                @if (filled($event->description))
+                                    <p
+                                        class="mt-1.5 whitespace-pre-line break-words text-xs leading-relaxed text-slate-600">
+                                        {{ $event->description }}</p>
+                                @endif
+
+                                <p
+                                    class="mt-2 font-mono text-[10px]
+                            leading-relaxed text-slate-500 sm:text-[11px]">
+                                    {{ $event->recorded_at?->format('d/m/Y H:i') ?? '—' }}
+                                    <span class="mx-1">·</span>
+                                    {{ $event->recorded_by ?: '—' }}
+                                </p>
+
+                                {{-- Ảnh minh chứng --}}
+                                @if ($eventImages[$event->id])
+                                    <button type="button"
+                                        x-on:click="$dispatch('owner-preview-image', {
+                                    src: @js($eventImages[$event->id]),
+                                    title: 'Ảnh nhật ký canh tác'
+                                })"
+                                        aria-label="Phóng to ảnh nhật ký canh tác"
+                                        class="mt-3 block max-w-full cursor-zoom-in
+                                    overflow-hidden rounded-xl
+                                    border border-slate-200 bg-white p-1
+                                    shadow-sm focus-visible:outline-2
+                                    focus-visible:outline-offset-2
+                                    focus-visible:outline-brand-700">
+
+                                        <img src="{{ $eventImages[$event->id] }}" alt="Ảnh nhật ký canh tác"
+                                            loading="lazy"
+                                            class="h-auto max-h-48 w-auto max-w-full
+                                        rounded-lg object-contain sm:max-h-64">
+                                    </button>
+                                @endif
+                            </div>
+                        </article>
+                    @empty
+                        <div
+                            class="relative rounded-2xl border border-dashed
+                    border-slate-200 bg-slate-50 px-4 py-8 text-center">
+                            <i class="fa-solid fa-seedling mb-2 text-xl text-slate-400" aria-hidden="true"></i>
+                            <p class="text-xs text-slate-500">
+                                Chưa có nhật ký canh tác.
+                            </p>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+
+            <div class="border-t border-slate-100 bg-slate-50 px-4 py-3 sm:px-6">
+                {{ $events->links(data: ['scrollTo' => '#cultivation-logs']) }}
+            </div>
         </section>
     </div>
 </div>
