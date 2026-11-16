@@ -178,31 +178,37 @@
             },
         
             notify(event) {
-                const raw = event.detail ?? {};
-                const detail = Array.isArray(raw) ? (raw[0] ?? {}) : raw;
-        
-                this.addToast(
-                    detail.type ?? 'success',
-                    detail.message ?? (typeof detail === 'string' ? detail : '')
-                );
+                let data = event.detail;
+                if (Array.isArray(data)) data = data[0];
+                if (data && typeof data === 'object' && ('0' in data)) data = data['0'];
+                if (Array.isArray(data)) data = data[0];
+
+                let type = 'success';
+                let message = '';
+
+                if (typeof data === 'string') {
+                    message = data;
+                } else if (data && typeof data === 'object') {
+                    type = data.type || (data.data && data.data.type) || 'success';
+                    message = data.message || (data.data && data.data.message) || '';
+                }
+
+                if (message) {
+                    this.addToast(type, message);
+                }
             },
-        
+
             addToast(type, message) {
                 if (!message) return;
-        
-                // Chống hiển thị trùng lặp tin nhắn giống nhau đang có trên màn hình
-                if (this.toasts.some(t => t.message === message)) {
-                    return;
-                }
-        
+
                 const id = this.nextId++;
-        
+
                 this.toasts.push({
                     id,
                     type: type || 'success',
                     message
                 });
-        
+
                 setTimeout(() => {
                     this.removeToast(id);
                 }, 4000);

@@ -13,6 +13,7 @@ class Header extends Component
     public int $cartCount = 0;
     public ?int $userId = null;
     public bool $showAllNotifs = false;
+    public string $activeRoute = '';
 
     /**
      * Khai báo danh sách sự kiện lắng nghe động (Chỉ nghe WebSocket khi đã đăng nhập)
@@ -35,6 +36,7 @@ class Header extends Component
 
     public function mount(): void
     {
+        $this->activeRoute = request()->route()?->getName() ?? 'home';
         $this->updateCartCount();
     }
 

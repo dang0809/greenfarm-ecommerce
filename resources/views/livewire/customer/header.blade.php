@@ -11,17 +11,17 @@
             <!-- Desktop Navigation Menu -->
             <nav class="hidden lg:flex space-x-10">
                 <a href="{{ route('home') }}"
-                    class="{{ request()->routeIs('home') ? 'text-brand-700 font-bold' : 'text-gray-600 hover:text-brand-600 font-medium' }} transition-colors">
+                    class="{{ $activeRoute === 'home' ? 'text-brand-700 font-bold' : 'text-gray-600 hover:text-brand-600 font-medium' }} transition-colors">
                     Trang chủ
                 </a>
 
                 <a href="{{ route('products.index') }}"
-                    class="{{ request()->routeIs('products.index') ? 'text-brand-700 font-bold' : 'text-gray-600 hover:text-brand-600 font-medium' }} transition-colors">
+                    class="{{ str_starts_with($activeRoute, 'products') ? 'text-brand-700 font-bold' : 'text-gray-600 hover:text-brand-600 font-medium' }} transition-colors">
                     Sản phẩm
                 </a>
 
                 <a href="{{ route('about') }}"
-                    class="{{ request()->routeIs('about') ? 'text-brand-700 font-bold' : 'text-gray-600 hover:text-brand-600 font-medium' }} transition-colors">
+                    class="{{ $activeRoute === 'about' ? 'text-brand-700 font-bold' : 'text-gray-600 hover:text-brand-600 font-medium' }} transition-colors">
                     Về Nông trại
                 </a>
             </nav>
@@ -243,17 +243,17 @@
 
             <div class="space-y-1 pt-1">
                 <a href="{{ route('home') }}"
-                    class="block px-3 py-2.5 text-base {{ request()->routeIs('home') ? 'font-semibold text-brand-700 bg-brand-50' : 'font-medium text-gray-700 hover:bg-gray-50' }} rounded-xl">
+                    class="block px-3 py-2.5 text-base {{ $activeRoute === 'home' ? 'font-semibold text-brand-700 bg-brand-50' : 'font-medium text-gray-700 hover:bg-gray-50' }} rounded-xl">
                     Trang chủ
                 </a>
 
                 <a href="{{ route('products.index') }}"
-                    class="block px-3 py-2.5 text-base {{ request()->routeIs('products.index') ? 'font-semibold text-brand-700 bg-brand-50' : 'font-medium text-gray-700 hover:bg-gray-50' }} rounded-xl">
+                    class="block px-3 py-2.5 text-base {{ str_starts_with($activeRoute, 'products') ? 'font-semibold text-brand-700 bg-brand-50' : 'font-medium text-gray-700 hover:bg-gray-50' }} rounded-xl">
                     Sản phẩm
                 </a>
 
                 <a href="{{ route('about') }}"
-                    class="block px-3 py-2.5 text-base {{ request()->routeIs('about') ? 'font-semibold text-brand-700 bg-brand-50' : 'font-medium text-gray-700 hover:bg-gray-50' }} rounded-xl">
+                    class="block px-3 py-2.5 text-base {{ $activeRoute === 'about' ? 'font-semibold text-brand-700 bg-brand-50' : 'font-medium text-gray-700 hover:bg-gray-50' }} rounded-xl">
                     Về Nông trại
                 </a>
             </div>

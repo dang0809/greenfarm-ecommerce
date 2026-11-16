@@ -106,6 +106,9 @@ class ProductPage extends Component
             default => null, // Người dùng chọn "Tất cả mức giá" thì không thêm điều kiện
         };
 
+        // Ưu tiên sản phẩm còn hàng lên trước, hết hàng xuống sau
+        $query->orderByRaw('CASE WHEN COALESCE(total_stock, 0) > 0 THEN 0 ELSE 1 END ASC');
+
         // Sắp xếp theo tiêu chí người dùng chọn
         match ($this->sortBy) {
             'price_asc' => $query->orderByRaw("({$effectivePrice}) asc")->orderByDesc('id'),
