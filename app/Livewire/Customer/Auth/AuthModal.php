@@ -99,6 +99,8 @@ class AuthModal extends Component
             'resetToken', 'resetEmail', 'newPassword', 'newPasswordConfirmation',
             'tokenInvalid'
         ]);
+
+        $this->js("if (window.location.search.includes('reset_token')) { window.history.replaceState({}, document.title, window.location.pathname); }");
     }
 
     // CHUYỂN TAB ĐĂNG NHẬP / ĐĂNG KÝ / QUÊN MẬT KHẨU
@@ -120,6 +122,7 @@ class AuthModal extends Component
         $email = $this->resetEmail;
         $this->switchTab('forgot');
         $this->forgotAccount = $email;
+        $this->js("if (window.location.search.includes('reset_token')) { window.history.replaceState({}, document.title, window.location.pathname); }");
     }
 
     // ================= 1. XỬ LÝ ĐĂNG KÝ =================
@@ -339,6 +342,10 @@ class AuthModal extends Component
             $this->reset(['resetToken', 'resetEmail', 'newPassword', 'newPasswordConfirmation']);
             $this->loginAccount = $email;
             $this->tab = 'login';
+
+            // Xóa sạch query parameters (?reset_token=...&email=...) trên thanh địa chỉ trình duyệt
+            $this->js("if (window.location.search.includes('reset_token')) { window.history.replaceState({}, document.title, window.location.pathname); }");
+
             session()->flash('success', 'Mật khẩu đã được cập nhật thành công! Vui lòng đăng nhập bằng mật khẩu mới.');
             return;
         }
