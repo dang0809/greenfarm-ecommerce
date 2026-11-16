@@ -70,8 +70,7 @@
                                 </p>
                                 @if ($type === 'delivered')
                                     <p style="font-size: 13px; color: #4b5563; margin: 0 0 16px;">
-                                        {{ $farmName }} chân thành cảm ơn bạn đã tin chọn nông sản sạch của Đất
-                                        Lành. Chúc bạn và gia đình có những bữa cơm ngon lành, giàu dinh dưỡng!
+                                        {{ $farmName }} chân thành cảm ơn bạn đã tin chọn nông sản sạch của chúng tôi. Chúc bạn và gia đình có những bữa cơm ngon lành, giàu dinh dưỡng!
                                     </p>
                                 @else
                                     <p style="font-size: 13px; color: #4b5563; margin: 0 0 16px;">

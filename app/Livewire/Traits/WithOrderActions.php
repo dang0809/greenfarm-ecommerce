@@ -207,7 +207,9 @@ trait WithOrderActions
 
         $cart = Cart::firstOrCreate(['user_id' => Auth::id()]);
         $addedCount = 0;
-        $skippedCount = 0;
+        $outOfStockCount = 0;
+        $alreadyMaxedInCartCount = 0;
+        $partiallyAddedCount = 0;
 
         foreach ($order->items as $item) {
             $product = $item->product;
@@ -215,7 +217,7 @@ trait WithOrderActions
             $isValid = $product && $product->status === 'active' && ($product->category?->is_active ?? true) && $availableStock > 0;
 
             if (!$isValid) {
-                $skippedCount++;
+                $outOfStockCount++;
                 continue;
             }
 
@@ -229,8 +231,12 @@ trait WithOrderActions
             $qtyToAdd = min((int) $item->quantity, max(0, $availableStock - $currentQty));
 
             if ($qtyToAdd <= 0) {
-                $skippedCount++;
+                $alreadyMaxedInCartCount++;
                 continue;
+            }
+
+            if ($qtyToAdd < (int) $item->quantity) {
+                $partiallyAddedCount++;
             }
 
             if ($cartItem) {
@@ -247,14 +253,22 @@ trait WithOrderActions
 
         if ($addedCount > 0) {
             $this->dispatch('cart-updated');
-            if ($skippedCount > 0) {
-                $this->dispatch('show-toast', type: 'warning', message: 'Đã thêm sản phẩm còn hàng vào giỏ. Một số món đã hết hoặc ngừng bán đã được bỏ qua.');
+            if ($outOfStockCount > 0 || $alreadyMaxedInCartCount > 0 || $partiallyAddedCount > 0) {
+                session()->flash('warning', 'Đã thêm sản phẩm còn hàng vào giỏ. Một số món đã hết hoặc đã có tối đa số lượng trong giỏ.');
             } else {
-                $this->dispatch('show-toast', type: 'success', message: 'Đã thêm các sản phẩm vào giỏ hàng!');
+                session()->flash('success', 'Đã thêm các sản phẩm vào giỏ hàng!');
             }
             return redirect()->route('customer.cart');
         } else {
-            $this->dispatch('show-toast', type: 'error', message: 'Các sản phẩm trong đơn hàng này hiện đã hết hàng hoặc ngừng kinh doanh!');
+            if ($alreadyMaxedInCartCount > 0 && $outOfStockCount === 0) {
+                session()->flash('info', 'Sản phẩm trong đơn hàng đã có trong giỏ với số lượng tối đa khả dụng!');
+                return redirect()->route('customer.cart');
+            } elseif ($alreadyMaxedInCartCount > 0 && $outOfStockCount > 0) {
+                session()->flash('warning', 'Sản phẩm trong đơn hàng đã có trong giỏ với số lượng tối đa, các món còn lại hiện đã hết hàng!');
+                return redirect()->route('customer.cart');
+            } else {
+                $this->dispatch('show-toast', type: 'error', message: 'Các sản phẩm trong đơn hàng này hiện đã hết hàng hoặc ngừng kinh doanh!');
+            }
         }
     }
 

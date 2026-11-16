@@ -168,11 +168,11 @@
                 @php
                     $orderStatusMsg = match (true) {
                         $order->status === 'pending' && $isVipDelivery
-                            => "Đợt giao rau định kỳ{$batchInfo} đã được khởi tạo từ gói VIP trả trước. Hệ thống đang chờ nhân viên Nông trại Đất Lành kiểm tra và xác nhận đơn hàng.",
+                            => "Đợt giao rau định kỳ{$batchInfo} đã được khởi tạo từ gói VIP trả trước. Hệ thống đang chờ nhân viên Nông trại {$farmName} kiểm tra và xác nhận đơn hàng.",
                         $order->status === 'pending' && $order->payment?->status === 'pending'
                             => 'Đơn hàng của bạn đã được hệ thống ghi nhận. Vui lòng hoàn tất thanh toán để nông trại bắt đầu chuẩn bị hàng nhé!',
                         $order->status === 'pending' && $order->payment?->status === 'success'
-                            => 'Bạn đã thanh toán thành công. Hệ thống đang chờ nhân viên Nông trại Đất Lành kiểm tra và xác nhận đơn hàng.',
+                            => "Bạn đã thanh toán thành công. Hệ thống đang chờ nhân viên Nông trại {$farmName} kiểm tra và xác nhận đơn hàng.",
                         $order->status === 'processing' && $isVipDelivery
                             => "Nông trại đang thu hoạch & đóng gói thùng rau VIP{$batchInfo} theo chuẩn VietGAP, chờ shipper đến lấy hàng.",
                         $order->status === 'processing'
@@ -182,7 +182,7 @@
                         $order->status === 'delivered' && $isVipDelivery
                             => "Đã giao thành công đợt rau VIP{$batchInfo} đến bạn!",
                         $order->status === 'delivered'
-                            => 'Đơn hàng đã được giao thành công đến bạn! Cảm ơn bạn đã tin chọn nông sản sạch {$farmName}.',
+                            => "Đơn hàng đã được giao thành công đến bạn! Cảm ơn bạn đã tin chọn nông sản sạch {$farmName}.",
                         default => null,
                     };
                 @endphp
