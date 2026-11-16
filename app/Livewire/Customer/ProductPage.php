@@ -108,10 +108,10 @@ class ProductPage extends Component
 
         // Sắp xếp theo tiêu chí người dùng chọn
         match ($this->sortBy) {
-            'price_asc' => $query->orderByRaw("({$effectivePrice}) asc"),
-            'price_desc' => $query->orderByRaw("({$effectivePrice}) desc"),
-            'popular' => $query->orderBy('sold_count', 'desc'),
-            default => $query->latest(), // Mặc định: sản phẩm mới nhất
+            'price_asc' => $query->orderByRaw("({$effectivePrice}) asc")->orderByDesc('id'),
+            'price_desc' => $query->orderByRaw("({$effectivePrice}) desc")->orderByDesc('id'),
+            'popular' => $query->orderBy('sold_count', 'desc')->orderByDesc('id'),
+            default => $query->latest('id'), // Mặc định: sản phẩm mới nhất theo id
         };
 
         $products = $query->paginate(9);

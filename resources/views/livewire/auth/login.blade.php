@@ -72,17 +72,13 @@
                 @enderror
             </div>
 
-            <!-- Ghi nhớ đăng nhập & Quên mật khẩu -->
+            <!-- Ghi nhớ đăng nhập -->
             <div class="flex items-center justify-between text-xs text-gray-500 pt-0.5">
                 <label class="flex items-center gap-2 cursor-pointer select-none">
                     <input type="checkbox" wire:model="remember"
                         class="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 accent-brand-600">
                     <span class="font-medium text-gray-600">Ghi nhớ đăng nhập</span>
                 </label>
-                <a href="{{ route('home', ['open_forgot' => 1]) }}" wire:navigate
-                    class="font-semibold text-brand-700 hover:text-brand-800 hover:underline transition">
-                    Quên mật khẩu?
-                </a>
             </div>
 
             <!-- Nút Đăng nhập -->

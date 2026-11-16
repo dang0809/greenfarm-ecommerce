@@ -57,7 +57,13 @@ class HomePage extends Component
             ->ordered()
             ->get();
 
-        $categories = Category::where('is_active', true)->get();
+        // Lấy tối đa 8 danh mục đang hoạt động và có sản phẩm đang kinh doanh
+        $categories = Category::where('is_active', true)
+            ->whereHas('products', function ($query) {
+                $query->where('status', 'active');
+            })
+            ->take(8)
+            ->get();
 
         // Lấy 8 sản phẩm bán chạy nhất kèm tổng tồn kho thực tế (FEFO)
         $products = Product::with([

@@ -111,12 +111,12 @@
                     <h2 class="text-2xl font-bold text-gray-900">Danh Mục Sản Phẩm</h2>
                     <p class="text-gray-500 text-sm mt-0.5">Khám phá các loại nông sản tươi sạch theo từng nhóm</p>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button id="cat-prev-btn"
-                        class="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-brand-50 hover:text-brand-600 transition-all"><i
+                <div id="cat-nav-wrapper" class="hidden items-center gap-2">
+                    <button id="cat-prev-btn" aria-label="Danh mục trước"
+                        class="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-brand-50 hover:text-brand-600 transition-all disabled:opacity-30 disabled:pointer-events-none"><i
                             class="fa-solid fa-chevron-left text-xs"></i></button>
-                    <button id="cat-next-btn"
-                        class="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-brand-50 hover:text-brand-600 transition-all"><i
+                    <button id="cat-next-btn" aria-label="Danh mục tiếp theo"
+                        class="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-brand-50 hover:text-brand-600 transition-all disabled:opacity-30 disabled:pointer-events-none"><i
                             class="fa-solid fa-chevron-right text-xs"></i></button>
                 </div>
             </div>
@@ -406,16 +406,45 @@
                 resetInterval();
             })();
 
-            // Cuộn danh mục
+            // Cuộn danh mục & Tự động ẩn/hiện nút khi danh mục bị tràn (lố)
             const catContainer = document.getElementById('category-scroll-container');
-            document.getElementById('cat-prev-btn')?.addEventListener('click', () => catContainer.scrollBy({
-                left: -catContainer.offsetWidth / 2,
-                behavior: 'smooth'
-            }));
-            document.getElementById('cat-next-btn')?.addEventListener('click', () => catContainer.scrollBy({
-                left: catContainer.offsetWidth / 2,
-                behavior: 'smooth'
-            }));
+            const catNavWrapper = document.getElementById('cat-nav-wrapper');
+            const catPrevBtn = document.getElementById('cat-prev-btn');
+            const catNextBtn = document.getElementById('cat-next-btn');
+
+            function updateCatNavState() {
+                if (!catContainer || !catNavWrapper) return;
+
+                const isOverflowing = catContainer.scrollWidth > catContainer.clientWidth + 5;
+
+                if (isOverflowing) {
+                    catNavWrapper.classList.remove('hidden');
+                    catNavWrapper.classList.add('flex');
+
+                    if (catPrevBtn) {
+                        catPrevBtn.disabled = catContainer.scrollLeft <= 5;
+                    }
+                    if (catNextBtn) {
+                        const maxScrollLeft = catContainer.scrollWidth - catContainer.clientWidth - 5;
+                        catNextBtn.disabled = catContainer.scrollLeft >= maxScrollLeft;
+                    }
+                } else {
+                    catNavWrapper.classList.add('hidden');
+                    catNavWrapper.classList.remove('flex');
+                }
+            }
+
+            catPrevBtn?.addEventListener('click', () => {
+                catContainer.scrollBy({ left: -catContainer.offsetWidth / 2, behavior: 'smooth' });
+            });
+
+            catNextBtn?.addEventListener('click', () => {
+                catContainer.scrollBy({ left: catContainer.offsetWidth / 2, behavior: 'smooth' });
+            });
+
+            catContainer?.addEventListener('scroll', updateCatNavState, { passive: true });
+            window.addEventListener('resize', updateCatNavState);
+            setTimeout(updateCatNavState, 150);
 
             // HTML5 QR CODE CAMERA LOGIC
             const root = $wire.$el;

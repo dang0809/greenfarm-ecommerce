@@ -232,7 +232,7 @@ class ProductDetail extends Component
 
         $reviews = Review::with(['user', 'images'])
             ->where('product_id', $this->product->id)
-            ->latest()
+            ->latest('id')
             ->paginate(10, ['*'], 'reviewsPage'); //* lấy toàn bộ kiểu select * 
         //reviewsPage tên biến để phân trang thay vì page thì ?reviewsPage=2
 

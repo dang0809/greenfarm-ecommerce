@@ -157,11 +157,25 @@ class AuthModal extends Component
         $existingUser = User::where('email', $email)->first();
 
         if ($existingUser) {
+            // Chặn tuyệt đối nếu tài khoản đã bị Admin khóa
+            if ($existingUser->status === 'blocked') {
+                $this->addError('registerEmail', 'Tài khoản liên kết với Email này đã bị khóa. Vui lòng liên hệ ban quản trị để được hỗ trợ.');
+                return;
+            }
+
+            // Chặn nếu email này thuộc về cán bộ/nhân viên nội bộ
+            if ($existingUser->role !== 'customer') {
+                $this->addError('registerEmail', 'Email này đã tồn tại trong hệ thống. Vui lòng sử dụng email khác.');
+                return;
+            }
+
+            // Đã kích hoạt trước đó
             if ($existingUser->status === 'active') {
                 $this->addError('registerEmail', 'Email này đã được đăng ký và kích hoạt. Vui lòng chuyển sang Đăng nhập.');
                 return;
             }
 
+            // Trường hợp tài khoản chưa kích hoạt (status === 'inactive'): Cho phép cập nhật mật khẩu mới và gửi lại email xác thực
             $existingUser->update([
                 'name' => trim($validated['registerName']),
                 'password' => Hash::make($validated['registerPassword']),
@@ -278,11 +292,23 @@ class AuthModal extends Component
 
         $user = User::where('email', $this->forgotAccount)->first();
 
-        // Chỉ gửi link khi tài khoản tồn tại, đúng role customer và đang hoạt động (active)
-        if ($user && $user->role === 'customer' && $user->status === 'active') {
-            $token = Password::broker()->createToken($user);
-            $emailService->sendResetLink($user->email, $token);
+        if (!$user || $user->role !== 'customer') {
+            $this->addError('forgotAccount', 'Không tìm thấy tài khoản với địa chỉ email này.');
+            return;
         }
+
+        if ($user->status === 'blocked') {
+            $this->addError('forgotAccount', 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ ban quản trị để được hỗ trợ.');
+            return;
+        }
+
+        if ($user->status !== 'active') {
+            $this->addError('forgotAccount', 'Tài khoản chưa được kích hoạt. Vui lòng kiểm tra email kích hoạt.');
+            return;
+        }
+
+        $token = Password::broker()->createToken($user);
+        $emailService->sendResetLink($user->email, $token);
 
         RateLimiter::hit($throttleKey, 60);
         $this->forgotLinkSent = true;

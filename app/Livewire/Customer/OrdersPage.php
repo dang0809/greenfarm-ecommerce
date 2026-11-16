@@ -102,7 +102,7 @@ class OrdersPage extends Component
         }
 
         return view('livewire.customer.orders-page', [
-            'orders'             => $query->latest()->paginate(10),
+            'orders'             => $query->latest('id')->paginate(10),
             'counts'             => $counts,
             'statusFilter'       => $this->statusFilter,
             'showComplaintModal' => $this->showComplaintModal,

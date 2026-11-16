@@ -203,8 +203,8 @@ class ClearanceManager extends Component
             });
         }
 
-        // FEFO: Lô hết hạn trước xếp lên đầu
-        $batches = $query->orderBy('expiry_date', 'asc')->paginate($this->perPage);
+        // FEFO: Lô hết hạn trước xếp lên đầu, tie-breaker theo id tăng dần
+        $batches = $query->orderBy('expiry_date', 'asc')->orderBy('id', 'asc')->paginate($this->perPage);
 
         return view('livewire.sales.clearance-manager', [
             'batches' => $batches,
