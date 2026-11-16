@@ -35,6 +35,7 @@ class ProductDetail extends Component
     public int $rating = 5;
     public string $content = '';
     public $reviewPhotos = [];
+    public int $reviewPhotosKey = 0;
 
     public function mount(string $slug)
     {
@@ -123,6 +124,25 @@ class ProductDetail extends Component
         return $this->hasPurchased && ($this->unreviewedOrderItem === null);
     }
 
+    public function updatedReviewPhotos(): void
+    {
+        try {
+            $this->validate([
+                'reviewPhotos' => 'nullable|array|max:5',
+                'reviewPhotos.*' => 'image|mimes:jpg,jpeg,png,webp|max:3072',
+            ], [
+                'reviewPhotos.max' => 'Chỉ được tải lên tối đa 5 hình ảnh thực tế.',
+                'reviewPhotos.*.image' => 'Tập tin tải lên phải là hình ảnh.',
+                'reviewPhotos.*.mimes' => 'Hình ảnh phải có định dạng: jpeg, png, jpg, webp.',
+                'reviewPhotos.*.max' => 'Mỗi ảnh tải lên không được vượt quá 3MB.',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->reviewPhotos = [];
+            $this->reviewPhotosKey++;
+            throw $e;
+        }
+    }
+
     public function removePhoto(int $index): void
     {
         if (isset($this->reviewPhotos[$index])) {
@@ -171,13 +191,14 @@ class ProductDetail extends Component
             'rating' => 'required|integer|min:1|max:5',
             'content' => 'required|string|min:10|max:1000',
             'reviewPhotos' => 'nullable|array|max:5',
-            'reviewPhotos.*' => 'image|max:3072',
+            'reviewPhotos.*' => 'image|mimes:jpg,jpeg,png,webp|max:3072',
         ], [
             'content.required' => 'Vui lòng nhập nội dung đánh giá.',
             'content.min' => 'Nội dung đánh giá phải từ 10 ký tự trở lên.',
             'content.max' => 'Nội dung đánh giá không được vượt quá 1000 ký tự.',
             'reviewPhotos.max' => 'Chỉ được tải lên tối đa 5 hình ảnh thực tế.',
             'reviewPhotos.*.image' => 'File đính kèm phải là hình ảnh (jpg, png, webp, jpeg).',
+            'reviewPhotos.*.mimes' => 'Chỉ chấp nhận ảnh JPG, JPEG, PNG hoặc WEBP.',
             'reviewPhotos.*.max' => 'Mỗi ảnh tải lên không được vượt quá 3MB.',
         ]);
 
@@ -205,6 +226,7 @@ class ProductDetail extends Component
         });
 
         $this->reset(['content', 'reviewPhotos']);
+        $this->reviewPhotosKey++;
         $this->rating = 5;
 
         // Xóa cache computed property để Livewire re-render ngay lập tức và ẩn form mà không cần F5

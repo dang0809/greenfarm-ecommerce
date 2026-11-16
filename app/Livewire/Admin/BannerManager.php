@@ -141,6 +141,40 @@ class BannerManager extends Component
         }
     }
 
+    public function updatedBannerFile(): void
+    {
+        try {
+            $this->validateOnly('bannerFile', [
+                'bannerFile' => ['bail', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            ], [
+                'bannerFile.image' => 'Tập tin tải lên phải là hình ảnh.',
+                'bannerFile.mimes' => 'Hình ảnh phải có định dạng: jpeg, png, jpg, webp.',
+                'bannerFile.max' => 'Ảnh banner không được vượt quá 5 MB.',
+            ]);
+        } catch (ValidationException $exception) {
+            $this->bannerFile = null;
+            $this->fileInputKey++;
+            throw $exception;
+        }
+    }
+
+    public function updatedFarmFile(): void
+    {
+        try {
+            $this->validateOnly('farmFile', [
+                'farmFile' => ['bail', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            ], [
+                'farmFile.image' => 'Tập tin tải lên phải là hình ảnh.',
+                'farmFile.mimes' => 'Hình ảnh phải có định dạng: jpeg, png, jpg, webp.',
+                'farmFile.max' => 'Ảnh nông trại không được vượt quá 5 MB.',
+            ]);
+        } catch (ValidationException $exception) {
+            $this->farmFile = null;
+            $this->fileInputKey++;
+            throw $exception;
+        }
+    }
+
     // Mở, đóng, và lưu form
     public function openForm(string $type): void
     {

@@ -2,6 +2,7 @@
 namespace App\Livewire\FarmStaff;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductBatch;
 use App\Models\ProductImage;
 use App\Models\User;
 use Illuminate\Support\Facades\Validator;
@@ -240,15 +241,6 @@ class ProductManager extends Component
                 'max:9999999999.99',
             ],
 
-            'sale_price' => [
-                'nullable',
-                'numeric',
-                'decimal:0,2',
-                'min:0.01',
-                'max:9999999999.99',
-                'lt:price',
-            ],
-
             'unitOption' => [
                 'required',
                 Rule::in([
@@ -439,10 +431,6 @@ class ProductManager extends Component
             'category_id' => (int) $v['category_id'],
 
             'price' => $v['price'],
-
-            'sale_price' => $v['sale_price'] === ''
-                ? null
-                : $v['sale_price'],
 
             'unit' => $this->unit,
 
@@ -752,6 +740,9 @@ class ProductManager extends Component
                 if (!$product->save()) {
                     throw new RuntimeException('Không lưu được sản phẩm.');
                 }
+
+                // Tự động tính toán và đồng bộ lại giá khuyến mãi theo lô Flash Sale hiện tại (FEFO)
+                ProductBatch::syncProductSalePrice($product->id);
 
                 $oldIdsInOrder = collect($this->imageOrder)
                     ->filter(fn(string $token) => str_starts_with($token, 'old:'))

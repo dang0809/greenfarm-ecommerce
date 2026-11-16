@@ -90,20 +90,25 @@ class FarmPlotManager extends Component
     {
         $this->staff();
 
-        $this->validateOnly('sowPhoto', [
-            'sowPhoto' => [
-                'bail',
-                'required',
-                'image',
-                'mimes:jpg,jpeg,png,webp',
-                'max:2048',
-            ],
-        ], [
-            'sowPhoto.required' => 'Vui lòng tải ảnh xuống giống.',
-            'sowPhoto.image' => 'Tệp tải lên phải là ảnh.',
-            'sowPhoto.mimes' => 'Chỉ nhận JPG, JPEG, PNG hoặc WEBP.',
-            'sowPhoto.max' => 'Ảnh xuống giống tối đa 2 MB.',
-        ]);
+        try {
+            $this->validateOnly('sowPhoto', [
+                'sowPhoto' => [
+                    'bail',
+                    'required',
+                    'image',
+                    'mimes:jpg,jpeg,png,webp',
+                    'max:2048',
+                ],
+            ], [
+                'sowPhoto.required' => 'Vui lòng tải ảnh xuống giống.',
+                'sowPhoto.image' => 'Tệp tải lên phải là ảnh.',
+                'sowPhoto.mimes' => 'Chỉ nhận JPG, JPEG, PNG hoặc WEBP.',
+                'sowPhoto.max' => 'Ảnh xuống giống tối đa 2 MB.',
+            ]);
+        } catch (ValidationException $e) {
+            $this->reset('sowPhoto');
+            throw $e;
+        }
     }
 
     public function updatedLogType(): void
@@ -120,38 +125,48 @@ class FarmPlotManager extends Component
 
     public function updatedLogPhoto(): void
     {
-        $this->validateOnly('logPhoto', [
-            'logPhoto' => [
-                'bail',
-                'required',
-                'image',
-                'mimes:jpg,jpeg,png,webp',
-                'max:2048',
-            ],
-        ], [
-            'logPhoto.required' => 'Vui lòng tải ảnh minh chứng nhật ký.',
-            'logPhoto.image' => 'Tệp phải là hình ảnh.',
-            'logPhoto.mimes' => 'Chỉ nhận JPG, PNG hoặc WEBP.',
-            'logPhoto.max' => 'Ảnh nhật ký tối đa 2 MB.',
-        ]);
+        try {
+            $this->validateOnly('logPhoto', [
+                'logPhoto' => [
+                    'bail',
+                    'required',
+                    'image',
+                    'mimes:jpg,jpeg,png,webp',
+                    'max:2048',
+                ],
+            ], [
+                'logPhoto.required' => 'Vui lòng tải ảnh minh chứng nhật ký.',
+                'logPhoto.image' => 'Tệp phải là hình ảnh.',
+                'logPhoto.mimes' => 'Chỉ nhận JPG, PNG hoặc WEBP.',
+                'logPhoto.max' => 'Ảnh nhật ký tối đa 2 MB.',
+            ]);
+        } catch (ValidationException $e) {
+            $this->reset('logPhoto');
+            throw $e;
+        }
     }
 
     public function updatedHarvestPhoto(): void
     {
-        $this->validateOnly('harvestPhoto', [
-            'harvestPhoto' => [
-                'bail',
-                'required',
-                'image',
-                'mimes:jpg,jpeg,png,webp',
-                'max:2048',
-            ],
-        ], [
-            'harvestPhoto.required' => 'Vui lòng tải ảnh thu hoạch thực tế.',
-            'harvestPhoto.image' => 'Tệp phải là hình ảnh.',
-            'harvestPhoto.mimes' => 'Chỉ nhận JPG, PNG hoặc WEBP.',
-            'harvestPhoto.max' => 'Ảnh thu hoạch tối đa 2 MB.',
-        ]);
+        try {
+            $this->validateOnly('harvestPhoto', [
+                'harvestPhoto' => [
+                    'bail',
+                    'required',
+                    'image',
+                    'mimes:jpg,jpeg,png,webp',
+                    'max:2048',
+                ],
+            ], [
+                'harvestPhoto.required' => 'Vui lòng tải ảnh thu hoạch thực tế.',
+                'harvestPhoto.image' => 'Tệp phải là hình ảnh.',
+                'harvestPhoto.mimes' => 'Chỉ nhận JPG, PNG hoặc WEBP.',
+                'harvestPhoto.max' => 'Ảnh thu hoạch tối đa 2 MB.',
+            ]);
+        } catch (ValidationException $e) {
+            $this->reset('harvestPhoto');
+            throw $e;
+        }
     }
 
     // Trạng thái luống đất

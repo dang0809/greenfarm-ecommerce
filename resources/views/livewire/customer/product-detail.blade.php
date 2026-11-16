@@ -277,7 +277,7 @@
                                             class="inline-flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-600 hover:text-brand-600 transition-colors">
                                             <i class="fa-solid fa-camera text-brand-600 text-sm"></i>
                                             <span>Thêm ảnh thực tế nhận hàng (Tối đa 5 ảnh)</span>
-                                            <input type="file" wire:model="reviewPhotos" multiple accept="image/*"
+                                            <input type="file" wire:key="review-photos-input-{{ $reviewPhotosKey }}" wire:model="reviewPhotos" multiple accept=".jpg,.jpeg,.png,.webp"
                                                 class="hidden">
                                         </label>
 
@@ -296,15 +296,17 @@
                                     @if (!empty($reviewPhotos))
                                         <div class="flex flex-wrap gap-2.5 pt-2">
                                             @foreach ($reviewPhotos as $index => $photo)
-                                                <div class="relative group">
-                                                    <img src="{{ $photo->temporaryUrl() }}"
-                                                        class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover border border-brand-200 shadow-2xs">
-                                                    <button type="button" wire:click="removePhoto({{ $index }})"
-                                                        title="Xóa ảnh này"
-                                                        class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 hover:bg-rose-600 text-white rounded-full flex items-center justify-center text-[10px] shadow-sm transition">
-                                                        <i class="fa-solid fa-xmark"></i>
-                                                    </button>
-                                                </div>
+                                                @if (is_object($photo) && method_exists($photo, 'temporaryUrl') && (!method_exists($photo, 'isPreviewable') || $photo->isPreviewable()))
+                                                    <div class="relative group">
+                                                        <img src="{{ $photo->temporaryUrl() }}"
+                                                            class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover border border-brand-200 shadow-2xs">
+                                                        <button type="button" wire:click="removePhoto({{ $index }})"
+                                                            title="Xóa ảnh này"
+                                                            class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 hover:bg-rose-600 text-white rounded-full flex items-center justify-center text-[10px] shadow-sm transition">
+                                                            <i class="fa-solid fa-xmark"></i>
+                                                        </button>
+                                                    </div>
+                                                @endif
                                             @endforeach
                                         </div>
                                     @endif

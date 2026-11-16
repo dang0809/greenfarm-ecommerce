@@ -462,7 +462,7 @@
                             @endif
                         </label>
                         <input type="file" id="bn-file" wire:model="bannerFile"
-                            wire:key="banner-file-{{ $fileInputKey }}" accept="image/jpeg,image/png,image/webp"
+                            wire:key="banner-file-{{ $fileInputKey }}" accept=".jpg,.jpeg,.png,.webp"
                             @required($editingId === null || !$currentImagePath)
                             class="w-full text-xs text-slate-500
     file:mr-3 file:py-1.5 file:px-3 file:rounded-xl
@@ -643,7 +643,7 @@
                             @endif
                         </label>
                         <input type="file" id="fi-file" wire:model="farmFile"
-                            wire:key="farm-file-{{ $fileInputKey }}" accept="image/jpeg,image/png,image/webp"
+                            wire:key="farm-file-{{ $fileInputKey }}" accept=".jpg,.jpeg,.png,.webp"
                             @required($editingId === null || !$currentImagePath)
                             class="w-full text-xs text-slate-500
     file:mr-3 file:py-1.5 file:px-3 file:rounded-xl

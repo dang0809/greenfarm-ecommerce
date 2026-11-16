@@ -536,7 +536,7 @@
                         </label>
 
                         <div class="flex items-center gap-3">
-                            @if ($newAvatar instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile && !$errors->has('newAvatar'))
+                            @if ($newAvatar instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile && $newAvatar->isPreviewable() && !$errors->has('newAvatar'))
                                 <img src="{{ $newAvatar->temporaryUrl() }}"
                                     wire:key="account-avatar-preview-{{ $avatarInputKey }}-{{ $newAvatar->getFilename() }}"
                                     alt="Ảnh đang chọn"
@@ -549,7 +549,7 @@
                             <div class="min-w-0 flex-1">
                                 <input id="uf-avatar" type="file" wire:model="newAvatar"
                                     wire:key="account-avatar-input-{{ $avatarInputKey }}"
-                                    accept="image/jpeg,image/png,image/webp"
+                                    accept=".jpg,.jpeg,.png,.webp"
                                     class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-brand-50 file:text-brand-700 cursor-pointer">
 
                                 <p class="text-[10px] text-slate-400 mt-1">
