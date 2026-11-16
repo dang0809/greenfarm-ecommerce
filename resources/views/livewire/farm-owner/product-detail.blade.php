@@ -34,10 +34,17 @@
             <div class="flex flex-wrap gap-3">
                 @foreach ($product->productImages as $image)
                     @if ($image->url)
-                        <a href="{{ $image->url }}" target="_blank" rel="noopener noreferrer">
+                        <button type="button"
+                            x-on:click="$dispatch('owner-preview-image', {
+        src: @js($image->url),
+        title: @js($product->name)
+    })"
+                            aria-label="Phóng to ảnh sản phẩm"
+                            class="block cursor-zoom-in rounded-2xl
+        focus-visible:outline-2 focus-visible:outline-brand-700">
                             <img src="{{ $image->url }}" alt="{{ $product->name }}" loading="lazy"
                                 class="h-28 w-28 rounded-2xl object-cover">
-                        </a>
+                        </button>
                     @endif
                 @endforeach
             </div>
@@ -67,10 +74,17 @@
                     <div class="mt-3 flex flex-wrap gap-2">
                         @foreach ($review->images as $image)
                             @if ($image->url)
-                                <a href="{{ $image->url }}" target="_blank" rel="noopener noreferrer">
+                                <button type="button"
+                                    x-on:click="$dispatch('owner-preview-image', {
+        src: @js($image->url),
+        title: 'Ảnh đánh giá'
+    })"
+                                    aria-label="Phóng to ảnh đánh giá"
+                                    class="block cursor-zoom-in rounded-xl
+        focus-visible:outline-2 focus-visible:outline-brand-700">
                                     <img src="{{ $image->url }}" alt="Ảnh đánh giá" loading="lazy"
                                         class="h-20 w-20 rounded-xl object-cover">
-                                </a>
+                                </button>
                             @endif
                         @endforeach
                     </div>

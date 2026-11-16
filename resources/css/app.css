@@ -25,3 +25,100 @@
     --shadow-modal: 0 25px 50px -12px rgba(20, 83, 45, 0.25);
     --shadow-floating: 0 10px 35px -5px rgba(20, 83, 45, 0.2);
 }
+
+@layer components {
+    .fo-page {
+        @apply bg-slate-100 text-slate-800;
+    }
+
+    .fo-header {
+        @apply border-b-2 border-emerald-600 bg-emerald-50 shadow-sm;
+    }
+
+    .fo-panel {
+        @apply rounded-3xl border border-slate-200 bg-white shadow-md;
+    }
+
+    .fo-toolbar {
+        @apply rounded-2xl border border-emerald-200 bg-white
+            p-3 shadow-sm sm:p-4;
+    }
+
+    .fo-field {
+        @apply min-w-0 rounded-xl border border-slate-300 bg-white
+            px-4 py-3 text-sm font-medium text-slate-800 shadow-sm
+            outline-none transition-colors placeholder:text-slate-500
+            focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100
+            disabled:cursor-wait disabled:opacity-60;
+    }
+
+    .fo-action {
+        @apply inline-flex items-center justify-center gap-2 rounded-xl
+            bg-emerald-700 px-3 py-2 text-xs font-bold text-white
+            shadow-sm transition-colors hover:bg-emerald-800
+            focus-visible:outline-2 focus-visible:outline-offset-2
+            focus-visible:outline-emerald-700;
+    }
+
+    .fo-table {
+        @apply w-full whitespace-nowrap text-left text-sm;
+    }
+
+    .fo-table thead {
+        @apply bg-emerald-800 text-xs font-bold uppercase
+            tracking-wide text-white;
+    }
+
+    .fo-table tbody {
+        @apply divide-y divide-slate-200;
+    }
+
+    .fo-table tbody tr {
+        @apply transition-colors;
+    }
+
+    .fo-table tbody tr:nth-child(even) {
+        @apply bg-slate-50;
+    }
+
+    .fo-table tbody tr:hover,
+    .fo-table tbody tr:focus-within {
+        @apply bg-emerald-50;
+    }
+
+    .fo-section-title {
+        @apply flex items-center gap-2 border-l-4 border-emerald-600
+            pl-3 text-base font-extrabold text-slate-900;
+    }
+
+    .fo-badge {
+        @apply inline-flex items-center gap-1.5 rounded-full
+            px-2.5 py-1 text-xs font-bold ring-1 ring-inset;
+    }
+
+    .fo-kpi {
+        @apply rounded-3xl border border-slate-200 border-t-4
+            bg-white p-4 shadow-md sm:p-5;
+    }
+
+    .fo-facts > p {
+        @apply rounded-2xl border border-emerald-100
+            bg-emerald-50/60 p-4 text-sm text-slate-600;
+    }
+
+    .fo-facts > p > b {
+        @apply mt-1 block text-base font-extrabold text-slate-900;
+    }
+
+    .fo-log {
+        @apply rounded-2xl border border-slate-200 border-l-4
+            p-4 shadow-sm;
+    }
+
+    .fo-image-button {
+        @apply block overflow-hidden rounded-2xl border border-slate-200
+            bg-white p-1 shadow-sm transition-shadow hover:shadow-md
+            focus-visible:outline-2 focus-visible:outline-offset-2
+            focus-visible:outline-emerald-700;
+    }
+}

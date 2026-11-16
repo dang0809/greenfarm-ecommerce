@@ -104,7 +104,59 @@
         <main class="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden bg-cream">
             {{ $slot }}
         </main>
+        {{-- Hộp xem ảnh dùng chung cho các trang Farm Owner --}}
+        <dialog x-data="{ imageSrc: '', imageTitle: '' }" x-ref="ownerImageDialog"
+            x-on:owner-preview-image.window="
+        imageSrc = $event.detail.src;
+        imageTitle = $event.detail.title || 'Xem ảnh';
+        $nextTick(() => {
+            if (!$refs.ownerImageDialog.open) {
+                $refs.ownerImageDialog.showModal();
+            }
+        });
+    "
+            x-on:click.self="$refs.ownerImageDialog.close()" x-on:close="imageSrc = ''; imageTitle = ''"
+            aria-labelledby="owner-image-preview-title"
+            class="m-auto w-[92vw] max-w-4xl max-h-[92dvh] overflow-hidden
+        rounded-3xl border border-slate-200 bg-white p-0 text-slate-900
+        shadow-2xl backdrop:bg-black/80 backdrop:backdrop-blur-sm">
 
+            <div class="flex max-h-[90dvh] flex-col">
+                <div
+                    class="flex shrink-0 items-center justify-between gap-3
+            border-b border-slate-100 p-4 sm:p-5">
+
+                    <h2 id="owner-image-preview-title" x-text="imageTitle"
+                        class="min-w-0 break-words text-base font-extrabold sm:text-lg">
+                    </h2>
+
+                    <button type="button" x-on:click="$refs.ownerImageDialog.close()" autofocus aria-label="Đóng ảnh"
+                        class="flex h-9 w-9 shrink-0 cursor-pointer items-center
+                    justify-center rounded-full bg-slate-100 text-slate-600
+                    transition hover:bg-slate-200">
+                        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                    </button>
+                </div>
+
+                <div class="min-h-0 flex-1 overflow-y-auto bg-slate-50
+            p-3 sm:p-5 custom-scrollbar">
+                    <template x-if="imageSrc">
+                        <img x-bind:src="imageSrc" x-bind:alt="imageTitle"
+                            class="mx-auto h-auto max-h-[64dvh] w-auto max-w-full
+                        rounded-xl object-contain shadow-md">
+                    </template>
+                </div>
+
+                <div class="shrink-0 border-t border-slate-100 p-4">
+                    <button type="button" x-on:click="$refs.ownerImageDialog.close()"
+                        class="w-full cursor-pointer rounded-xl bg-slate-100
+                    px-5 py-2.5 text-sm font-bold text-slate-700
+                    transition hover:bg-slate-200">
+                        Đóng
+                    </button>
+                </div>
+            </div>
+        </dialog>
         <script>
             window.toggleSidebar = function() {
                 const sidebar = document.getElementById('sidebar');
