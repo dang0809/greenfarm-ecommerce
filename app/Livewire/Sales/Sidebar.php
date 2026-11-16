@@ -55,6 +55,11 @@ class Sidebar extends Component
         // Livewire tự động re-render cập nhật avatar & tên
     }
 
+    public function requestLogout(): void
+    {
+        $this->dispatch('confirm-sales-logout')->self();
+    }
+
     /**
      * Xử lý đăng xuất tài khoản an toàn
      */
@@ -74,9 +79,9 @@ class Sidebar extends Component
     {
         // Đếm số lượng đơn hàng đã thanh toán đang ở trạng thái pending (Chờ xác nhận)
         $pendingCount = Order::where(function ($q) {
-                $q->whereHas('payment', fn($p) => $p->where('status', 'success'))
-                  ->orWhere('total', 0);
-            })
+            $q->whereHas('payment', fn($p) => $p->where('status', 'success'))
+                ->orWhere('total', 0);
+        })
             ->where('order_type', '!=', 'subscription')
             ->where('status', 'pending')
             ->count();
@@ -93,11 +98,10 @@ class Sidebar extends Component
             ->count();
 
         return view('livewire.sales.sidebar', [
-            'user'                  => Auth::user(),
-            'pendingCount'          => $pendingCount,
+            'user' => Auth::user(),
+            'pendingCount' => $pendingCount,
             'pendingComplaintCount' => $pendingComplaintCount,
-            'nearExpiryCount'       => $nearExpiryCount,
+            'nearExpiryCount' => $nearExpiryCount,
         ]);
     }
 }
-
