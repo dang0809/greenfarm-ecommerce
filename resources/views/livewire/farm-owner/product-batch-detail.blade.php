@@ -83,7 +83,7 @@
 
                 <i class="fa-solid fa-arrows-rotate hidden sm:inline" aria-hidden="true"></i>
 
-                <span class="leading-snug">Nhật ký biến động lô</span>
+                <span class="leading-snug">Lịch sử biến động lô</span>
             </button>
 
             {{-- Tab nhật ký canh tác --}}
@@ -109,24 +109,6 @@
             x-show="activeLogTab === 'inventory'"
             class="overflow-hidden rounded-3xl border border-slate-200
         bg-white shadow-soft">
-
-            {{-- Tiêu đề --}}
-            <div
-                class="flex flex-wrap items-center justify-between gap-2
-        border-b border-slate-100 bg-slate-50 px-4 py-4 sm:px-6">
-
-                <h2 class="flex items-center gap-2 text-sm font-extrabold text-slate-900">
-                    <i class="fa-solid fa-arrow-right-arrow-left text-brand-700" aria-hidden="true"></i>
-                    Lịch sử biến động kho
-                </h2>
-
-                <span
-                    class="rounded-full border border-brand-200 bg-brand-50
-            px-2.5 py-1 text-xs font-bold text-brand-800">
-                    {{ number_format($logs->total(), 0, ',', '.') }} bản ghi
-                </span>
-            </div>
-
             {{-- Danh sách biến động --}}
             <div class="space-y-3 p-4 sm:p-6">
                 @forelse ($logs as $log)
@@ -235,24 +217,6 @@
             x-show="activeLogTab === 'cultivation'"
             class="overflow-hidden rounded-3xl border border-slate-200
         bg-white shadow-soft">
-
-            {{-- Tiêu đề --}}
-            <div
-                class="flex flex-wrap items-center justify-between gap-2
-        border-b border-slate-100 bg-slate-50 px-4 py-4 sm:px-6">
-
-                <h2 class="flex items-center gap-2 text-sm font-extrabold text-slate-900">
-                    <i class="fa-solid fa-seedling text-brand-700" aria-hidden="true"></i>
-                    Nhật ký canh tác gốc
-                </h2>
-
-                <span
-                    class="rounded-full border border-brand-200 bg-brand-50
-            px-2.5 py-1 text-xs font-bold text-brand-800">
-                    {{ number_format($events->total(), 0, ',', '.') }} hoạt động
-                </span>
-            </div>
-
             <div class="p-4 sm:p-6">
                 {{-- Đường timeline --}}
                 <div
@@ -261,8 +225,7 @@
             before:w-0.5 before:bg-brand-100">
 
                     @forelse ($events as $event)
-                        <article wire:key="owner-farm-event-{{ $event->id }}"
-                            class="relative min-w-0 pl-7 sm:pl-8">
+                        <article wire:key="owner-farm-event-{{ $event->id }}" class="relative min-w-0 pl-7 sm:pl-8">
 
                             {{-- Chấm trên timeline --}}
                             <span aria-hidden="true"
