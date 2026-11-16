@@ -33,7 +33,8 @@
                 @endif
             @endif
             <button type="button" 
-                    wire:click="$set('showAddressModal', true)"
+                    @click="$dispatch('open-address-modal')"
+                    onclick="window.dispatchEvent(new CustomEvent('open-address-modal'))"
                     class="text-xs font-bold text-brand-700 hover:text-brand-800 bg-brand-50 hover:bg-brand-100 border border-brand-200 px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer">
                 <i class="fa-solid fa-repeat text-[10px]"></i>
                 <span>{{ $hasAddress ? 'Thay đổi địa chỉ' : 'Chọn địa chỉ' }}</span>

@@ -213,18 +213,20 @@
                             </td>
                         </tr>
 
-                        <!-- 6. CAM KẾT BẢO HIỂM 24H -->
-                        <tr>
-                            <td style="padding: 0 32px 24px;">
-                                <div
-                                    style="background-color: #fefce8; border: 1px dashed #fde047; border-radius: 12px; padding: 14px; font-size: 12px; color: #854d0e; line-height: 1.5;">
-                                    <strong style="color: #713f12;">🛡️ Cam Kết Bảo Hiểm Tươi Ngon 24H:</strong><br>
-                                    Nếu nông sản nhận được có dấu hiệu dập nát, hư hỏng do vận chuyển, quý khách có thể
-                                    gửi yêu cầu khiếu nại trong vòng <strong>24 giờ</strong> để được <strong>bồi hoàn
-                                        100%</strong> hoặc giao bù miễn phí.
-                                </div>
-                            </td>
-                        </tr>
+                        <!-- 6. CAM KẾT BẢO HIỂM 24H (CHỈ HIỂN THỊ KHI GIAO HÀNG THÀNH CÔNG) -->
+                        @if ($type === 'delivered')
+                            <tr>
+                                <td style="padding: 0 32px 24px;">
+                                    <div
+                                        style="background-color: #fefce8; border: 1px dashed #fde047; border-radius: 12px; padding: 14px; font-size: 12px; color: #854d0e; line-height: 1.5;">
+                                        <strong style="color: #713f12;">🛡️ Cam Kết Bảo Hiểm Tươi Ngon 24H:</strong><br>
+                                        Nếu nông sản nhận được có dấu hiệu dập nát, hư hỏng do vận chuyển, quý khách có thể
+                                        gửi yêu cầu khiếu nại trong vòng <strong>24 giờ</strong> để được <strong>bồi hoàn
+                                            100%</strong> hoặc giao bù miễn phí.
+                                    </div>
+                                </td>
+                            </tr>
+                        @endif
 
                         <!-- 7. NÚT XEM ĐƠN HÀNG TRÊN WEB -->
                         <tr>

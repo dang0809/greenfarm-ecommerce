@@ -20,6 +20,7 @@ trait WithShippingAddress
 
         $this->selectedAddressId = $addressId;
         $this->showAddressModal = false;
+        $this->dispatch('close-address-modal');
         $this->dispatch('show-toast', type: 'success', message: 'Đã cập nhật địa chỉ giao hàng.');
     }
 
