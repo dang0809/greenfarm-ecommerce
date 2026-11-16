@@ -269,11 +269,19 @@
 
                                         <!-- Nút thao tác nhanh theo trạng thái -->
                                         @if ($order->status === 'pending')
-                                            <button type="button" wire:click="approveOrder({{ $order->id }})"
-                                                class="p-2 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-700 transition cursor-pointer"
-                                                title="Xác nhận & Chuẩn bị xong">
-                                                <i class="fa-solid fa-check text-xs"></i>
-                                            </button>
+                                            @if ($order->items->contains(fn($i) => empty($i->batch_id)))
+                                                <button type="button" disabled
+                                                    class="p-2 rounded-xl bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
+                                                    title="Đơn hàng đang thiếu món (hết kho). Không thể duyệt!">
+                                                    <i class="fa-solid fa-ban text-xs text-rose-500"></i>
+                                                </button>
+                                            @else
+                                                <button type="button" wire:click="approveOrder({{ $order->id }})"
+                                                    class="p-2 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-700 transition cursor-pointer"
+                                                    title="Xác nhận & Chuẩn bị xong">
+                                                    <i class="fa-solid fa-check text-xs"></i>
+                                                </button>
+                                            @endif
                                         @elseif($order->status === 'processing')
                                             <button type="button" wire:click="dispatchOrder({{ $order->id }})"
                                                 class="p-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 transition cursor-pointer"
@@ -667,10 +675,17 @@
 
                         <div class="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
                             @if ($selectedOrder->status === 'pending')
-                                <button type="button" wire:click="approveOrder({{ $selectedOrder->id }})"
-                                    class="w-full sm:w-auto bg-brand-700 hover:bg-brand-800 text-white font-bold px-5 py-2.5 rounded-xl sm:rounded-2xl text-xs transition active:scale-95 flex items-center justify-center gap-1.5 shadow-sm cursor-pointer">
-                                    <i class="fa-solid fa-check"></i> Xác Nhận Đơn (Chuẩn Bị Xong)
-                                </button>
+                                @if ($selectedOrder->items->contains(fn($i) => empty($i->batch_id)))
+                                    <div class="px-4 py-2.5 rounded-xl sm:rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center gap-2">
+                                        <i class="fa-solid fa-triangle-exclamation text-rose-600"></i>
+                                        <span>Đơn hàng đang thiếu món (hết kho). Chưa thể duyệt!</span>
+                                    </div>
+                                @else
+                                    <button type="button" wire:click="approveOrder({{ $selectedOrder->id }})"
+                                        class="w-full sm:w-auto bg-brand-700 hover:bg-brand-800 text-white font-bold px-5 py-2.5 rounded-xl sm:rounded-2xl text-xs transition active:scale-95 flex items-center justify-center gap-1.5 shadow-sm cursor-pointer">
+                                        <i class="fa-solid fa-check"></i> Xác Nhận Đơn (Chuẩn Bị Xong)
+                                    </button>
+                                @endif
                             @elseif($selectedOrder->status === 'processing')
                                 <button type="button" wire:click="dispatchOrder({{ $selectedOrder->id }})"
                                     class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl sm:rounded-2xl text-xs transition active:scale-95 flex items-center justify-center gap-1.5 shadow-sm cursor-pointer">

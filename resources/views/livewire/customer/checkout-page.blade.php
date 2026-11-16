@@ -1,4 +1,4 @@
-﻿<div>
+<div>
     <!-- MAIN CONTENT -->
     <main class="pt-28 pb-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
@@ -168,7 +168,7 @@
                                     $hasSplit = count($priceData['breakdown']) > 1;
                                 @endphp
 
-                                <div class="flex items-center justify-between gap-3">
+                                <div class="flex items-center justify-between gap-3" wire:key="checkout-item-{{ $item->id ?? $product->id }}">
                                     <div class="flex items-center gap-3 min-w-0">
                                         <img src="{{ $primaryImage }}" alt="{{ $product->name }}"
                                             class="w-12 h-12 rounded-xl object-cover border border-gray-100 shrink-0">
@@ -210,7 +210,7 @@
                         <!-- Chi tiết thanh toán -->
                         <div class="pt-4 border-t border-gray-100 space-y-3 text-xs sm:text-sm text-gray-600">
                             <!-- Tạm tính tiền hàng -->
-                            <div class="flex justify-between">
+                            <div class="flex justify-between" wire:key="checkout-subtotal-row">
                                 <span>Tạm tính tiền hàng:</span>
                                 <span class="font-bold text-gray-900">{{ number_format($subtotal) }}đ</span>
                             </div>
@@ -253,7 +253,7 @@
                             </div>
 
                             <!-- Phí vận chuyển hỏa tốc -->
-                            <div class="flex justify-between items-center">
+                            <div class="flex justify-between items-center" wire:key="checkout-shipping-row">
                                 <span>Phí giao hỏa tốc:</span>
                                 @if ($address)
                                     <span class="font-bold text-gray-900">{{ number_format($shippingFee) }}đ <span

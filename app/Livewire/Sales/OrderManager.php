@@ -197,9 +197,15 @@ class OrderManager extends Component
      */
     public function approveOrder(int $orderId): void
     {
-        $order = Order::find($orderId);
+        $order = Order::with('items')->find($orderId);
         if (!$order || $order->status !== 'pending') {
             $this->dispatch('show-toast', type: 'error', message: 'Đơn hàng không ở trạng thái Chờ xác nhận!');
+            return;
+        }
+
+        // Chặn không cho duyệt nếu đơn có món mang batch_id = null (thiếu kho)
+        if ($order->items->contains(fn($item) => empty($item->batch_id))) {
+            $this->dispatch('show-toast', type: 'error', message: 'Đơn hàng đang thiếu món (hết kho). Không thể duyệt!');
             return;
         }
 
