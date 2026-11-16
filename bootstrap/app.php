@@ -14,7 +14,12 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         
-        // 1. Đăng ký Alias cho Middleware kiểm tra vai trò
+        // 1. Áp dụng kiểm tra trạng thái khóa tài khoản trên toàn bộ web routes
+        $middleware->web(append: [
+            \App\Http\Middleware\CheckUserStatus::class,
+        ]);
+
+        // 2. Đăng ký Alias cho Middleware kiểm tra vai trò
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
         ]);

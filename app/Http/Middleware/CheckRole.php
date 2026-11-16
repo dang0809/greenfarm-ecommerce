@@ -33,21 +33,7 @@ class CheckRole
 
         $user = Auth::user();
 
-        // 2. Kiểm tra tài khoản bị khóa
-        if ($user->status === 'blocked') {
-            Auth::logout();
-
-            if (in_array('customer', $roles)) {
-                return redirect()->route('home')
-                    ->with('error', 'Tài khoản của bạn đã bị khóa.')
-                    ->with('open_auth_modal', true);
-            }
-
-            return redirect()->route('login')
-                ->with('error', 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ ban quản lý.');
-        }
-
-        // 3. Kiểm tra phân quyền truy cập
+        // 2. Kiểm tra phân quyền truy cập
         if (in_array($user->role, $roles)) {
             return $next($request);
         }

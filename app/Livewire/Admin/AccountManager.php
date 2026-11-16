@@ -624,6 +624,13 @@ class AccountManager extends Component
                 $user->status = $pending['to'];
                 $user->saveOrFail();
 
+                // Nếu khóa tài khoản: xóa ngay toàn bộ phiên đăng nhập của user này trong DB
+                if ($user->status === 'blocked') {
+                    DB::table('sessions')
+                        ->where('user_id', $user->id)
+                        ->delete();
+                }
+
                 return true;
             });
         } catch (Throwable $exception) {
