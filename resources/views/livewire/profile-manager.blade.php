@@ -249,9 +249,16 @@
                             Mật khẩu hiện tại
                         </label>
 
-                        <input type="password" id="user-current-password" wire:model="current_password"
-                            autocomplete="off" data-lpignore="true"
-                            class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-brand-500">
+                        <div x-data="{ show: false }" class="relative">
+                            <input :type="show ? 'text' : 'password'" id="user-current-password" wire:model="current_password"
+                                autocomplete="off" data-lpignore="true"
+                                class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl pl-4 pr-11 py-2.5 outline-none focus:border-brand-500">
+                            <button type="button" @click="show = !show"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1 cursor-pointer"
+                                :title="show ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'">
+                                <i class="fa-solid" :class="show ? 'fa-eye-slash' : 'fa-eye'"></i>
+                            </button>
+                        </div>
 
                         @error('current_password')
                             <p class="text-xs text-red-600 mt-1">
@@ -266,9 +273,16 @@
                                 Mật khẩu mới
                             </label>
 
-                            <input type="password" id="user-new-password" wire:model="new_password"
-                                autocomplete="off" data-lpignore="true" minlength="8" maxlength="72"
-                                class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-brand-500">
+                            <div x-data="{ show: false }" class="relative">
+                                <input :type="show ? 'text' : 'password'" id="user-new-password" wire:model="new_password"
+                                    autocomplete="off" data-lpignore="true" minlength="8" maxlength="72"
+                                    class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl pl-4 pr-11 py-2.5 outline-none focus:border-brand-500">
+                                <button type="button" @click="show = !show"
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1 cursor-pointer"
+                                    :title="show ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'">
+                                    <i class="fa-solid" :class="show ? 'fa-eye-slash' : 'fa-eye'"></i>
+                                </button>
+                            </div>
 
                             @error('new_password')
                                 <p class="text-xs text-red-600 mt-1">
@@ -282,9 +296,16 @@
                                 Xác nhận mật khẩu mới
                             </label>
 
-                            <input type="password" id="user-confirm-password" wire:model="new_password_confirmation"
-                                autocomplete="off" data-lpignore="true" minlength="8" maxlength="72"
-                                class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-brand-500">
+                            <div x-data="{ show: false }" class="relative">
+                                <input :type="show ? 'text' : 'password'" id="user-confirm-password" wire:model="new_password_confirmation"
+                                    autocomplete="off" data-lpignore="true" minlength="8" maxlength="72"
+                                    class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl pl-4 pr-11 py-2.5 outline-none focus:border-brand-500">
+                                <button type="button" @click="show = !show"
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1 cursor-pointer"
+                                    :title="show ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'">
+                                    <i class="fa-solid" :class="show ? 'fa-eye-slash' : 'fa-eye'"></i>
+                                </button>
+                            </div>
 
                             @error('new_password_confirmation')
                                 <p class="text-xs text-red-600 mt-1">

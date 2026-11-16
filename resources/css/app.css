@@ -122,3 +122,9 @@
             focus-visible:outline-emerald-700;
     }
 }
+
+/* Ẩn icon con mắt mặc định của trình duyệt Edge/IE để tránh trùng lặp với icon tùy chỉnh */
+input::-ms-reveal,
+input::-ms-clear {
+    display: none !important;
+}

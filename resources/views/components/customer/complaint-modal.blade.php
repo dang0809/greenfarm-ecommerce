@@ -18,62 +18,62 @@
                     </p>
 
                     <div>
-                    <label class="font-bold text-gray-700 block mb-1">Mô tả chi tiết tình trạng hư hỏng *</label>
-                    <textarea wire:model="complaint_reason" rows="3" class="w-full rounded-xl border-gray-200 text-xs focus:ring-brand-500 focus:border-brand-500" placeholder="VD: Cải bó xôi bị dập nát nhiều lá, cà chua bị vỡ hỏng do vận chuyển..."></textarea>
-                    @error('complaint_reason') <span class="text-red-500 text-[11px] block mt-0.5">{{ $message }}</span> @enderror
-                </div>
+                        <label class="font-bold text-gray-700 block mb-1">Mô tả chi tiết tình trạng hư hỏng *</label>
+                        <textarea wire:model="complaint_reason" rows="3" class="w-full rounded-xl border border-gray-200 p-3 text-xs bg-gray-50 focus:bg-white focus:border-brand-500 focus:ring-0 outline-none transition" placeholder="VD: Cải bó xôi bị dập nát nhiều lá, cà chua bị vỡ hỏng do vận chuyển..."></textarea>
+                        @error('complaint_reason') <span class="text-red-500 text-[11px] block mt-0.5">{{ $message }}</span> @enderror
+                    </div>
 
-                <!-- Số tiền bồi hoàn cố định theo giá trị đơn hàng (100%) -->
-                <div class="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-3.5 flex items-center justify-between">
-                    <div>
-                        <span class="text-xs font-bold text-emerald-900 block flex items-center gap-1.5">
-                            <i class="fa-solid fa-hand-holding-dollar text-emerald-600"></i> Số tiền bồi hoàn:
+                    <!-- Số tiền bồi hoàn cố định theo giá trị đơn hàng (100%) -->
+                    <div class="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-3.5 flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-bold text-emerald-900 block flex items-center gap-1.5">
+                                <i class="fa-solid fa-hand-holding-dollar text-emerald-600"></i> Số tiền bồi hoàn:
+                            </span>
+                            <span class="text-[10px] text-emerald-700 font-medium">Chính sách bảo hành hoàn trả 100% giá trị đơn hàng</span>
+                        </div>
+                        <span class="text-base sm:text-lg font-black text-emerald-800 font-mono">
+                            {{ number_format($refundAmount ?? 0, 0, ',', '.') }}đ
                         </span>
-                        <span class="text-[10px] text-emerald-700 font-medium">Chính sách bảo hành hoàn trả 100% giá trị đơn hàng</span>
-                    </div>
-                    <span class="text-base sm:text-lg font-black text-emerald-800 font-mono">
-                        {{ number_format($refundAmount ?? 0, 0, ',', '.') }}đ
-                    </span>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div class="sm:col-span-1">
-                        <label class="font-bold text-gray-700 block mb-1">Ngân hàng *</label>
-                        <select wire:model="bank_name" class="w-full rounded-xl border-gray-200 text-xs focus:ring-brand-500 focus:border-brand-500">
-                            <option value="">-- Chọn ngân hàng --</option>
-                            @forelse ($banks as $bank)
-                                <option value="{{ $bank['shortName'] }}">
-                                    {{ $bank['shortName'] }} ({{ $bank['code'] }})
-                                </option>
-                            @empty
-                                <option value="MBBank">MBBank (MB)</option>
-                                <option value="Vietcombank">Vietcombank (VCB)</option>
-                                <option value="Techcombank">Techcombank (TCB)</option>
-                                <option value="ACB">ACB</option>
-                                <option value="VPBank">VPBank (VPB)</option>
-                                <option value="VietinBank">VietinBank (CTG)</option>
-                                <option value="BIDV">BIDV</option>
-                                <option value="MoMo">Ví MoMo</option>
-                            @endforelse
-                            @if (!empty($banks) && !collect($banks)->contains('shortName', 'MoMo'))
-                                <option value="MoMo">Ví MoMo</option>
-                            @endif
-                        </select>
-                        @error('bank_name') <span class="text-red-500 text-[11px] block mt-0.5">{{ $message }}</span> @enderror
                     </div>
 
-                    <div class="sm:col-span-2">
-                        <label class="font-bold text-gray-700 block mb-1">Số tài khoản / SĐT MoMo *</label>
-                        <input type="text" wire:model="bank_account_number" class="w-full rounded-xl border-gray-200 text-xs focus:ring-brand-500 focus:border-brand-500" placeholder="VD: 0391000123456">
-                        @error('bank_account_number') <span class="text-red-500 text-[11px] block mt-0.5">{{ $message }}</span> @enderror
-                    </div>
-                </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="sm:col-span-1">
+                            <label class="font-bold text-gray-700 block mb-1">Ngân hàng *</label>
+                            <select wire:model="bank_name" class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-xs bg-gray-50 focus:bg-white focus:border-brand-500 focus:ring-0 outline-none transition">
+                                <option value="">-- Chọn ngân hàng --</option>
+                                @forelse ($banks as $bank)
+                                    <option value="{{ $bank['shortName'] }}">
+                                        {{ $bank['shortName'] }} ({{ $bank['code'] }})
+                                    </option>
+                                @empty
+                                    <option value="MBBank">MBBank (MB)</option>
+                                    <option value="Vietcombank">Vietcombank (VCB)</option>
+                                    <option value="Techcombank">Techcombank (TCB)</option>
+                                    <option value="ACB">ACB</option>
+                                    <option value="VPBank">VPBank (VPB)</option>
+                                    <option value="VietinBank">VietinBank (CTG)</option>
+                                    <option value="BIDV">BIDV</option>
+                                    <option value="MoMo">Ví MoMo</option>
+                                @endforelse
+                                @if (!empty($banks) && !collect($banks)->contains('shortName', 'MoMo'))
+                                    <option value="MoMo">Ví MoMo</option>
+                                @endif
+                            </select>
+                            @error('bank_name') <span class="text-red-500 text-[11px] block mt-0.5">{{ $message }}</span> @enderror
+                        </div>
 
-                <div>
-                    <label class="font-bold text-gray-700 block mb-1">Tên chủ tài khoản (Viết hoa không dấu) *</label>
-                    <input type="text" wire:model="bank_account_name" class="w-full rounded-xl border-gray-200 text-xs uppercase focus:ring-brand-500 focus:border-brand-500" placeholder="VD: NGUYEN VAN A">
-                    @error('bank_account_name') <span class="text-red-500 text-[11px] block mt-0.5">{{ $message }}</span> @enderror
-                </div>
+                        <div class="sm:col-span-2">
+                            <label class="font-bold text-gray-700 block mb-1">Số tài khoản / SĐT MoMo *</label>
+                            <input type="text" wire:model="bank_account_number" class="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs bg-gray-50 focus:bg-white focus:border-brand-500 focus:ring-0 outline-none transition" placeholder="VD: 0391000123456">
+                            @error('bank_account_number') <span class="text-red-500 text-[11px] block mt-0.5">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="font-bold text-gray-700 block mb-1">Tên chủ tài khoản (Viết hoa không dấu) *</label>
+                        <input type="text" wire:model="bank_account_name" class="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs uppercase bg-gray-50 focus:bg-white focus:border-brand-500 focus:ring-0 outline-none transition" placeholder="VD: NGUYEN VAN A">
+                        @error('bank_account_name') <span class="text-red-500 text-[11px] block mt-0.5">{{ $message }}</span> @enderror
+                    </div>
 
                 <div class="space-y-2">
                     <div class="flex items-center justify-between">
