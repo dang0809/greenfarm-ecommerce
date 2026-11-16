@@ -200,7 +200,7 @@
                     <!-- CASE 1: ĐƠN MUA GÓI VIP (Không có items rau củ lẻ) -->
                     <div class="py-2 flex items-center justify-between">
                         <div>
-                            <h3 class="text-sm font-bold text-purple-950">Gói Rau Sạch VIP Hữu Cơ (4 Kỳ Giao Tận Nhà)
+                            <h3 class="text-sm font-bold text-purple-950">{{ $vipPackageName }}
                             </h3>
                             <p class="text-xs text-purple-700 mt-0.5">Thanh toán quyền sử dụng dịch vụ VIP • Miễn phí
                                 vận chuyển 100% các kỳ giao</p>

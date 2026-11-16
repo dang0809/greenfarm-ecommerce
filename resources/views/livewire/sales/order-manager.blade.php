@@ -443,7 +443,7 @@
                                                 Đội xe hỏa tốc {{ $farmName }}
                                             </span>
                                             <span class="text-[11px] text-blue-800 font-mono">
-                                                <i class="fa-solid fa-phone text-[10px]"></i> 0938.445.566
+                                                <i class="fa-solid fa-phone text-[10px]"></i> {{ $hotline }}
                                             </span>
                                         </div>
                                         <p class="text-[11px] text-blue-800 font-mono mt-0.5">

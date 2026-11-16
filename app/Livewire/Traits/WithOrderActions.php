@@ -121,7 +121,9 @@ trait WithOrderActions
 
         // Đơn đã thanh toán: Chặn hủy trực tuyến
         if ($order->payment?->status === 'success') {
-            $this->dispatch('show-toast', type: 'error', message: 'Đơn hàng đã thanh toán không thể tự hủy trực tuyến. Vui lòng liên hệ Hotline Nông trại!');
+            $hotline = \App\Models\SystemSetting::contactSettings()['hotline'] ?? '';
+            $msg = 'Đơn hàng đã thanh toán không thể tự hủy trực tuyến. Vui lòng liên hệ Hotline ' . ($hotline ?: 'Nông trại') . '!';
+            $this->dispatch('show-toast', type: 'error', message: $msg);
             return;
         }
 

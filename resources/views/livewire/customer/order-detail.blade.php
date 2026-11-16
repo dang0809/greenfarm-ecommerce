@@ -396,7 +396,7 @@
                         @if ($isVipPayment)
                             <div class="py-4 text-center text-xs text-gray-500">
                                 <i class="fa-solid fa-crown text-purple-600 text-xl mb-1 block"></i>
-                                Gói Hội Viên Rau Củ VIP (Kích hoạt hợp đồng giao định kỳ)
+                                {{ $vipPackageName }} (Kích hoạt hợp đồng giao định kỳ)
                             </div>
                         @else
                             <div class="py-4 text-center text-xs text-gray-400">
@@ -460,9 +460,9 @@
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">
-                                <a href="tel:0938445566"
+                                <a href="tel:{{ preg_replace('/[^0-9]/', '', $hotline) }}"
                                     class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition shadow-xs cursor-pointer">
-                                    <i class="fa-solid fa-phone text-[10px]"></i> Gọi 0938.445.566
+                                    <i class="fa-solid fa-phone text-[10px]"></i> Gọi {{ $hotline }}
                                 </a>
                             </div>
                         </div>

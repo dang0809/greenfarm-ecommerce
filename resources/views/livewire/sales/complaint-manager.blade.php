@@ -428,7 +428,7 @@
                                     <option value="">-- Chọn lý do mẫu hoặc tự nhập bên dưới --</option>
                                     <option value="Sản phẩm đã nhận quá 24h theo chính sách bồi hoàn nông sản tươi sống của nông trại.">Sản phẩm đã nhận quá 24h theo chính sách bồi hoàn</option>
                                     <option value="Hư hỏng do bảo quản ở nhiệt độ thường quá lâu, không giữ mát tủ lạnh theo hướng dẫn.">Hư hỏng do bảo quản không đúng cách</option>
-                                    <option value="Hình ảnh gửi không thể hiện rõ vết dập nát hoặc thiếu tem nhãn lô nông sản GreenFarm.">Hình ảnh không thể hiện rõ vết dập hoặc thiếu tem nhãn</option>
+                                    <option value="Hình ảnh gửi không thể hiện rõ vết dập nát hoặc thiếu tem nhãn lô nông sản {{ $farmName }}.">Hình ảnh không thể hiện rõ vết dập hoặc thiếu tem nhãn</option>
                                 </select>
 
                                 <textarea wire:model="reject_reason" rows="2" placeholder="Nội dung gửi thông báo từ chối đến tài khoản khách hàng..." class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl p-3 text-xs outline-none focus:border-rose-500 resize-none"></textarea>

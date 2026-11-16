@@ -65,10 +65,7 @@ class SubscriptionSetup extends Component
         }
 
         // 1. Đọc định lượng tối đa thời gian thực từ system_settings
-        $settingMaxWeight = SystemSetting::where('key', 'vip_delivery_max_weight')->value('value');
-        if ($settingMaxWeight) {
-            $this->maxWeightTarget = (float) $settingMaxWeight;
-        }
+        $this->maxWeightTarget = SystemSetting::vipDeliveryMaxWeight();
 
         // 2. Lấy hợp đồng Gói VIP gần nhất của user (active hoặc completed)
         $this->subscription = Subscription::where('user_id', $user->id)
@@ -325,10 +322,7 @@ class SubscriptionSetup extends Component
             }
 
             // 2. Đồng bộ realtime định lượng tối đa từ DB
-            $latestMaxWeight = SystemSetting::where('key', 'vip_delivery_max_weight')->value('value');
-            if ($latestMaxWeight) {
-                $this->maxWeightTarget = (float) $latestMaxWeight;
-            }
+            $this->maxWeightTarget = SystemSetting::vipDeliveryMaxWeight();
 
             // 3. Khống chế nghiêm ngặt TUYỆT ĐỐI KHÔNG ĐƯỢC VƯỢT QUÁ định mức cài đặt (maxWeightTarget)
             $itemWeight = $product?->weight_kg ?? 0.5;
@@ -506,10 +500,7 @@ class SubscriptionSetup extends Component
     public function render()
     {
         // 1. Luôn đồng bộ định lượng tối đa thời gian thực từ DB
-        $latestMaxWeight = SystemSetting::where('key', 'vip_delivery_max_weight')->value('value');
-        if ($latestMaxWeight) {
-            $this->maxWeightTarget = (float) $latestMaxWeight;
-        }
+        $this->maxWeightTarget = SystemSetting::vipDeliveryMaxWeight();
 
         // Lấy thông tin địa chỉ và khoảng cách giao hàng
         $user = Auth::user();

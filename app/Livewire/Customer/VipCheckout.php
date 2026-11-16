@@ -227,13 +227,13 @@ class VipCheckout extends Component
     // Tải toàn bộ cấu hình gói VIP thời gian thực từ Database
     private function loadVipSettings(): void
     {
-        $settings = SystemSetting::where('group', 'subscription')->pluck('value', 'key');
+        $vipSettings = SystemSetting::vipSettings();
 
-        $this->packageName = $settings['vip_package_name'] ?? 'Gói Bếp Xanh VIP Gia Đình (1 Tháng)';
-        $this->price = (int) ($settings['vip_package_price'] ?? 1200000);
-        $this->deliveryMaxWeight = (float) ($settings['vip_delivery_max_weight'] ?? 3.5);
+        $this->packageName = $vipSettings['package_name'];
+        $this->price = $vipSettings['price'];
+        $this->deliveryMaxWeight = $vipSettings['delivery_max_weight'];
         $this->totalDeliveries = 8; // Cố định luôn là 8 đợt, không lưu trong CSDL
-        $this->isEnabled = filter_var($settings['vip_subscription_enabled'] ?? 'true', FILTER_VALIDATE_BOOLEAN);
+        $this->isEnabled = $vipSettings['enabled'];
         $this->totalWeightMonthly = round($this->deliveryMaxWeight * 8, 1);
     }
 

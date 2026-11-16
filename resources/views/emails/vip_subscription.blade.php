@@ -144,9 +144,7 @@
                                     style="background-color: #16a34a; color: #ffffff; padding: 14px 32px; text-decoration: none; font-size: 14px; font-weight: 700; border-radius: 12px; display: inline-block; box-shadow: 0 4px 8px rgba(22, 163, 74, 0.25);">
                                     Thiết Lập Lịch &amp; Chọn Thực Đơn 8 Đợt →
                                 </a>
-                                <p style="margin: 10px 0 0; font-size: 12px; color: #6b7280;">
-                                    Bạn có thể thay đổi thực đơn rau củ trước mỗi đợt giao hàng.
-                                </p>
+                                
                             </td>
                         </tr>
 

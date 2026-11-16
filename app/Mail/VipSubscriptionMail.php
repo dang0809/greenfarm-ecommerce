@@ -40,9 +40,9 @@ class VipSubscriptionMail extends Mailable implements ShouldQueue
      */
     public function content(): Content
     {
-        $settings = SystemSetting::where('group', 'subscription')->pluck('value', 'key');
-        $packageName = $settings['vip_package_name'] ?? 'Gói Bếp Xanh VIP Gia Đình (1 Tháng)';
-        $deliveryMaxWeight = (float) ($settings['vip_delivery_max_weight'] ?? 3.5);
+        $vipSettings = SystemSetting::vipSettings();
+        $packageName = $vipSettings['package_name'];
+        $deliveryMaxWeight = $vipSettings['delivery_max_weight'];
 
         return new Content(
             view: 'emails.vip_subscription',

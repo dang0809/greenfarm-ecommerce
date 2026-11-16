@@ -251,8 +251,8 @@
                         <!-- Thông tin gói VIP -->
                         <div class="p-4 rounded-2xl bg-[#FAFAF8] border border-gray-200/80 space-y-1 text-xs">
                             <span class="text-gray-400 block font-semibold uppercase tracking-wider text-[10px]">Gói rau VIP:</span>
-                            <p class="font-bold text-brand-800 text-sm">Gói Rau Định Kỳ VIP</p>
-                            <p class="text-gray-600">Định lượng: <b class="text-gray-900">3.5kg / đợt</b> (8 đợt / 4 tuần)</p>
+                            <p class="font-bold text-brand-800 text-sm">{{ $vipPackageName }}</p>
+                            <p class="text-gray-600">Định lượng: <b class="text-gray-900">{{ $vipDeliveryMaxWeight }}kg / đợt</b> (8 đợt / 4 tuần)</p>
                             <p class="text-gray-600">Lịch giao: <b class="text-gray-900 font-mono">{{ !empty($selectedSubscription->delivery_days) ? $selectedSubscription->delivery_days : 'Chưa đặt' }}</b></p>
                         </div>
 

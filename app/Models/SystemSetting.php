@@ -59,4 +59,28 @@ class SystemSetting extends Model
             ? $value
             : self::DEFAULT_FARM_NAME;
     }
+
+    public static function vipSettings(): array
+    {
+        return Cache::rememberForever('system_vip_settings', function () {
+            $settings = self::where('group', 'subscription')->pluck('value', 'key');
+
+            return [
+                'package_name' => (string) ($settings['vip_package_name'] ?? 'Gói Bếp Xanh VIP Gia Đình (1 Tháng)'),
+                'price' => (int) ($settings['vip_package_price'] ?? 1200000),
+                'delivery_max_weight' => (float) ($settings['vip_delivery_max_weight'] ?? 3.5),
+                'enabled' => filter_var($settings['vip_subscription_enabled'] ?? 'true', FILTER_VALIDATE_BOOLEAN),
+            ];
+        });
+    }
+
+    public static function vipPackageName(): string
+    {
+        return self::vipSettings()['package_name'];
+    }
+
+    public static function vipDeliveryMaxWeight(): float
+    {
+        return self::vipSettings()['delivery_max_weight'];
+    }
 }

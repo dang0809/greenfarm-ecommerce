@@ -475,7 +475,7 @@ class SettingManager extends Component
                         'max:50',
                     ],
                 ],
-                'caches' => [],
+                'caches' => ['system_vip_settings'],
             ],
         ];
     }
