@@ -208,61 +208,6 @@
         {{-- Danh sách tài khoản --}}
         <div
             class="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-soft overflow-hidden space-y-4">
-
-            <div
-                class="flex overflow-x-auto border-b border-slate-100 px-4 sm:px-6 pt-3 gap-6 text-sm no-scrollbar bg-slate-50/50">
-                <button type="button" id="tab-all" wire:key="account-tab-all" wire:click="setTab('all')"
-                    class="pb-3 {{ $tab === 'all' ? 'tab-btn-active' : 'tab-btn-inactive' }} transition whitespace-nowrap flex items-center gap-2">
-                    <span>Tất Cả Tài Khoản</span>
-                    <span id="count-all" class="text-xs font-bold bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">
-                        {{ $counts['all'] }}
-                    </span>
-                </button>
-
-                <button type="button" id="tab-internal" wire:key="account-tab-internal" wire:click="setTab('internal')"
-                    class="pb-3 {{ $tab === 'internal' ? 'tab-btn-active' : 'tab-btn-inactive' }} transition whitespace-nowrap flex items-center gap-2">
-                    <i class="fa-solid fa-id-card-clip text-xs"></i>
-                    <span>Đội Ngũ Nhân Sự Nội Bộ</span>
-                    <span id="count-internal"
-                        class="text-xs font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
-                        {{ $counts['internal'] }}
-                    </span>
-                </button>
-
-                <button type="button" id="tab-customer" wire:key="account-tab-customer" wire:click="setTab('customer')"
-                    class="pb-3 {{ $tab === 'customer' ? 'tab-btn-active' : 'tab-btn-inactive' }} transition whitespace-nowrap flex items-center gap-2">
-                    <i class="fa-solid fa-basket-shopping text-xs"></i>
-                    <span>Khách Hàng (Customer)</span>
-                    <span id="count-customer"
-                        class="text-xs font-bold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">
-                        {{ $counts['customer'] }}
-                    </span>
-                </button>
-
-                <button type="button" id="tab-blocked" wire:key="account-tab-blocked" wire:click="setTab('blocked')"
-                    class="pb-3 {{ $tab === 'blocked' ? 'tab-btn-active' : 'tab-btn-inactive' }} transition whitespace-nowrap flex items-center gap-2">
-                    <i class="fa-solid fa-user-slash text-xs"></i>
-                    <span>Tài Khoản Bị Khóa (Blocked)</span>
-                    <span id="count-blocked"
-                        class="text-xs font-bold bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full">
-                        {{ $counts['blocked'] }}
-                    </span>
-                </button>
-
-                <button type="button" id="tab-inactive" wire:key="account-tab-inactive" wire:click="setTab('inactive')"
-                    class="pb-3 {{ $tab === 'inactive' ? 'tab-btn-active' : 'tab-btn-inactive' }} transition whitespace-nowrap flex items-center gap-2 cursor-pointer">
-
-                    <i class="fa-solid fa-envelope-circle-check text-xs"></i>
-
-                    <span>Tài Khoản Chờ Xác Thực</span>
-
-                    <span id="count-inactive"
-                        class="text-xs font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
-                        {{ $counts['inactive'] }}
-                    </span>
-                </button>
-            </div>
-
             <div
                 class="p-3.5 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 bg-slate-50/30 border-b border-slate-100">
                 <div class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-3 flex-1">
@@ -536,7 +481,10 @@
                         </label>
 
                         <div class="flex items-center gap-3">
-                            @if ($newAvatar instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile && $newAvatar->isPreviewable() && !$errors->has('newAvatar'))
+                            @if (
+                                $newAvatar instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile &&
+                                    $newAvatar->isPreviewable() &&
+                                    !$errors->has('newAvatar'))
                                 <img src="{{ $newAvatar->temporaryUrl() }}"
                                     wire:key="account-avatar-preview-{{ $avatarInputKey }}-{{ $newAvatar->getFilename() }}"
                                     alt="Ảnh đang chọn"
@@ -601,10 +549,12 @@
 
                         <div>
                             <label for="uf-phone" class="block font-bold text-slate-700 mb-1">
-                                Số điện thoại @if ($role !== 'customer') <span class="text-red-500">*</span> @endif
+                                Số điện thoại @if ($role !== 'customer')
+                                    <span class="text-red-500">*</span>
+                                @endif
                             </label>
-                            <input type="text" id="uf-phone" wire:model="phone" {{ $role !== 'customer' ? 'required' : '' }}
-                                placeholder="0918.223.344"
+                            <input type="text" id="uf-phone" wire:model="phone"
+                                {{ $role !== 'customer' ? 'required' : '' }} placeholder="0918.223.344"
                                 class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono outline-none focus:border-brand-600 focus:bg-white font-bold">
                             @error('phone')
                                 <p class="text-red-600 text-xs mt-1">{{ $message }}</p>
