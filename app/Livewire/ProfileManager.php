@@ -5,7 +5,6 @@ namespace App\Livewire;
 use App\Models\User;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -17,6 +16,24 @@ use Throwable;
 class ProfileManager extends Component
 {
     use WithFileUploads;
+
+    private const PROFILE_ROLES = [
+        'farm_owner' => [
+            'title' => 'Chủ Trang Trại',
+            'layout' => 'layouts.farm-owner.app',
+            'avatar_folder' => 'farm-owner',
+        ],
+        'farm_staff' => [
+            'title' => 'Nhân Viên Nông Trại',
+            'layout' => 'layouts.farm-staff.app',
+            'avatar_folder' => 'farm-staff',
+        ],
+        'sales' => [
+            'title' => 'Nhân Viên Bán Hàng',
+            'layout' => 'layouts.sales.app',
+            'avatar_folder' => 'sales',
+        ],
+    ];
 
     public string $name = '';
     public string $phone = '';
@@ -33,6 +50,85 @@ class ProfileManager extends Component
 
         $this->name = $user->name;
         $this->phone = $user->phone ?? '';
+    }
+
+    private const PROFILE_FIELDS = ['name', 'phone'];
+
+    private const PASSWORD_FIELDS = [
+        'current_password',
+        'new_password',
+        'new_password_confirmation',
+    ];
+
+    /**
+     * Chỉ xóa lỗi khi nhập lại.
+     * Việc kiểm tra dữ liệu thực hiện khi nhấn nút.
+     */
+    public function updated(string $property): void
+    {
+        $fields = match ($property) {
+            'name' => ['name', 'profile'],
+            'phone' => ['phone', 'profile'],
+
+            'current_password' => [
+                'current_password',
+                'new_password',
+            ],
+
+            'new_password' => [
+                'new_password',
+                'new_password_confirmation',
+            ],
+
+            'new_password_confirmation' => [
+                'new_password_confirmation',
+            ],
+
+            default => [],
+        };
+
+        if ($fields !== []) {
+            $this->resetValidation($fields);
+        }
+    }
+
+    /**
+     * Trả về null nếu không có thay đổi.
+     * Nếu có thay đổi, kiểm tra và trả về dữ liệu hợp lệ.
+     */
+    private function validateProfileChanges(User $user): ?array
+    {
+        $this->name = trim($this->name);
+        $this->phone = trim($this->phone);
+
+        $this->resetValidation(['name', 'phone', 'profile']);
+
+        if (
+            $this->name === trim((string) $user->name)
+            && $this->phone === trim((string) $user->phone)
+        ) {
+            $this->notify(
+                'info',
+                'Không có thay đổi nào',
+                'Thông tin tài khoản chưa có thay đổi.'
+            );
+
+            return null;
+        }
+
+        return $this->validate(
+            Arr::only($this->rules(), self::PROFILE_FIELDS)
+        );
+    }
+
+    /**
+     * Chỉ kiểm tra ba trường của form mật khẩu.
+     */
+    private function validatePasswordInput(): array
+    {
+        return $this->validate(
+            Arr::only($this->rules(), self::PASSWORD_FIELDS)
+        );
     }
 
     protected function rules(): array
@@ -55,11 +151,14 @@ class ProfileManager extends Component
             ],
 
             'current_password' => [
+                'bail',
                 'required',
                 'string',
+                'current_password',
             ],
 
             'new_password' => [
+                'bail',
                 'required',
                 'string',
                 'min:8',
@@ -67,13 +166,14 @@ class ProfileManager extends Component
                 'regex:/[a-z]/',
                 'regex:/[A-Z]/',
                 'regex:/[0-9]/',
-                'confirmed',
                 'different:current_password',
             ],
 
             'new_password_confirmation' => [
+                'bail',
                 'required',
                 'string',
+                'same:new_password',
             ],
         ];
     }
@@ -101,9 +201,10 @@ class ProfileManager extends Component
             'new_password.min' => 'Mật khẩu mới phải có ít nhất 8 ký tự.',
             'new_password.max' => 'Mật khẩu mới tối đa 72 ký tự.',
             'new_password.regex' => 'Mật khẩu mới cần có chữ hoa, chữ thường và chữ số.',
-            'new_password.confirmed' => 'Xác nhận mật khẩu mới không khớp.',
             'new_password.different' => 'Mật khẩu mới phải khác mật khẩu hiện tại.',
+            'current_password.current_password' => 'Mật khẩu hiện tại không chính xác.',
 
+            'new_password_confirmation.same' => 'Xác nhận mật khẩu mới không khớp.',
             'new_password_confirmation.required' => 'Vui lòng xác nhận mật khẩu mới.',
             'new_password_confirmation.string' => 'Xác nhận mật khẩu không hợp lệ.',
         ];
@@ -216,13 +317,20 @@ class ProfileManager extends Component
 
     public function requestSaveProfile(): void
     {
-        $this->staff();
+        $user = $this->staff();
+
+        if ($this->validateProfileChanges($user) === null) {
+            return;
+        }
+
         $this->dispatch('confirm-profile-save');
     }
 
     public function requestSavePassword(): void
     {
         $this->staff();
+        $this->validatePasswordInput();
+
         $this->dispatch('confirm-password-save');
     }
 
@@ -235,23 +343,9 @@ class ProfileManager extends Component
     public function saveProfile(): void
     {
         $user = $this->staff();
+        $validated = $this->validateProfileChanges($user);
 
-        $this->name = trim($this->name);
-        $this->phone = trim($this->phone);
-
-        $validated = $this->validate(
-            Arr::only($this->rules(), ['name', 'phone'])
-        );
-
-        if (
-            $this->name === (string) $user->name
-            && $this->phone === (string) $user->phone
-        ) {
-            $this->notify(
-                'info',
-                'Không có thay đổi nào',
-                'Thông tin tài khoản chưa có thay đổi.'
-            );
+        if ($validated === null) {
             return;
         }
 
@@ -289,22 +383,7 @@ class ProfileManager extends Component
     public function savePassword(): void
     {
         $user = $this->staff();
-
-        $validated = $this->validate(
-            Arr::only($this->rules(), [
-                'current_password',
-                'new_password',
-                'new_password_confirmation',
-            ])
-        );
-
-        if (!Hash::check($validated['current_password'], $user->password)) {
-            $this->addError(
-                'current_password',
-                'Mật khẩu hiện tại không chính xác.'
-            );
-            return;
-        }
+        $validated = $this->validatePasswordInput();
 
         try {
             $user->forceFill([
@@ -358,7 +437,7 @@ class ProfileManager extends Component
 
         $oldAvatar = $user->avatar;
         $newPath = null;
-        $roleFolder = $user->role === 'sales' ? 'sales' : 'farm-staff';
+        $roleFolder = self::PROFILE_ROLES[$user->role]['avatar_folder'];
         $diskName = $this->getAvatarDisk();
 
         try {
@@ -431,7 +510,7 @@ class ProfileManager extends Component
 
         abort_unless(
             $user
-            && in_array($user->role, ['farm_staff', 'sales'])
+            && isset(self::PROFILE_ROLES[$user->role])
             && $user->status === 'active',
             403,
             'Bạn không có quyền truy cập chức năng này.'
@@ -471,14 +550,12 @@ class ProfileManager extends Component
     public function render()
     {
         $user = $this->staff();
-        $isSales = $user->role === 'sales';
-
-        $layout = $isSales ? 'layouts.sales.app' : 'layouts.farm-staff.app';
-        $roleTitle = $isSales ? 'Nhân Viên Bán Hàng' : 'Nhân Viên Nông Trại';
+        $config = self::PROFILE_ROLES[$user->role];
 
         return view('livewire.profile-manager', [
             'user' => $user,
-            'roleTitle' => $roleTitle,
-        ])->layout($layout)->title("Hồ Sơ {$roleTitle}");
+            'roleTitle' => $config['title'],
+        ])->layout($config['layout'])
+            ->title('Hồ Sơ ' . $config['title']);
     }
 }

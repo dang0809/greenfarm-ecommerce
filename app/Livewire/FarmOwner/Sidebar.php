@@ -11,6 +11,10 @@ class Sidebar extends Component
     #[Locked]
     public string $activeRoute = '';
 
+    protected $listeners = [
+        'profile-updated' => '$refresh',
+    ];
+
     public function boot(): void
     {
         $owner = Auth::id()

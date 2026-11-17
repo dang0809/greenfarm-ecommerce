@@ -25,3 +25,12 @@ Schedule::call(function () {
     ->name('sync-planting-harvesting')
     ->everyMinute()
     ->withoutOverlapping();
+
+// Farm Staff: chuyển sang trạng thái tạm dừng các lô đã qua ngày hạn sử dụng.
+Schedule::call(function () {
+    app(\App\Services\ProductBatchStatusService::class)
+        ->suspendExpiredBatches();
+})
+    ->name('farm-staff-suspend-expired-batches')
+    ->everyMinute()
+    ->withoutOverlapping();

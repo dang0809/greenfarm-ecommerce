@@ -188,4 +188,6 @@ Route::middleware(['role:farm_owner'])->prefix('chu-trang-trai')->name('farm-own
         '/lo-nong-san/{batch}',
         ProductBatchDetail::class
     )->whereNumber('batch')->name('batches.show');
+
+    Route::get('/ho-so', ProfileManager::class)->name('profile');
 });
