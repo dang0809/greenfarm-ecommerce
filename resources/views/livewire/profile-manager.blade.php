@@ -173,8 +173,8 @@
                             Họ và tên <span class="text-red-500">*</span>
                         </label>
 
-                        <input type="text" id="user-name" wire:model="name" required maxlength="255"
-                            autocomplete="name"
+                        <input type="text" id="user-name" wire:model.live.debounce.150ms="name" required
+                            maxlength="255" autocomplete="name"
                             class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-brand-500">
 
                         @error('name')
@@ -204,8 +204,8 @@
                                 <span class="text-red-500">*</span>
                             </label>
 
-                            <input type="tel" id="user-phone" wire:model="phone" required maxlength="10"
-                                inputmode="numeric" autocomplete="tel"
+                            <input type="tel" id="user-phone" wire:model.live.debounce.150ms="phone" required
+                                maxlength="10" inputmode="numeric" autocomplete="tel"
                                 class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-brand-500">
 
                             @error('phone')
@@ -251,7 +251,8 @@
 
                         <div x-data="{ show: false }" class="relative">
                             <input :type="show ? 'text' : 'password'" id="user-current-password"
-                                wire:model="current_password" autocomplete="off" data-lpignore="true"
+                                wire:model.live.debounce.150ms="current_password" autocomplete="off"
+                                data-lpignore="true"
                                 class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl pl-4 pr-11 py-2.5 outline-none focus:border-brand-500">
                             <button type="button" @click="show = !show"
                                 class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1 cursor-pointer"
@@ -275,8 +276,8 @@
 
                             <div x-data="{ show: false }" class="relative">
                                 <input :type="show ? 'text' : 'password'" id="user-new-password"
-                                    wire:model="new_password" autocomplete="off" data-lpignore="true" minlength="8"
-                                    maxlength="72"
+                                    wire:model.live.debounce.150ms="new_password" autocomplete="off"
+                                    data-lpignore="true" minlength="8" maxlength="72"
                                     class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl pl-4 pr-11 py-2.5 outline-none focus:border-brand-500">
                                 <button type="button" @click="show = !show"
                                     class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1 cursor-pointer"
@@ -299,8 +300,8 @@
 
                             <div x-data="{ show: false }" class="relative">
                                 <input :type="show ? 'text' : 'password'" id="user-confirm-password"
-                                    wire:model="new_password_confirmation" autocomplete="off" data-lpignore="true"
-                                    minlength="8" maxlength="72"
+                                    wire:model.live.debounce.150ms="new_password_confirmation" autocomplete="off"
+                                    data-lpignore="true" minlength="8" maxlength="72"
                                     class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl pl-4 pr-11 py-2.5 outline-none focus:border-brand-500">
                                 <button type="button" @click="show = !show"
                                     class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1 cursor-pointer"
