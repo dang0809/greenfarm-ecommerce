@@ -18,6 +18,24 @@ class ProfileManager extends Component
 {
     use WithFileUploads;
 
+    private const PROFILE_ROLES = [
+        'farm_owner' => [
+            'title' => 'Chủ Trang Trại',
+            'layout' => 'layouts.farm-owner.app',
+            'avatar_folder' => 'farm-owner',
+        ],
+        'farm_staff' => [
+            'title' => 'Nhân Viên Nông Trại',
+            'layout' => 'layouts.farm-staff.app',
+            'avatar_folder' => 'farm-staff',
+        ],
+        'sales' => [
+            'title' => 'Nhân Viên Bán Hàng',
+            'layout' => 'layouts.sales.app',
+            'avatar_folder' => 'sales',
+        ],
+    ];
+
     public string $name = '';
     public string $phone = '';
     public $newAvatar = null;
@@ -358,7 +376,7 @@ class ProfileManager extends Component
 
         $oldAvatar = $user->avatar;
         $newPath = null;
-        $roleFolder = $user->role === 'sales' ? 'sales' : 'farm-staff';
+        $roleFolder = self::PROFILE_ROLES[$user->role]['avatar_folder'];
         $diskName = $this->getAvatarDisk();
 
         try {
@@ -431,7 +449,7 @@ class ProfileManager extends Component
 
         abort_unless(
             $user
-            && in_array($user->role, ['farm_staff', 'sales'])
+            && isset(self::PROFILE_ROLES[$user->role])
             && $user->status === 'active',
             403,
             'Bạn không có quyền truy cập chức năng này.'
@@ -471,14 +489,12 @@ class ProfileManager extends Component
     public function render()
     {
         $user = $this->staff();
-        $isSales = $user->role === 'sales';
-
-        $layout = $isSales ? 'layouts.sales.app' : 'layouts.farm-staff.app';
-        $roleTitle = $isSales ? 'Nhân Viên Bán Hàng' : 'Nhân Viên Nông Trại';
+        $config = self::PROFILE_ROLES[$user->role];
 
         return view('livewire.profile-manager', [
             'user' => $user,
-            'roleTitle' => $roleTitle,
-        ])->layout($layout)->title("Hồ Sơ {$roleTitle}");
+            'roleTitle' => $config['title'],
+        ])->layout($config['layout'])
+            ->title('Hồ Sơ ' . $config['title']);
     }
 }

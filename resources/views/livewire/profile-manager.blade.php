@@ -142,7 +142,7 @@
                     <div class="flex justify-between gap-3">
                         <span class="text-gray-500">Vai trò:</span>
                         <span class="font-bold text-gray-800">
-                            {{ $user->role === 'sales' ? 'Nhân viên Bán hàng' : ($user->role === 'farm_staff' ? 'Nhân viên Nông trại' : $user->role) }}
+                            {{ $roleTitle }}
                         </span>
                     </div>
 
@@ -250,8 +250,8 @@
                         </label>
 
                         <div x-data="{ show: false }" class="relative">
-                            <input :type="show ? 'text' : 'password'" id="user-current-password" wire:model="current_password"
-                                autocomplete="off" data-lpignore="true"
+                            <input :type="show ? 'text' : 'password'" id="user-current-password"
+                                wire:model="current_password" autocomplete="off" data-lpignore="true"
                                 class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl pl-4 pr-11 py-2.5 outline-none focus:border-brand-500">
                             <button type="button" @click="show = !show"
                                 class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1 cursor-pointer"
@@ -274,8 +274,9 @@
                             </label>
 
                             <div x-data="{ show: false }" class="relative">
-                                <input :type="show ? 'text' : 'password'" id="user-new-password" wire:model="new_password"
-                                    autocomplete="off" data-lpignore="true" minlength="8" maxlength="72"
+                                <input :type="show ? 'text' : 'password'" id="user-new-password"
+                                    wire:model="new_password" autocomplete="off" data-lpignore="true" minlength="8"
+                                    maxlength="72"
                                     class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl pl-4 pr-11 py-2.5 outline-none focus:border-brand-500">
                                 <button type="button" @click="show = !show"
                                     class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1 cursor-pointer"
@@ -297,8 +298,9 @@
                             </label>
 
                             <div x-data="{ show: false }" class="relative">
-                                <input :type="show ? 'text' : 'password'" id="user-confirm-password" wire:model="new_password_confirmation"
-                                    autocomplete="off" data-lpignore="true" minlength="8" maxlength="72"
+                                <input :type="show ? 'text' : 'password'" id="user-confirm-password"
+                                    wire:model="new_password_confirmation" autocomplete="off" data-lpignore="true"
+                                    minlength="8" maxlength="72"
                                     class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl pl-4 pr-11 py-2.5 outline-none focus:border-brand-500">
                                 <button type="button" @click="show = !show"
                                     class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1 cursor-pointer"

@@ -43,6 +43,25 @@
                     <span class="truncate">{{ $item['label'] }}</span>
                 </a>
             @endforeach
+
+            @php
+                $profileActive = $activeRoute === 'farm-owner.profile';
+            @endphp
+
+            <a href="{{ route('farm-owner.profile') }}" wire:navigate wire:key="farm-owner-menu-profile"
+                @if ($profileActive) aria-current="page" @endif @class([
+                    'w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm transition-all text-left whitespace-nowrap',
+                    'font-bold menu-admin-active' => $profileActive,
+                    'font-semibold menu-admin-inactive' => !$profileActive,
+                ])>
+                <i @class([
+                    'fa-solid fa-id-badge w-5 text-center text-sm',
+                    'text-brand-200' => $profileActive,
+                    'text-slate-400' => !$profileActive,
+                ])></i>
+
+                <span class="truncate">Hồ Sơ Cá Nhân</span>
+            </a>
         </nav>
     </div>
 
