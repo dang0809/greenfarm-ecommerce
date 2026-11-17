@@ -203,14 +203,7 @@
                                         </div>
                                     </td>
 
-                                    <td class="py-3.5 px-4 pr-6 text-right space-x-1.5">
-                                        <a href="{{ route('farm-staff.product-batch') }}"
-                                            class="inline-flex items-center p-2 rounded-xl bg-amber-50 text-amber-800 hover:bg-amber-100 transition shadow-2xs font-bold text-xs"
-                                            title="Quản lý Lô thu hoạch & FEFO">
-                                            <i class="fa-solid fa-boxes-stacked mr-1"></i>
-                                            Quản lý Lô
-                                        </a>
-
+                                    <td class="py-3.5 px-4 pr-6 text-right">
                                         <button type="button" wire:click="editProduct({{ $product->id }})"
                                             wire:loading.attr="disabled"
                                             class="p-2 rounded-xl bg-slate-100 text-slate-700 hover:text-brand-700 hover:bg-brand-50 transition cursor-pointer"
@@ -242,352 +235,354 @@
 
     {{-- Hiển thị biểu mẫu thêm, sửa sản phẩm và khóa thao tác khi đang xử lý --}}
     @if ($showModal)
-    <div id="modal-product" wire:key="product-modal-{{ $editingId ?? 'new' }}" x-data="{ uploadingImage: false }"
-        x-on:product-images-ready="uploadingImage = false"
-        x-on:keydown.escape.window="$wire.closeModal()"
-        x-on:livewire-upload-start="
+        <div id="modal-product" wire:key="product-modal-{{ $editingId ?? 'new' }}" x-data="{ uploadingImage: false }"
+            x-on:product-images-ready="uploadingImage = false" x-on:keydown.escape.window="$wire.closeModal()"
+            x-on:livewire-upload-start="
         if ($event.detail.property === 'imageUploads') {
             uploadingImage = true
         }
     "
-        x-on:livewire-upload-finish="
+            x-on:livewire-upload-finish="
         if ($event.detail.property === 'imageUploads') {
             uploadingImage = false
         }
     "
-        x-on:livewire-upload-error="
+            x-on:livewire-upload-error="
         if ($event.detail.property === 'imageUploads') {
             uploadingImage = false
         }
     "
-        x-on:livewire-upload-cancel="
+            x-on:livewire-upload-cancel="
         if ($event.detail.property === 'imageUploads') {
             uploadingImage = false
         }
     "
-        wire:click.self="closeModal"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
+            wire:click.self="closeModal"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
 
-        <div
-            class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-2xl shadow-2xl p-5 sm:p-8 max-h-[92vh] overflow-y-auto custom-scrollbar border border-slate-100 space-y-4">
+            <div
+                class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-2xl shadow-2xl p-5 sm:p-8 max-h-[92vh] overflow-y-auto custom-scrollbar border border-slate-100 space-y-4">
 
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 class="text-base sm:text-xl font-extrabold text-slate-900" id="modal-product-title">
-                    {{ $editingId ? 'Sửa Sản Phẩm: ' . $name : 'Thêm Sản Phẩm Nông Sản Mới' }}
-                </h3>
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h3 class="text-base sm:text-xl font-extrabold text-slate-900" id="modal-product-title">
+                        {{ $editingId ? 'Sửa Sản Phẩm: ' . $name : 'Thêm Sản Phẩm Nông Sản Mới' }}
+                    </h3>
 
-                <button type="button" wire:click="closeModal"
-                    class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center cursor-pointer">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-            {{-- Kiểm tra dữ liệu trước khi mở hộp thoại xác nhận lưu sản phẩm --}}
-            <form wire:submit="$js.submitProduct" novalidate
-                x-on:submit.capture="
+                    <button type="button" wire:click="closeModal"
+                        class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center cursor-pointer">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                {{-- Kiểm tra dữ liệu trước khi mở hộp thoại xác nhận lưu sản phẩm --}}
+                <form wire:submit="$js.submitProduct" novalidate
+                    x-on:submit.capture="
         if (confirmingProduct) {
             $event.preventDefault();
             $event.stopImmediatePropagation();
         }
     "
-                class="space-y-3.5 text-xs sm:text-sm">
-                <input type="hidden" id="p-id" value="{{ $editingId }}">
+                    class="space-y-3.5 text-xs sm:text-sm">
+                    <input type="hidden" id="p-id" value="{{ $editingId }}">
 
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">
-                        Tên sản phẩm <span class="text-red-500">*</span>
-                    </label>
-
-                    <input type="text" id="p-name" wire:model.live.debounce.300ms="name" maxlength="255"
-                        required
-                        class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600">
-                    @error('name')
-                        <p role="alert" class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block font-bold text-slate-700 mb-1">
-                            Mã SKU <span class="text-red-500">*</span>
+                            Tên sản phẩm <span class="text-red-500">*</span>
                         </label>
 
-                        <input type="text" id="p-sku" wire:model.live.debounce.300ms="sku" maxlength="100"
+                        <input type="text" id="p-name" wire:model.live.debounce.300ms="name" maxlength="255"
                             required
-                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono uppercase outline-none focus:border-brand-600">
-                        @error('sku')
+                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600">
+                        @error('name')
                             <p role="alert" class="mt-1 text-xs text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
 
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">
-                            Danh mục <span class="text-red-500">*</span>
-                        </label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">
+                                Mã SKU <span class="text-red-500">*</span>
+                            </label>
 
-                        <select id="p-category" wire:model.live="category_id" required
-                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600 cursor-pointer">
-                            <option value="">-- Tất cả danh mục --</option>
-                            @if (isset($categories))
-                                @foreach ($categories as $cat)
-                                    <option value="{{ $cat->id }}">
-                                        {{ $cat->name }}
+                            <input type="text" id="p-sku" wire:model.live.debounce.300ms="sku"
+                                maxlength="100" required
+                                class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono uppercase outline-none focus:border-brand-600">
+                            @error('sku')
+                                <p role="alert" class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">
+                                Danh mục <span class="text-red-500">*</span>
+                            </label>
+
+                            <select id="p-category" wire:model.live="category_id" required
+                                class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600 cursor-pointer">
+                                <option value="">-- Tất cả danh mục --</option>
+                                @if (isset($categories))
+                                    @foreach ($categories as $cat)
+                                        <option value="{{ $cat->id }}">
+                                            {{ $cat->name }}
+                                        </option>
+                                    @endforeach
+                                @endif
+                            </select>
+                            @error('category_id')
+                                <p role="alert" class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5">
+                        <div>
+                            <label for="p-unit" class="block font-bold text-slate-700 mb-1">
+                                Đơn vị tính
+                                <span class="text-red-500">*</span>
+                            </label>
+
+                            <select id="p-unit" wire:model.live="unitOption" required
+                                @if ($hasExistingBatchesOrOrders) disabled @endif
+                                class="w-full min-w-0 bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600 cursor-pointer disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed">
+
+                                @foreach (\App\Livewire\FarmStaff\ProductManager::UNIT_OPTIONS as $value => $label)
+                                    <option value="{{ $value }}">
+                                        {{ $label }}
                                     </option>
                                 @endforeach
+
+                                <option value="other">Khác</option>
+                            </select>
+
+                            @if ($hasExistingBatchesOrOrders)
+                                <p class="mt-1.5 text-xs text-amber-700 flex items-center gap-1 font-medium">
+                                    <i class="fa-solid fa-lock text-[10px]"></i>
+                                    Sản phẩm đã có lô hàng hoặc đơn hàng, không thể đổi đơn vị tính.
+                                </p>
                             @endif
-                        </select>
-                        @error('category_id')
+
+                            @error('unitOption')
+                                <p role="alert" class="mt-1 text-xs text-red-600">
+                                    {{ $message }}
+                                </p>
+                            @enderror
+
+                            @if ($unitOption === 'other')
+                                <div wire:key="product-custom-unit-{{ $editingId ?? 'new' }}" class="mt-3">
+
+                                    <label for="p-custom-unit" class="block font-bold text-slate-700 mb-1">
+                                        Nhập đơn vị tính
+                                        <span class="text-red-500">*</span>
+                                    </label>
+
+                                    <input type="text" id="p-custom-unit"
+                                        wire:model.live.debounce.300ms="customUnit" maxlength="50"
+                                        placeholder="Ví dụ: Gói 250g, Túi 1kg..." required
+                                        @if ($hasExistingBatchesOrOrders) disabled @endif
+                                        class="w-full min-w-0 bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed">
+
+                                    @error('customUnit')
+                                        <p role="alert" class="mt-1 text-xs text-red-600">
+                                            {{ $message }}
+                                        </p>
+                                    @enderror
+                                </div>
+                            @endif
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">
+                                Giá bán gốc (đ) <span class="text-red-500">*</span>
+                            </label>
+
+                            <input type="number" id="p-price" wire:model.live.debounce.300ms="price"
+                                min="0.01" max="9999999999.99" step="0.01" required
+                                class="w-full min-w-0 bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono outline-none focus:border-brand-600">
+                            @error('price')
+                                <p role="alert" class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">
+                                Số ngày thu hoạch tối thiểu <span class="text-red-500">*</span>
+                            </label>
+
+                            <input type="number" id="p-min-growth-days"
+                                wire:model.live.debounce.300ms="min_growth_days" min="1" max="10000"
+                                step="1" required inputmode="numeric"
+                                class="w-full min-w-0 bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono outline-none focus:border-brand-600">
+                            @error('min_growth_days')
+                                <p class="text-xs text-red-600 mt-1">
+                                    {{ $message }}
+                                </p>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">
+                            Mô tả đặc tính
+                        </label>
+
+                        <textarea id="p-desc" wire:model.live.debounce.300ms="description" maxlength="10000" rows="2"
+                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl p-2.5 outline-none focus:border-brand-600 resize-none"></textarea>
+                        @error('description')
                             <p role="alert" class="mt-1 text-xs text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
-                </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5">
-                    <div>
-                        <label for="p-unit" class="block font-bold text-slate-700 mb-1">
-                            Đơn vị tính
+                    {{-- Tải nhiều ảnh, xem trước, sắp xếp ảnh bìa và loại bỏ ảnh --}}
+                    <div class="space-y-3">
+                        <label for="p-images" class="block font-bold text-slate-700 mb-1">
+                            Ảnh sản phẩm
                             <span class="text-red-500">*</span>
                         </label>
 
-                        <select id="p-unit" wire:model.live="unitOption" required
-                            @if ($hasExistingBatchesOrOrders) disabled @endif
-                            class="w-full min-w-0 bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600 cursor-pointer disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed">
+                        <input type="file" id="p-images" wire:model="imageUploads"
+                            wire:key="product-images-input-{{ $imageInputKey }}" multiple
+                            accept=".jpg,.jpeg,.png,.webp" x-bind:disabled="uploadingImage || confirmingProduct"
+                            wire:loading.attr="disabled"
+                            wire:target="imageUploads,moveImage,removeImage,requestSaveProduct,saveProduct,closeModal"
+                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600 disabled:opacity-60 disabled:cursor-wait">
 
-                            @foreach (\App\Livewire\FarmStaff\ProductManager::UNIT_OPTIONS as $value => $label)
-                                <option value="{{ $value }}">
-                                    {{ $label }}
-                                </option>
-                            @endforeach
-
-                            <option value="other">Khác</option>
-                        </select>
-
-                        @if ($hasExistingBatchesOrOrders)
-                            <p class="mt-1.5 text-xs text-amber-700 flex items-center gap-1 font-medium">
-                                <i class="fa-solid fa-lock text-[10px]"></i>
-                                Sản phẩm đã có lô hàng hoặc đơn hàng, không thể đổi đơn vị tính.
-                            </p>
-                        @endif
-
-                        @error('unitOption')
-                            <p role="alert" class="mt-1 text-xs text-red-600">
-                                {{ $message }}
-                            </p>
-                        @enderror
-
-                        @if ($unitOption === 'other')
-                            <div wire:key="product-custom-unit-{{ $editingId ?? 'new' }}" class="mt-3">
-
-                                <label for="p-custom-unit" class="block font-bold text-slate-700 mb-1">
-                                    Nhập đơn vị tính
-                                    <span class="text-red-500">*</span>
-                                </label>
-
-                                <input type="text" id="p-custom-unit" wire:model.live.debounce.300ms="customUnit"
-                                    maxlength="50" placeholder="Ví dụ: Gói 250g, Túi 1kg..." required
-                                    @if ($hasExistingBatchesOrOrders) disabled @endif
-                                    class="w-full min-w-0 bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed">
-
-                                @error('customUnit')
-                                    <p role="alert" class="mt-1 text-xs text-red-600">
-                                        {{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
-                        @endif
-                    </div>
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">
-                            Giá bán gốc (đ) <span class="text-red-500">*</span>
-                        </label>
-
-                        <input type="number" id="p-price" wire:model.live.debounce.300ms="price" min="0.01"
-                            max="9999999999.99" step="0.01" required
-                            class="w-full min-w-0 bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono outline-none focus:border-brand-600">
-                        @error('price')
-                            <p role="alert" class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">
-                            Số ngày thu hoạch tối thiểu <span class="text-red-500">*</span>
-                        </label>
-
-                        <input type="number" id="p-min-growth-days" wire:model.live.debounce.300ms="min_growth_days"
-                            min="1" max="10000" step="1" required inputmode="numeric"
-                            class="w-full min-w-0 bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 font-mono outline-none focus:border-brand-600">
-                        @error('min_growth_days')
-                            <p class="text-xs text-red-600 mt-1">
-                                {{ $message }}
-                            </p>
-                        @enderror
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">
-                        Mô tả đặc tính
-                    </label>
-
-                    <textarea id="p-desc" wire:model.live.debounce.300ms="description" maxlength="10000" rows="2"
-                        class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl p-2.5 outline-none focus:border-brand-600 resize-none"></textarea>
-                    @error('description')
-                        <p role="alert" class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                {{-- Tải nhiều ảnh, xem trước, sắp xếp ảnh bìa và loại bỏ ảnh --}}
-                <div class="space-y-3">
-                    <label for="p-images" class="block font-bold text-slate-700 mb-1">
-                        Ảnh sản phẩm
-                        <span class="text-red-500">*</span>
-                    </label>
-
-                    <input type="file" id="p-images" wire:model="imageUploads"
-                        wire:key="product-images-input-{{ $imageInputKey }}" multiple accept=".jpg,.jpeg,.png,.webp"
-                        x-bind:disabled="uploadingImage || confirmingProduct" wire:loading.attr="disabled"
-                        wire:target="imageUploads,moveImage,removeImage,requestSaveProduct,saveProduct,closeModal"
-                        class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-600 disabled:opacity-60 disabled:cursor-wait">
-
-                    <p class="text-[11px] text-slate-500 leading-relaxed">
-                        Có thể chọn nhiều ảnh cùng lúc hoặc chọn thêm ảnh ở lần tiếp theo.
-                        Mỗi ảnh tối đa 2 MB.
-                    </p>
-
-                    <p class="text-[11px] font-semibold text-brand-700">
-                        Ảnh ở vị trí 1 sẽ là ảnh chính.
-                        Dùng nút Lên/Xuống để đổi thứ tự.
-                    </p>
-
-                    @error('imageOrder')
-                        <p role="alert" class="text-xs font-semibold text-red-600">
-                            {{ $message }}
+                        <p class="text-[11px] text-slate-500 leading-relaxed">
+                            Có thể chọn nhiều ảnh cùng lúc hoặc chọn thêm ảnh ở lần tiếp theo.
+                            Mỗi ảnh tối đa 2 MB.
                         </p>
-                    @enderror
 
-                    @error('imageUploads')
-                        <p role="alert" class="text-xs font-semibold text-red-600">
-                            {{ $message }}
+                        <p class="text-[11px] font-semibold text-brand-700">
+                            Ảnh ở vị trí 1 sẽ là ảnh chính.
+                            Dùng nút Lên/Xuống để đổi thứ tự.
                         </p>
-                    @enderror
 
-                    {{-- Hiển thị lỗi của từng tệp trong lần tải nhiều ảnh. --}}
-                    @foreach ($errors->get('imageUploads.*') as $uploadErrors)
-                        @foreach ($uploadErrors as $message)
+                        @error('imageOrder')
                             <p role="alert" class="text-xs font-semibold text-red-600">
                                 {{ $message }}
                             </p>
-                        @endforeach
-                    @endforeach
+                        @enderror
 
-                    {{-- Hiển thị lỗi kiểm tra lại nội dung ảnh trước khi lưu. --}}
-                    @error('image')
-                        <p role="alert" class="text-xs font-semibold text-red-600">
-                            {{ $message }}
-                        </p>
-                    @enderror
-
-                    <p wire:loading wire:target="imageUploads" class="text-xs text-brand-700">
-                        <i class="fa-solid fa-spinner fa-spin mr-1"></i>
-                        Đang tải ảnh lên...
-                    </p>
-
-                    {{-- Xác định ảnh đã lưu hoặc ảnh mới để tạo bản xem trước. --}}
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        @forelse ($imageOrder as $index => $token)
-                            @php
-                                $isOld = str_starts_with($token, 'old:');
-                                $tokenId = $isOld ? substr($token, 4) : null;
-
-                                $imageUrl = $isOld
-                                    ? $existingImages[$tokenId]['url'] ?? null
-                                    : (isset($newImages[$token])
-                                        ? $newImages[$token]->temporaryUrl()
-                                        : null);
-                            @endphp
-
-                            <div wire:key="product-image-{{ $token }}"
-                                class="border border-slate-200 rounded-xl p-3 space-y-3">
-                                @if ($imageUrl)
-                                    <img src="{{ $imageUrl }}" alt="Ảnh sản phẩm vị trí {{ $index + 1 }}"
-                                        class="w-full h-36 object-contain rounded-lg bg-slate-50">
-                                @else
-                                    <div
-                                        class="w-full h-36 flex items-center justify-center rounded-lg bg-slate-50 text-slate-400 text-xs">
-                                        Không có ảnh xem trước
-                                    </div>
-                                @endif
-
-                                <div class="flex items-center justify-between gap-2">
-                                    <span class="font-bold text-slate-700">
-                                        Vị trí {{ $index + 1 }}
-                                    </span>
-
-                                    @if ($index === 0)
-                                        <span
-                                            class="text-[10px] font-bold text-brand-800 bg-brand-50 border border-brand-200 px-2 py-0.5 rounded-full">
-                                            Ảnh chính
-                                        </span>
-                                    @endif
-                                </div>
-
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <button type="button" wire:click="moveImage({{ $index }}, -1)"
-                                        wire:loading.attr="disabled"
-                                        wire:target="imageUploads,moveImage,removeImage,requestSaveProduct,saveProduct,closeModal"
-                                        @disabled($index === 0)
-                                        class="rounded-lg bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-40">
-                                        <i class="fa-solid fa-arrow-up"></i>
-                                        Lên
-                                    </button>
-
-                                    <button type="button" wire:click="moveImage({{ $index }}, 1)"
-                                        wire:loading.attr="disabled"
-                                        wire:target="imageUploads,moveImage,removeImage,requestSaveProduct,saveProduct,closeModal"
-                                        @disabled($index === count($imageOrder) - 1)
-                                        class="rounded-lg bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-40">
-                                        <i class="fa-solid fa-arrow-down"></i>
-                                        Xuống
-                                    </button>
-
-                                    <button type="button" wire:click="removeImage({{ $index }})"
-                                        wire:loading.attr="disabled"
-                                        wire:target="imageUploads,moveImage,removeImage,requestSaveProduct,saveProduct,closeModal"
-                                        class="ml-auto rounded-lg bg-red-50 hover:bg-red-100 px-2.5 py-1.5 text-xs font-bold text-red-600">
-                                        <i class="fa-solid fa-xmark"></i>
-                                        Bỏ ảnh
-                                    </button>
-                                </div>
-                            </div>
-                        @empty
-                            <p
-                                class="sm:col-span-2 rounded-xl border border-dashed border-slate-200 p-5 text-center text-xs text-slate-400">
-                                Chưa có ảnh. Vui lòng chọn ít nhất một ảnh.
+                        @error('imageUploads')
+                            <p role="alert" class="text-xs font-semibold text-red-600">
+                                {{ $message }}
                             </p>
-                        @endforelse
+                        @enderror
+
+                        {{-- Hiển thị lỗi của từng tệp trong lần tải nhiều ảnh. --}}
+                        @foreach ($errors->get('imageUploads.*') as $uploadErrors)
+                            @foreach ($uploadErrors as $message)
+                                <p role="alert" class="text-xs font-semibold text-red-600">
+                                    {{ $message }}
+                                </p>
+                            @endforeach
+                        @endforeach
+
+                        {{-- Hiển thị lỗi kiểm tra lại nội dung ảnh trước khi lưu. --}}
+                        @error('image')
+                            <p role="alert" class="text-xs font-semibold text-red-600">
+                                {{ $message }}
+                            </p>
+                        @enderror
+
+                        <p wire:loading wire:target="imageUploads" class="text-xs text-brand-700">
+                            <i class="fa-solid fa-spinner fa-spin mr-1"></i>
+                            Đang tải ảnh lên...
+                        </p>
+
+                        {{-- Xác định ảnh đã lưu hoặc ảnh mới để tạo bản xem trước. --}}
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            @forelse ($imageOrder as $index => $token)
+                                @php
+                                    $isOld = str_starts_with($token, 'old:');
+                                    $tokenId = $isOld ? substr($token, 4) : null;
+
+                                    $imageUrl = $isOld
+                                        ? $existingImages[$tokenId]['url'] ?? null
+                                        : (isset($newImages[$token])
+                                            ? $newImages[$token]->temporaryUrl()
+                                            : null);
+                                @endphp
+
+                                <div wire:key="product-image-{{ $token }}"
+                                    class="border border-slate-200 rounded-xl p-3 space-y-3">
+                                    @if ($imageUrl)
+                                        <img src="{{ $imageUrl }}" alt="Ảnh sản phẩm vị trí {{ $index + 1 }}"
+                                            class="w-full h-36 object-contain rounded-lg bg-slate-50">
+                                    @else
+                                        <div
+                                            class="w-full h-36 flex items-center justify-center rounded-lg bg-slate-50 text-slate-400 text-xs">
+                                            Không có ảnh xem trước
+                                        </div>
+                                    @endif
+
+                                    <div class="flex items-center justify-between gap-2">
+                                        <span class="font-bold text-slate-700">
+                                            Vị trí {{ $index + 1 }}
+                                        </span>
+
+                                        @if ($index === 0)
+                                            <span
+                                                class="text-[10px] font-bold text-brand-800 bg-brand-50 border border-brand-200 px-2 py-0.5 rounded-full">
+                                                Ảnh chính
+                                            </span>
+                                        @endif
+                                    </div>
+
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <button type="button" wire:click="moveImage({{ $index }}, -1)"
+                                            wire:loading.attr="disabled"
+                                            wire:target="imageUploads,moveImage,removeImage,requestSaveProduct,saveProduct,closeModal"
+                                            @disabled($index === 0)
+                                            class="rounded-lg bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-40">
+                                            <i class="fa-solid fa-arrow-up"></i>
+                                            Lên
+                                        </button>
+
+                                        <button type="button" wire:click="moveImage({{ $index }}, 1)"
+                                            wire:loading.attr="disabled"
+                                            wire:target="imageUploads,moveImage,removeImage,requestSaveProduct,saveProduct,closeModal"
+                                            @disabled($index === count($imageOrder) - 1)
+                                            class="rounded-lg bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-40">
+                                            <i class="fa-solid fa-arrow-down"></i>
+                                            Xuống
+                                        </button>
+
+                                        <button type="button" wire:click="removeImage({{ $index }})"
+                                            wire:loading.attr="disabled"
+                                            wire:target="imageUploads,moveImage,removeImage,requestSaveProduct,saveProduct,closeModal"
+                                            class="ml-auto rounded-lg bg-red-50 hover:bg-red-100 px-2.5 py-1.5 text-xs font-bold text-red-600">
+                                            <i class="fa-solid fa-xmark"></i>
+                                            Bỏ ảnh
+                                        </button>
+                                    </div>
+                                </div>
+                            @empty
+                                <p
+                                    class="sm:col-span-2 rounded-xl border border-dashed border-slate-200 p-5 text-center text-xs text-slate-400">
+                                    Chưa có ảnh. Vui lòng chọn ít nhất một ảnh.
+                                </p>
+                            @endforelse
+                        </div>
                     </div>
-                </div>
 
-                <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
-                    <button type="button" wire:click="closeModal"
-                        class="px-4 py-2 border border-slate-200 rounded-xl text-slate-600 font-bold hover:bg-slate-50 cursor-pointer">
-                        Hủy
-                    </button>
+                    <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
+                        <button type="button" wire:click="closeModal"
+                            class="px-4 py-2 border border-slate-200 rounded-xl text-slate-600 font-bold hover:bg-slate-50 cursor-pointer">
+                            Hủy
+                        </button>
 
-                    <button type="submit" x-bind:disabled="confirmingProduct" wire:loading.attr="disabled"
-                        wire:target="imageUploads,moveImage,removeImage,requestSaveProduct,saveProduct,closeModal"
-                        class="bg-brand-700 hover:bg-brand-800 text-white font-bold px-5 py-2 rounded-xl transition cursor-pointer disabled:opacity-50 disabled:cursor-wait">
-                        <span wire:loading.remove wire:target="requestSaveProduct,saveProduct">
-                            Lưu Sản phẩm
-                        </span>
+                        <button type="submit" x-bind:disabled="confirmingProduct" wire:loading.attr="disabled"
+                            wire:target="imageUploads,moveImage,removeImage,requestSaveProduct,saveProduct,closeModal"
+                            class="bg-brand-700 hover:bg-brand-800 text-white font-bold px-5 py-2 rounded-xl transition cursor-pointer disabled:opacity-50 disabled:cursor-wait">
+                            <span wire:loading.remove wire:target="requestSaveProduct,saveProduct">
+                                Lưu Sản phẩm
+                            </span>
 
-                        <span wire:loading wire:target="requestSaveProduct,saveProduct">
-                            Đang lưu...
-                        </span>
-                    </button>
-                </div>
-            </form>
+                            <span wire:loading wire:target="requestSaveProduct,saveProduct">
+                                Đang lưu...
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
-    </div>
     @endif
 
     {{-- Kiểm tra dữ liệu, xác nhận lưu và thay đổi trạng thái sản phẩm. --}}
