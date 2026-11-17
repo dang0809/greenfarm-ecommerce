@@ -752,12 +752,12 @@
                                 <span class="text-red-500">*</span>
                             </label>
 
-                            <input type="text" id="new-plot-name" wire:model="newPlotName" maxlength="255"
-                                placeholder="Ví dụ: Luống A4"
+                            <input type="text" id="new-plot-name" wire:model.live.debounce.150ms="newPlotName"
+                                maxlength="255" placeholder="Ví dụ: Luống A4"
                                 class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:border-brand-500">
 
                             @error('newPlotName')
-                                <p class="text-xs text-red-600 mt-1">
+                                <p class="text-xs text-red-600 mt-1" role="alert">
                                     {{ $message }}
                                 </p>
                             @enderror
@@ -769,12 +769,12 @@
                                 <span class="text-red-500">*</span>
                             </label>
 
-                            <input type="number" id="new-plot-area" wire:model="newPlotArea" min="0.01"
-                                max="9999999999.99" step="0.01" placeholder="Nhập diện tích luống"
+                            <input type="number" id="new-plot-area" wire:model.live.debounce.150ms="newPlotArea"
+                                min="0.01" max="9999999999.99" step="0.01" placeholder="Nhập diện tích luống"
                                 class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:border-brand-500">
 
                             @error('newPlotArea')
-                                <p class="text-xs text-red-600 mt-1">
+                                <p class="text-xs text-red-600 mt-1" role="alert">
                                     {{ $message }}
                                 </p>
                             @enderror

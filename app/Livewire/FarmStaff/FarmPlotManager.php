@@ -146,6 +146,59 @@ class FarmPlotManager extends Component
         }
     }
 
+    // cập nhật tên luống và diện tích
+    public function updatedNewPlotName(): void
+    {
+        $this->resetValidation('newPlotName');
+    }
+
+    public function updatedNewPlotArea(): void
+    {
+        $this->resetValidation('newPlotArea');
+    }
+
+    /**
+     * Validate dữ liệu.
+     * Khi sửa luống, trả về null nếu không có thay đổi.
+     */
+    private function validatePlotChanges(
+        FarmPlotService $service,
+        ?FarmPlot $plot = null
+    ): ?array {
+        $this->resetValidation(['newPlotName', 'newPlotArea']);
+
+        $this->newPlotName = trim($this->newPlotName);
+        $this->newPlotArea = trim($this->newPlotArea);
+
+        $validated = $service->validatePlotData([
+            'name' => $this->newPlotName,
+            'area' => $this->newPlotArea,
+        ]);
+
+        if ($plot !== null) {
+            // Chỉ gán vào bản sao để so sánh, chưa lưu database.
+            $candidate = clone $plot;
+
+            $candidate->fill([
+                'name' => $validated['newPlotName'],
+                'area' => $validated['newPlotArea'],
+            ]);
+
+            if (!$candidate->isDirty(['name', 'area'])) {
+                $this->dispatch(
+                    'swal',
+                    icon: 'info',
+                    title: 'Không có thay đổi nào',
+                    text: 'Tên và diện tích luống chưa có thay đổi.'
+                );
+
+                return null;
+            }
+        }
+
+        return $validated;
+    }
+
     public function updatedHarvestPhoto(): void
     {
         try {
@@ -494,17 +547,16 @@ class FarmPlotManager extends Component
     public function requestSavePlot(FarmPlotService $service): void
     {
         $this->staff();
-
         abort_unless($this->showCreatePlotModal, 404);
 
-        $this->resetValidation();
+        $plot = $this->editPlotId !== null
+            ? FarmPlot::findOrFail($this->editPlotId)
+            : null;
 
-        $service->validatePlotData([
-            'name' => $this->newPlotName,
-            'area' => $this->newPlotArea,
-        ]);
+        if ($this->validatePlotChanges($service, $plot) === null) {
+            return;
+        }
 
-        // Bước này chỉ kiểm tra dữ liệu và mở xác nhận.
         $this->dispatch(
             'confirm-farm-action',
             action: $this->editPlotId !== null ? 'updatePlot' : 'create'
@@ -546,19 +598,29 @@ class FarmPlotManager extends Component
 
     public function updatePlot(FarmPlotService $service): void
     {
+        $staff = $this->staff();
+
         abort_unless(
             $this->showCreatePlotModal && $this->editPlotId !== null,
             404
         );
 
-        $this->attempt('newPlotName', function () use ($service) {
+        $this->attempt('newPlotName', function () use ($service, $staff) {
+            $plot = FarmPlot::findOrFail($this->editPlotId);
+
+            $validated = $this->validatePlotChanges($service, $plot);
+
+            if ($validated === null) {
+                return;
+            }
+
             $plot = $service->updatePlot(
-                FarmPlot::findOrFail($this->editPlotId),
+                $plot,
                 [
-                    'name' => $this->newPlotName,
-                    'area' => $this->newPlotArea,
+                    'name' => $validated['newPlotName'],
+                    'area' => $validated['newPlotArea'],
                 ],
-                $this->staff()
+                $staff
             );
 
             $this->closeModals();
