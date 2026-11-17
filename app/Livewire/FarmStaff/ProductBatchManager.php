@@ -13,6 +13,7 @@ use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
+use App\Services\ProductBatchStatusService;
 use Livewire\Component;
 use Livewire\WithPagination;
 use RuntimeException;
@@ -40,9 +41,11 @@ class ProductBatchManager extends Component
     public string $expiry = '';
     public string $newStatus = 'active';
 
-    public function boot(): void
+    public function boot(ProductBatchStatusService $service): void
     {
         $this->staff();
+
+        $service->suspendExpiredBatches();
     }
 
     public function updated($property): void
@@ -213,13 +216,13 @@ class ProductBatchManager extends Component
         }
 
         if (
-            in_array($mode, ['expiry', 'stock', 'status'], true)
-            && $batch->expiry_date->lt(today())
+            $batch->expiry_date->lt(today())
+            && !in_array($mode, ['spoilage', 'detail'], true)
         ) {
             $this->dispatch(
                 'swal',
                 icon: 'error',
-                title: 'Lô đã hết hạn. Không được sửa HSD, cân chỉnh hoặc đổi trạng thái.'
+                title: 'Lô đã hết hạn. Chỉ được xuất hủy hoặc xem chi tiết.'
             );
 
             return;
@@ -824,7 +827,12 @@ class ProductBatchManager extends Component
         if (
             $selectedBatch
             && (int) $selectedBatch->current_quantity > 0
-            && !in_array($selectedBatch->status, ['recalled', 'sold_out'], true)
+            && !in_array(
+                $selectedBatch->status,
+                ['recalled', 'sold_out'],
+                true
+            )
+            && $selectedBatch->expiry_date->gte(today())
             && in_array($this->modal, ['detail', 'qr'], true)
         ) {
             $traceUrl = route('customer.traceability.detail', [

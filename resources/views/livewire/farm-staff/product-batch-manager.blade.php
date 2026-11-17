@@ -1,4 +1,4 @@
-<div x-data="{ confirmingBatch: false }" x-on:batch-confirm-state="confirmingBatch = $event.detail.busy">
+<div wire:poll.60s x-data="{ confirmingBatch: false }" x-on:batch-confirm-state="confirmingBatch = $event.detail.busy">
 
     @php
         $selectedProduct = $selectedBatch?->plantingBatch?->product;
@@ -319,11 +319,13 @@
                                                 Trạng thái
                                             </button>
                                         @endif
-                                        <button type="button" wire:click="openModal('qr', {{ $batch->id }})"
-                                            wire:loading.attr="disabled" wire:target="openModal"
-                                            class="px-2 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition font-bold text-[11px] cursor-pointer">
-                                            <i class="fa-solid fa-qrcode mr-1"></i>QR
-                                        </button>
+                                        @if (!$isExpired)
+                                            <button type="button" wire:click="openModal('qr', {{ $batch->id }})"
+                                                wire:loading.attr="disabled" wire:target="openModal"
+                                                class="px-2 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition font-bold text-[11px] cursor-pointer">
+                                                <i class="fa-solid fa-qrcode mr-1"></i>QR
+                                            </button>
+                                        @endif
                                     @endif
 
                                     <button type="button" wire:click="openModal('detail', {{ $batch->id }})"
