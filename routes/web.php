@@ -65,7 +65,7 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
     $user = User::findOrFail($id);
 
     // 1. Kiểm tra SHA-1 hash email
-    if (!hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
+    if (!hash_equals((string) $hash, sha1($user->email))) {
         session()->flash('error', 'Link xác thực không hợp lệ!');
         return redirect()->route('home');
     }

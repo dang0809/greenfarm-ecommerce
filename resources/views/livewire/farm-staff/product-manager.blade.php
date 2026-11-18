@@ -236,7 +236,7 @@
     {{-- Hiển thị biểu mẫu thêm, sửa sản phẩm và khóa thao tác khi đang xử lý --}}
     @if ($showModal)
         <div id="modal-product" wire:key="product-modal-{{ $editingId ?? 'new' }}" x-data="{ uploadingImage: false }"
-            x-on:product-images-ready="uploadingImage = false" x-on:keydown.escape.window="$wire.closeModal()"
+            x-on:product-images-ready.window="uploadingImage = false" x-on:keydown.escape.window="$wire.closeModal()"
             x-on:livewire-upload-start="
         if ($event.detail.property === 'imageUploads') {
             uploadingImage = true

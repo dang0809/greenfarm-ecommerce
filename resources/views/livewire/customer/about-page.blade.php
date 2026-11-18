@@ -272,7 +272,7 @@
                                     this.hidden = true;
                                     this.nextElementSibling.hidden = false;
                                 "
-                                        class="w-full h-full object-cover rounded-xl group-hover:scale-105 transition-transform duration-300">
+                                        class="w-full h-full object-contain rounded-xl group-hover:scale-105 transition-transform duration-300">
 
                                     <span hidden class="text-xs text-gray-500">
                                         Không tải được bản scan
@@ -304,10 +304,10 @@
 
     </main>
 
-    <!-- 4. MODAL PHÓNG TO CHỨNG NHẬN TOÀN MÀN HÌNH (ĐÃ PHÓNG TO KHUNG ẢNH TOÀN MÀN HÌNH) -->
+    <!-- 4. MODAL PHÓNG TO CHỨNG NHẬN TOÀN MÀN HÌNH -->
     <div id="cert-modal"
-        class="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col items-center justify-between p-4 sm:p-6 hidden">
-        <div class="w-full flex items-center justify-between text-white max-w-6xl">
+        class="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col items-center justify-between gap-3 p-4 sm:p-6 hidden">
+        <div class="shrink-0 w-full flex items-center justify-between text-white max-w-6xl">
             <div class="flex items-center gap-3">
                 <i class="fa-solid fa-circle-check text-brand-500 text-xl"></i>
                 <div>
@@ -316,27 +316,28 @@
                 </div>
             </div>
             <button type="button" onclick="closeCertModal()"
-                class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">
+                class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
         </div>
 
-        <!-- Khung chứa ảnh scan được phóng to tối đa -->
-        <div class="flex-1 my-2 flex items-center justify-center w-full max-w-6xl overflow-hidden relative">
+        <!-- Khung chứa ảnh scan: hiện trọn 100%, bấm trực tiếp vào ảnh để phóng to / thu nhỏ -->
+        <div class="flex-1 min-h-0 w-full max-w-6xl overflow-auto flex p-2 relative custom-scrollbar">
             <img id="cert-modal-img" src="" alt="Chứng nhận scan"
-                class="max-h-[85vh] sm:max-h-[88vh] w-auto max-w-full object-contain rounded-2xl shadow-2xl border border-white/10">
+                onclick="this.classList.toggle('max-h-full'); this.classList.toggle('cursor-zoom-in'); this.classList.toggle('cursor-zoom-out');"
+                class="m-auto max-h-full max-w-full w-auto h-auto object-contain rounded-2xl shadow-2xl border border-white/10 cursor-zoom-in">
         </div>
 
         <div
-            class="w-full max-w-4xl bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10 text-center text-xs sm:text-sm text-gray-200">
+            class="shrink-0 w-full max-w-4xl bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10 text-center text-xs sm:text-sm text-gray-200">
             <p id="cert-modal-desc">Mô tả chứng nhận</p>
         </div>
     </div>
 
     <!-- 5. MODAL PHÓNG TO ẢNH NÔNG TRẠI TOÀN MÀN HÌNH -->
     <div id="image-lightbox-modal"
-        class="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col items-center justify-between p-4 sm:p-8 hidden">
-        <div class="w-full flex items-center justify-between text-white max-w-6xl">
+        class="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col items-center justify-between gap-3 p-4 sm:p-8 hidden">
+        <div class="shrink-0 w-full flex items-center justify-between text-white max-w-6xl">
             <div class="flex items-center gap-3">
                 <i class="fa-solid fa-leaf text-brand-500 text-xl"></i>
                 <div>
@@ -344,14 +345,14 @@
                 </div>
             </div>
             <button type="button" onclick="closeImageLightbox()"
-                class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">
+                class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
         </div>
 
-        <div class="flex-1 my-4 flex items-center justify-center w-full max-w-6xl overflow-hidden relative">
+        <div class="flex-1 min-h-0 flex items-center justify-center w-full max-w-6xl overflow-hidden relative">
             <img id="lightbox-img" src="" alt="Ảnh phóng to"
-                class="max-h-[80vh] max-w-full object-contain rounded-2xl shadow-2xl border border-white/10">
+                class="max-h-full max-w-full w-auto h-auto object-contain rounded-2xl shadow-2xl border border-white/10">
         </div>
     </div>
 
@@ -362,6 +363,7 @@
 
             window.openCertModal = (title, code, description, imageUrl) => {
                 const modal = byId('cert-modal');
+                const img = byId('cert-modal-img');
 
                 if (!modal) return;
 
@@ -370,7 +372,9 @@
                     'Số hiệu: ' + code :
                     '';
                 byId('cert-modal-desc').textContent = description ?? '';
-                byId('cert-modal-img').src = imageUrl;
+                img.src = imageUrl;
+                img.classList.add('max-h-full', 'cursor-zoom-in');
+                img.classList.remove('cursor-zoom-out');
 
                 modal.dataset.previousOverflow = document.body.style.overflow;
 
@@ -380,11 +384,14 @@
 
             window.closeCertModal = () => {
                 const modal = byId('cert-modal');
+                const img = byId('cert-modal-img');
 
                 if (!modal) return;
 
                 modal.classList.add('hidden');
-                byId('cert-modal-img').removeAttribute('src');
+                img.removeAttribute('src');
+                img.classList.add('max-h-full', 'cursor-zoom-in');
+                img.classList.remove('cursor-zoom-out');
 
                 document.body.style.overflow =
                     modal.dataset.previousOverflow ?? '';

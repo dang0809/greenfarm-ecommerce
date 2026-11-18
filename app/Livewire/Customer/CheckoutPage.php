@@ -385,7 +385,7 @@ class CheckoutPage extends Component
                 "description" => "TT " . $payosOrderCode,
                 "returnUrl" => route('customer.checkout.success', ['order_id' => $order->id]),
                 "cancelUrl" => route('customer.checkout.cancel', ['order_id' => $order->id]),
-                "expiredAt" => time() + (5 * 60),
+                "expiredAt" => time() + (1 * 60),
             ];
 
             $response = $payOS->createPaymentLink($payosData);

@@ -165,39 +165,31 @@ class ProductManager extends Component
                 'imageUploads.*.mimes' => 'Chỉ chấp nhận JPG, JPEG, PNG hoặc WEBP.',
                 'imageUploads.*.max' => 'Mỗi ảnh không được vượt quá 2 MB.',
             ]);
-        } catch (ValidationException $exception) {
+
+            $uploads = array_values($this->imageUploads);
+
+            if (count($this->imageOrder) + count($uploads) > 10) {
+                $this->addError(
+                    'imageUploads',
+                    'Mỗi sản phẩm chỉ được có tối đa 10 ảnh.'
+                );
+
+                return;
+            }
+
+            foreach ($uploads as $file) {
+                $key = 'new:' . (string) Str::uuid();
+
+                $this->newImages[$key] = $file;
+                $this->imageOrder[] = $key;
+            }
+
+            $this->resetValidation('imageUploads');
+        } finally {
             $this->reset('imageUploads');
             $this->imageInputKey++;
-
-            throw $exception;
+            $this->dispatch('product-images-ready');
         }
-
-        $uploads = array_values($this->imageUploads);
-
-        if (count($this->imageOrder) + count($uploads) > 10) {
-            $this->addError(
-                'imageUploads',
-                'Mỗi sản phẩm chỉ được có tối đa 10 ảnh.'
-            );
-
-            $this->reset('imageUploads');
-            $this->imageInputKey++;
-
-            return;
-        }
-
-        foreach ($uploads as $file) {
-            $key = 'new:' . (string) Str::uuid();
-
-            $this->newImages[$key] = $file;
-            $this->imageOrder[] = $key;
-        }
-
-        $this->reset('imageUploads');
-        $this->imageInputKey++;
-        $this->resetValidation('imageUploads');
-
-        $this->dispatch('product-images-ready');
     }
 
     // Validate dữ liệu

@@ -63,9 +63,9 @@ class AuthModal extends Component
             $this->tab = 'reset_password';
             $this->isOpen = true;
 
-            // KIỂM TRA NGAY TỨC THÌ: Token có tồn tại trong database, còn hạn (60 phút) và tài khoản không bị khóa không?
+            // KIỂM TRA NGAY TỨC THÌ: Token có tồn tại trong database, còn hạn (60 phút) và tài khoản đang hoạt động (active) không?
             $user = User::where('email', $this->resetEmail)->first();
-            if (! $user || $user->status === 'blocked' || $user->role !== 'customer' || ! Password::broker()->tokenExists($user, $this->resetToken)) {
+            if (! $user || $user->status !== 'active' || $user->role !== 'customer' || ! Password::broker()->tokenExists($user, $this->resetToken)) {
                 $this->tokenInvalid = true;
             } else {
                 $this->tokenInvalid = false;
@@ -222,7 +222,9 @@ class AuthModal extends Component
         ]); 
 
         $throttleKey = Str::lower($this->loginAccount) . '|' . request()->ip();
+        //kiểm tra đã dạt giới hạn  lần ch
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            //lấy số giây còn lại trước khi được đăng nhập lại
             $seconds = RateLimiter::availableIn($throttleKey);
             $this->addError('loginAccount', "Thử lại sau $seconds giây.");
             return;
@@ -310,7 +312,7 @@ class AuthModal extends Component
         $token = Password::broker()->createToken($user);
         $emailService->sendResetLink($user->email, $token);
 
-        RateLimiter::hit($throttleKey, 60);
+        RateLimiter::hit($throttleKey, 120);
         $this->forgotLinkSent = true;
     }
 
@@ -339,11 +341,11 @@ class AuthModal extends Component
         ]);
 
         $user = User::where('email', $this->resetEmail)->first();
-        if (! $user || $user->status === 'blocked' || $user->role !== 'customer') {
+        if (! $user || $user->status !== 'active' || $user->role !== 'customer') {
             $this->tokenInvalid = true;
             return;
         }
-
+        //Email có tìm được tài khoản không?Token có hợp lệ không?Token có hết hạn chưa?
         $status = Password::broker()->reset(
             [
                 'token' => $this->resetToken,
@@ -362,7 +364,7 @@ class AuthModal extends Component
                 }
             }
         );
-
+        //Password::PASSWORD_RESET: Hằng số đại diện cho việc đặt lại mật khẩu thành công.
         if ($status === Password::PASSWORD_RESET) {
             $email = $this->resetEmail;
             $this->reset(['resetToken', 'resetEmail', 'newPassword', 'newPasswordConfirmation']);
@@ -375,12 +377,12 @@ class AuthModal extends Component
             session()->flash('success', 'Mật khẩu đã được cập nhật thành công! Vui lòng đăng nhập bằng mật khẩu mới.');
             return;
         }
-
+        //Password::INVALID_TOKEN là trạng thái Laravel trả về khi token không hợp lệ hoặc đã hết hạn.
         if ($status === Password::INVALID_TOKEN) {
             $this->tokenInvalid = true;
             return;
         }
-
+        //Nếu Laravel không tìm thấy tài khoản tương ứng với email được truyền vào thì trả về INVALID_USER.
         if ($status === Password::INVALID_USER) {
             $this->addError('resetEmail', 'Không tìm thấy tài khoản với địa chỉ email này.');
             return;

@@ -32,7 +32,7 @@ class VerifyEmailMail extends Mailable implements ShouldQueue
             now()->addMinutes(60),
             [
                 'id' => $user->id,
-                'hash' => sha1($user->getEmailForVerification()),
+                'hash' => sha1($user->email),
             ]
         );
     }
