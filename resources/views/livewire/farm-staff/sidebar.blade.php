@@ -76,9 +76,7 @@
             </div>
         </a>
 
-        {{-- Yêu cầu xác nhận đăng xuất và hiển thị trạng thái đang xử lý --}}
-        <button type="button" wire:click="requestLogout" wire:loading.attr="disabled"
-            wire:target="requestLogout,logout"
+        <button type="button" wire:click="logout" wire:loading.attr="disabled" wire:target="logout"
             class="flex items-center space-x-3 text-red-600 hover:bg-red-50 transition w-full px-4 py-2.5 rounded-xl font-bold text-xs cursor-pointer disabled:opacity-50 disabled:cursor-wait">
             <i wire:loading.remove wire:target="logout" class="fa-solid fa-arrow-right-from-bracket"
                 aria-hidden="true"></i>
@@ -95,47 +93,3 @@
         </button>
     </div>
 </aside>
-{{-- Xác nhận đăng xuất, chặn yêu cầu lặp và báo lỗi khi chưa hoàn tất. --}}
-@script
-    <script>
-        let confirmingLogout = false;
-
-        $wire.on('confirm-farm-staff-logout', async () => {
-            if (confirmingLogout) return;
-
-            confirmingLogout = true;
-
-            try {
-                const result = await Swal.fire({
-                    heightAuto: false,
-                    icon: 'question',
-                    title: 'Xác nhận đăng xuất?',
-                    text: 'Bạn có muốn đăng xuất khỏi tài khoản hiện tại?',
-                    showCancelButton: true,
-                    confirmButtonText: 'Xác nhận',
-                    cancelButtonText: 'Hủy',
-                    confirmButtonColor: '#dc2626',
-                    cancelButtonColor: '#64748b',
-                    reverseButtons: true,
-                    focusCancel: true,
-                    allowOutsideClick: false
-                });
-
-                if (result.isConfirmed) {
-                    await $wire.logout();
-                }
-            } catch (error) {
-                await Swal.fire({
-                    heightAuto: false,
-                    icon: 'error',
-                    title: 'Chưa hoàn tất đăng xuất',
-                    text: 'Vui lòng tải lại trang để kiểm tra và thử lại.',
-                    confirmButtonText: 'Đóng',
-                    confirmButtonColor: '#15803d'
-                });
-            } finally {
-                confirmingLogout = false;
-            }
-        });
-    </script>
-@endscript
