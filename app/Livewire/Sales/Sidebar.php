@@ -55,11 +55,6 @@ class Sidebar extends Component
         // Livewire tự động re-render cập nhật avatar & tên
     }
 
-    public function requestLogout(): void
-    {
-        $this->dispatch('confirm-sales-logout')->self();
-    }
-
     /**
      * Xử lý đăng xuất tài khoản an toàn
      */

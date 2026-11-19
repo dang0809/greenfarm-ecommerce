@@ -35,11 +35,6 @@ class Sidebar extends Component
         $this->activeRoute = request()->route()?->getName() ?? '';
     }
 
-    public function requestLogout(): void
-    {
-        $this->dispatch('confirm-farm-owner-logout')->self();
-    }
-
     public function logout(): void
     {
         Auth::guard('web')->logout();

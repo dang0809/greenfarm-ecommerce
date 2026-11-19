@@ -77,8 +77,7 @@
             </div>
         </div>
 
-        <button type="button" wire:click="requestLogout" wire:loading.attr="disabled"
-            wire:target="requestLogout,logout"
+        <button type="button" wire:click="logout" wire:loading.attr="disabled" wire:target="logout"
             class="flex items-center justify-center gap-2 text-rose-600 w-full py-2 rounded-xl font-bold text-xs disabled:opacity-50">
 
             <i class="fa-solid fa-arrow-right-from-bracket"></i>
@@ -93,48 +92,3 @@
         </button>
     </div>
 </aside>
-
-@script
-    <script>
-        let confirmingLogout = false;
-
-        $wire.on('confirm-admin-logout', async () => {
-            if (confirmingLogout) return;
-
-            confirmingLogout = true;
-
-            try {
-                const result = await Swal.fire({
-                    heightAuto: false,
-                    scrollbarPadding: false,
-                    icon: 'question',
-                    title: 'Xác nhận đăng xuất?',
-                    text: 'Bạn có muốn đăng xuất khỏi tài khoản hiện tại?',
-                    showCancelButton: true,
-                    confirmButtonText: 'Xác nhận',
-                    cancelButtonText: 'Hủy',
-                    confirmButtonColor: '#dc2626',
-                    cancelButtonColor: '#64748b',
-                    reverseButtons: true,
-                    allowOutsideClick: false
-                });
-
-                if (result.isConfirmed) {
-                    await $wire.logout();
-                }
-            } catch (error) {
-                await Swal.fire({
-                    heightAuto: false,
-                    scrollbarPadding: false,
-                    icon: 'error',
-                    title: 'Chưa đăng xuất được',
-                    text: 'Vui lòng kiểm tra kết nối và thử lại.',
-                    confirmButtonText: 'Đóng',
-                    confirmButtonColor: '#15803d'
-                });
-            } finally {
-                confirmingLogout = false;
-            }
-        });
-    </script>
-@endscript

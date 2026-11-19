@@ -11,13 +11,8 @@ class Sidebar extends Component
         'profile-updated' => '$refresh',
     ];
 
-    public function requestLogout(): void
-    {
-        $this->dispatch('confirm-farm-staff-logout')->self();
-    }
-
     /**
-     * Đăng xuất và hủy phiên làm việc sau khi người dùng xác nhận.
+     * Đăng xuất và hủy phiên làm việc và chuyển về trang đăng nhập
      */
     public function logout()
     {
