@@ -1,11 +1,7 @@
 <div x-data="{ confirmingAccount: false }" x-on:account-confirm-state="confirmingAccount = $event.detail.busy"
     class="flex flex-1 min-h-0 min-w-0 flex-col overflow-hidden">
     @php
-        $fallbackAvatar =
-            'data:image/svg+xml;base64,' .
-            base64_encode(
-                '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" rx="40" fill="#dcfce7"/><circle cx="40" cy="30" r="14" fill="#15803d"/><path d="M12 76a28 28 0 0 1 56 0" fill="#15803d"/></svg>',
-            );
+        $fallbackAvatar = asset('images/default-avatar.svg');
 
         $badges = [
             'admin' => [

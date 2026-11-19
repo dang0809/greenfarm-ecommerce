@@ -63,13 +63,21 @@
             </h1>
 
             <div class="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-gray-500 mb-6">
-                <div class="flex items-center text-amber-400">
-                    <i class="fa-solid fa-star"></i>
-                    <span class="text-gray-800 font-bold ml-1.5">{{ number_format($avgRating, 1) }}</span>
+                @if ($reviewCount > 0)
+                    <div class="flex items-center text-amber-400">
+                        <i class="fa-solid fa-star"></i>
+                        <span class="text-gray-800 font-bold ml-1.5">{{ number_format($avgRating, 1) }}</span>
+                        <button type="button" wire:click="switchTab('reviews')"
+                            class="text-gray-400 font-medium ml-1 hover:text-brand-600">({{ $reviewCount }}
+                            nhận xét)</button>
+                    </div>
+                @else
                     <button type="button" wire:click="switchTab('reviews')"
-                        class="text-gray-400 font-medium ml-1 hover:text-brand-600">({{ $reviewCount }}
-                        nhận xét)</button>
-                </div>
+                        class="text-gray-400 font-medium hover:text-brand-600 flex items-center gap-1.5">
+                        <i class="fa-regular fa-star text-gray-300"></i>
+                        <span>Chưa có đánh giá</span>
+                    </button>
+                @endif
                 <span>•</span>
                 <span>Đã bán: <b class="text-gray-800">{{ $product->sold_count ?? 0 }}</b></span>
                 <span>•</span>
@@ -205,17 +213,24 @@
         @if ($activeTab === 'reviews')
             <div class="p-6 sm:p-10">
                 <div class="flex flex-col sm:flex-row items-center gap-6 pb-8 border-b border-gray-100 mb-8">
-                    <div class="text-center sm:text-left shrink-0">
-                        <div class="text-5xl font-black text-brand-600">
-                            {{ number_format($avgRating, 1) }}<span class="text-2xl text-gray-400">/5</span></div>
-                        <div class="flex items-center text-amber-400 text-sm mt-1 justify-center sm:justify-start">
-                            @for ($i = 1; $i <= 5; $i++)
-                                <i
-                                    class="fa-solid fa-star {{ $i <= round($avgRating) ? 'text-amber-400' : 'text-gray-200' }}"></i>
-                            @endfor
+                    @if ($reviewCount > 0)
+                        <div class="text-center sm:text-left shrink-0">
+                            <div class="text-5xl font-black text-brand-600">
+                                {{ number_format($avgRating, 1) }}<span class="text-2xl text-gray-400">/5</span></div>
+                            <div class="flex items-center text-amber-400 text-sm mt-1 justify-center sm:justify-start">
+                                @for ($i = 1; $i <= 5; $i++)
+                                    <i
+                                        class="fa-solid fa-star {{ $i <= round($avgRating) ? 'text-amber-400' : 'text-gray-200' }}"></i>
+                                @endfor
+                            </div>
+                            <p class="text-xs text-gray-400 mt-1">Dựa trên {{ $reviewCount }} đánh giá thực tế</p>
                         </div>
-                        <p class="text-xs text-gray-400 mt-1">Dựa trên {{ $reviewCount }} đánh giá thực tế</p>
-                    </div>
+                    @else
+                        <div class="text-center sm:text-left py-2">
+                            <h4 class="text-base sm:text-lg font-bold text-gray-800">Chưa có đánh giá nào</h4>
+                            <p class="text-xs sm:text-sm text-gray-500 mt-1">Hãy là người đầu tiên mua và chia sẻ trải nghiệm về sản phẩm này nhé!</p>
+                        </div>
+                    @endif
                 </div>
 
                 @auth
@@ -328,16 +343,9 @@
                         <div wire:key="product-review-{{ $review->id }}"
                             class="border-b border-gray-100 pb-6 last:border-0 last:pb-0">
                             <div class="flex items-start gap-3.5 mb-2.5">
-                                @if ($review->user?->avatar_url)
-                                    <img src="{{ $review->user->avatar_url }}"
-                                        alt="{{ $review->user->name ?? 'Khách hàng' }}"
-                                        class="w-10 h-10 rounded-full object-cover border border-brand-200 shrink-0">
-                                @else
-                                    <div
-                                        class="w-10 h-10 rounded-full bg-brand-100 text-brand-700 font-bold flex items-center justify-center shrink-0 text-sm">
-                                        {{ mb_strtoupper(mb_substr($review->user->name ?? 'K', 0, 1)) }}
-                                    </div>
-                                @endif
+                                <img src="{{ $review->user?->avatar_url ?? asset('images/default-avatar.svg') }}"
+                                    alt="{{ $review->user->name ?? 'Khách hàng' }}"
+                                    class="w-10 h-10 rounded-full object-cover border border-brand-200 shrink-0">
                                 <div class="flex-1">
                                     <div class="flex items-center justify-between">
                                         <h5 class="font-bold text-gray-900 text-sm">
@@ -453,10 +461,18 @@
                             <a
                                 href="{{ route('customer.product.detail', ['slug' => $related->slug]) }}">{{ $related->name }}</a>
                         </h4>
-                        <div class="flex items-center gap-1 text-amber-400 text-xs mb-3">
-                            <i class="fa-solid fa-star"></i><span
-                                class="text-gray-500 font-medium ml-1">{{ number_format($related->avg_rating ?? 0, 1) }}
-                                | Đã bán {{ $related->sold_count ?? 0 }}</span>
+                        <div class="flex items-center gap-1.5 text-xs mb-3">
+                            @if (($related->avg_rating ?? 0) > 0)
+                                <div class="flex items-center text-amber-400">
+                                    <i class="fa-solid fa-star"></i>
+                                    <span class="text-gray-700 font-bold ml-1">{{ number_format($related->avg_rating, 1) }}</span>
+                                </div>
+                                <span class="text-gray-300">•</span>
+                            @else
+                                <span class="text-gray-400 text-[11px] font-medium">Chưa có đánh giá</span>
+                                <span class="text-gray-300">•</span>
+                            @endif
+                            <span class="text-gray-500 font-medium">Đã bán {{ $related->sold_count ?? 0 }}</span>
                         </div>
                         <div class="mt-auto pt-3 border-t border-gray-50 flex items-end justify-between">
                             <div>

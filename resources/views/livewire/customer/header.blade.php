@@ -74,25 +74,16 @@
                                 @forelse($notifications as $notif)
                                     @php
                                         $notifType = $notif->type;
-                                        $icon =
-                                            $notif->data['icon'] ??
-                                            match ($notifType) {
-                                                'order_delivered' => 'fa-circle-check',
-                                                'order_paid' => 'fa-receipt',
-                                                'vip_activated' => 'fa-crown',
-                                                'complaint_resolved' => 'fa-hand-holding-dollar',
-                                                'complaint_rejected' => 'fa-circle-xmark',
-                                                default => 'fa-bell',
-                                            };
+                                        $icon = $notif->data['icon'] ;
                                         $iconColor = match ($notifType) {
                                             'order_delivered',
                                             'complaint_resolved',
                                             'vip_activated'
                                                 => 'text-emerald-700 bg-emerald-100',
                                             'order_paid' => 'text-brand-700 bg-brand-100',
+                                            'vip_delivery_created' => 'text-sky-700 bg-sky-100',
                                             'complaint_rejected' => 'text-rose-700 bg-rose-100',
-                                            'warning' => 'text-amber-700 bg-amber-100',
-                                            default => 'text-sky-700 bg-sky-100',
+                                            default => 'text-brand-700 bg-brand-100',
                                         };
                                     @endphp
                                     <div wire:key="notif-item-{{ $notif->id }}"
@@ -137,7 +128,7 @@
                     <div class="relative hidden lg:block" @click.outside="userMenuOpen = false">
                         <button @click="userMenuOpen = !userMenuOpen; notifMenuOpen = false"
                             class="flex items-center gap-2.5 p-1 rounded-full hover:bg-gray-50 transition-colors focus:outline-none">
-                            <img src="{{ Auth::user()->avatar_url ?? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150' }}"
+                            <img src="{{ Auth::user()->avatar_url }}"
                                 alt="Avatar" class="w-9 h-9 rounded-full object-cover border border-brand-200">
                             <div class="text-left hidden xl:block">
                                 <div class="flex items-center gap-1.5 leading-tight">
@@ -215,7 +206,7 @@
         <div class="px-4 pt-3 pb-6 space-y-3">
             @auth
                 <div class="flex items-center gap-3 p-3 bg-brand-50/70 border border-brand-100 rounded-2xl">
-                    <img src="{{ $user->avatar_url ?? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150' }}"
+                    <img src="{{ $user->avatar_url }}"
                         alt="Avatar" class="w-12 h-12 rounded-full object-cover border border-brand-200">
                     <div class="min-w-0 flex-1">
                         <p class="text-sm font-bold text-gray-800 truncate">{{ $user->name }}</p>

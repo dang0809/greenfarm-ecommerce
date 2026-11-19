@@ -49,10 +49,19 @@ $isOutOfStock = $stock <= 0; @endphp <div
                 <a href="{{ route('customer.product.detail', ['slug' => $product->slug]) }}">{{ $product->name }}</a>
             </h3>
 
-            <div class="flex items-center gap-1 text-amber-400 text-xs mb-3">
-                <i class="fa-solid fa-star"></i>
-                <span class="text-gray-500 font-medium ml-1">
-                    {{ number_format($product->avg_rating ?? 0, 1) }} | Đã bán {{ $product->sold_count ?? 0 }}
+            <div class="flex items-center gap-1.5 text-xs mb-3">
+                @if(($product->avg_rating ?? 0) > 0)
+                    <div class="flex items-center text-amber-400">
+                        <i class="fa-solid fa-star"></i>
+                        <span class="text-gray-700 font-bold ml-1">{{ number_format($product->avg_rating, 1) }}</span>
+                    </div>
+                    <span class="text-gray-300">•</span>
+                @else
+                    <span class="text-gray-400 text-[11px] font-medium">Chưa có đánh giá</span>
+                    <span class="text-gray-300">•</span>
+                @endif
+                <span class="text-gray-500 font-medium">
+                    Đã bán {{ $product->sold_count ?? 0 }}
                 </span>
             </div>
 

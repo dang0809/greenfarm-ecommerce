@@ -11,6 +11,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -120,23 +121,30 @@ class User extends Authenticatable implements MustVerifyEmail
         });
     }
 
-    public function getAvatarUrlAttribute(): ?string
+    public function getAvatarUrlAttribute(): string
     {
         $path = trim((string) $this->avatar);
 
-        if ($path === '') {
-            return null;
+        if ($path !== '') {
+            if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+                return $path;
+            }
+
+            $r2Url = config('filesystems.disks.r2.url');
+            if (!empty($r2Url)) {
+                return rtrim($r2Url, '/') . '/' . ltrim($path, '/');
+            }
+
+            if (Storage::disk('public')->exists($path)) {
+                return Storage::disk('public')->url($path);
+            }
         }
 
-        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-            return $path;
-        }
+        return asset('images/default-avatar.svg');
+    }
 
-        $r2Url = config('filesystems.disks.r2.url');
-        if (!empty($r2Url)) {
-            return rtrim($r2Url, '/') . '/' . ltrim($path, '/');
-        }
-
-        return null;
+    public function hasCustomAvatar(): bool
+    {
+        return !empty(trim((string) $this->avatar));
     }
 }

@@ -20,18 +20,9 @@ class UserNotificationSent implements ShouldBroadcastNow
     {
         $this->userId = (int) $notification->user_id;
 
-        $unreadCount = Notification::where('user_id', $this->userId)
-            ->whereNull('read_at')
-            ->count();
-
         $this->notificationData = [
-            'id'           => $notification->id,
-            'type'         => $notification->type,
-            'title'        => $notification->title,
-            'content'      => $notification->content,
-            'data'         => $notification->data,
-            'unread_count' => $unreadCount,
-            'created_at'   => $notification->created_at ? $notification->created_at->diffForHumans() : 'Vừa xong',
+            'type'  => $notification->type,
+            'title' => $notification->title,
         ];
     }
 

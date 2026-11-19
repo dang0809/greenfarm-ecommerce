@@ -19,7 +19,7 @@
                                     src="{{ $newAvatar->temporaryUrl() }}" alt="Avatar Preview"
                                     class="w-16 h-16 rounded-full object-cover border-2 border-amber-400 ring-2 ring-amber-100">
                             @else
-                                <img src="{{ $user->avatar_url ?? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200' }}"
+                                <img src="{{ $user->avatar_url }}"
                                     alt="Avatar"
                                     class="w-16 h-16 rounded-full object-cover border-2 border-brand-200">
                             @endif

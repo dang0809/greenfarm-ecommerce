@@ -20,6 +20,7 @@ class Header extends Component
      */
     public function getListeners(): array
     {
+        // $refresh nó sẽ tự động chạy hàm render component này.
         $listeners = [
             'user-authenticated' => '$refresh',
             'cart-updated'       => 'updateCartCount',
@@ -27,6 +28,7 @@ class Header extends Component
         ];
 
         if (Auth::check()) {
+            //Ví dụ người dùng có ID là 15. Header lắng nghe sự kiện NotificationSent trên Private Channel của người dùng có ID 15.
             $listeners['echo-private:App.Models.User.' . Auth::id() . ',.NotificationSent'] = 'onNotificationReceived';
             $listeners['echo-private:App.Models.User.' . Auth::id() . ',.NotificationRead'] = '$refresh';
         }
@@ -45,18 +47,18 @@ class Header extends Component
      */
     public function onNotificationReceived(array $payload = []): void
     {
-        // 1. Livewire tự động re-render quả chuông và dropdown thông báo
-        
-        // 2. Xác định loại Toast chuẩn (success, error, warning, info) theo từng loại thông báo
-        $notifData       = $payload['notificationData'] ?? [];
-        $title           = $notifData['title'] ?? 'Bạn có thông báo mới!';
-        $notifType       = $notifData['type'] ?? '';
-        $customToastType = $notifData['data']['toast_type'] ?? null;
+        $notifData = $payload['notificationData'] ?? [];
+        $title     = $notifData['title'] ?? 'Bạn có thông báo mới!';
+        $notifType = $notifData['type'] ?? '';
 
-        $toastType = $customToastType ?? match ($notifType) {
-            'complaint_rejected', 'order_cancelled'  => 'error',
-            'delivery_reminder', 'low_stock'         => 'warning',
-            'order_shipping', 'schedule_updated'     => 'info',
+        // Xác định loại Toast (success, error, info) trực tiếp theo 6 loại thông báo thực tế của hệ thống
+        $toastType = match ($notifType) {
+            'complaint_rejected'                     => 'error',
+            'vip_delivery_created'                   => 'info',
+            'order_paid',
+            'order_delivered',
+            'complaint_resolved',
+            'vip_activated'                          => 'success',
             default                                  => 'success',
         };
 
@@ -92,7 +94,7 @@ class Header extends Component
                 if (is_null($notif->read_at)) {
                     $notif->update(['read_at' => now()]);
                     // Phát sóng Realtime đồng bộ cho các tab khác biết đã đọc
-                    broadcast(new NotificationRead($userId, $notificationId));
+                    broadcast(new NotificationRead($userId));
                 }
                 if (!empty($notif->data['url'])) {
                     return $this->redirect($notif->data['url']);
@@ -104,7 +106,7 @@ class Header extends Component
                 ->update(['read_at' => now()]);
 
             // Phát sóng Realtime xóa số đỏ trên tất cả các tab khác
-            broadcast(new NotificationRead($userId, null));
+            broadcast(new NotificationRead($userId));
         }
     }
 

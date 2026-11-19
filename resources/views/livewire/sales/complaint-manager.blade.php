@@ -426,9 +426,11 @@
                                 
                                 <select wire:model.live="reject_reason" class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold outline-none cursor-pointer">
                                     <option value="">-- Chọn lý do mẫu hoặc tự nhập bên dưới --</option>
-                                    <option value="Sản phẩm đã nhận quá 24h theo chính sách bồi hoàn nông sản tươi sống của nông trại.">Sản phẩm đã nhận quá 24h theo chính sách bồi hoàn</option>
-                                    <option value="Hư hỏng do bảo quản ở nhiệt độ thường quá lâu, không giữ mát tủ lạnh theo hướng dẫn.">Hư hỏng do bảo quản không đúng cách</option>
-                                    <option value="Hình ảnh gửi không thể hiện rõ vết dập nát hoặc thiếu tem nhãn lô nông sản {{ $farmName }}.">Hình ảnh không thể hiện rõ vết dập hoặc thiếu tem nhãn</option>
+                                    <option value="Hình ảnh/video gửi không thể hiện rõ vết dập nát hoặc thiếu tem nhãn đối soát của {{ $farmName }}.">Hình ảnh không rõ vết dập hoặc thiếu tem nhãn</option>
+                                    <option value="Sản phẩm chỉ hao hụt/héo nhẹ lớp lá bọc ngoài tự nhiên, phần nông sản bên trong vẫn đảm bảo độ tươi ngon theo tiêu chuẩn.">Hao hụt nhẹ tự nhiên ở lớp lá ngoài</option>
+                                    <option value="Sản phẩm hoặc số lượng trong ảnh khiếu nại không trùng khớp với thông tin đơn hàng thực tế đã giao.">Sản phẩm/số lượng không khớp đơn hàng</option>
+                                    <option value="Sản phẩm đã qua sơ chế hoặc chế biến, không còn giữ nguyên hiện trạng ban đầu lúc nhận hàng để đối soát.">Sản phẩm đã qua sơ chế, không còn nguyên trạng</option>
+                                    <option value="Đơn hàng này đã được nhân viên chăm sóc khách hàng liên hệ và xử lý bồi hoàn/giao bù trước đó.">Đơn hàng đã được hỗ trợ xử lý trước đó</option>
                                 </select>
 
                                 <textarea wire:model="reject_reason" rows="2" placeholder="Nội dung gửi thông báo từ chối đến tài khoản khách hàng..." class="w-full bg-[#FAFAF8] border border-gray-200 rounded-xl p-3 text-xs outline-none focus:border-rose-500 resize-none"></textarea>

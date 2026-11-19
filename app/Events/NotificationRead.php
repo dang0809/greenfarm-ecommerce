@@ -13,12 +13,10 @@ class NotificationRead implements ShouldBroadcastNow
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public int $userId;
-    public ?int $notificationId;
 
-    public function __construct(int $userId, ?int $notificationId = null)
+    public function __construct(int $userId)
     {
         $this->userId = $userId;
-        $this->notificationId = $notificationId;
     }
 
     /**

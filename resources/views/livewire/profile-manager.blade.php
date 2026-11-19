@@ -27,14 +27,9 @@
                             src="{{ $newAvatar->temporaryUrl() }}" alt="Ảnh đại diện đang chọn" x-init="avatarReady = $el.complete && $el.naturalWidth > 0"
                             x-on:load="avatarReady = true" x-on:error="avatarReady = false"
                             class="w-28 h-28 rounded-full object-cover border-4 border-brand-100">
-                    @elseif ($user->avatar_url)
+                    @else
                         <img src="{{ $user->avatar_url }}" alt="Ảnh đại diện"
                             class="w-28 h-28 rounded-full object-cover border-4 border-brand-100">
-                    @else
-                        <div
-                            class="w-28 h-28 rounded-full bg-brand-100 text-brand-800 flex items-center justify-center text-3xl font-bold">
-                            {{ mb_strtoupper(mb_substr($user->name, 0, 1)) }}
-                        </div>
                     @endif
 
                     <label for="avatar-input" title="Đổi ảnh đại diện"

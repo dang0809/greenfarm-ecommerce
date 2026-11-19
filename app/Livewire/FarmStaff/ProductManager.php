@@ -31,7 +31,7 @@ class ProductManager extends Component
 
     public const UNIT_OPTIONS = [
         'kg' => 'Kg',
-        'bó' => 'Bó',
+        'bó 500g' => 'Bó 500g',
         'hộp 500g' => 'Hộp 500g',
     ];
 
@@ -320,6 +320,11 @@ class ProductManager extends Component
             'customUnit.required' => 'Vui lòng nhập đơn vị tính khác.',
             'customUnit.string' => 'Đơn vị tính phải là văn bản.',
             'customUnit.max' => 'Đơn vị tính tối đa 50 ký tự.',
+
+            'weight_kg.required' => 'Vui lòng nhập khối lượng tịnh (kg).',
+            'weight_kg.numeric' => 'Khối lượng tịnh phải là số.',
+            'weight_kg.min' => 'Khối lượng tịnh tối thiểu là 0.01 kg.',
+            'weight_kg.max' => 'Khối lượng tịnh tối đa là 999.99 kg.',
 
             'sale_price.lt' => 'Giá khuyến mãi phải nhỏ hơn giá gốc.',
             'status.in' => 'Trạng thái không hợp lệ.',

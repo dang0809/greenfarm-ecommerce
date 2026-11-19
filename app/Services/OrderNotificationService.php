@@ -156,7 +156,6 @@ class OrderNotificationService
                     'complaint_id' => $complaint->id,
                     'refund_amount' => $complaint->refund_amount,
                     'icon' => 'fa-hand-holding-dollar',
-                    'toast_type' => 'success',
                     'url' => '/ho-so?tab=orders',
                 ],
             ]);
@@ -194,7 +193,6 @@ class OrderNotificationService
                     'complaint_id' => $complaint->id,
                     'reject_reason' => $reasonText,
                     'icon' => 'fa-circle-xmark',
-                    'toast_type' => 'error',
                     'url' => '/ho-so?tab=orders',
                 ],
             ]);

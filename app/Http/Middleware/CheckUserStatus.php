@@ -18,7 +18,7 @@ class CheckUserStatus
     {
         if (Auth::check() && Auth::user()->status === 'blocked') {
             $isCustomer = Auth::user()->role === 'customer';
-
+            //Chuyển Auth::user() về null và Auth::check() thành false
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
