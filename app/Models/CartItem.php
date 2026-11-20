@@ -14,14 +14,12 @@ class CartItem extends Model
         'cart_id',
         'product_id',
         'quantity',
-        'price',
     ];
 
     protected function casts(): array
     {
         return [
             'quantity' => 'integer',
-            'price' => 'decimal:2',
         ];
     }
 
