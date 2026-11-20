@@ -104,7 +104,8 @@ class CertificationManager extends Component
             ],
 
             'expiryDate' => [
-                'nullable',
+                'bail',
+                'required',
                 'date_format:Y-m-d',
                 'after_or_equal:issuedDate',
             ],
@@ -136,6 +137,7 @@ class CertificationManager extends Component
             'issuedDate.date_format' => 'Ngày cấp không hợp lệ.',
             'issuedDate.before_or_equal' => 'Ngày cấp không được sau hôm nay.',
 
+            'expiryDate.required' => 'Vui lòng chọn ngày hết hạn.',
             'expiryDate.date_format' => 'Ngày hết hạn không hợp lệ.',
             'expiryDate.after_or_equal' => 'Ngày hết hạn không được trước ngày cấp.',
 
@@ -165,7 +167,7 @@ class CertificationManager extends Component
         $this->resetValidation('form');
 
         $data = $this->validate();
-        $expiry = $data['expiryDate'] ?: null;
+        $expiry = $data['expiryDate'];
 
         // Chuẩn hóa trong mảng riêng, không sửa dữ liệu đang nhập.
         return [
@@ -181,8 +183,7 @@ class CertificationManager extends Component
             'issued_date' => $data['issuedDate'],
             'expiry_date' => $expiry,
 
-            'status' => $expiry !== null
-                && $expiry < today()->toDateString()
+            'status' => $expiry < today()->toDateString()
                 ? 'expired'
                 : $data['status'],
         ];
