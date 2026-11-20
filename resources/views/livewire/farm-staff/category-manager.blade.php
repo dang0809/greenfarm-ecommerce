@@ -16,7 +16,8 @@
         </div>
     </header>
 
-    <div class="flex-1 min-h-0 min-w-0 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 custom-scrollbar pb-28 sm:pb-12 h-[calc(100dvh-5rem)]">
+    <div
+        class="flex-1 min-h-0 min-w-0 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 custom-scrollbar pb-28 sm:pb-12 h-[calc(100dvh-5rem)]">
 
         {{-- Tìm kiếm danh mục và cung cấp thao tác tạo mới --}}
         <div
@@ -106,166 +107,163 @@
 
     {{-- Hiển thị biểu mẫu thêm, sửa danh mục và trạng thái tải ảnh --}}
     @if ($showModal)
-    <div wire:key="category-modal-{{ $editingId ?? 'new' }}-{{ $imageInputKey }}" x-data="{ uploadingImage: false }"
-        x-on:keydown.escape.window="$wire.closeModal()"
-        x-on:livewire-upload-start="
+        <div wire:key="category-modal-{{ $editingId ?? 'new' }}-{{ $imageInputKey }}" x-data="{ uploadingImage: false }"
+            x-on:keydown.escape.window="$wire.closeModal()"
+            x-on:livewire-upload-start="
         if ($event.detail.property === 'newImage') uploadingImage = true"
-        x-on:livewire-upload-finish="
+            x-on:livewire-upload-finish="
         if ($event.detail.property === 'newImage') uploadingImage = false"
-        x-on:livewire-upload-error="
+            x-on:livewire-upload-error="
         if ($event.detail.property === 'newImage') uploadingImage = false"
-        x-on:livewire-upload-cancel="
+            x-on:livewire-upload-cancel="
         if ($event.detail.property === 'newImage') uploadingImage = false"
-        wire:click.self="closeModal"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
-        <div
-            class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-md shadow-2xl p-5 sm:p-7 max-h-[92vh] overflow-y-auto custom-scrollbar border border-slate-100 space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div class="flex items-center gap-2.5">
-                    <div
-                        class="w-9 h-9 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center text-base border border-amber-200 shrink-0">
-                        <i class="fa-solid fa-folder-tree"></i>
+            wire:click.self="closeModal"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
+            <div
+                class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-md shadow-2xl p-5 sm:p-7 max-h-[92vh] overflow-y-auto custom-scrollbar border border-slate-100 space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div class="flex items-center gap-2.5">
+                        <div
+                            class="w-9 h-9 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center text-base border border-amber-200 shrink-0">
+                            <i class="fa-solid fa-folder-tree"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-base sm:text-lg font-extrabold text-slate-900">
+                                {{ $editingId === null ? 'Thêm Danh Mục Mới' : 'Sửa Danh Mục: ' . $name }}
+                            </h3>
+                        </div>
                     </div>
-                    <div>
-                        <h3 class="text-base sm:text-lg font-extrabold text-slate-900">
-                            {{ $editingId === null ? 'Thêm Danh Mục Mới' : 'Sửa Danh Mục: ' . $name }}
-                        </h3>
-                    </div>
+                    <button type="button" wire:click="closeModal" x-bind:disabled="uploadingImage"
+                        wire:loading.attr="disabled" wire:target="requestSaveCategory,saveCategory,closeModal"
+                        class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center shrink-0 cursor-pointer">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
                 </div>
-                <button type="button" wire:click="closeModal" x-bind:disabled="uploadingImage"
-                    wire:loading.attr="disabled" wire:target="requestSaveCategory,saveCategory,closeModal"
-                    class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center shrink-0 cursor-pointer">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-            {{-- Gửi yêu cầu lưu danh mục sau khi quá trình tải ảnh hoàn tất --}}
-            <form wire:submit="requestSaveCategory"
-                x-on:submit.capture="
+                {{-- Gửi yêu cầu lưu danh mục sau khi quá trình tải ảnh hoàn tất --}}
+                <form wire:submit="requestSaveCategory"
+                    x-on:submit.capture="
         if (uploadingImage) {
             $event.preventDefault();
             $event.stopImmediatePropagation();
         }"
-                class="space-y-3.5 text-xs">
+                    class="space-y-3.5 text-xs">
 
-                @error('form')
-                    <p role="alert">{{ $message }}</p>
-                @enderror
-
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">
-                        Tên nhóm danh mục
-                        <span class="text-red-500">*</span>
-                    </label>
-
-                    <input type="text" required maxlength="255" wire:model.live.debounce.300ms="name"
-                        placeholder="VD: Rau Ăn Lá Thủy Canh"
-                        class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2 text-sm outline-none focus:border-brand-600 focus:bg-white font-semibold">
-
-                    @error('name')
+                    @error('form')
                         <p role="alert">{{ $message }}</p>
                     @enderror
-                </div>
 
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">
-                        Slug
-                        <span class="text-red-500">*</span>
-                    </label>
-
-                    <input type="text" maxlength="255" wire:model="slug" placeholder="rau-an-la-thuy-canh"
-                        class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2 font-mono text-xs text-slate-600 outline-none">
-                    @error('slug')
-                        <p role="alert" class="text-red-500">{{ $message }}</p>
-                    @enderror
-                </div>
-                {{-- Tải và xem trước ảnh danh mục mới hoặc ảnh hiện tại --}}
-                <div>
-                    <label for="c-file" class="block font-bold text-slate-700 mb-1">
-                        Ảnh đại diện danh mục
-
-                        @if ($editingId === null || !$currentImageUrl)
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">
+                            Tên nhóm danh mục
                             <span class="text-red-500">*</span>
-                        @endif
-                    </label>
+                        </label>
 
-                    @if ($editingId !== null && $currentImageUrl)
-                        <p class="text-[10px] text-slate-400 mt-1">
-                            Danh mục đã có ảnh. Không cần tải lại nếu không muốn thay ảnh.
-                        </p>
-                    @else
-                        <p class="text-[10px] text-slate-400 mt-1">
-                            Danh mục chưa có ảnh. Vui lòng tải ảnh JPG, JPEG hoặc WEBP,
-                            tối đa 2 MB.
-                        </p>
-                    @endif
+                        <input type="text" required maxlength="255" wire:model.live.debounce.300ms="name"
+                            placeholder="VD: Rau Ăn Lá Thủy Canh"
+                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3.5 py-2 text-sm outline-none focus:border-brand-600 focus:bg-white font-semibold">
 
-                    <input type="file" id="c-file" wire:key="category-image-{{ $imageInputKey }}"
-                        wire:model="newImage" accept=".jpg,.jpeg,.png,.webp"
-                        x-bind:disabled="uploadingImage" wire:loading.attr="disabled"
-                        wire:target="requestSaveCategory,saveCategory,closeModal"
-                        class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-amber-50 file:text-amber-800 cursor-pointer">
-
-                    <p class="text-[10px] text-slate-400 mt-1">
-                        Khi thêm mới hoặc cập nhật có thay đổi, vui lòng chọn ảnh.
-                        Chấp nhận JPG, JPEG, PNG, WEBP; tối đa 2 MB.
-                    </p>
-
-                    <template x-if="uploadingImage">
-                        <p>Đang tải ảnh lên…</p>
-                    </template>
-
-                    @error('newImage')
-                        <p role="alert">{{ $message }}</p>
-                    @enderror
-
-                    <div class="mt-2 {{ $newImage || $currentImageUrl ? '' : 'hidden' }}">
-
-                        @if ($newImage && !$errors->has('newImage') && (!method_exists($newImage, 'isPreviewable') || $newImage->isPreviewable()))
-                            <img wire:key="category-preview-new-{{ $newImage->getFilename() }}"
-                                src="{{ $newImage->temporaryUrl() }}"
-                                class="w-16 h-16 object-cover rounded-xl border border-slate-200"
-                                alt="Ảnh mới đang chọn">
-                        @elseif ($currentImageUrl)
-                            <img wire:key="category-preview-current-{{ $editingId }}-{{ $imageInputKey }}"
-                                src="{{ $currentImageUrl }}"
-                                class="w-16 h-16 object-cover rounded-xl border border-slate-200"
-                                alt="Ảnh danh mục hiện tại">
-                        @endif
+                        @error('name')
+                            <p role="alert">{{ $message }}</p>
+                        @enderror
                     </div>
-                </div>
 
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">
-                        Trạng thái:
-                    </label>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">
+                            Slug
+                            <span class="text-red-500">*</span>
+                        </label>
 
-                    <select wire:model="status"
-                        class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold outline-none cursor-pointer">
-                        <option value="active">Hiển thị trên Web</option>
-                        <option value="hidden">Tạm ẩn</option>
-                    </select>
+                        <input type="text" maxlength="255" wire:model="slug" placeholder="rau-an-la-thuy-canh"
+                            class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2 font-mono text-xs text-slate-600 outline-none">
+                        @error('slug')
+                            <p role="alert" class="text-red-500">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    {{-- Tải và xem trước ảnh danh mục mới hoặc ảnh hiện tại --}}
+                    <div>
+                        <label for="c-file" class="block font-bold text-slate-700 mb-1">
+                            Ảnh đại diện danh mục
 
-                    @error('status')
-                        <p role="alert">{{ $message }}</p>
-                    @enderror
-                </div>
+                            @if ($editingId === null || !$currentImageUrl)
+                                <span class="text-red-500">*</span>
+                            @endif
+                        </label>
 
-                <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
-                    <button type="button" wire:click="closeModal" x-bind:disabled="uploadingImage"
-                        wire:loading.attr="disabled" wire:target="requestSaveCategory,saveCategory,closeModal"
-                        class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 cursor-pointer">
-                        Hủy
-                    </button>
+                        @if ($editingId !== null && $currentImageUrl)
+                            <p class="text-[10px] text-slate-400 mt-1">
+                                Danh mục đã có ảnh. Không cần tải lại nếu không muốn thay ảnh.
+                            </p>
+                        @else
+                            <p class="text-[10px] text-slate-400 mt-1">
+                                Danh mục chưa có ảnh. Vui lòng tải ảnh JPG, JPEG hoặc WEBP,
+                                tối đa 2 MB.
+                            </p>
+                        @endif
 
-                    <button type="submit" x-bind:disabled="uploadingImage" wire:loading.attr="disabled"
-                        wire:target="requestSaveCategory,saveCategory,closeModal"
-                        class="bg-brand-700 hover:bg-brand-800 text-white font-bold px-5 py-2 rounded-xl shadow-md transition active:scale-95 cursor-pointer">
-                        Lưu Danh Mục
-                    </button>
-                </div>
-            </form>
+                        <input type="file" id="c-file" wire:key="category-image-{{ $imageInputKey }}"
+                            wire:model="newImage" accept=".jpg,.jpeg,.png,.webp" x-bind:disabled="uploadingImage"
+                            wire:loading.attr="disabled" wire:target="requestSaveCategory,saveCategory,closeModal"
+                            class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-amber-50 file:text-amber-800 cursor-pointer">
+
+                        <template x-if="uploadingImage">
+                            <p>Đang tải ảnh lên…</p>
+                        </template>
+
+                        @error('newImage')
+                            <p role="alert" class="text-red-500">{{ $message }}</p>
+                        @enderror
+
+                        <div class="mt-2 {{ $newImage || $currentImageUrl ? '' : 'hidden' }}">
+
+                            @if (
+                                $newImage &&
+                                    !$errors->has('newImage') &&
+                                    (!method_exists($newImage, 'isPreviewable') || $newImage->isPreviewable()))
+                                <img wire:key="category-preview-new-{{ $newImage->getFilename() }}"
+                                    src="{{ $newImage->temporaryUrl() }}"
+                                    class="w-16 h-16 object-cover rounded-xl border border-slate-200"
+                                    alt="Ảnh mới đang chọn">
+                            @elseif ($currentImageUrl)
+                                <img wire:key="category-preview-current-{{ $editingId }}-{{ $imageInputKey }}"
+                                    src="{{ $currentImageUrl }}"
+                                    class="w-16 h-16 object-cover rounded-xl border border-slate-200"
+                                    alt="Ảnh danh mục hiện tại">
+                            @endif
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">
+                            Trạng thái:
+                        </label>
+
+                        <select wire:model="status"
+                            class="w-full bg-[#FAFAF8] border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold outline-none cursor-pointer">
+                            <option value="active">Hiển thị trên Web</option>
+                            <option value="hidden">Tạm ẩn</option>
+                        </select>
+
+                        @error('status')
+                            <p role="alert">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
+                        <button type="button" wire:click="closeModal" x-bind:disabled="uploadingImage"
+                            wire:loading.attr="disabled" wire:target="requestSaveCategory,saveCategory,closeModal"
+                            class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 cursor-pointer">
+                            Hủy
+                        </button>
+
+                        <button type="submit" x-bind:disabled="uploadingImage" wire:loading.attr="disabled"
+                            wire:target="requestSaveCategory,saveCategory,closeModal"
+                            class="bg-brand-700 hover:bg-brand-800 text-white font-bold px-5 py-2 rounded-xl shadow-md transition active:scale-95 cursor-pointer">
+                            Lưu Danh Mục
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
-    </div>
     @endif
 </div>
 {{-- Xử lý xác nhận lưu, xóa danh mục và thông báo lỗi --}}
