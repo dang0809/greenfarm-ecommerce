@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
@@ -44,29 +43,17 @@ class Product extends Model
         ];
     }
 
-    public function coverImage(): HasOne
-    {
-        return $this->hasOne(ProductImage::class)
-            ->orderByDesc('is_primary')
-            ->orderBy('sort_order')
-            ->orderBy('id');
-    }
-
     public function getCoverImageUrlAttribute(): ?string
     {
-        if ($this->relationLoaded('productImages')) {
-            $cover = $this->productImages
-                ->sortBy([
-                    ['is_primary', 'desc'],
-                    ['sort_order', 'asc'],
-                    ['id', 'asc'],
-                ])
-                ->first();
+        $cover = $this->productImages
+            ->sortBy([
+                ['is_primary', 'desc'],
+                ['sort_order', 'asc'],
+                ['id', 'asc'],
+            ])
+            ->first();
 
-            return $cover?->url;
-        }
-
-        return $this->coverImage?->url;
+        return $cover?->url;
     }
 
     public function syncAvgRating(): void
@@ -88,15 +75,15 @@ class Product extends Model
         return $this->hasMany(PlantingBatch::class);
     }
 
-    public function batches(): HasManyThrough
+        public function batches(): HasManyThrough
     {
         return $this->hasManyThrough(
-            ProductBatch::class,
-            PlantingBatch::class,
-            'product_id',
-            'planting_batch_id',
-            'id',
-            'id'
+            ProductBatch::class,   // 1. Model ĐÍCH muốn lấy dữ liệu về (Lô thành phẩm xuất bán)
+            PlantingBatch::class,  // 2. Model TRUNG GIAN bắc cầu qua (Đợt gieo trồng)
+            'product_id',          // 3. Khóa ngoại trên bảng trung gian (planting_batches.product_id)
+            'planting_batch_id',   // 4. Khóa ngoại trên bảng đích (product_batches.planting_batch_id)
+            'id',                  // 5. Khóa chính của bảng hiện tại (products.id)
+            'id'                   // 6. Khóa chính của bảng trung gian (planting_batches.id)
         );
     }
 

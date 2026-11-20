@@ -43,7 +43,7 @@ class ProductManager extends Component
     public function render()
     {
         $products = Product::query()
-            ->with(['category:id,name', 'coverImage'])
+            ->with(['category:id,name', 'productImages'])
             ->search($this->search)
             ->when(
                 in_array($this->status, ['active', 'hidden'], true),

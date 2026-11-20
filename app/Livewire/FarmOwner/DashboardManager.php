@@ -180,7 +180,7 @@ class DashboardManager extends Component
             ->get();
 
         $products = Product::query()
-            ->with('coverImage')
+            ->with('productImages')
             ->withAvg('reviews', 'rating')
             ->whereKey($topRows->pluck('id'))
             ->get()

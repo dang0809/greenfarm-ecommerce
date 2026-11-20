@@ -1113,7 +1113,7 @@ class ProductManager extends Component
     {
         $this->staff();
 
-        $products = Product::with(['category', 'coverImage'])
+        $products = Product::with(['category', 'productImages'])
             ->withTotalStock()
             ->search($this->search)
 
