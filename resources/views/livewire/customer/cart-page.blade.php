@@ -133,7 +133,7 @@
                                             class="w-8 h-full text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center justify-center cursor-pointer shrink-0">
                                             <i class="fa-solid fa-minus text-[10px]"></i>
                                         </button>
-<input type="number" 
+                                            <input type="number" 
                                                value="{{ $item->quantity }}" 
                                                readonly
                                                class="w-full h-full text-center font-bold text-gray-900 bg-transparent outline-none text-xs select-none cursor-default [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">

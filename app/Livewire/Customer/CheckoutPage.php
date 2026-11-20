@@ -159,6 +159,7 @@ class CheckoutPage extends Component
                 'product_id' => $product->id,
                 'quantity' => (float) $buyNowData['quantity'],
             ]);
+            //setRelation dùng để gán một mối quan hệ (Relationship) đã có sẵn vào Model
             $item->setRelation('product', $product);
 
             return collect([$item]);

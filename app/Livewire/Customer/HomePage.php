@@ -68,9 +68,7 @@ class HomePage extends Component
         // Lấy 8 sản phẩm bán chạy nhất kèm tổng tồn kho thực tế (FEFO)
         $products = Product::with([
             'category',
-            'productImages' => function ($query) {
-                $query->where('is_primary', true);
-            }
+            'coverImage',
         ])
             ->withTotalStock()
             ->where('status', 'active')
