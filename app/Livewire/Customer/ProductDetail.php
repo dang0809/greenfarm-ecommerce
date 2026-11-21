@@ -87,18 +87,6 @@ class ProductDetail extends Component
         $this->activeTab = $tab;
     }
 
-    public function getHasPurchasedProperty(): bool
-    {
-        if (!Auth::check()) {
-            return false;
-        }
-
-        return Order::where('user_id', Auth::id())
-            ->where('status', 'delivered')
-            ->whereHas('items', fn($q) => $q->where('product_id', $this->product->id))
-            ->exists();
-    }
-
     public function getUnreviewedOrderItemProperty(): ?OrderItem
     {
         if (!Auth::check()) {
@@ -117,11 +105,6 @@ class ProductDetail extends Component
                     });
             })
             ->first();
-    }
-
-    public function getHasReviewedAllPurchasesProperty(): bool
-    {
-        return $this->hasPurchased && ($this->unreviewedOrderItem === null);
     }
 
     public function updatedReviewPhotos(): void
@@ -180,10 +163,7 @@ class ProductDetail extends Component
 
         $orderItem = $this->unreviewedOrderItem;
         if (!$orderItem) {
-            $msg = $this->hasPurchased
-                ? 'Bạn đã hoàn tất đánh giá cho tất cả các đơn hàng đã mua của sản phẩm này!'
-                : 'Bạn cần mua và nhận hàng thành công sản phẩm này để có thể gửi đánh giá!';
-            $this->dispatch('show-toast', type: 'error', message: $msg);
+            $this->dispatch('show-toast', type: 'error', message: 'Bạn không có đơn hàng nào hợp lệ để đánh giá sản phẩm này!');
             return;
         }
 
@@ -231,8 +211,6 @@ class ProductDetail extends Component
 
         // Xóa cache computed property để Livewire re-render ngay lập tức và ẩn form mà không cần F5
         unset($this->unreviewedOrderItem);
-        unset($this->hasPurchased);
-        unset($this->hasReviewedAllPurchases);
 
         $this->resetPage('reviewsPage');
 

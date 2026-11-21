@@ -76,59 +76,55 @@ class PaymentController extends Controller
             ->with('success', '🛒 Đơn hàng #' . $order->order_code . ' đã thanh toán thành công');
     }
 
-    public function cancel(Request $request, $order_id = null)
+    public function cancel(Request $request, $order_id)
     {
-        $orderId = $order_id ?? $request->query('order_id');
+        DB::transaction(function () use ($order_id) {
+            // 1. Khóa cứng bản ghi đơn hàng
+            $order = Order::with('items')->whereKey($order_id)->lockForUpdate()->first();
 
-        if ($orderId) {
-            DB::transaction(function () use ($orderId) {
-                // 1. Khóa cứng bản ghi đơn hàng
-                $order = Order::with('items')->whereKey($orderId)->lockForUpdate()->first();
+            // 2. Kiểm tra lại trạng thái sau khi lấy khóa
+            // Nếu đơn không còn là pending (ví dụ cron 5 phút vừa hủy xong hoặc đã thanh toán) -> Bỏ qua
+            if (!$order || $order->status !== 'pending' || $order->payment?->status === 'success') {
+                return;
+            }
 
-                // 2. Kiểm tra lại trạng thái sau khi lấy khóa
-                // Nếu đơn không còn là pending (ví dụ cron 5 phút vừa hủy xong hoặc đã thanh toán) -> Bỏ qua
-                if (!$order || $order->status !== 'pending' || $order->payment?->status === 'success') {
-                    return;
-                }
+            // 3. Cập nhật trạng thái hủy
+            $order->update([
+                'status'        => 'cancelled',
+                'cancel_reason' => 'Khách hủy thanh toán trên cổng PayOS',
+                'cancelled_at'  => now(),
+                'cancelled_by'  => 'customer',
+            ]);
 
-                // 3. Cập nhật trạng thái hủy
-                $order->update([
-                    'status'        => 'cancelled',
-                    'cancel_reason' => 'Khách hủy thanh toán trên cổng PayOS',
-                    'cancelled_at'  => now(),
-                    'cancelled_by'  => 'customer',
+            // Đồng bộ trạng thái giao dịch sang failed trong bảng payments
+            Payment::where('order_id', $order->id)
+                ->where('status', 'pending')
+                ->update(['status' => 'failed']);
+
+            if (method_exists($order, 'statusHistories')) {
+                $order->statusHistories()->create([
+                    'old_status' => 'pending',
+                    'new_status' => 'cancelled',
+                    'changed_by' => $order->user_id,
                 ]);
+            }
 
-                // Đồng bộ trạng thái giao dịch sang failed trong bảng payments
-                Payment::where('order_id', $order->id)
-                    ->where('status', 'pending')
-                    ->update(['status' => 'failed']);
-
-                if (method_exists($order, 'statusHistories')) {
-                    $order->statusHistories()->create([
-                        'old_status' => 'pending',
-                        'new_status' => 'cancelled',
-                        'changed_by' => $order->user_id,
-                    ]);
+            // 4. Nhả số lượng giữ chỗ (kho thực tế current_quantity chưa hề bị trừ)
+            foreach ($order->items as $item) {
+                if ($item->batch_id) {
+                    \App\Models\ProductBatch::where('id', $item->batch_id)->decrement('reserved_quantity', $item->quantity);
+                    \App\Models\ProductBatch::syncProductSalePrice($item->product_id);
                 }
+            }
 
-                // 4. Nhả số lượng giữ chỗ (kho thực tế current_quantity chưa hề bị trừ)
-                foreach ($order->items as $item) {
-                    if ($item->batch_id) {
-                        \App\Models\ProductBatch::where('id', $item->batch_id)->decrement('reserved_quantity', $item->quantity);
-                        \App\Models\ProductBatch::syncProductSalePrice($item->product_id);
-                    }
+            // 5. Hoàn lại điểm thưởng
+            if ($order->points_used > 0) {
+                $user = \App\Models\User::find($order->user_id);
+                if ($user) {
+                    $user->increment('reward_points', $order->points_used);
                 }
-
-                // 5. Hoàn lại điểm thưởng
-                if ($order->points_used > 0) {
-                    $user = \App\Models\User::find($order->user_id);
-                    if ($user) {
-                        $user->increment('reward_points', $order->points_used);
-                    }
-                }
-            });
-        }
+            }
+        });
 
         return redirect()->route('customer.profile', ['tab' => 'orders'])
             ->with('error', 'Giao dịch thanh toán đã bị hủy.');

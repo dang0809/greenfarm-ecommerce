@@ -112,7 +112,7 @@ class VipCheckout extends Component
         $checksumKey = config('services.payos.checksum_key');
         $payOS = new PayOS($clientId, $apiKey, $checksumKey);
 
-        if ($existingOrder && is_numeric($existingOrder->order_code)) {
+        if ($existingOrder) {
             // Nếu đơn cũ có giá khác giá hiện tại vừa được cập nhật trong DB -> Hủy để tạo theo giá mới
             if ((int) $existingOrder->total !== (int) $this->price) {
                 $existingOrder->update([
@@ -121,52 +121,59 @@ class VipCheckout extends Component
                     'cancelled_at' => now(),
                     'cancelled_by' => 'system',
                 ]);
+                $existingOrder->statusHistories()->create([
+                    'old_status' => 'pending',
+                    'new_status' => 'cancelled',
+                    'changed_by' => $user->id,
+                ]);
                 Payment::where('order_id', $existingOrder->id)
                     ->where('status', 'pending')
                     ->update(['status' => 'failed']);
-                $existingOrder = null;
-            }
-        }
+            } else {
+                // Kiểm tra nếu đơn còn hạn (dưới 5 phút)
+                if ($existingOrder->created_at->diffInMinutes(now()) < 5) {
+                    try {
+                        $paymentInfo = $payOS->getPaymentLinkInformation((int) $existingOrder->order_code);
+                        $payStatus = $paymentInfo['status'] ?? '';
 
-        if ($existingOrder && is_numeric($existingOrder->order_code)) {
-            // Kiểm tra nếu đơn còn hạn (dưới 5 phút)
-            if ($existingOrder->created_at->diffInMinutes(now()) < 5) {
-                try {
-                    $paymentInfo = $payOS->getPaymentLinkInformation((int) $existingOrder->order_code);
-                    $payStatus = $paymentInfo['status'] ?? '';
-
-                    // Nếu thực tế đã thanh toán xong từ trước
-                    if ($payStatus === 'PAID') {
-                        return $this->redirect(
-                            route('customer.checkout.success', [
-                                'order_id' => $existingOrder->id,
-                            ]),
-                            navigate: false
-                        );
-                    }
-
-                    // Nếu link cũ vẫn còn PENDING -> DÙNG LẠI LINK VÀ MÃ QR CŨ
-                    if ($payStatus === 'PENDING') {
-                        $checkoutUrl = $paymentInfo['checkoutUrl'] ?? (!empty($paymentInfo['id']) ? "https://pay.payos.vn/web/" . $paymentInfo['id'] : null);
-                        if ($checkoutUrl) {
-                            return $this->redirect($checkoutUrl, navigate: false);
+                        // Nếu thực tế đã thanh toán xong từ trước
+                        if ($payStatus === 'PAID') {
+                            return $this->redirect(
+                                route('customer.checkout.success', [
+                                    'order_id' => $existingOrder->id,
+                                ]),
+                                navigate: false
+                            );
                         }
-                    }
-                } catch (\Exception $e) {
-                    Log::warning('Không thể tái sử dụng link PayOS VIP cũ, sẽ tạo đơn mới: ' . $e->getMessage());
-                }
-            }
 
-            // Nếu đơn cũ đã quá 5 phút hoặc đã CANCELLED trên PayOS -> Hủy đơn cũ để tạo mới
-            $existingOrder->update([
-                'status' => 'cancelled',
-                'cancel_reason' => 'Đơn VIP hết hạn thanh toán, tạo giao dịch mới',
-                'cancelled_at' => now(),
-                'cancelled_by' => 'system',
-            ]);
-            Payment::where('order_id', $existingOrder->id)
-                ->where('status', 'pending')
-                ->update(['status' => 'failed']);
+                        // Nếu link cũ vẫn còn PENDING -> DÙNG LẠI LINK VÀ MÃ QR CŨ
+                        if ($payStatus === 'PENDING') {
+                            $checkoutUrl = $paymentInfo['checkoutUrl'] ?? (!empty($paymentInfo['id']) ? "https://pay.payos.vn/web/" . $paymentInfo['id'] : null);
+                            if ($checkoutUrl) {
+                                return $this->redirect($checkoutUrl, navigate: false);
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        Log::warning('Không thể tái sử dụng link PayOS VIP cũ, sẽ tạo đơn mới: ' . $e->getMessage());
+                    }
+                }
+
+                // Nếu đơn cũ đã quá 5 phút hoặc đã CANCELLED trên PayOS -> Hủy đơn cũ để tạo mới
+                $existingOrder->update([
+                    'status' => 'cancelled',
+                    'cancel_reason' => 'Đơn VIP hết hạn thanh toán, tạo giao dịch mới',
+                    'cancelled_at' => now(),
+                    'cancelled_by' => 'system',
+                ]);
+                $existingOrder->statusHistories()->create([
+                    'old_status' => 'pending',
+                    'new_status' => 'cancelled',
+                    'changed_by' => $user->id,
+                ]);
+                Payment::where('order_id', $existingOrder->id)
+                    ->where('status', 'pending')
+                    ->update(['status' => 'failed']);
+            }
         }
 
         // 5. Mã PayOS chuẩn (chuỗi số nguyên)
@@ -190,6 +197,13 @@ class VipCheckout extends Component
                 'note' => 'Đăng ký ' . $this->packageName,
             ]);
 
+            // Ghi nhận lịch sử trạng thái ban đầu
+            $order->statusHistories()->create([
+                'old_status' => null,
+                'new_status' => 'pending',
+                'changed_by' => $user->id,
+            ]);
+
             // Tạo bản ghi thanh toán pending
             Payment::create([
                 'order_id' => $order->id,
@@ -206,7 +220,7 @@ class VipCheckout extends Component
                 "description" => "TT " . $payosOrderCode,
                 "returnUrl" => route('customer.checkout.success', ['order_id' => $order->id]),
                 "cancelUrl" => route('customer.checkout.cancel', ['order_id' => $order->id]),
-                "expiredAt" => time() + (5 * 60),
+                "expiredAt" => time() + (1 * 60),
             ];
 
             $response = $payOS->createPaymentLink($payosData);

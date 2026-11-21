@@ -64,25 +64,30 @@ class PayOSWebhookController extends Controller
 
                     // 2. Chặn race condition: Nếu đơn đã bị hủy (khách hủy hoặc cron tự động hủy)
                     if ($order->status === 'cancelled') {
-                        // Cập nhật bản ghi thanh toán vào bảng payments
-                        Payment::updateOrCreate(
-                            ['order_id' => $order->id],
-                            [
-                                'payment_code' => 'PAY-' . $order->order_code,
-                                'method' => 'payos',
-                                'amount' => $webhookData['amount'] ?? $order->total,
-                                'status' => 'success',
-                                'transaction_code' => $webhookData['reference'] ?? null,
-                                'paid_at' => now(),
-                            ]
-                        );
+                        // Chỉ chặn đối với đơn bán lẻ thông thường vì tồn kho thực tế đã bị nhả
+                        if ($order->order_type !== 'subscription') {
+                            Payment::updateOrCreate(
+                                ['order_id' => $order->id],
+                                [
+                                    'payment_code' => 'PAY-' . $order->order_code,
+                                    'method' => 'payos',
+                                    'amount' => $webhookData['amount'] ?? $order->total,
+                                    'status' => 'success',
+                                    'transaction_code' => $webhookData['reference'] ?? null,
+                                    'paid_at' => now(),
+                                ]
+                            );
 
-                        DB::commit();
+                            DB::commit();
 
-                        return response()->json([
-                            'success' => true,
-                            'message' => 'Đơn hàng đã bị hủy, cần đối soát hoàn tiền.',
-                        ], 200);
+                            return response()->json([
+                                'success' => true,
+                                'message' => 'Đơn hàng đã bị hủy, cần đối soát hoàn tiền.',
+                            ], 200);
+                        }
+
+                        // Đơn mua gói VIP (subscription) không chiếm giữ tồn kho thực tế,
+                        // nên nếu tiền đã vào tài khoản thành công thì tiếp tục phục hồi đơn và kích hoạt gói VIP cho khách!
                     }
 
                     // Cập nhật biên lai thanh toán vào bảng payments
@@ -103,9 +108,16 @@ class PayOSWebhookController extends Controller
                         'items.product',
                         'user:id,name,email',
                     ]);
+
+                    $previousStatus = $order->status;
                     $subscription = null;
                     if ($order->order_type === 'subscription') {
-                        $order->update(['status' => 'delivered']);
+                        $order->update([
+                            'status' => 'delivered',
+                            'cancel_reason' => null,
+                            'cancelled_at' => null,
+                            'cancelled_by' => null,
+                        ]);
 
                         $subscription = \App\Models\Subscription::where('user_id', $order->user_id)
                             ->where('status', 'active')
@@ -128,7 +140,7 @@ class PayOSWebhookController extends Controller
 
                     $newStatus = ($order->order_type === 'subscription') ? 'delivered' : 'pending';
                     $order->statusHistories()->create([
-                        'old_status' => 'pending',
+                        'old_status' => $previousStatus,
                         'new_status' => $newStatus,
                         'changed_by' => $order->user_id,
                     ]);

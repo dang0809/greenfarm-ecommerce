@@ -93,7 +93,8 @@ class CancelExpiredOrders extends Command
         if ($cancelledCount > 0) {
             $this->info("Đã tự động hủy {$cancelledCount} đơn hàng quá hạn thanh toán 5 phút.");
         }
-
+        //tại vì dùng cái này nó trả về 0 đồng nghĩa
+        // nó hoạt động bình thường nếu trả về true nó tương đương 1 nên ko làm
         return self::SUCCESS;
     }
 }

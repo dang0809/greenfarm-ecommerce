@@ -311,7 +311,7 @@
                                     @if (!empty($reviewPhotos))
                                         <div class="flex flex-wrap gap-2.5 pt-2">
                                             @foreach ($reviewPhotos as $index => $photo)
-                                                @if (is_object($photo) && method_exists($photo, 'temporaryUrl') && (!method_exists($photo, 'isPreviewable') || $photo->isPreviewable()))
+                                                @if (method_exists($photo, 'temporaryUrl'))
                                                     <div class="relative group">
                                                         <img src="{{ $photo->temporaryUrl() }}"
                                                             class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover border border-brand-200 shadow-2xs">
