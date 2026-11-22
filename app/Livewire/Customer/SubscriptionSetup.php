@@ -4,9 +4,7 @@ namespace App\Livewire\Customer;
 use Livewire\Component;
 use Livewire\Attributes\Title;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use App\Models\Subscription;
 use App\Models\Address;
 use App\Models\Product;
@@ -14,7 +12,7 @@ use App\Models\Category;
 use App\Models\DeliverySchedule;
 use App\Models\SystemSetting;
 use App\Livewire\Traits\WithShippingAddress;
-#[Title('Thiết Lập Lịch & Theo Dõi Gói VIP')]
+#[Title('Thiết Lập Địa Chỉ & Lịch Giao 8 Đợt VIP')]
 class SubscriptionSetup extends Component
 {
     use WithShippingAddress;
@@ -25,7 +23,6 @@ class SubscriptionSetup extends Component
     public ?Subscription $subscription = null; // Đối tượng hợp đồng VIP hiện tại của người dùng
     public float $maxWeightTarget = 3.5;       // Định mức trọng lượng tối đa cho mỗi đợt giao (kg)
     public int $activeTab = 1;                 // Tab đợt giao đang được mở để chọn rau (giá trị từ 1 đến 8)
-    public bool $isLocked = false;             // Trạng thái khóa (true: đã chốt lịch thành công, hiển thị chế độ theo dõi)
     public bool $showAddressModal = false;     // Trạng thái bật/tắt modal quản lý và chọn địa chỉ giao hàng
 
     public int $selectedAddressId = 0;         // ID địa chỉ nhận hàng được khách chọn
@@ -77,17 +74,11 @@ class SubscriptionSetup extends Component
             return $this->redirect(route('customer.vip.checkout'), navigate: true);
         }
 
-        // Tự động kiểm tra nếu hợp đồng active đã hoàn thành đủ 8/8 đợt giao -> chuyển completed
-        if ($this->subscription->status === 'active') {
-            $deliveredCount = (int) $this->subscription->deliverySchedules()->where('status', 'delivered')->count();
-            if ($deliveredCount >= 8) {
-                $this->subscription->update(['status' => 'completed']);
-            }
-        }
-
-        // Hợp đồng được xem là đã khóa khi đã chốt ngày giao và có lịch trình trong DB
+        // Nếu hợp đồng đã có lịch trình trong DB -> Chuyển thẳng sang trang theo dõi tiến độ
         $hasSchedules = DeliverySchedule::where('subscription_id', $this->subscription->id)->exists();
-        $this->isLocked = in_array($this->subscription->status, ['active', 'completed']) && !empty($this->subscription->delivery_days) && $hasSchedules;
+        if ($hasSchedules) {
+            return $this->redirect(route('customer.vip.tracker'), navigate: true);
+        }
 
         // 3. Lấy địa chỉ giao hàng mặc định của user
         $defaultAddress = Address::where('user_id', $user->id)->where('is_default', true)->first()
@@ -97,42 +88,8 @@ class SubscriptionSetup extends Component
             $this->selectedAddressId = $defaultAddress->id;
         }
 
-        // 4. Nếu đã có lịch trình trong DB -> nạp lại đầy đủ kèm trạng thái để hiển thị
-        $savedSchedules = DeliverySchedule::where('subscription_id', $this->subscription->id)
-            ->orderBy('delivery_order')
-            ->get();
-
-        if ($savedSchedules->isNotEmpty()) {
-            $this->schedulePlan = [];
-            foreach ($savedSchedules as $s) {
-                $rawItems = $s->items ?? [];
-                $items = [];
-                // Chuẩn hóa danh sách items từ JSON sang dạng [product_id => quantity]
-                foreach ($rawItems as $k => $v) {
-                    if (is_array($v)) {
-                        $pId = $v['product_id'] ?? null;
-                        $q = $v['quantity'] ?? 1;
-                        if ($pId)
-                            $items[(int) $pId] = (int) $q;
-                    }
-                }
-                $dateObj = new \DateTime($s->delivery_date);
-                $dayOfWeek = (int) $dateObj->format('w');
-                $wObj = collect($this->weekdays)->firstWhere('dayIndex', $dayOfWeek);
-                $code = $wObj['code'] ?? 'T' . ($dayOfWeek + 1);
-
-                $this->schedulePlan[] = [
-                    'delivery_order' => $s->delivery_order,
-                    'date_label' => $code . ' (' . $dateObj->format('d/m') . ')',
-                    'delivery_date' => $s->delivery_date->format('Y-m-d'),
-                    'status' => $s->status ?? 'pending',
-                    'items' => $items,
-                ];
-            }
-        } else {
-            // Chưa có lịch trong DB -> Khởi tạo khung 8 đợt giao ban đầu
-            $this->updateSchedulePlanDates();
-        }
+        // 4. Khởi tạo khung 8 đợt giao ban đầu
+        $this->updateSchedulePlanDates();
     }
 
     /**
@@ -156,7 +113,6 @@ class SubscriptionSetup extends Component
             if (in_array($dayOfWeek, $daysArray)) {
                 $weekdayObj = collect($this->weekdays)->firstWhere('dayIndex', $dayOfWeek);
                 $dates[] = [
-                    'code' => $weekdayObj['code'],
                     'date_label' => $weekdayObj['code'] . ' (' . $current->format('d/m') . ')',
                     'delivery_date' => $current->format('Y-m-d'),
                 ];
@@ -182,7 +138,6 @@ class SubscriptionSetup extends Component
                     'delivery_order' => $idx + 1,
                     'date_label' => $d['date_label'],
                     'delivery_date' => $d['delivery_date'],
-                    'status' => 'pending',
                     'items' => [],
                     'weight' => 0.0,
                 ];
@@ -200,16 +155,12 @@ class SubscriptionSetup extends Component
 
     /**
      * Hàm chọn hoặc bỏ chọn ngày nhận hàng cố định trong tuần
-     * - Chặn thao tác nếu hợp đồng đã bị khóa
      * - Nếu bấm vào ngày đang chọn: Cho phép bỏ chọn nhưng chặn nếu chỉ còn 1 ngày (bắt buộc duy trì đủ ngày)
      * - Nếu bấm vào ngày mới: Nếu đã đủ 2 ngày thì cơ chế cuốn chiếu array_shift() sẽ xóa ngày cũ nhất
      *   và nạp ngày mới vào mượt mà
      */
     public function toggleDaySelection(int $dayIdx)
     {
-        if ($this->isLocked)
-            return;
-
         if (in_array($dayIdx, $this->selectedDayIndexes)) {
             // Người dùng muốn bỏ chọn ngày này
             if (count($this->selectedDayIndexes) === 1) {
@@ -262,7 +213,7 @@ class SubscriptionSetup extends Component
         if (!empty($productIds)) {
             $fetched = Product::whereIn('id', array_unique($productIds))->get();
             foreach ($fetched as $p) {
-                $productWeightCache[$p->id] = (float) ($p->weight_kg ?? 0.5);
+                $productWeightCache[$p->id] = (float) $p->weight_kg;
             }
         }
 
@@ -271,7 +222,7 @@ class SubscriptionSetup extends Component
         foreach ($itemsObj as $pId => $qty) {
             $q = (int) $qty;
             if ($q > 0) {
-                $weightEach = $productWeightCache[$pId] ?? 0.5;
+                $weightEach = $productWeightCache[$pId];
                 $total += $q * $weightEach;
             }
         }
@@ -292,9 +243,6 @@ class SubscriptionSetup extends Component
      */
     public function updateQty(int $veggieId, int $delta)
     {
-        if ($this->isLocked)
-            return;
-
         $tabIndex = array_search($this->activeTab, array_column($this->schedulePlan, 'delivery_order'));
         if ($tabIndex === false)
             return;
@@ -346,9 +294,6 @@ class SubscriptionSetup extends Component
      */
     public function copyMenuToAllDeliveries()
     {
-        if ($this->isLocked)
-            return;
-
         $currentPlan = collect($this->schedulePlan)->firstWhere('delivery_order', $this->activeTab);
         if (!$currentPlan || empty($currentPlan['items'])) {
             $this->dispatch('show-toast', type: 'warning', message: 'Vui lòng chọn thực đơn cho đợt này trước khi sao chép!');
@@ -374,7 +319,7 @@ class SubscriptionSetup extends Component
      */
     public function confirmAndLockSchedule()
     {
-        if ($this->isLocked || !$this->subscription)
+        if (!$this->subscription)
             return;
 
         // 1. Kiểm tra ngày giao: Phải chọn đúng 2 ngày trong tuần
@@ -480,9 +425,9 @@ class SubscriptionSetup extends Component
                 }
             });
 
-            // Sau khi commit DB thành công -> khóa chỉnh sửa và hiển thị thông báo
-            $this->isLocked = true;
-            $this->dispatch('show-toast', type: 'success', message: 'Đã chốt lịch nhận rau thành công! Lịch trình 8 đợt đã được lưu cố định vào hệ thống.');
+            // Sau khi commit DB thành công -> Chuyển sang trang theo dõi tiến độ
+            session()->flash('success', 'Đã chốt lịch nhận rau thành công! Lịch trình 8 đợt đã được lưu cố định vào hệ thống.');
+            return $this->redirect(route('customer.vip.tracker'), navigate: true);
         } catch (\Throwable $e) {
             report($e); // Ghi log lỗi để truy vết khi cần
             $this->dispatch('show-toast', type: 'error', message: 'Có lỗi xảy ra khi lưu lịch nhận rau. Vui lòng thử lại!');
@@ -495,7 +440,6 @@ class SubscriptionSetup extends Component
      * - Lấy địa chỉ giao hàng và kiểm tra khoảng cách / bán kính vận chuyển
      * - Query danh mục rau củ khả dụng theo nguyên tắc FEFO (chỉ lấy hàng còn tồn trong lô active và còn hạn)
      * - Tính toán cân nặng cho từng đợt
-     * - Khi lịch đã chốt ($isLocked): Tối ưu gom query tránh N+1 để hiển thị chi tiết 8 đợt giao trong bảng theo dõi
      */
     public function render()
     {
@@ -564,82 +508,15 @@ class SubscriptionSetup extends Component
             'date_label' => 'Đợt 1',
             'items' => [],
             'weight' => 0.0,
-            'status' => 'pending',
         ]);
 
         $currentWeight = $this->calculateDeliveryWeight($currentDelivery['items'] ?? []);
-
-        // 4. Nếu đã chốt lịch -> Nạp chi tiết 8 đợt để hiển thị bảng Tracker theo dõi tiến độ
-        $lockedSchedules = [];
-        if ($this->isLocked) {
-            $saved = DeliverySchedule::where('subscription_id', $this->subscription->id)
-                ->orderBy('delivery_order')
-                ->get();
-
-            // =========================================================================
-            // ĐOẠN TỐI ƯU TRÁNH LỖI N+1 QUERY KHI LẤY DỮ LIỆU CẢ 8 ĐỢT GIAO:
-            // Thay vì duyệt từng đợt rồi chạy query DB tìm sản phẩm cho từng món (hàng chục câu query),
-            // ta gom tất cả product_id của 8 đợt vào 1 mảng duy nhất $allProdIds.
-            // =========================================================================
-            $allProdIds = [];
-            foreach ($saved as $ds) {
-                $rawItems = $ds->items ?? [];
-                foreach ($rawItems as $it) {
-                    $pId = $it['product_id'] ?? null;
-                    if ($pId)
-                        $allProdIds[] = (int) $pId;
-                }
-            }
-
-            // Thực hiện đúng 1 câu query duy nhất lấy thông tin kèm ảnh của tất cả sản phẩm,
-            // dùng keyBy('id') để biến mảng thành dạng [product_id => ProductModel], giúp truy xuất cực nhanh O(1)
-            $productsKeyed = !empty($allProdIds)
-                ? Product::with('productImages')->whereIn('id', array_unique($allProdIds))->get()->keyBy('id')
-                : collect();
-
-            // Duyệt lại 8 đợt giao để ghép đầy đủ thông tin chi tiết (tên, ảnh, cân nặng, đơn vị)
-            foreach ($saved as $ds) {
-                $rawItems = $ds->items ?? [];
-                $itemsDetail = [];
-                $w = 0.0;
-                foreach ($rawItems as $it) {
-                    $pId = $it['product_id'] ?? null;
-                    $q = (int) ($it['quantity'] ?? 1);
-                    $prod = $pId ? ($productsKeyed->get($pId)) : null;
-
-                    // Lấy ảnh đại diện của món rau (ưu tiên ảnh chính / R2)
-                    $imgUrl = $prod?->cover_image_url
-                        ?? 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=100';
-
-                    $itemWeight = isset($it['weight']) ? (float) $it['weight'] : round($q * ($prod?->weight_kg ?? 0.5), 2);
-                    $itemsDetail[] = [
-                        'name' => $it['product_name'] ?? $prod?->name ?? 'Rau hữu cơ',
-                        'quantity' => $q,
-                        'unit' => $it['unit'] ?? $prod?->unit ?? 'kg',
-                        'weight' => $itemWeight,
-                        'image' => $imgUrl,
-                        'slug' => $prod?->slug ?? '',
-                    ];
-                    $w += $itemWeight;
-                }
-
-                $lockedSchedules[] = [
-                    'order' => $ds->delivery_order,
-                    'date' => $ds->delivery_date?->format('d/m/Y') ?? (string) $ds->delivery_date,
-                    'day_of_week' => $ds->delivery_date?->format('l') ?? '',
-                    'status' => $ds->status ?? 'pending',
-                    'total_weight' => round($w, 1),
-                    'items' => $itemsDetail,
-                ];
-            }
-        }
 
         $categories = Category::query()
             ->where('is_active', true)
             ->get(['id', 'name']);
 
         return view('livewire.customer.subscription-setup', [
-            'isLocked' => $this->isLocked,
             'selectedDayIndexes' => $this->selectedDayIndexes,
             'schedulePlan' => $this->schedulePlan,
             'activeTab' => $this->activeTab,
@@ -650,7 +527,6 @@ class SubscriptionSetup extends Component
             'address' => $currentAddress,
             'distance' => $currentDist,
             'isDistanceUnknown' => $isCurrentAddressUnknown,
-            'currentAddress' => $currentAddress,
             'veggieCatalog' => $veggieCatalog,
             'currentDelivery' => $currentDelivery,
             'currentWeight' => $currentWeight,
@@ -658,11 +534,8 @@ class SubscriptionSetup extends Component
             'categories' => $categories,
             'selectedCategory' => $this->selectedCategory,
             'searchVeggie' => $this->searchVeggie,
-            'lockedSchedules' => $lockedSchedules,
-            'deliveredCount' => (int) ($this->subscription?->deliverySchedules()->where('status', 'delivered')->count() ?? 0),
             'maxDistance' => $maxDistance,
             'isCurrentAddressExceeded' => $isCurrentAddressExceeded,
-            'hotline' => SystemSetting::contactSettings()['hotline'],
         ])->layout('layouts.customer.app');
     }
 }

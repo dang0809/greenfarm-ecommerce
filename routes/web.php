@@ -12,6 +12,7 @@ use App\Livewire\Customer\AboutPage;
 use App\Livewire\Customer\ProductDetail;
 use App\Livewire\Customer\VipCheckout;
 use App\Livewire\Customer\SubscriptionSetup;
+use App\Livewire\Customer\SubscriptionTracker;
 use App\Livewire\Customer\CartPage;
 use App\Livewire\Customer\CheckoutPage;
 use App\Livewire\Customer\ProfilePage;
@@ -103,6 +104,7 @@ Route::middleware(['role:customer'])->group(function () {
     // Trang Thanh toán gói VIP
     Route::get('/goi-vip/thanh-toan', VipCheckout::class)->name('customer.vip.checkout');
     Route::get('/goi-vip/thiet-lap-lich', SubscriptionSetup::class)->name('customer.vip.setup');
+    Route::get('/goi-vip/tien-do', SubscriptionTracker::class)->name('customer.vip.tracker');
     Route::get('/gio-hang', CartPage::class)->name('customer.cart');
     Route::get('/ho-so', ProfilePage::class)->name('customer.profile');
     Route::get('/thanh-toan', CheckoutPage::class)->name('customer.checkout');

@@ -42,20 +42,25 @@ class CartPage extends Component
         $messages = [];
         foreach ($cart->items as $item) {
             $stock = (int) ($item->product?->total_stock ?? 0);
+            $isSelected = in_array((string) $item->id, $this->selectedItems, true);
 
             if ($stock <= 0) {
                 // Hết sạch hàng: tự động loại khỏi danh sách tick chọn
-                if (in_array((string) $item->id, $this->selectedItems, true)) {
+                if ($isSelected) {
                     $this->selectedItems = array_values(array_diff($this->selectedItems, [(string) $item->id]));
                     $messages[] = "Sản phẩm \"{$item->product->name}\" hiện đã hết hàng.";
                 }
             } elseif ($item->quantity > $stock) {
-                // Vượt tồn kho: tự động hạ xuống đúng mức kho còn lại
+                // Vượt tồn kho: tự động hạ xuống đúng mức kho còn lại trong DB
                 $oldQty = $item->quantity;
                 $newQty = $stock;
                 $item->update(['quantity' => $stock]);
                 $item->quantity = $stock;
-                $messages[] = "Sản phẩm \"{$item->product->name}\" đã tự động giảm từ {$oldQty} xuống {$newQty} do kho vừa thay đổi.";
+
+                // CHỈ tạo thông báo cảnh báo nếu khách ĐANG TICK CHỌN món này
+                if ($isSelected) {
+                    $messages[] = "Sản phẩm \"{$item->product->name}\" đã tự động giảm từ {$oldQty} xuống {$newQty} do kho vừa thay đổi.";
+                }
             }
         }
 

@@ -148,7 +148,7 @@ class VipCheckout extends Component
 
                         // Nếu link cũ vẫn còn PENDING -> DÙNG LẠI LINK VÀ MÃ QR CŨ
                         if ($payStatus === 'PENDING') {
-                            $checkoutUrl = $paymentInfo['checkoutUrl'] ?? (!empty($paymentInfo['id']) ? "https://pay.payos.vn/web/" . $paymentInfo['id'] : null);
+                            $checkoutUrl = $paymentInfo['checkoutUrl'] ?? null;
                             if ($checkoutUrl) {
                                 return $this->redirect($checkoutUrl, navigate: false);
                             }

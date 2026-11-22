@@ -8,61 +8,22 @@
                 <div class="flex items-center gap-2">
                     <span class="text-amber-500 text-lg">👑</span>
                     <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
-                        {{ $isLocked ? 'Lịch Trình & Tiến Độ Giao Rau VIP' : 'Thiết Lập Địa Chỉ & Lịch Giao 8 Đợt' }}
+                        Thiết Lập Địa Chỉ & Lịch Giao 8 Đợt
                     </h1>
                 </div>
                 <p class="text-xs sm:text-sm text-gray-500 mt-1">
-                    {{ $isLocked ? 'Theo dõi trạng thái từng đợt giao và danh sách thực đơn rau tươi hữu cơ của bạn.' : 'Ghim địa chỉ nhận hàng, chọn 2 ngày cố định trong tuần và phối rau tươi cho 8 đợt giao.' }}
+                    Ghim địa chỉ nhận hàng, chọn 2 ngày cố định trong tuần và phối rau tươi cho 8 đợt giao.
                 </p>
             </div>
 
             <div class="flex items-center gap-3">
-                @if ($isLocked)
-                    <div
-                        class="bg-emerald-50 border border-emerald-300 text-emerald-800 px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 shadow-xs">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span>Đã chốt lịch cố định ({{ $deliveredCount }}/8 đợt đã giao)</span>
-                    </div>
-                @else
-                    <div
-                        class="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 shadow-xs">
-                        <i class="fa-solid fa-pen-to-square text-amber-600"></i>
-                        <span>Đang thiết lập • Chưa chốt lịch</span>
-                    </div>
-                @endif
+                <div
+                    class="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 shadow-xs">
+                    <i class="fa-solid fa-pen-to-square text-amber-600"></i>
+                    <span>Đang thiết lập • Chưa chốt lịch</span>
+                </div>
             </div>
         </div>
-
-        <!-- BANNER THÔNG BÁO HOÀN THÀNH 8 ĐỢT GIAO RAU VIP -->
-        @if ($deliveredCount >= 8)
-            <div
-                class="bg-gradient-to-r from-emerald-600 via-brand-700 to-emerald-800 text-white rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-2 border-emerald-400/40">
-                <div class="flex items-start gap-3.5">
-                    <div
-                        class="w-11 h-11 rounded-2xl bg-amber-400/30 border border-amber-300/40 flex items-center justify-center text-amber-300 text-xl shrink-0 shadow-inner">
-                        👑
-                    </div>
-                    <div>
-                        <h4 class="font-extrabold text-sm sm:text-base text-white flex items-center gap-2">
-                            <span>Chúc mừng! Bạn đã hoàn thành trọn vẹn 8 đợt giao rau VIP.</span>
-                            <span class="text-xs bg-amber-400 text-gray-900 font-black px-2 py-0.5 rounded-full">8/8
-                                Đợt</span>
-                        </h4>
-                        <p class="text-xs text-brand-100/90 mt-1 leading-relaxed">
-                            Cảm ơn bạn đã đồng hành cùng Nông Trại {{ $farmName }}. Hãy đăng ký gói mới cho tháng
-                            tiếp theo để tiếp tục nhận rau sạch hữu cơ tươi ngon định kỳ mỗi tuần!
-                        </p>
-                    </div>
-                </div>
-                <a href="{{ route('customer.vip.checkout') }}" wire:navigate
-                    class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-gray-900 text-xs sm:text-sm font-extrabold transition shadow-lg shrink-0 hover:scale-105 active:scale-95">
-                    <i class="fa-solid fa-arrows-rotate"></i>
-                    <span>Đăng Ký Gói Mới</span>
-                </a>
-            </div>
-        @endif
-
-        @if (!$isLocked)
             <!-- ========================================== -->
             <!-- CHẾ ĐỘ 1: THIẾT LẬP LỊCH & CHỌN RAU 8 ĐỢT -->
             <!-- ========================================== -->
@@ -349,171 +310,7 @@
                     </div>
                 </div>
             </div>
-        @else
-            <!-- ========================================== -->
-            <!-- CHẾ ĐỘ 2: TIẾN ĐỘ 8 ĐỢT GIAO RAU VIP (LOCKED) -->
-            <!-- ========================================== -->
 
-            <!-- THẺ TỔNG QUAN TIẾN ĐỘ HỢP ĐỒNG -->
-            <div
-                class="bg-gradient-to-br from-brand-900 via-brand-800 to-emerald-950 text-white p-6 sm:p-8 rounded-3xl shadow-xl space-y-6">
-                <div
-                    class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
-                    <div>
-                        <span
-                            class="inline-flex items-center gap-1.5 text-xs font-black tracking-wider uppercase bg-amber-400/20 text-amber-300 border border-amber-300/30 px-3 py-1 rounded-full mb-2">
-                            👑 Hội Viên VIP {{ $farmName }}
-                        </span>
-                        <h2 class="text-xl sm:text-2xl font-black">Lịch Trình Giao Định Kỳ 8 Đợt</h2>
-                        <p class="text-xs text-brand-100/80 mt-1">Hợp đồng giao tận nhà đều đặn 2 đợt mỗi tuần. Rau
-                            tươi thu hoạch sáng sớm và giao hỏa tốc.</p>
-                    </div>
-
-                    <div
-                        class="text-left sm:text-right bg-white/10 px-5 py-3 rounded-2xl border border-white/15 backdrop-blur-xs">
-                        <span class="text-[11px] text-brand-200 block">Tiến độ hoàn thành:</span>
-                        <span class="text-xl sm:text-2xl font-black font-mono text-amber-300">{{ $deliveredCount }} /
-                            8 Đợt</span>
-                    </div>
-                </div>
-
-                <!-- Thông tin người nhận & Lịch cố định -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                    <div class="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-1.5">
-                        <span class="text-brand-200 font-bold flex items-center gap-1.5">
-                            <i class="fa-solid fa-location-dot text-amber-400"></i> Địa chỉ nhận hàng cố định:
-                        </span>
-                        <p class="font-bold text-sm text-white">{{ $this->subscription?->recipient_name }} •
-                            {{ $this->subscription?->recipient_phone }}</p>
-                        <p class="text-brand-100/90 leading-relaxed">{{ $this->subscription?->recipient_address }}</p>
-                    </div>
-
-                    <div class="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-1.5">
-                        <span class="text-brand-200 font-bold flex items-center gap-1.5">
-                            <i class="fa-solid fa-calendar-check text-amber-400"></i> Lịch giao cố định trong tuần:
-                        </span>
-                        <p class="font-bold text-sm text-white">2 ngày cố định mỗi tuần (Định lượng:
-                            {{ number_format($maxWeightTarget, 1) }} kg/đợt)</p>
-                        <p class="text-brand-100/90 leading-relaxed">
-                            Cần dời ngày hoặc hỗ trợ khẩn cấp? Vui lòng liên hệ Hotline CSKH VIP độc quyền: <b
-                                class="text-amber-300 font-mono">{{ $hotline }}</b>
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- LƯỚI 8 CARD THEO DÕI TỪNG ĐỢT GIAO -->
-            <div class="space-y-4">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-extrabold text-gray-900 flex items-center gap-2">
-                        <i class="fa-solid fa-list-check text-brand-600"></i> Trạng Thái Chi Tiết 8 Đợt Giao
-                    </h3>
-                    <span class="text-xs text-gray-500 font-medium">8 đợt trong 4 tuần</span>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    @foreach ($lockedSchedules as $sch)
-                        @php
-                            $status = $sch['status'];
-
-                            // Xác định màu sắc và badge chuẩn trạng thái theo tiến độ đợt giao
-                            if ($status === 'delivered') {
-                                $badgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-200';
-                                $badgeText = '✓ Đã giao thành công';
-                                $badgeIcon = 'fa-circle-check';
-                                $cardBorder = 'border-emerald-300 bg-emerald-50/20';
-                            } elseif ($status === 'shipped') {
-                                $badgeClass = 'bg-sky-100 text-sky-800 border-sky-200 animate-pulse';
-                                $badgeText = '🚚 Đang giao hàng';
-                                $badgeIcon = 'fa-truck-fast';
-                                $cardBorder = 'border-sky-300 bg-sky-50/20 ring-1 ring-sky-300';
-                            } elseif ($status === 'processing') {
-                                // Trạng thái processing trong DB: đổi giao diện hiển thị "Hôm nay tới đợt"
-                                $badgeClass = 'bg-amber-100 text-amber-800 border-amber-200 animate-pulse';
-                                $badgeText = '🌱 Hôm nay tới đợt';
-                                $badgeIcon = 'fa-calendar-check';
-                                $cardBorder = 'border-amber-300 bg-amber-50/20 ring-1 ring-amber-300';
-                            } else {
-                                // pending: Chờ đến ngày giao
-                                $badgeClass = 'bg-gray-100 text-gray-700 border-gray-200';
-                                $badgeText = '⏳ Chờ đến ngày giao';
-                                $badgeIcon = 'fa-clock';
-                                $cardBorder = 'border-gray-200 bg-white';
-                            }
-                        @endphp
-
-                        <div
-                            class="rounded-3xl border p-5 space-y-4 flex flex-col justify-between transition-all hover:shadow-xs {{ $cardBorder }}">
-                            <div class="space-y-3">
-                                <div class="flex items-center justify-between">
-                                    <span
-                                        class="text-xs font-black text-brand-900 uppercase tracking-wider bg-brand-50 px-2.5 py-1 rounded-lg border border-brand-200">
-                                        Đợt {{ $sch['order'] }}
-                                    </span>
-
-                                    <span
-                                        class="text-[11px] font-bold px-2.5 py-1 rounded-full border {{ $badgeClass }}">
-                                        {{ $badgeText }}
-                                    </span>
-                                </div>
-
-                                <div>
-                                    <span class="text-xs text-gray-400 block font-medium">Ngày giao dự kiến:</span>
-                                    <span
-                                        class="text-sm font-extrabold text-gray-900 font-mono">{{ $sch['date'] }}</span>
-                                </div>
-
-                                <!-- Danh sách món rau -->
-                                <div class="border-t border-gray-100 pt-3 space-y-2">
-                                    <span class="text-[11px] font-bold text-gray-600 block">Thực đơn đợt này
-                                        ({{ $sch['total_weight'] }} kg)
-                                        :</span>
-                                    <div class="space-y-1.5 max-h-36 overflow-y-auto pr-1.5 custom-scrollbar">
-                                        @forelse($sch['items'] as $item)
-                                            <div
-                                                class="flex items-center justify-between text-xs py-1 border-b border-gray-50 last:border-none">
-                                                <div class="flex items-center gap-2 min-w-0">
-                                                    <img src="{{ $item['image'] }}"
-                                                        class="w-6 h-6 rounded-md object-cover border border-gray-100 shrink-0"
-                                                        onerror="this.src='https://images.unsplash.com/photo-1540420773420-3366772f4999?w=100'">
-                                                    <a href="{{ !empty($item['slug']) ? route('customer.product.detail', $item['slug']) : '#' }}"
-                                                        target="_blank"
-                                                        class="truncate font-medium text-gray-800 hover:text-brand-600">
-                                                        {{ $item['name'] }}
-                                                    </a>
-                                                </div>
-                                                <span
-                                                    class="font-mono font-bold text-brand-800 text-[11px] shrink-0 ml-1">{{ $item['quantity'] }}x
-                                                    @if (isset($item['weight']))
-                                                        ({{ $item['weight'] }}kg)
-                                                    @endif
-                                                </span>
-                                            </div>
-                                        @empty
-                                            <span class="text-xs text-gray-400 italic">Rau hữu cơ tổng hợp theo
-                                                mùa</span>
-                                        @endforelse
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="pt-2 text-[11px] text-gray-400 text-center border-t border-gray-100">
-                                @if ($status === 'delivered')
-                                    <span class="text-emerald-700 font-bold">Giao thành công</span>
-                                @elseif($status === 'shipped')
-                                    <span class="text-sky-700 font-bold">Shipper đang trên đường tới</span>
-                                @elseif($status === 'processing')
-                                    <span class="text-amber-700 font-bold">Hôm nay tới đợt giao</span>
-                                @else
-                                    <span>Nông trại thu hoạch & giao đúng hẹn</span>
-                                @endif
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-
-        @endif
 
     </main>
 
