@@ -38,6 +38,7 @@ class GenerateVipDeliveryOrders extends Command
     public function handle(): int
     {
         $targetDateStr = $this->option('date');
+        //Carbon::parse giúp chuyển thành dạng Y-m-d toDateString cắt bỏ giờ phút giây
         $targetDate = $targetDateStr ? Carbon::parse($targetDateStr)->toDateString() : today()->toDateString();
 
         $this->info("Bắt đầu quét các đợt giao gói VIP đến ngày [{$targetDate}]...");

@@ -268,6 +268,7 @@
 
                 <!-- TAB 3: SỔ ĐỊA CHỈ NHẬN HÀNG -->
                 @if ($activeTab === 'addresses')
+                <!-- yêu cầu Alpine khởi tạo component có tên vnAddressPicker cho khu vực HTML này. -->
                     <div class="bg-white rounded-3xl border border-gray-100 p-6 sm:p-8 shadow-sm space-y-6"
                         x-data="vnAddressPicker()">
                         <div
@@ -566,7 +567,10 @@
         </div>
     </main>
 </div>
-
+ <!-- Alpine.js chạy trực tiếp trên trình duyệtmà không cần gửi request lên server liên tục. Ví dụ, 
+ khi người dùng chọn tỉnh thì Alpine.js có thể cập nhật danh sách huyện tương ứng ngay lập tức.
+ Còn PHP chạy ở phía server, nếu muốn xử lý từng thao tác thay đổi địa chỉ
+  thì trình duyệt phải gửi request lên server và chờ kết quả trả về. -->
 <script>
     document.addEventListener('alpine:init', () => {
         Alpine.data('vnAddressPicker', () => ({
@@ -616,24 +620,9 @@
                     const response = await fetch(`${this.baseUrl}/p/`);
                     if (!response.ok) throw new Error(`HTTP ${response.status}`);
                     this.provinces = await response.json();
-
-                    if (this.selectedProvince) {
-                        await this.syncInitialData();
-                    }
                 } catch (error) {
                     console.error('Không thể tải danh sách tỉnh/thành:', error);
                 }
-            },
-
-            async syncInitialData() {
-                const savedDistrict = this.selectedDistrict;
-                const savedWard = this.selectedWard;
-
-                await this.loadDistrictsForSelectedProvince();
-                this.selectedDistrict = savedDistrict ?? '';
-
-                await this.loadWardsForSelectedDistrict();
-                this.selectedWard = savedWard ?? '';
             },
 
             async loadDistrictsForSelectedProvince() {
@@ -724,7 +713,7 @@
                 try {
                     let data = await this.searchCoordinates(queryFull);
 
-                    if (!data.length) {
+                    if (!data.length && detail) {
                         data = await this.searchCoordinates(queryWard);
                     }
 
@@ -747,11 +736,6 @@
 
                     this.latitude = lat;
                     this.longitude = lng;
-
-                    Livewire.dispatch('address-coordinates-updated', {
-                        lat: lat,
-                        lng: lng,
-                    });
                 } catch (error) {
                     console.error('Lỗi chuyển địa chỉ thành tọa độ:', error);
                 }
@@ -759,9 +743,13 @@
 
             async searchCoordinates(address) {
                 const url = new URL('https://nominatim.openstreetmap.org/search');
+                //Yêu cầu API trả về dữ liệu dạng JSON.
                 url.searchParams.set('format', 'jsonv2');
+                //Truyền địa chỉ cần tìm vào tham số q
                 url.searchParams.set('q', address);
+                //Giới hạn kết quả tìm kiếm trong phạm vi Việt Nam.
                 url.searchParams.set('countrycodes', 'vn');
+                // Chỉ yêu cầu trả về tối đa một kết quả.
                 url.searchParams.set('limit', '1');
 
                 const response = await fetch(url.toString(), {

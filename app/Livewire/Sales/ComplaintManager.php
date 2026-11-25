@@ -171,7 +171,7 @@ class ComplaintManager extends Component
      */
     public function confirmResolution(): void
     {
-        $staff = Auth::guard('web')->user();
+        $staff = Auth::user();
 
         abort_unless(
             $staff

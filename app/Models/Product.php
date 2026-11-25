@@ -111,6 +111,7 @@ class Product extends Model
 
     /**
      * Scope tính tổng số lượng tồn kho khả dụng của các lô còn hạn & active (đã trừ phần giữ chỗ)
+     * Phải có chữ scope thì Laravel mới kích hoạt cơ chế ngầm để tự động truyền $query và cho phép nối chuỗi lệnh truy vấn (Product::active()->get())
      */
     public function scopeWithTotalStock($query)
     {

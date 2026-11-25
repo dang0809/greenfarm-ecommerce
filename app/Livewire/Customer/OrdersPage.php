@@ -66,7 +66,7 @@ class OrdersPage extends Component
             ->where(function($q) {
                 $q->where('status', '!=', 'cancelled')
                   ->orWhere(function($sub) {
-                      $sub->where('cancelled_by', '!=', 'system')->orWhereNull('cancelled_by');
+                      $sub->where('cancelled_by', '!=', 'system');
                   });
             });
 

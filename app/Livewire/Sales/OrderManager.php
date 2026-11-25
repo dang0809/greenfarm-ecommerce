@@ -104,6 +104,7 @@ class OrderManager extends Component
 
     /**
      * Đếm số lượng đơn hàng đã thanh toán theo từng trạng thái để hiển thị badge trên các Tab
+     * Livewire sẽ tự động Cache (lưu tạm vào RAM) trong suốt quá trình render, dù ngoài Blade bạn gọi $this->statusCounts 5 - 10 lần thì nó cũng chỉ chạy đúng 1 câu query duy nhất, không làm chậm database!
      */
     public function getStatusCountsProperty(): array
     {
@@ -363,8 +364,8 @@ class OrderManager extends Component
             ]);
 
             if (
-                in_array($lockedOrder->order_type, ['retail', 'subscription_delivery'], true)
-                && ($lockedOrder->order_type === 'subscription_delivery' || $lockedOrder->payment?->status === 'success')
+                $lockedOrder->order_type === 'subscription_delivery'
+                || ($lockedOrder->order_type === 'retail' && $lockedOrder->payment?->status === 'success')
             ) {
                 $lockedOrder->adjustProductSoldCounts(-1);
             }

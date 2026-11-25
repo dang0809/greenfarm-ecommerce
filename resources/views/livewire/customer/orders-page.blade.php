@@ -53,21 +53,20 @@
     <div class="space-y-5 pt-2">
         @forelse ($orders as $order)
             @php
-                $isVipPayment = $order->order_type === 'subscription'; // Đơn mua gói VIP
                 $isVipDelivery = $order->order_type === 'subscription_delivery'; // Đơn giao rau VIP từng đợt
             @endphp
 
             <div
-                class="{{ $isVipPayment || $isVipDelivery ? 'bg-purple-50/40 border-purple-200' : 'bg-gray-50/50 border-gray-200' }} rounded-2xl border p-4 sm:p-5 space-y-4">
+                class="{{ $isVipDelivery ? 'bg-purple-50/40 border-purple-200' : 'bg-gray-50/50 border-gray-200' }} rounded-2xl border p-4 sm:p-5 space-y-4">
 
                 <!-- Header Đơn hàng -->
                 <div
-                    class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b {{ $isVipPayment || $isVipDelivery ? 'border-purple-100' : 'border-gray-200/80' }} gap-2">
+                    class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b {{ $isVipDelivery ? 'border-purple-100' : 'border-gray-200/80' }} gap-2">
                     <div class="flex items-center gap-2.5">
                         <div
-                            class="w-9 h-9 rounded-xl {{ $isVipPayment || $isVipDelivery ? 'bg-purple-100 text-purple-700' : 'bg-brand-50 text-brand-600' }} flex items-center justify-center shrink-0">
+                            class="w-9 h-9 rounded-xl {{ $isVipDelivery ? 'bg-purple-100 text-purple-700' : 'bg-brand-50 text-brand-600' }} flex items-center justify-center shrink-0">
                             <i
-                                class="{{ $isVipPayment || $isVipDelivery ? 'fa-solid fa-crown' : 'fa-solid fa-box-archive' }} text-sm"></i>
+                                class="{{ $isVipDelivery ? 'fa-solid fa-crown' : 'fa-solid fa-box-archive' }} text-sm"></i>
                         </div>
                         <div>
                             <div class="flex items-center gap-2">
@@ -79,12 +78,7 @@
                                         class="fa-solid fa-arrow-up-right-from-square text-[9px] text-gray-400 group-hover:text-brand-600 transition"></i>
                                 </a>
 
-                                @if ($isVipPayment)
-                                    <span
-                                        class="inline-flex items-center gap-1 text-[10px] font-black text-purple-700 bg-purple-100 border border-purple-300 px-2 py-0.5 rounded-md">
-                                        <i class="fa-solid fa-credit-card text-[9px]"></i> ĐƠN MUA GÓI VIP
-                                    </span>
-                                @elseif ($isVipDelivery)
+                                @if ($isVipDelivery)
                                     @php
                                         $sched = $order->deliverySchedule;
                                         $batchInfo = $sched ? " (Đợt {$sched->delivery_order}/8)" : '';
@@ -196,20 +190,7 @@
                 @endif
 
                 <!-- HIỂN THỊ NỘI DUNG SẢN PHẨM -->
-                @if ($isVipPayment)
-                    <!-- CASE 1: ĐƠN MUA GÓI VIP (Không có items rau củ lẻ) -->
-                    <div class="py-2 flex items-center justify-between">
-                        <div>
-                            <h3 class="text-sm font-bold text-purple-950">{{ $vipPackageName }}
-                            </h3>
-                            <p class="text-xs text-purple-700 mt-0.5">Thanh toán quyền sử dụng dịch vụ VIP • Miễn phí
-                                vận chuyển 100% các kỳ giao</p>
-                        </div>
-                        <span class="text-sm font-black text-purple-900">{{ number_format($order->total) }}đ</span>
-                    </div>
-                @else
-                    <!-- CASE 2: ĐƠN BÁN LẺ HOẶC ĐƠN GIAO RAU VIP THEO ĐỢT (Có order_items) -->
-                    @php
+                @php
                         $itemsCount = $order->items->count();
                         $previewLimit = 2;
                     @endphp
@@ -276,11 +257,10 @@
                             </div>
                         @endif
                     </div>
-                @endif
 
                 <!-- Footer Đơn Hàng & Thao tác -->
                 <div
-                    class="pt-3 border-t {{ $isVipPayment || $isVipDelivery ? 'border-purple-100' : 'border-gray-200/80' }} flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    class="pt-3 border-t {{ $isVipDelivery ? 'border-purple-100' : 'border-gray-200/80' }} flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div class="text-xs text-gray-500">
                         @if (!$isVipDelivery)
                             <span>Cổng thanh toán: <b

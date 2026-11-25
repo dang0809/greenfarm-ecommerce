@@ -37,7 +37,7 @@ class SyncFlashSaleBatches extends Command
             if (!$batch->expiry_date) {
                 continue;
             }
-
+            //False Yêu cầu kết quả có dấu, phân biệt ngày trong tương lai và quá khứ.
             $daysLeft = today()->diffInDays($batch->expiry_date, false);
             $newDiscount = $batch->discount_percent;
 

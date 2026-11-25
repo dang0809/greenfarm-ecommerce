@@ -6,7 +6,6 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
-use Livewire\Attributes\On;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -94,6 +93,7 @@ class ProfilePage extends Component
     public function cancelAvatar(): void
     {
         $this->reset('newAvatar');
+        //tăng key lên để nó hủy thẻ cũ và tạo mới một thẻ input để khi hủy chọn lại file cũ nó không bị đơ
         $this->avatarInputKey++;
         $this->resetValidation('newAvatar');
     }
@@ -122,8 +122,8 @@ class ProfilePage extends Component
             'avatar' => $avatarPath,
         ]);
 
-        // Xóa ảnh cũ trên R2 nếu là file do người dùng tải lên (không phải URL seed)
-        if ($oldAvatar && !str_starts_with($oldAvatar, 'http') && $oldAvatar !== $avatarPath) {
+        // Xóa ảnh cũ trên R2 nếu đã có ảnh trước đó
+        if ($oldAvatar && $oldAvatar !== $avatarPath) {
             try {
                 if (Storage::disk('r2')->exists($oldAvatar)) {
                     Storage::disk('r2')->delete($oldAvatar);
@@ -156,16 +156,15 @@ class ProfilePage extends Component
     // Cập nhật Họ tên & Số điện thoại
     public function updateProfile()
     {
-        $cleanedPhone = preg_replace('/[\s.\-]+/u', '', trim($this->phone)) ?? '';
-        $this->phone = $cleanedPhone;
-
-        $phoneRules = $cleanedPhone === ''
-            ? ['nullable']
-            : ['required', 'string', 'regex:/^(0[35789])[0-9]{8}$/'];
+        $this->name = trim($this->name);
+        $this->phone = trim($this->phone);
+        $this->bank_name = trim($this->bank_name);
+        $this->bank_account_number = trim($this->bank_account_number);
+        $this->bank_account_name = trim($this->bank_account_name);
 
         $this->validate([
             'name' => ['required', 'string', 'max:255'],
-            'phone' => $phoneRules,
+            'phone' => ['nullable', 'string', 'regex:/^(0[35789])[0-9]{8}$/'],
             'bank_name' => ['nullable', 'string'],
             'bank_account_number' => ['nullable', 'string', 'max:30'],
             'bank_account_name' => ['nullable', 'string', 'max:100'],
@@ -173,7 +172,6 @@ class ProfilePage extends Component
             'name.required' => 'Vui lòng nhập họ và tên.',
             'name.string' => 'Họ và tên không hợp lệ.',
             'name.max' => 'Họ và tên không được vượt quá 255 ký tự.',
-            'phone.required' => 'Vui lòng nhập số điện thoại.',
             'phone.string' => 'Số điện thoại không hợp lệ.',
             'phone.regex' => 'Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 03, 05, 07, 08 hoặc 09.',
             'bank_name.string' => 'Tên ngân hàng không hợp lệ.',
@@ -187,9 +185,9 @@ class ProfilePage extends Component
         $user->update([
             'name' => $this->name,
             'phone' => !empty($this->phone) ? $this->phone : null,
-            'default_bank_name' => $this->bank_name,
-            'default_bank_account_number' => $this->bank_account_number,
-            'default_bank_account_name' => mb_strtoupper($this->bank_account_name),
+            'default_bank_name' => !empty($this->bank_name) ? $this->bank_name : null,
+            'default_bank_account_number' => !empty($this->bank_account_number) ? $this->bank_account_number : null,
+            'default_bank_account_name' => !empty($this->bank_account_name) ? mb_strtoupper($this->bank_account_name) : null,
         ]);
 
         $this->dispatch('profile-updated');
@@ -270,17 +268,13 @@ class ProfilePage extends Component
         ]);
     }
 
-    // Lắng nghe sự kiện băm tọa độ từ Alpine.js
-    #[On('address-coordinates-updated')]
-    public function updateCoordinates($lat = null, $lng = null)
-    {
-        $this->latitude = $lat;
-        $this->longitude = $lng;
-    }
-
     // Lưu địa chỉ vào CSDL
     public function saveAddress()
     {
+        $this->recipient_name = trim($this->recipient_name);
+        $this->recipient_phone = trim($this->recipient_phone);
+        $this->address_detail = trim($this->address_detail);
+
         $this->validate([
             'recipient_name' => 'required|string|max:255',
             'recipient_phone' => [

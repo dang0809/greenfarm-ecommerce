@@ -26,7 +26,10 @@ class CartPage extends Component
         $this->loadSelectedItems();
         $messages = $this->syncCartStock();
         if (!empty($messages)) {
-            $this->dispatch('show-toast', type: 'warning', message: $messages[0]);
+            $msg = count($messages) === 1
+                ? $messages[0]
+                : 'Có ' . count($messages) . ' sản phẩm trong giỏ hàng vừa bị thay đổi số lượng tồn kho.';
+            $this->dispatch('show-toast', type: 'warning', message: $msg);
         }
     }
 
@@ -195,11 +198,11 @@ class CartPage extends Component
         // 1. Kiểm tra biến động tồn kho trước khi chuyển trang
         $messages = $this->syncCartStock();
         if (!empty($messages)) {
-            $this->dispatch(
-                'show-toast',
-                type: 'warning',
-                message: 'Tồn kho vừa có thay đổi! ' . $messages[0] . ' Vui lòng kiểm tra lại trước khi tiếp tục.'
-            );
+            $msg = count($messages) === 1
+                ? 'Tồn kho vừa có thay đổi! ' . $messages[0] . ' Vui lòng kiểm tra lại trước khi tiếp tục.'
+                : 'Tồn kho vừa có thay đổi đối với ' . count($messages) . ' sản phẩm trong giỏ hàng! Vui lòng kiểm tra lại trước khi tiếp tục.';
+
+            $this->dispatch('show-toast', type: 'warning', message: $msg);
             return;
         }
 
