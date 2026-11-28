@@ -117,6 +117,7 @@ class Header extends Component
 
     public function logout(): void
     {
+        //Sau lệnh này, Auth::user() sẽ trả về null và Auth::check() sẽ trả về false. và bỏ remember token trong bảng user
         Auth::logout();
 
         session()->invalidate();
@@ -140,8 +141,6 @@ class Header extends Component
             $query = Notification::where('user_id', $user->id)->latest();
             if (!$this->showAllNotifs) {
                 $query->take(5);
-            } else {
-                $query->take(30);
             }
             $notifications = $query->get();
 

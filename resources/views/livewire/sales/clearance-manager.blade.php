@@ -18,56 +18,6 @@
     <!-- ================= 2. NỘI DUNG CUỘN CHÍNH ================= -->
     <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 custom-scrollbar pb-28 sm:pb-12 h-[calc(100dvh-5rem)]">
 
-        <!-- ================= 3 THẺ THỐNG KÊ KPI ================= -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-5">
-            
-            <!-- Thẻ 1: Lô nguy cấp <= 1 ngày -->
-            <div class="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-rose-200 shadow-soft flex items-center justify-between">
-                <div>
-                    <span class="text-[11px] sm:text-xs font-bold text-rose-600 block uppercase tracking-wider">Hạn Còn &le; 1 Ngày</span>
-                    <div class="flex items-baseline gap-2 mt-1">
-                        <span class="text-2xl sm:text-3xl font-black text-rose-600 tracking-tight font-mono">{{ str_pad($urgentCount, 2, '0', STR_PAD_LEFT) }}</span>
-                        <span class="text-[10px] font-extrabold bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full border border-rose-200 animate-pulse">Giảm 50%</span>
-                    </div>
-                    <p class="text-[11px] text-gray-500 font-medium mt-1">Lô hết hạn hôm nay hoặc ngày mai</p>
-                </div>
-                <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-lg sm:text-xl shrink-0">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
-                </div>
-            </div>
-
-            <!-- Thẻ 2: Lô cận hạn 2 ngày -->
-            <div class="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-amber-200 shadow-soft flex items-center justify-between">
-                <div>
-                    <span class="text-[11px] sm:text-xs font-bold text-amber-700 block uppercase tracking-wider">Hạn Còn 2 Ngày</span>
-                    <div class="flex items-baseline gap-2 mt-1">
-                        <span class="text-2xl sm:text-3xl font-black text-amber-700 tracking-tight font-mono">{{ str_pad($nearCount, 2, '0', STR_PAD_LEFT) }}</span>
-                        <span class="text-[10px] font-bold bg-amber-50 text-amber-800 px-2 py-0.5 rounded-full border border-amber-200">Giảm 30%</span>
-                    </div>
-                    <p class="text-[11px] text-gray-500 font-medium mt-1">Lô hết hạn vào ngày mốt</p>
-                </div>
-                <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg sm:text-xl shrink-0">
-                    <i class="fa-solid fa-hourglass-half"></i>
-                </div>
-            </div>
-
-            <!-- Thẻ 3: Đang kích hoạt Flash Sale xả hàng -->
-            <div class="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-emerald-200 shadow-soft flex items-center justify-between">
-                <div>
-                    <span class="text-[11px] sm:text-xs font-bold text-emerald-700 block uppercase tracking-wider">Đang Xả Kho Flash Sale</span>
-                    <div class="flex items-baseline gap-2 mt-1">
-                        <span class="text-2xl sm:text-3xl font-black text-emerald-800 tracking-tight font-mono">{{ $activeSaleCount }} lô</span>
-                        <span class="text-xs text-emerald-700 font-bold font-mono">({{ number_format($activeSaleQty) }} kg)</span>
-                    </div>
-                    <p class="text-[11px] text-gray-500 font-medium mt-1">Đang hiển thị giá giảm ngoài Website</p>
-                </div>
-                <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-lg sm:text-xl shrink-0">
-                    <i class="fa-solid fa-bolt"></i>
-                </div>
-            </div>
-
-        </div>
-
         <!-- ================= BẢNG DANH SÁCH: CÁC LÔ NÔNG SẢN CẬN DATE ================= -->
         <div class="bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-soft overflow-hidden space-y-3">
             

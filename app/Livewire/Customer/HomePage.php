@@ -72,6 +72,7 @@ class HomePage extends Component
         ])
             ->withTotalStock()
             ->where('status', 'active')
+            ->where('sold_count', '>', 0) // Chỉ lấy những sản phẩm ĐÃ TỪNG BÁN ĐƯỢC
             ->whereHas('category', function ($query) {
                 $query->where('is_active', true);
             })

@@ -759,8 +759,8 @@
                         </button>
                     @endif
 
-                    <!-- 3. Yêu cầu xử lý / Khiếu nại hoàn tiền dập nát (24H) -->
-                    @if ($order->status === 'delivered' && $order->order_type === 'retail' && !$order->complaint)
+                    <!-- 3. Yêu cầu xử lý / Khiếu nại hoàn tiền dập nát (chỉ hiển thị khi còn hạn 24H) -->
+                    @if ($canRefund)
                         <button type="button" wire:click="openComplaintModal({{ $order->id }})"
                             class="w-full bg-white hover:bg-amber-50 text-amber-700 hover:text-amber-800 border border-amber-200 hover:border-amber-300 font-semibold py-2.5 rounded-2xl text-xs transition-all flex items-center justify-center gap-2 cursor-pointer">
                             <i class="fa-solid fa-shield-cat text-xs text-amber-600"></i>

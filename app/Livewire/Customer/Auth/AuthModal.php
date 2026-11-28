@@ -258,6 +258,7 @@ class AuthModal extends Component
             }
 
             RateLimiter::clear($throttleKey);
+            //đổi để tránh kẻ tấn công có thể lợi dụng Session ID đã biết từ trước để chiếm quyền phiên đăng nhập
             session()->regenerate();
 
             $this->closeModal();

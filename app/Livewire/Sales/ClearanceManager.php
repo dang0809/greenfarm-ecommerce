@@ -51,13 +51,15 @@ class ClearanceManager extends Component
             $this->dispatch('show-toast', type: 'error', message: 'Lô hàng không tồn tại!');
             return;
         }
-
+        // lt() = Less Than (<): Kiểm tra nếu hạn sử dụng nhỏ hơn ngày hôm nay (tức lô hàng đã hết hạn)
         if ($batch->expiry_date->lt(today())) {
             $this->dispatch('show-toast', type: 'error', message: 'Lô hàng đã quá hạn sử dụng, không thể kích hoạt xả kho!');
             return;
         }
 
         // Tính số ngày còn lại (0 = hôm nay/1 ngày, 1 = ngày mai/2 ngày)
+        //Tham số false ở đây đại diện cho tùy chọn $absolute = false (không lấy giá trị tuyệt đối) trong hàm diffInDays()
+        //  của Carbon nghĩa là trả về số ngày dương nếu expiry_date lớn hơn hôm nay, và số ngày âm nếu expiry_date nhỏ hơn hôm nay.
         $daysLeft = today()->diffInDays($batch->expiry_date, false);
 
         if ($daysLeft <= 1) {
@@ -149,7 +151,7 @@ class ClearanceManager extends Component
     public function render()
     {
         // 1. Query cơ sở: Lô active, còn tồn kho khả dụng, hạn dùng trong vòng 2 ngày (<= 48h)
-        $baseQuery = ProductBatch::with([
+        $clearanceQuery = ProductBatch::with([
             'plantingBatch.product.productImages',
             'plantingBatch.product.category'
         ])
@@ -158,33 +160,13 @@ class ClearanceManager extends Component
             ->whereDate('expiry_date', '>=', today())
             ->whereDate('expiry_date', '<=', today()->addDays(2));
 
-        // 2. Thống kê số liệu 3 Thẻ KPI
-        // Thẻ 1: Lô nguy cấp <= 1 ngày (Sale 50%)
-        $urgentCount = (clone $baseQuery)
-            ->whereDate('expiry_date', '<=', today()->addDay())
-            ->count();
+        // 2. Thống kê số liệu cho các Tabs
+        $totalCount = (clone $clearanceQuery)->count();
+        $activeSaleCount = (clone $clearanceQuery)->where('discount_percent', '>', 0)->count();
+        $notSaleCount = (clone $clearanceQuery)->where('discount_percent', 0)->count();
 
-        // Thẻ 2: Lô cận date đúng 2 ngày (Sale 30%)
-        $nearCount = (clone $baseQuery)
-            ->whereDate('expiry_date', '>', today()->addDay())
-            ->whereDate('expiry_date', '<=', today()->addDays(2))
-            ->count();
-
-        // Tổng tất cả lô cận date <= 2 ngày (cho Tab Tất cả)
-        $totalCount = (clone $baseQuery)->count();
-
-        $activeSaleBatches = (clone $baseQuery)
-            ->where('discount_percent', '>', 0)
-            ->get();
-
-        $activeSaleCount = $activeSaleBatches->count();
-        $activeSaleQty = (int) $activeSaleBatches->sum(fn($b) => $b->available_quantity);
-
-        // Số liệu cho các Tabs
-        $notSaleCount = (clone $baseQuery)->where('discount_percent', 0)->count();
-
-        // 3. Áp dụng bộ lọc Tabs
-        $query = clone $baseQuery;
+        // 3. Áp dụng bộ lọc Tabs cho bảng chính
+        $query = clone $clearanceQuery;
 
         if ($this->tabFilter === 'on_sale') {
             $query->where('discount_percent', '>', 0);
@@ -208,11 +190,8 @@ class ClearanceManager extends Component
 
         return view('livewire.sales.clearance-manager', [
             'batches' => $batches,
-            'urgentCount' => $urgentCount,
-            'nearCount' => $nearCount,
             'totalCount' => $totalCount,
             'activeSaleCount' => $activeSaleCount,
-            'activeSaleQty' => $activeSaleQty,
             'notSaleCount' => $notSaleCount,
         ]);
     }

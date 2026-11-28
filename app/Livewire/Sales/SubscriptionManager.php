@@ -126,7 +126,6 @@ class SubscriptionManager extends Component
             $this->enrichedSchedules[] = [
                 'order' => $s->delivery_order,
                 'date' => $s->delivery_date?->format('d/m/Y') ?? 'Chưa đặt',
-                'day_of_week' => $s->delivery_date?->format('l') ?? '',
                 'status' => $s->status ?? 'pending',
                 'order_code' => $s->order?->order_code ?? null,
                 'total_weight' => round($totalWeight, 1),

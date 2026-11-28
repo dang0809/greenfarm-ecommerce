@@ -34,10 +34,6 @@ class ComplaintManager extends Component
     public string $reject_reason = '';
     public string $resolution_note = '';
 
-    // Modal Phóng to ảnh bằng chứng
-    public bool $showZoomModal = false;
-    public string $zoomImageUrl = '';
-
     // Reset phân trang khi gõ tìm kiếm hoặc đổi tab
     public function updatingSearch(): void
     {
@@ -81,21 +77,11 @@ class ComplaintManager extends Component
     }
 
     /**
-     * Thống kê KPI trên đầu trang
+     * Tổng tiền đã duyệt hoàn trả cho khách hàng
      */
-    public function getKpiPendingCountProperty(): int
-    {
-        return Complaint::where('status', 'pending')->count();
-    }
-
     public function getKpiRefundAmountProperty(): float
     {
         return (float) Complaint::where('status', 'resolved')->sum('refund_amount');
-    }
-
-    public function getKpiRefundCountProperty(): int
-    {
-        return Complaint::where('status', 'resolved')->count();
     }
 
     /**
@@ -149,21 +135,6 @@ class ComplaintManager extends Component
         $this->selectedComplaint = null;
         $this->reject_reason = '';
         $this->resolution_note = '';
-    }
-
-    /**
-     * Phóng to ảnh bằng chứng
-     */
-    public function openZoom(string $url): void
-    {
-        $this->zoomImageUrl = $url;
-        $this->showZoomModal = true;
-    }
-
-    public function closeZoom(): void
-    {
-        $this->showZoomModal = false;
-        $this->zoomImageUrl = '';
     }
 
     /**
@@ -347,9 +318,7 @@ class ComplaintManager extends Component
 
         return view('livewire.sales.complaint-manager', [
             'complaints' => $complaints,
-            'kpiPendingCount' => $this->kpiPendingCount,
             'kpiRefundAmount' => $this->kpiRefundAmount,
-            'kpiRefundCount' => $this->kpiRefundCount,
             'statusCounts' => $this->statusCounts,
         ]);
     }

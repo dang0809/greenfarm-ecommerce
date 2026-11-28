@@ -149,10 +149,16 @@ trait WithOrderTimeline
             }
         }
 
+        // Sắp xếp dòng thời gian (Timeline) theo thứ tự thời gian giảm dần (mới nhất lên đầu)
+        // Sử dụng toán tử phi thuyền (<=> - Spaceship Operator):
+        // $x <=> $y trả về: -1 nếu $x < $y, 0 nếu $x == $y, 1 nếu $x > $y.
+        // Đảo ngược vị trí ($b <=> $a) để đạt được thứ tự sắp xếp giảm dần (DESC).
         usort($events, function ($a, $b) {
+            // Nếu 2 sự kiện xảy ra cùng thời điểm, ưu tiên sự kiện có trọng số 'order' lớn hơn hiển thị trước
             if ($a['time']->equalTo($b['time'])) {
                 return $b['order'] <=> $a['order'];
             }
+            // Mặc định: Sự kiện có thời gian mới hơn ($b['time'] > $a['time']) sẽ đứng trước
             return $b['time'] <=> $a['time'];
         });
 

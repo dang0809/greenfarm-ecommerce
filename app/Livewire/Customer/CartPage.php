@@ -212,7 +212,8 @@ class CartPage extends Component
             return;
         }
 
-        // 3. Lưu danh sách ID sản phẩm chọn mua sang Session
+        // 3. Dọn dẹp session "Mua ngay" cũ và lưu danh sách ID sản phẩm chọn mua sang Session
+        session()->forget('checkout_buy_now');
         session([
             'checkout_selected_items' => array_map('intval', $this->selectedItems),
         ]);

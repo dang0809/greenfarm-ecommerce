@@ -208,10 +208,11 @@ trait WithOrderActions
             return;
 
         $cart = Cart::firstOrCreate(['user_id' => Auth::id()]);
-        $addedCount = 0;
-        $outOfStockCount = 0;
-        $alreadyMaxedInCartCount = 0;
-        $partiallyAddedCount = 0;
+        // Các biến đếm trạng thái khi mua lại đơn hàng (reorder)
+        $addedCount = 0;              // Số món được thêm thành công vào giỏ hàng (ít nhất 1 đơn vị)
+        $outOfStockCount = 0;         // Số món bị bỏ qua do hết hàng, bị ẩn hoặc danh mục bị khóa
+        $alreadyMaxedInCartCount = 0; // Số món không thể thêm vì số lượng trong giỏ đã đạt tối đa tồn kho
+        $partiallyAddedCount = 0;     // Số món chỉ thêm được một phần (kho không đủ số lượng như đơn cũ)
 
         foreach ($order->items as $item) {
             $product = $item->product;

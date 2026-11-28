@@ -1,4 +1,4 @@
-<div class="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
+<div x-data="{ zoomImageUrl: null }" class="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
     <!-- ================= 1. HEADER CHÍNH ================= -->
     <header class="min-h-[4.5rem] sm:h-20 bg-white/95 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-4 sm:px-8 shrink-0 z-20 gap-3">
         <div class="flex items-center gap-3 min-w-0">
@@ -26,9 +26,8 @@
                 </div>
                 <div>
                     <span class="text-[11px] sm:text-xs font-bold text-emerald-700 block uppercase tracking-wider">Tổng Tiền Đã Hoàn Trả Khách Hàng</span>
-                    <div class="flex items-baseline gap-2 mt-0.5 flex-wrap">
+                    <div class="mt-0.5">
                         <span class="text-xl sm:text-2xl font-black text-emerald-800 tracking-tight font-mono">{{ number_format($kpiRefundAmount, 0, ',', '.') }}đ</span>
-                        <span class="text-xs text-gray-500 font-medium font-sans">({{ $kpiRefundCount }} đơn đã hoàn tiền thành công)</span>
                     </div>
                 </div>
             </div>
@@ -341,7 +340,7 @@
                                 @php
                                     $iUrl = $img->url;
                                 @endphp
-                                <button type="button" wire:click="openZoom('{{ $iUrl }}')" class="relative group rounded-xl overflow-hidden border border-gray-200 aspect-square bg-gray-50 cursor-pointer hover:border-brand-500 transition shadow-2xs">
+                                <button type="button" @click="zoomImageUrl = '{{ $iUrl }}'" class="relative group rounded-xl overflow-hidden border border-gray-200 aspect-square bg-gray-50 cursor-pointer hover:border-brand-500 transition shadow-2xs">
                                     <img src="{{ $iUrl }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200">
                                     <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1">
                                         <i class="fa-solid fa-magnifying-glass-plus"></i> Xem ảnh
@@ -488,18 +487,19 @@
         </div>
     @endif
 
-    <!-- ================= 5. MODAL PHÓNG TO HÌNH ẢNH BẰNG CHỨNG ================= -->
-    @if($showZoomModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4" wire:click="closeZoom">
-            <div class="relative max-w-2xl w-full bg-white rounded-2xl sm:rounded-3xl p-3 sm:p-4 shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
-                <div class="flex justify-between items-center pb-2 mb-2 border-b border-gray-100">
-                    <span class="text-xs font-bold text-gray-700">Ảnh Bằng Chứng Nông Sản Khách Tải Lên</span>
-                    <button type="button" wire:click="closeZoom" class="w-7 h-7 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center justify-center cursor-pointer">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                </div>
-                <img src="{{ $zoomImageUrl }}" class="w-full max-h-[75vh] object-contain rounded-xl">
+    <!-- ================= 5. MODAL PHÓNG TO HÌNH ẢNH BẰNG CHỨNG (ALPINE.JS) ================= -->
+    <div x-show="zoomImageUrl" x-cloak @keydown.escape.window="zoomImageUrl = null"
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4"
+         @click="zoomImageUrl = null">
+        <div class="relative max-w-2xl w-full bg-white rounded-2xl sm:rounded-3xl p-3 sm:p-4 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+             @click.stop>
+            <div class="flex justify-between items-center pb-2 mb-2 border-b border-gray-100">
+                <span class="text-xs font-bold text-gray-700">Ảnh Bằng Chứng Nông Sản Khách Tải Lên</span>
+                <button type="button" @click="zoomImageUrl = null" class="w-7 h-7 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center justify-center cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
             </div>
+            <img :src="zoomImageUrl" class="w-full max-h-[75vh] object-contain rounded-xl">
         </div>
-    @endif
+    </div>
 </div>
